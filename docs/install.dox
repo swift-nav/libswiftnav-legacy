@@ -1,0 +1,101 @@
+/** \page install Installation
+
+\section obtaining_source Obtaining the source
+
+The libswiftnav source and release tarballs are available from GitHub,
+https://github.com/swift-nav/peregrine.
+
+The latest development version of libswiftnav can be cloned from GitHub using
+the following command:
+
+    $ git clone git://github.com/swift-nav/libswiftnav.git
+
+
+\section building_source Building from source
+
+libswiftnav makes use of the CMake build system which is available at
+http://www.cmake.org/ or through your operating system package manager.
+
+First navigate to the libswiftnav root directory and create a build directory
+where the library will be built.
+
+    $ cd libswiftnav
+    $ mkdir build
+    $ cd build
+
+First invoke CMake to configure the build.
+
+    $ cmake ../
+
+Once the build has been configured you can build the source and install it
+as follows.
+
+    $ make
+    $ sudo make install
+
+By default libswiftnav will be built both as a shared library `libswiftnav` and
+a static library `libswiftnav-static`.
+
+\section building_docs Building the documentation
+
+The latest version of the libswiftnav documentation should be available online
+at http://docs.swift-nav.com/libswiftnav/
+
+The documentation is built using Doxygen (http://www.doxygen.org) and contains
+diagrams prepared using \f$\LaTeX\f$. To build the diagrams you will require a
+working \f$\LaTeX\f$ distribution including the TikZ package and the 'convert'
+utility from ImageMagik (http://www.imagemagick.org/).
+
+To build the documentation, from inside your build directory run:
+
+    $ make docs
+
+The compiled documentation will placed in `build/docs/html`.
+
+
+\section cross_compile Cross-compiling
+
+libswiftnav was designed from the ground up to be portable and with a view to
+being run on embedded systems. It should be easy to cross-compile for any
+target with a standards compliant C compiler.
+
+To cross-compile we need to provide CMake with a few details about our
+cross-compilation toolchain. We achieve this with a toolchain file. For more
+details about toolchain files and how to prepare your own, see
+http://www.cmake.org/Wiki/CMake_Cross_Compiling.
+
+Here we will walk through a cross-compilation for a Cortex-M4 microcontroller
+using the included toolchain file for the gcc-arm-embedded toolchain
+(https://launchpad.net/gcc-arm-embedded).
+
+First make a build folder for our target, this can co-exist alongside a native
+build folder.
+
+    $ mkdir build_cm4
+    $ cd build_cm4
+
+Then configure our build using CMake, specifying the toolchain file we are
+using.
+
+    $ cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake ../
+
+Then we can build the source in the usual way.
+
+    $ make
+
+If you wish you can install the library to your toolchain environment, this
+must be configured correctly in the toolchain file. For the included
+gcc-arm-embedded toolchain file this should work correctly.
+
+    $ make install
+
+If your target environment does not support shared libraries then you should
+specify not to build shared libraries in your toolchain file as follows.
+
+    set(BUILD_SHARED_LIBS OFF)
+
+When cross-compiling the generated libraries will have a suffix of the target
+processor name, e.g. `libswiftnav-static-cortex-m4.a`.
+
+*/
+
