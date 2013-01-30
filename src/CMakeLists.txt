@@ -11,6 +11,7 @@ set(libswiftnav_SRCS
   nav_msg.c
   pvt.c
   tropo.c
+  track.c
   coord_system.c
   linear_algebra.c
   prns.c

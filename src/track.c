@@ -196,7 +196,7 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
   }
 }
 
-void track_correlate_old(s8* samples, s8* code,
+void track_correlate(s8* samples, s8* code,
                      double* init_code_phase, double code_step, double* init_carr_phase, double carr_step,
                      double* I_E, double* Q_E, double* I_P, double* Q_P, double* I_L, double* Q_L, u32* num_samples)
 {
@@ -249,9 +249,9 @@ void track_correlate_old(s8* samples, s8* code,
   *init_carr_phase = fmod(carr_phase, 2*M_PI);
 }
 
+#if 0
 
-
-void track_correlate(s8* samples, s8* code,
+void track_correlate_sse(s8* samples, s8* code,
                      double* init_code_phase, double code_step, double* init_carr_phase, double carr_step,
                      double* I_E, double* Q_E, double* I_P, double* Q_P, double* I_L, double* Q_L, u32* num_samples)
 {
@@ -323,6 +323,8 @@ void track_correlate(s8* samples, s8* code,
   *I_L = res[7];
   *Q_L = res[6];
 }
+
+#endif
 
 /** \} */
 
