@@ -11,7 +11,7 @@
  */
 
 #include <math.h>
-#include <tmmintrin.h>
+/*#include <tmmintrin.h>*/
 
 #include "pvt.h"
 #include "prns.h"
