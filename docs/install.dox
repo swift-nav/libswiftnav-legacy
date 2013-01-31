@@ -3,7 +3,7 @@
 \section obtaining_source Obtaining the source
 
 The libswiftnav source and release tarballs are available from GitHub,
-https://github.com/swift-nav/peregrine.
+https://github.com/swift-nav/libswiftnav.
 
 The latest development version of libswiftnav can be cloned from GitHub using
 the following command:
