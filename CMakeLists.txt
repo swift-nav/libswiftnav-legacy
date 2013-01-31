@@ -2,9 +2,23 @@ project(libswiftnav)
 
 # Set project version using Git tag and hash.
 execute_process(
-  COMMAND "${PROJECT_SOURCE_DIR}/scripts/gitversion"
-  OUTPUT_VARIABLE VERSION
+  COMMAND git describe --dirty --tags --always
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  RESULT_VARIABLE GIT_VERSION_FOUND
+  ERROR_QUIET
+  OUTPUT_VARIABLE GIT_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+if (GIT_VERSION_FOUND)
+  set(VERSION "unknown")
+else (GIT_VERSION_FOUND)
+  set(VERSION ${GIT_VERSION})
+endif (GIT_VERSION_FOUND)
+
+# Set project version explicitly for release tarballs.
+#set(VERSION foo)
+
+message(STATUS "libswiftnav version: ${VERSION}")
 
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
