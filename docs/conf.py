@@ -1,7 +1,18 @@
 import sys, os
 
 # Append the project root to the path so our packages can be found.
+sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
+# Cython extensions are placed in a build directory which we must find..
+import glob
+lib_build_dirs = glob.glob('../build/lib.*')
+lib_build_dirs = map(os.path.abspath, lib_build_dirs)
+if len(lib_build_dirs) == 0:
+  print "No build directory found, did you run setup.py build_ext?"
+else:
+  print "Found build directory:", lib_build_dirs[0]
+  sys.path.insert(0, lib_build_dirs[0])
+
 # Append the Sphinx extensions directory to the path.
 sys.path.insert(0, os.path.abspath('extensions'))
 
