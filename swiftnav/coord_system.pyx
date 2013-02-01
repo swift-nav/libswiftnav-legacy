@@ -67,7 +67,7 @@ def wgsecef2llh(x, y, z):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] llh = \
     np.empty(3, dtype=np.double)
   
-  coord_system_c.wgsllh2ecef(&ecef[0], &llh[0])
+  coord_system_c.wgsecef2llh(&ecef[0], &llh[0])
   
   return llh
 
