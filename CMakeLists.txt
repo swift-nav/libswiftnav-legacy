@@ -26,6 +26,15 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Some compiler options used globally
 set(CMAKE_C_FLAGS "-Wall -Wextra -Werror -std=gnu99 ${CMAKE_C_FLAGS}")
 
+if (NOT CMAKE_CROSSCOMPILING)
+  # Detect and use optimised compiler flags for the host architecture,
+  # this is specific to x86 family CPUs.
+  include(cmake/OptimizeForArchitecture.cmake)
+  OptimizeForArchitecture()
+  message(STATUS "Adding architecture flags: ${Vc_ARCHITECTURE_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 ${Vc_ARCHITECTURE_FLAGS}")
+endif ()
+
 add_subdirectory(src)
 add_subdirectory(docs)
 add_subdirectory(tests)
