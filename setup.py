@@ -124,6 +124,7 @@ if __name__ == "__main__":
     'swiftnav.coord_system',
     'swiftnav.nav_msg',
     'swiftnav.pvt',
+    'swiftnav.correlate',
     'swiftnav.track'
   ]
 
