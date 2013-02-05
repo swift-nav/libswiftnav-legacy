@@ -82,3 +82,29 @@ def calc_navigation_measurement(double t, chan_meas, es):
 
   return nav_meas
 
+def calc_loop_gains(double bw, double zeta, double k, double sample_freq):
+  """
+  Wraps function :libswiftnav:`calc_loop_gains`.
+
+  Parameters
+  ----------
+  bw : float
+    The loop noise bandwidth
+  zeta : float
+    The damping ratio
+  k : float
+    The loop gain
+  sample_freq : float
+    The sampling frequency
+
+  Returns
+  -------
+  out : (float, float)
+    The tuple `(pgain, igain)`.
+
+  """
+  cdef double pgain
+  cdef double igain
+  track_c.calc_loop_gains(bw, zeta, k, sample_freq, &pgain, &igain)
+  return (pgain, igain)
+

@@ -29,4 +29,6 @@ cdef extern from "libswiftnav/track.h":
     double sat_vel[3]
 
   void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
+  void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
+                       double *pgain, double *igain)
 
