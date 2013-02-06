@@ -216,6 +216,60 @@ double simple_lf_update(simple_lf_state_t *s, double error)
   return s->y;
 }
 
+/** Initialise a simple tracking loop.
+ *
+ * For a full description of the loop filter parameters, see calc_loop_gains().
+ *
+ * \param s The tracking loop state struct to initialise.
+ * \param code_freq The initial code phase rate (i.e. frequency).
+ * \param code_bw The code tracking loop noise bandwidth.
+ * \param code_zeta The code tracking loop damping ratio.
+ * \param code_k The code tracking loop gain.
+ * \param carr_freq The initial carrier frequency.
+ * \param carr_bw The carrier tracking loop noise bandwidth.
+ * \param carr_zeta The carrier tracking loop damping ratio.
+ * \param carr_k The carrier tracking loop gain.
+ */
+void simple_tl_init(simple_tl_state_t *s, double loop_freq,
+                    double code_freq, double code_bw,
+                    double code_zeta, double code_k,
+                    double carr_freq, double carr_bw,
+                    double carr_zeta, double carr_k)
+{
+  double pgain, igain;
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  s->code_freq = code_freq;
+  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
+  s->carr_freq = carr_freq;
+  simple_lf_init(&(s->carr_filt), carr_freq, pgain, igain);
+}
+
+/** Update step for the simple tracking loop.
+ *
+ * Implements a basic second-order tracking loop. The code tracking loop is a
+ * second-order DLL using dll_discriminator() as its discriminator function.
+ * The carrier phase tracking loop is a second-order Costas loop using
+ * costas_discriminator().
+ *
+ * The tracking loop output variables, i.e. code and carrier frequencies can be
+ * read out directly from the state struct.
+ *
+ * \param s The tracking loop state struct.
+ * \param cs An array [E, P, L] of correlation_t structs for the Early, Prompt
+ *           and Late correlations.
+ */
+void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
+{
+  double code_error = dll_discriminator(cs);
+  s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
+  double carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+  s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
+}
+
+
 /** \} */
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], navigation_measurement_t nav_meas[], double nav_time, ephemeris_t ephemerides[])

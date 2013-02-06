@@ -32,6 +32,16 @@ typedef struct {
   double y;          /**< Output variable. */
 } simple_lf_state_t;
 
+/** State structure for a simple tracking loop.
+ * Should be initialised with simple_tl_init().
+ */
+typedef struct {
+  double code_freq;            /**< Code phase rate (i.e. frequency). */
+  double carr_freq;            /**< Carrier frequency. */
+  simple_lf_state_t code_filt; /**< Code loop filter state. */
+  simple_lf_state_t carr_filt; /**< Carrier loop filter state. */
+} simple_tl_state_t;
+
 /** \} */
 
 /** Structure representing a complex valued correlation. */
@@ -69,6 +79,13 @@ double dll_discriminator(correlation_t cs[3]);
 void simple_lf_init(simple_lf_state_t *s, double y0,
                     double pgain, double igain);
 double simple_lf_update(simple_lf_state_t *s, double error);
+
+void simple_tl_init(simple_tl_state_t *s, double loop_freq,
+                    double code_freq, double code_bw,
+                    double code_zeta, double code_k,
+                    double carr_freq, double carr_bw,
+                    double carr_zeta, double carr_k);
+void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3]);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
