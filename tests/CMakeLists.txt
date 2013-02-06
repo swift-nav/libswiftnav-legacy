@@ -8,7 +8,7 @@ else (CMAKE_CROSSCOMPILING)
   else (NOT CHECK_FOUND)
 
     include_directories(${CHECK_INCLUDE_DIRS})
-    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} m swiftnav)
+    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav m)
 
     include_directories("${PROJECT_SOURCE_DIR}/include")
 
