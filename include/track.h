@@ -61,7 +61,7 @@ typedef struct {
   double sat_vel[3];
 } navigation_measurement_t;
 
-void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
+void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
                      double *pgain, double *igain);
 double costas_discriminator(double I, double Q);
 double dll_discriminator(correlation_t cs[3]);

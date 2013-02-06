@@ -68,8 +68,8 @@
  *         {4 + 4 \zeta \omega_n T + \omega_n^2 T^2}
  * \f]
  *
- * Where \f$T\f$ is the sampling time and the overall loop gain, \f$k\f$, is
- * the product of the NCO and discriminator gains, \f$ k = K_0 K_d \f$. The
+ * Where \f$T\f$ is the loop update period and the overall loop gain, \f$k\f$,
+ * is the product of the NCO and discriminator gains, \f$ k = K_0 K_d \f$. The
  * natural frequency is related to the loop noise bandwidth, \f$B_L\f$ by the
  * following relationship:
  *
@@ -89,15 +89,15 @@
  * \todo This math is all wrong, these slides show the analysis we want:
  *       http://www.compdsp.com/presentations/Jacobsen/abineau_dpll_analysis.pdf
  *
- * \param bw          The loop noise bandwidth, \f$B_L\f$.
- * \param zeta        The damping ratio, \f$\zeta\f$.
- * \param k           The loop gain, \f$k\f$.
- * \param sample_freq The sampling frequency, \f$1/T\f$.
- * \param pgain       Where to store the calculated proportional gain,
- *                    \f$k_p\f$.
- * \param igain       Where to store the calculated integral gain, \f$k_i\f$.
+ * \param bw        The loop noise bandwidth, \f$B_L\f$.
+ * \param zeta      The damping ratio, \f$\zeta\f$.
+ * \param k         The loop gain, \f$k\f$.
+ * \param loop_freq The loop update frequency, \f$1/T\f$.
+ * \param pgain     Where to store the calculated proportional gain,
+ *                  \f$k_p\f$.
+ * \param igain     Where to store the calculated integral gain, \f$k_i\f$.
  */
-void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
+void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
                      double *pgain, double *igain)
 {
   /* Find the natural frequency. */
@@ -105,13 +105,13 @@ void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
 
   /* Some intermmediate values. */
 /*
-  double T = 1. / sample_freq;
+  double T = 1. / loop_freq;
   double denominator = k*(4 + 4*zeta*omega_n*T + omega_n*omega_n*T*T);
 
   *pgain = 8*zeta*omega_n*T / denominator;
   *igain = 4*omega_n*omega_n*T*T / denominator;
 */
-  *igain = omega_n * omega_n / (k * sample_freq);
+  *igain = omega_n * omega_n / (k * loop_freq);
   *pgain = 2.0 * zeta * omega_n / k;
 }
 
@@ -162,7 +162,8 @@ double costas_discriminator(double I, double Q)
  *  -# Understanding GPS: Principles and Applications.
  *     Elliott D. Kaplan. Artech House, 1996.
  *
- * \param cs The prompt in-phase correlation, \f$I_k\f$.
+ * \param cs An array [E, P, L] of correlation_t structs for the Early, Prompt
+ *           and Late correlations.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
 double dll_discriminator(correlation_t cs[3])
