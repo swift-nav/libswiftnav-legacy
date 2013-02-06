@@ -125,19 +125,94 @@ void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
  *   \varepsilon_k = \tan^{-1} \left(\frac{I_k}{Q_k}\right)
  * \f]
  *
+ * References:
+ *  -# Understanding GPS: Principles and Applications.
+ *     Elliott D. Kaplan. Artech House, 1996.
+ *
+ * \todo Fix potential divide by zero if Q is zero.
+ *
  * \param I The prompt in-phase correlation, \f$I_k\f$.
  * \param Q The prompt quadrature correlation, \f$Q_k\f$.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
-double costas_discriminator(double I, double Q) {
-  return atan(I/Q)/(2*M_PI);
+double costas_discriminator(double I, double Q)
+{
+  return atan(Q / I) / (2*M_PI);
 }
 
-double dll_discriminator(correlation_t cs[3]) {
+/** Normalised non-coherent early-minus-late envelope discriminator.
+ *
+ * Implements the normalised non-coherent early-minus-late envelope DLL
+ * discriminator.
+ *
+ * \f[
+ *   \varepsilon_k = \frac{1}{2} \frac{E - L}{E + L}
+ * \f]
+ *
+ * where:
+ *
+ * \f[
+ *   E = \sqrt{I^2_E + Q^2_E}
+ * \f]
+ * \f[
+ *   L = \sqrt{I^2_L + Q^2_L}
+ * \f]
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications.
+ *     Elliott D. Kaplan. Artech House, 1996.
+ *
+ * \param cs The prompt in-phase correlation, \f$I_k\f$.
+ * \return The discriminator value, \f$\varepsilon_k\f$.
+ */
+double dll_discriminator(correlation_t cs[3])
+{
   double early_mag = sqrt((double)cs[0].I*cs[0].I + (double)cs[0].Q*cs[0].Q);
   double late_mag = sqrt((double)cs[2].I*cs[2].I + (double)cs[2].Q*cs[2].Q);
 
-  return (early_mag - late_mag) / (early_mag + late_mag);
+  return 0.5 * (early_mag - late_mag) / (early_mag + late_mag);
+}
+
+/** Initialise a simple first-order loop filter.
+ * The gains can be calculated using calc_loop_gains().
+ *
+ * \param s The loop filter state struct to initialise.
+ * \param y0 The initial value of the output variable, \f$y_0\f$.
+ * \param pgain The proportional gain, \f$k_p\f$.
+ * \param igain The integral gain, \f$k_i\f$.
+ */
+void simple_lf_init(simple_lf_state_t *s, double y0,
+                    double pgain, double igain)
+{
+  s->y = y0;
+  s->prev_error = 0;
+  s->pgain = pgain;
+  s->igain = igain;
+}
+
+/** Update step for the simple first-order loop filter.
+ *
+ * Implements the first-order loop filter as shown below:
+ *
+ * \image html 1st_order_loop_filter.png Digital loop filter block diagram.
+ *
+ * with transfer function:
+ *
+ * \f[
+ *   F[z] = \frac{(k_p+k_i) - k_p z^{-1}}{1 - z^{-1}}
+ * \f]
+ *
+ * \param s The loop filter state struct.
+ * \param error The error output from the discriminator, \f$\varepsilon_k\f$.
+ * \return The updated output variable, \f$y_k\f$.
+ */
+double simple_lf_update(simple_lf_state_t *s, double error)
+{
+  s->y += s->pgain * (error - s->prev_error) + \
+          s->igain * error;
+  s->prev_error = error;
+
+  return s->y;
 }
 
 /** \} */

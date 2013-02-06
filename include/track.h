@@ -16,9 +16,31 @@
 #include "common.h"
 #include "ephemeris.h"
 
+/** \addtogroup track
+ * \{ */
+
+/** \addtogroup track_loop
+ * \{ */
+
+/** State structure for the simple loop filter.
+ * Should be initialised with simple_lf_init().
+ */
 typedef struct {
-  double I, Q;
+  double pgain;      /**< Proportional gain. */
+  double igain;      /**< Integral gain. */
+  double prev_error; /**< Previous error. */
+  double y;          /**< Output variable. */
+} simple_lf_state_t;
+
+/** \} */
+
+/** Structure representing a complex valued correlation. */
+typedef struct {
+  double I; /**< In-phase correlation. */
+  double Q; /**< Quadrature correlation. */
 } correlation_t;
+
+/** \} */
 
 typedef struct {
   u8 prn;
@@ -41,6 +63,12 @@ typedef struct {
 
 void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
                      double *pgain, double *igain);
+double costas_discriminator(double I, double Q);
+double dll_discriminator(correlation_t cs[3]);
+
+void simple_lf_init(simple_lf_state_t *s, double y0,
+                    double pgain, double igain);
+double simple_lf_update(simple_lf_state_t *s, double error);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
