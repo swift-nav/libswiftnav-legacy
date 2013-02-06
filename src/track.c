@@ -86,6 +86,9 @@
  *     B-Y. Chung, C. Chien, H. Samueli, and R. Jain.
  *     IEEE Journal on Selected Areas in Communications, 11:1096–1107, 1993.
  *
+ * \todo This math is all wrong, these slides show the analysis we want:
+ *       http://www.compdsp.com/presentations/Jacobsen/abineau_dpll_analysis.pdf
+ *
  * \param bw          The loop noise bandwidth, \f$B_L\f$.
  * \param zeta        The damping ratio, \f$\zeta\f$.
  * \param k           The loop gain, \f$k\f$.
@@ -95,16 +98,21 @@
  * \param igain       Where to store the calculated integral gain, \f$k_i\f$.
  */
 void calc_loop_gains(double bw, double zeta, double k, double sample_freq,
-                     double *pgain, double *igain) {
+                     double *pgain, double *igain)
+{
   /* Find the natural frequency. */
   double omega_n = bw*8*zeta / (4*zeta*zeta + 1);
 
   /* Some intermmediate values. */
+/*
   double T = 1. / sample_freq;
   double denominator = k*(4 + 4*zeta*omega_n*T + omega_n*omega_n*T*T);
 
   *pgain = 8*zeta*omega_n*T / denominator;
   *igain = 4*omega_n*omega_n*T*T / denominator;
+*/
+  *igain = omega_n * omega_n / (k * sample_freq);
+  *pgain = 2.0 * zeta * omega_n / k;
 }
 
 /** Phase discriminator for a Costas loop.
