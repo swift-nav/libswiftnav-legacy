@@ -31,6 +31,10 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct simple_lf_state_t:
     double y
 
+  ctypedef struct simple_tl_state_t:
+    double code_freq
+    double carr_freq
+
   ctypedef struct correlation_t:
     double I
     double Q
@@ -46,4 +50,10 @@ cdef extern from "libswiftnav/track.h":
                       double pgain, double igain)
   double simple_lf_update(simple_lf_state_t *s, double error)
 
+  void simple_tl_init(simple_tl_state_t *s, double loop_freq,
+                      double code_freq, double code_bw,
+                      double code_zeta, double code_k,
+                      double carr_freq, double carr_bw,
+                      double carr_zeta, double carr_k)
+  void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
 
