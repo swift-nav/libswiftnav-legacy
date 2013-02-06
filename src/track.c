@@ -27,15 +27,6 @@
  * Functions used by the tracking loops.
  * \{ */
 
-void calc_loop_coeff(double BW, double zeta, double k, double *tau1,
-                     double *tau2) {
-  /* Solve for the natural frequency. */
-  double omega_n = BW*8*zeta / (4*zeta*zeta + 1);
-
-  *tau1 = k / (omega_n*omega_n);
-  *tau2 = 2*zeta/omega_n;
-}
-
 /** Calculate coefficients for a 2nd order digital PLL / DLL loop filter.
  *
  * A second order digital PLL consists of a first-order filter and a
