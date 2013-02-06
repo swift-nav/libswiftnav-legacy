@@ -22,7 +22,7 @@
   \node [sum, right of=split2] (sum2) {};
   \node [coordinate, right of=sum2, node distance=1.5cm] (output) {};
 
-  \draw [-] (input) -- (split);
+  \draw [-] (input) edge node {$\varepsilon_k$} (split);
   \draw [->] (split) -- (ki);
   \draw [->] (split) |- (kp);
   \draw [->] (ki) -- (sum1);
@@ -30,7 +30,7 @@
   \draw [->] (split2) -- (z);
   \draw [->] (z) -| (sum1);
   \draw [->] (split2) -- (sum2);
-  \draw [->] (sum2) -- (output);
+  \draw [->] (sum2) edge node {$y_k$} (output);
   \draw [->] (kp) -| (sum2);
 
   \draw [-,thin] (sum1.north) -- (sum1.south);

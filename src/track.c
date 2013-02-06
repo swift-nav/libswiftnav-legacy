@@ -54,7 +54,7 @@ void calc_loop_coeff(double BW, double zeta, double k, double *tau1,
  *
  * The first-order loop filter is shown below:
  *
- * \image html 2nd_order_loop_filter.png Digital loop filter block diagram.
+ * \image html 1st_order_loop_filter.png Digital loop filter block diagram.
  *
  * and has transfer function:
  *

@@ -29,7 +29,7 @@ function(build_diagrams out_var)
       COMMENT "Building LaTeX diagram ${in_f}.tex"
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMAND ${PDFLATEX_COMPILER}
-        -interaction=batchmode
+        #-interaction=batchmode
         -output-directory ${CMAKE_CURRENT_BINARY_DIR}
         ${in_f}.tex
       COMMAND ${IMAGEMAGICK_CONVERT}
@@ -48,7 +48,7 @@ if (BUILD_DIAGRAMS)
   build_diagrams(DIAGRAM_PNGS
     costas_loop
     2nd_order_dpll
-    2nd_order_loop_filter
+    1st_order_loop_filter
     wgsecef2azel
   )
 
