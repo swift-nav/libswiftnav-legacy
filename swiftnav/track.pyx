@@ -108,3 +108,98 @@ def calc_loop_gains(double bw, double zeta, double k, double sample_freq):
   track_c.calc_loop_gains(bw, zeta, k, sample_freq, &pgain, &igain)
   return (pgain, igain)
 
+def costas_discriminator(complex p):
+  """
+  Wraps the function :libswiftnav:`costas_discriminator`.
+
+  Parameters
+  ----------
+  p : complex, :math:`I_P + Q_P j`
+    The prompt correlation. The real component contains the in-phase
+    correlation and the imaginary component contains the quadrature
+    correlation.
+
+  Returns
+  -------
+  out : float
+    The discriminator value.
+
+  """
+  return track_c.costas_discriminator(p.real, p.imag)
+
+def dll_discriminator(complex e, complex p, complex l):
+  """
+  Wraps the function :libswiftnav:`dll_discriminator`.
+
+  Parameters
+  ----------
+  e : complex, :math:`I_E + Q_E j`
+    The early correlation. The real component contains the in-phase
+    correlation and the imaginary component contains the quadrature
+    correlation.
+  p : complex, :math:`I_P + Q_P j`
+    The prompt correlation.
+  l : complex, :math:`I_L + Q_L j`
+    The late correlation.
+
+  Returns
+  -------
+  out : float
+    The discriminator value.
+
+  """
+  cdef track_c.correlation_t cs[3]
+  cs[0].I = e.real
+  cs[0].Q = e.imag
+  cs[1].I = p.real
+  cs[1].Q = p.imag
+  cs[2].I = l.real
+  cs[2].Q = l.imag
+
+  return track_c.dll_discriminator(cs)
+
+cdef class SimpleLoopFilter:
+  """
+  Wraps the `libswiftnav` simple first-order loop filter implementation.
+
+  The loop filter state, :libswiftnav:`simple_lf_state_t` is maintained by the
+  class instance.
+
+  Parameters
+  ----------
+  y0 : float
+    The initial output variable value.
+  pgain : float
+    The proportional gain.
+  igain: float
+    The integral gain.
+
+  """
+
+  cdef track_c.simple_lf_state_t s
+
+  def __cinit__(self, y0, pgain, igain):
+    track_c.simple_lf_init(&self.s, y0, pgain, igain)
+
+  def update(self, error):
+    """
+    Wraps the function :libswiftnav:`simple_lf_update`.
+
+    Parameters
+    ----------
+    error : float
+      The error input.
+
+    Returns
+    -------
+    out : float
+      The updated value of the output variable.
+
+    """
+    return track_c.simple_lf_update(&self.s, error)
+
+  property y:
+    """The output variable."""
+    def __get__(self):
+      return self.s.y
+
