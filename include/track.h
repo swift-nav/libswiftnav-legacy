@@ -42,6 +42,21 @@ typedef struct {
   simple_lf_state_t carr_filt; /**< Carrier loop filter state. */
 } simple_tl_state_t;
 
+/** State structure for a code/carrier phase complimentary filter tracking
+ * loop.
+ * Should be initialised with comp_tl_init().
+ */
+typedef struct {
+  double code_freq;            /**< Code phase rate (i.e. frequency). */
+  double carr_freq;            /**< Carrier frequency. */
+  simple_lf_state_t code_filt; /**< Code loop filter state. */
+  simple_lf_state_t carr_filt; /**< Carrier loop filter state. */
+  u32 sched;                   /**< Gain scheduling count. */
+  u32 n;                       /**< Iteration counter. */
+  double A;                    /**< Complementary filter crossover gain. */
+} comp_tl_state_t;
+
+
 /** \} */
 
 /** Structure representing a complex valued correlation. */
@@ -86,6 +101,14 @@ void simple_tl_init(simple_tl_state_t *s, double loop_freq,
                     double carr_freq, double carr_bw,
                     double carr_zeta, double carr_k);
 void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3]);
+
+void comp_tl_init(comp_tl_state_t *s, double loop_freq,
+                    double code_freq, double code_bw,
+                    double code_zeta, double code_k,
+                    double carr_freq, double carr_bw,
+                    double carr_zeta, double carr_k,
+                    double tau, u32 sched);
+void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],

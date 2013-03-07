@@ -269,6 +269,82 @@ void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
   s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
 }
 
+/** Initialise a code/carrier phase complimentary filter tracking loop.
+ *
+ * For a full description of the loop filter parameters, see calc_loop_gains().
+ *
+ * This filter implements gain scheduling. Before `sched` iterations of the
+ * loop filter the behaviour will be identical to the simple loop filter. After
+ * `sched` iterations, carrier phase information will be used in the code
+ * tracking loop.
+ *
+ * \param s The tracking loop state struct to initialise.
+ * \param code_freq The initial code phase rate (i.e. frequency).
+ * \param code_bw The code tracking loop noise bandwidth.
+ * \param code_zeta The code tracking loop damping ratio.
+ * \param code_k The code tracking loop gain.
+ * \param carr_freq The initial carrier frequency.
+ * \param carr_bw The carrier tracking loop noise bandwidth.
+ * \param carr_zeta The carrier tracking loop damping ratio.
+ * \param carr_k The carrier tracking loop gain.
+ * \param tau The complimentary filter cross-over frequency.
+ * \param sched The gain scheduling count.
+ */
+void comp_tl_init(comp_tl_state_t *s, double loop_freq,
+                    double code_freq, double code_bw,
+                    double code_zeta, double code_k,
+                    double carr_freq, double carr_bw,
+                    double carr_zeta, double carr_k,
+                    double tau, u32 sched)
+{
+  double pgain, igain;
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  s->code_freq = code_freq;
+  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
+  s->carr_freq = carr_freq;
+  simple_lf_init(&(s->carr_filt), carr_freq, pgain, igain);
+
+  s->n = 0;
+  s->sched = sched;
+
+  s->A = 1.0 - (1.0 / (loop_freq * tau));
+}
+
+/** Update step for a code/carrier phase complimentary filter tracking loop.
+ *
+ * The tracking loop output variables, i.e. code and carrier frequencies can be
+ * read out directly from the state struct.
+ *
+ * \todo Write proper documentation with math and diagram.
+ *
+ * \param s The tracking loop state struct.
+ * \param cs An array [E, P, L] of correlation_t structs for the Early, Prompt
+ *           and Late correlations.
+ */
+void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
+{
+  double carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+  s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
+
+  double code_error = dll_discriminator(cs);
+  s->code_filt.y = 0;
+  double code_update = simple_lf_update(&(s->code_filt), -code_error);
+
+  if (s->n > s->sched) {
+    s->code_freq = s->A * s->code_freq + \
+                   s->A * code_update + \
+                   (1.0 - s->A)*
+                     1.023e6*(1 + (s->carr_freq-4.092e6)/1.57542e9);
+  } else {
+    s->code_freq += code_update;
+  }
+
+  s->n++;
+}
+
 
 /** \} */
 
