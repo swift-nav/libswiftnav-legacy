@@ -48,6 +48,14 @@ cdef class Solution:
     def __get__(self):
       return self.soln.time
 
+  property dops:
+    def __get__(self):
+      return (self.dops.pdop,
+              self.dops.gdop,
+              self.dops.tdop,
+              self.dops.hdop,
+              self.dops.vdop)
+
 def calc_PVT(nav_meas):
   n_used = len(nav_meas)
   cdef navigation_measurement_t* nav_meas_array = <navigation_measurement_t*>malloc(n_used*sizeof(navigation_measurement_t))
