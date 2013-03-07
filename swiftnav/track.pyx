@@ -394,3 +394,46 @@ cdef class CompTrackingLoop:
     def __get__(self):
       return self.s.carr_freq
 
+
+cdef class CN0Estimator:
+  """
+  Wraps the `libswiftnav` :math:`C / N_0` estimator implementation.
+
+  The estimator state, :libswiftnav:`cn0_est_state_t` is maintained by
+  the class instance.
+
+  Parameters
+  ----------
+  bw : float
+    The loop noise bandwidth in Hz.
+  cn0_0 : float
+    The initial value of :math:`C / N_0` in dBHz.
+  cutoff_freq : float
+    The low-pass filter cutoff frequency, :math:`f_c`, in Hz.
+  loop_freq : float
+    The loop update frequency, :math:`f`, in Hz.
+
+  """
+
+  cdef track_c.cn0_est_state_t s
+
+  def __cinit__(self, bw, cn0_0, cutoff_freq, loop_freq):
+    track_c.cn0_est_init(&self.s, bw, cn0_0, cutoff_freq, loop_freq)
+
+  def update(self, I):
+    """
+    Wraps the function :libswiftnav:`cn0_est`.
+
+    Parameters
+    ----------
+    I : float
+      The prompt in-phase correlation from the tracking correlators.
+
+    Returns
+    -------
+    out : float
+      The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
+
+    """
+    return track_c.cn0_est(&self.s, I)
+

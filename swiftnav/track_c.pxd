@@ -39,6 +39,9 @@ cdef extern from "libswiftnav/track.h":
     double code_freq
     double carr_freq
 
+  ctypedef struct cn0_est_state_t:
+    pass
+
   ctypedef struct correlation_t:
     double I
     double Q
@@ -68,4 +71,10 @@ cdef extern from "libswiftnav/track.h":
                       double carr_zeta, double carr_k,
                       double tau, u32 sched)
   void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
+
+  void cn0_est_init(cn0_est_state_t* s, double bw, double cn0_0,
+                    double cutoff_freq, double loop_freq)
+  double cn0_est(cn0_est_state_t* s, double I)
+
+
 
