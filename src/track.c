@@ -348,6 +348,94 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
 
 /** \} */
 
+/** Initialise the \f$ C / N_0 \f$ estimator state.
+ *
+ * See cn0_est() for a full description.
+ *
+ * \param s The estimator state struct to initialise.
+ * \param bw The loop noise bandwidth in Hz.
+ * \param cn0_0 The initial value of \f$ C / N_0 \f$ in dBHz.
+ * \param cutoff_freq The low-pass filter cutoff frequency, \f$f_c\f$, in Hz.
+ * \param loop_freq The loop update frequency, \f$f\f$, in Hz.
+ */
+void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
+                  double cutoff_freq, double loop_freq)
+{
+  s->log_bw = 10*log10(bw);
+  s->A = cutoff_freq / (loop_freq + cutoff_freq);
+  s->I_prev = 0;
+  s->nsr = pow(10, 0.1*(s->log_bw - cn0_0));
+}
+
+/** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
+ *
+ * Implements a modification of the estimator presented in [1]. In [1] the
+ * estimator essentially uses a moving average over the reciprocal of the
+ * Signal-to-Noise Ratio (SNR). To reduce memory utilisation a simple IIR
+ * low-pass filter is used instead.
+ *
+ * The noise and signal powers estimates for the \f$k\f$-th observation,
+ * \f$\hat P_{N, k}\f$ and \f$\hat P_{S, k}\f$, are calculated as follows:
+ *
+ * \f[
+ *    \hat P_{N, k} = \left( \left| I_k \right| -
+ *                    \left| I_{k-1} \right| \right)^2
+ * \f]
+ * \f[
+ *    \hat P_{S, k} = \frac{1}{2} \left( I_k^2 + I_{k-1}^2 \right)
+ * \f]
+ *
+ * Where \f$I_k\f$ is the in-phase output of the prompt correlator for the
+ * \f$k\f$-th integration period.
+ *
+ * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a simple
+ * low-pass IIR filter:
+ *
+ * \f[
+ *    {NSR}_k = A \frac{\hat P_{N, k}}{\hat P_{S, k}} + (1 - A) {NSR}_{k-1}
+ * \f]
+ *
+ * Where the IIR filter coefficient, \f$A\f$ can be calculated in terms of a
+ * cutoff frequency \f$f_c\f$ and the loop update frequency \f$f = 1/T\f$.
+ *
+ * \f[
+ *    A = \frac{f_c}{f_c + f}
+ * \f]
+ *
+ * The filtered NSR value is converted to a \f$ C / N_0 \f$ value and returned.
+ *
+ * \f[
+ *    \left( \frac{C}{N_0} \right)_k =
+ *      10 \log_{10} \left( \frac{B_{eqn}}{{NSR}_k} \right)
+ * \f]
+ *
+ * References:
+ *    -# "Comparison of Four SNR Estimators for QPSK Modulations",
+ *       Norman C.  Beaulieu, Andrew S. Toms, and David R. Pauluzzi (2000),
+ *       IEEE Communications Letters, Vol. 4, No. 2
+ *    -# "Are Carrier-to-Noise Algorithms Equivalent in All Situations?"
+ *       Inside GNSS, Jan / Feb 2010.
+ *
+ * \param s The estimator state struct to initialise.
+ * \param I The prompt in-phase correlation from the tracking correlators.
+ * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
+ */
+double cn0_est(cn0_est_state_t *s, double I)
+{
+  double P_n, P_s;
+
+  P_n = fabs(I) - fabs(s->I_prev);
+  P_n = P_n*P_n;
+
+  P_s = 0.5*(I*I + s->I_prev*s->I_prev);
+
+  s->I_prev = I;
+
+  s->nsr = s->A * (P_n / P_s) + (1 - s->A) * s->nsr;
+
+  return s->log_bw - 10*log10(s->nsr);
+}
+
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], navigation_measurement_t nav_meas[], double nav_time, ephemeris_t ephemerides[])
 {
   channel_measurement_t* meas_ptrs[n_channels];
@@ -357,7 +445,7 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], na
   for (u8 i=0; i<n_channels; i++) {
     meas_ptrs[i] = &meas[i];
     nav_meas_ptrs[i] = &nav_meas[i];
-    ephemerides_ptrs[i] = &ephemerides[i];
+    ephemerides_ptrs[i] = &ephemerides[meas[i].prn];
   }
 
   calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time, ephemerides_ptrs);

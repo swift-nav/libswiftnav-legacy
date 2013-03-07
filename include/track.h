@@ -65,6 +65,16 @@ typedef struct {
   double Q; /**< Quadrature correlation. */
 } correlation_t;
 
+/** State structure for the \f$ C / N_0 \f$ estimator.
+ * Should be initialised with cn0_est_init().
+ */
+typedef struct {
+  double log_bw; /**< Noise bandwidth in dBHz. */
+  double A;      /**< IIR filter coeff. */
+  double I_prev; /**< Previous in-phase correlation. */
+  double nsr;    /**< Noise-to-signal ratio (1 / SNR). */
+} cn0_est_state_t;
+
 /** \} */
 
 typedef struct {
@@ -109,6 +119,10 @@ void comp_tl_init(comp_tl_state_t *s, double loop_freq,
                     double carr_zeta, double carr_k,
                     double tau, u32 sched);
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
+
+void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
+                  double cutoff_freq, double loop_freq);
+double cn0_est(cn0_est_state_t *s, double I);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
