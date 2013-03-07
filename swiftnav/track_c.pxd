@@ -35,6 +35,10 @@ cdef extern from "libswiftnav/track.h":
     double code_freq
     double carr_freq
 
+  ctypedef struct comp_tl_state_t:
+    double code_freq
+    double carr_freq
+
   ctypedef struct correlation_t:
     double I
     double Q
@@ -56,4 +60,12 @@ cdef extern from "libswiftnav/track.h":
                       double carr_freq, double carr_bw,
                       double carr_zeta, double carr_k)
   void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
+
+  void comp_tl_init(comp_tl_state_t *s, double loop_freq,
+                      double code_freq, double code_bw,
+                      double code_zeta, double code_k,
+                      double carr_freq, double carr_bw,
+                      double carr_zeta, double carr_k,
+                      double tau, u32 sched)
+  void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
 

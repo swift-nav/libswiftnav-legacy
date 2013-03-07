@@ -294,3 +294,103 @@ cdef class SimpleTrackingLoop:
     def __get__(self):
       return self.s.carr_freq
 
+
+cdef class CompTrackingLoop:
+  """
+  Wraps the `libswiftnav` code/carrier phase complimentary filter tracking loop
+  implementation.
+
+  The tracking loop state, :libswiftnav:`comp_tl_state_t` is maintained by
+  the class instance.
+
+  For a full description of the loop filter parameters, see
+  :libswiftnav:`calc_loop_gains`.
+
+  Parameters
+  ----------
+  code_params : (float, float, float)
+    Code tracking loop parameter tuple, `(bw, zeta, k)`.
+  carr_params : (float, float, float)
+    Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
+  loop_freq : float
+    The frequency with which loop updates are performed.
+  tau : float
+    The complimentary filter cross-over frequency.
+  sched : int, optional
+    The gain scheduling count.
+
+  """
+
+  cdef track_c.comp_tl_state_t s
+  cdef double loop_freq, tau
+  cdef double code_bw, code_zeta, code_k
+  cdef double carr_bw, carr_zeta, carr_k
+  cdef u32 sched
+
+  def __cinit__(self, code_params, carr_params, loop_freq, tau, sched=0):
+    self.loop_freq = loop_freq
+    self.tau = tau
+    self.sched = sched
+    self.code_bw, self.code_zeta, self.code_k = code_params
+    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
+
+  def start(self, code_freq, carr_freq):
+    """
+    (Re-)initialise the tracking loop.
+
+    Parameters
+    ----------
+    code_freq : float
+      The code phase rate (i.e. frequency).
+    carr_freq : float
+      The carrier frequency.
+
+    """
+    track_c.comp_tl_init(&self.s, self.loop_freq,
+                         code_freq, self.code_bw,
+                         self.code_zeta, self.code_k,
+                         carr_freq, self.carr_bw,
+                         self.carr_zeta, self.carr_k,
+                         self.tau, self.sched)
+
+  def update(self, complex e, complex p, complex l):
+    """
+    Wraps the function :libswiftnav:`comp_tl_update`.
+
+    Parameters
+    ----------
+    e : complex, :math:`I_E + Q_E j`
+      The early correlation. The real component contains the in-phase
+      correlation and the imaginary component contains the quadrature
+      correlation.
+    p : complex, :math:`I_P + Q_P j`
+      The prompt correlation.
+    l : complex, :math:`I_L + Q_L j`
+      The late correlation.
+
+    Returns
+    -------
+    out : (float, float)
+      The tuple (code_freq, carrier_freq).
+
+    """
+    cdef track_c.correlation_t cs[3]
+    cs[0].I = e.real
+    cs[0].Q = e.imag
+    cs[1].I = p.real
+    cs[1].Q = p.imag
+    cs[2].I = l.real
+    cs[2].Q = l.imag
+    track_c.comp_tl_update(&self.s, cs)
+    return (self.code_freq, self.carr_freq)
+
+  property code_freq:
+    """The code phase rate (i.e. frequency)."""
+    def __get__(self):
+      return self.s.code_freq
+
+  property carr_freq:
+    """The carrier frequency."""
+    def __get__(self):
+      return self.s.carr_freq
+
