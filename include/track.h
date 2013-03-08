@@ -69,10 +69,10 @@ typedef struct {
  * Should be initialised with cn0_est_init().
  */
 typedef struct {
-  double log_bw; /**< Noise bandwidth in dBHz. */
-  double A;      /**< IIR filter coeff. */
-  double I_prev; /**< Previous in-phase correlation. */
-  double nsr;    /**< Noise-to-signal ratio (1 / SNR). */
+  double log_bw;     /**< Noise bandwidth in dBHz. */
+  double A;          /**< IIR filter coeff. */
+  double I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
+  double nsr;        /**< Noise-to-signal ratio (1 / SNR). */
 } cn0_est_state_t;
 
 /** \} */

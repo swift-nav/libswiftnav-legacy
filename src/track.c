@@ -363,7 +363,7 @@ void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
 {
   s->log_bw = 10*log10(bw);
   s->A = cutoff_freq / (loop_freq + cutoff_freq);
-  s->I_prev = 0;
+  s->I_prev_abs = -1;
   s->nsr = pow(10, 0.1*(s->log_bw - cn0_0));
 }
 
@@ -424,14 +424,19 @@ double cn0_est(cn0_est_state_t *s, double I)
 {
   double P_n, P_s;
 
-  P_n = fabs(I) - fabs(s->I_prev);
-  P_n = P_n*P_n;
+  if (s->I_prev_abs < 0) {
+    /* This is the first iteration, just update the prev state. */
+    s->I_prev_abs = fabs(I);
+  } else {
+    P_n = fabs(I) - s->I_prev_abs;
+    P_n = P_n*P_n;
 
-  P_s = 0.5*(I*I + s->I_prev*s->I_prev);
+    P_s = 0.5*(I*I + s->I_prev_abs*s->I_prev_abs);
 
-  s->I_prev = I;
+    s->I_prev_abs = fabs(I);
 
-  s->nsr = s->A * (P_n / P_s) + (1 - s->A) * s->nsr;
+    s->nsr = s->A * (P_n / P_s) + (1 - s->A) * s->nsr;
+  }
 
   return s->log_bw - 10*log10(s->nsr);
 }
