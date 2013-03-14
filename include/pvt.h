@@ -18,6 +18,7 @@
 #include "track.h"
 
 /* GPS constants */
+/** \todo These constants don't belong in this file. */
 #define GPS_NUM_SATS  32
 #define GPS_PI      3.14159265358979323846
 #define GPS_L1_HZ     1.57542E9
