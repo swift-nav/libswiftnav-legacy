@@ -30,26 +30,6 @@
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
 
-/** \defgroup WGS84_params WGS84 Parameters
- * Parameters defining the WGS84 ellipsoid. The ellipsoid is defined in terms
- * of the semi-major axis and the inverse flattening. We also calculate some
- * derived parameters which are useful for the implementation of the coordinate
- * transform functions.
- * \{ */
-/** Semi-major axis of the Earth, \f$ a \f$, in meters.
- * This is a defining parameter of the WGS84 ellipsoid. */
-#define A 6378137.0
-/** Inverse flattening of the Earth, \f$ 1/f \f$.
- * This is a defining parameter of the WGS84 ellipsoid. */
-#define IF 298.257223563
-/** The flattening of the Earth, \f$ f \f$. */
-#define F (1/IF)
-/** Semi-minor axis of the Earth in meters, \f$ b = a(1-f) \f$. */
-#define B (A*(1-F))
-/** Eccentricity of the Earth, \f$ e \f$ where \f$ e^2 = 2f - f^2 \f$ */
-#define E (sqrt(2*F - F*F))
-/* \} */
-
 /** Converts from WGS84 geodetic coordinates (latitude, longitude and height)
  * into WGS84 Earth Centered, Earth Fixed Cartesian (ECEF) coordinates
  * (X, Y and Z).
@@ -75,12 +55,12 @@
  *             as [X, Y, Z], all in meters.
  */
 void wgsllh2ecef(const double const llh[3], double ecef[3]) {
-  double d = E * sin(llh[0]);
-  double N = A / sqrt(1. - d*d);
+  double d = WGS84_E * sin(llh[0]);
+  double N = WGS84_A / sqrt(1. - d*d);
 
   ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
   ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-  ecef[2] = ((1 - E*E)*N + llh[2]) * sin(llh[0]);
+  ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
 }
 
 /** Converts from WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
@@ -121,16 +101,16 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
 
   /* If we are close to the pole then convergence is very slow, treat this is a
    * special case. */
-  if (p < A*1e-16) {
+  if (p < WGS84_A*1e-16) {
     llh[0] = copysign(M_PI_2, ecef[2]);
-    llh[2] = fabs(ecef[2]) - B;
+    llh[2] = fabs(ecef[2]) - WGS84_B;
     return;
   }
 
   /* Caluclate some other constants as defined in the Fukushima paper. */
-  const double P = p / A;
-  const double e_c = sqrt(1. - E*E);
-  const double Z = fabs(ecef[2]) * e_c / A;
+  const double P = p / WGS84_A;
+  const double e_c = sqrt(1. - WGS84_E*WGS84_E);
+  const double Z = fabs(ecef[2]) * e_c / WGS84_A;
 
   /* Initial values for S and C correspond to a zero height solution. */
   double S = Z;
@@ -150,9 +130,9 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
     /* Calculate some intermmediate variables used in the update step based on
      * the current state. */
     A_n = sqrt(S*S + C*C);
-    D_n = Z*A_n*A_n*A_n + E*E*S*S*S;
-    F_n = P*A_n*A_n*A_n - E*E*C*C*C;
-    B_n = 1.5*E*S*C*C*(A_n*(P*S - Z*C) - E*S*C);
+    D_n = Z*A_n*A_n*A_n + WGS84_E*WGS84_E*S*S*S;
+    F_n = P*A_n*A_n*A_n - WGS84_E*WGS84_E*C*C*C;
+    B_n = 1.5*WGS84_E*S*C*C*(A_n*(P*S - Z*C) - WGS84_E*S*C);
 
     /* Update step. */
     S = D_n*F_n - B_n*S;
@@ -198,7 +178,7 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
 
   A_n = sqrt(S*S + C*C);
   llh[0] = copysign(1.0, ecef[2]) * atan(S / (e_c*C));
-  llh[2] = (p*e_c*C + fabs(ecef[2])*S - A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
+  llh[2] = (p*e_c*C + fabs(ecef[2])*S - WGS84_A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
 }
 
 /** Converts a vector in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian

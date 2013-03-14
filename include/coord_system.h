@@ -13,6 +13,31 @@
 #ifndef LIBSWIFTNAV_COORD_SYSTEM_H
 #define LIBSWIFTNAV_COORD_SYSTEM_H
 
+/** \addtogroup coord_system
+ * \{ */
+
+/** \defgroup WGS84_params WGS84 Parameters
+ * Parameters defining the WGS84 ellipsoid. The ellipsoid is defined in terms
+ * of the semi-major axis and the inverse flattening. We also calculate some
+ * derived parameters which are useful for the implementation of the coordinate
+ * transform functions.
+ * \{ */
+/** Semi-major axis of the Earth, \f$ a \f$, in meters.
+ * This is a defining parameter of the WGS84 ellipsoid. */
+#define WGS84_A 6378137.0
+/** Inverse flattening of the Earth, \f$ 1/f \f$.
+ * This is a defining parameter of the WGS84 ellipsoid. */
+#define WGS84_IF 298.257223563
+/** The flattening of the Earth, \f$ f \f$. */
+#define WGS84_F (1/WGS84_IF)
+/** Semi-minor axis of the Earth in meters, \f$ b = a(1-f) \f$. */
+#define WGS84_B (WGS84_A*(1-WGS84_F))
+/** Eccentricity of the Earth, \f$ e \f$ where \f$ e^2 = 2f - f^2 \f$ */
+#define WGS84_E (sqrt(2*WGS84_F - WGS84_F*WGS84_F))
+/* \} */
+
+/* \} */
+
 void wgsllh2ecef(const double *llh, double *ecef);
 void wgsecef2llh(const double const ecef[3], double llh[3]);
 
