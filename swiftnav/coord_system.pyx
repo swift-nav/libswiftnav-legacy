@@ -66,9 +66,9 @@ def wgsecef2llh(x, y, z):
     np.array([x, y, z], dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] llh = \
     np.empty(3, dtype=np.double)
-  
+
   coord_system_c.wgsecef2llh(&ecef[0], &llh[0])
-  
+
   return llh
 
 def wgsecef2ned(ecef, ref_ecef):
@@ -88,19 +88,19 @@ def wgsecef2ned(ecef, ref_ecef):
     The array `[North, East, Down]`.
 
   """
-  
+
   if len(ecef) != 3 or len(ref_ecef) != 3:
     raise ValueError("ECEF coordinates must have dimension 3.")
-  
+
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ecef_ = \
     np.array(ecef, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(ref_ecef, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ned = \
     np.empty(3, dtype=np.double)
-  
+
   coord_system_c.wgsecef2ned(&ecef_[0], &ref_ecef_[0], &ned[0])
-  
+
   return ned
 
 def wgsecef2ned_d(ecef, ref_ecef):
