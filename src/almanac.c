@@ -29,8 +29,8 @@
  * \param alm  Pointer to an almanac structure for the satellite of interest.
  * \param t    GPS time of week at which to calculate the satellite state in
  *             seconds since Sunday.
- * \param week GPS week number or pass -1 to assume within one half-week of the
- *             almanac time of applicability.
+ * \param week GPS week number modulo 1024 or pass -1 to assume within one
+ *             half-week of the almanac time of applicability.
  * \param pos  The satellite position in ECEF coordinates is returned in this
  *             vector.
  * \param vel  The satellite velocity in ECEF coordinates is returned in this
@@ -119,8 +119,8 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
  *
  * \param alm  Pointer to an almanac structure for the satellite of interest.
  * \param t    GPS time of week at which to calculate the az/el.
- * \param week GPS week number or pass -1 to assume within one half-week of the
- *             almanac time of applicability.
+ * \param week GPS week number modulo 1024 or pass -1 to assume within one
+ *             half-week of the almanac time of applicability.
  * \param ref  ECEF coordinates of the reference point from which the azimuth
  *             and elevation is to be determined, passed as [X, Y, Z], all in
  *             meters.
@@ -140,8 +140,8 @@ void calc_sat_az_el_almanac(almanac_t* alm, double t, s16 week,
  *
  * \param alm  Pointer to an almanac structure for the satellite of interest.
  * \param t    GPS time of week at which to calculate the Doppler shift.
- * \param week GPS week number or pass -1 to assume within one half-week of the
- *             almanac time of applicability.
+ * \param week GPS week number modulo 1024 or pass -1 to assume within one
+ *             half-week of the almanac time of applicability.
  * \param ref  ECEF coordinates of the reference point from which the azimuth
  *             and elevation is to be determined, passed as [X, Y, Z], all in
  *             meters.
