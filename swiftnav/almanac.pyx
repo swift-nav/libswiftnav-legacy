@@ -14,6 +14,40 @@ cimport numpy as np
 cimport almanac_c
 
 cdef class Almanac:
+  """
+  Wraps the :libswiftnav:`almanac_t` structure and associated functions for
+  performing calculations with almanacs.
+
+  Parameters
+  ----------
+  ecc : float
+    Eccentricity in radians.
+  toa : float
+    Time of Applicability in seconds since Sunday.
+  inc : float
+    Inclination in radians.
+  rora : float
+    Rate of Right Ascension in radians/sec.
+  a : float
+    Semi-major axis in meters.
+  raaw : float
+    Right Ascension at Week in radians.
+  argp : float
+    Argument of Perigee in radians.
+  ma : float
+    Mean Anomaly at Time of Applicability in radians.
+  af0 : float
+    0-order clock correction in seconds.
+  af1 : float
+    1-order clock correction in seconds/second.
+  week : int
+    GPS week number, modulo 1024.
+  prn : int
+    PRN number of the satellite.
+  healthy : bool
+    Satellite health status.
+
+  """
   cdef almanac_c.almanac_t almanac
 
   def __init__(self, ecc, toa, inc, rora, a, raaw,
@@ -33,6 +67,24 @@ cdef class Almanac:
     self.healthy = healthy
 
   def calc_state(self, t, week=None):
+    """
+    Wraps the function :libswiftnav:`calc_sat_state_almanac`.
+
+    Parameters
+    ----------
+    t : float
+      The GPS time at which to calculate the azimuth and elevation.
+    week : int, optional
+      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
+      within one half week of the almanac time of applicability.
+
+    Returns
+    -------
+    out : (:class:`numpy.ndarray`, :class:`numpy.ndarray`)
+      The tuple (position, velocity) in meters and meters/sec in the ECEF
+      coordinate system.
+
+    """
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = \
       np.empty(3, dtype=np.double)
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = \
@@ -46,6 +98,25 @@ cdef class Almanac:
     return (pos, vel)
 
   def calc_az_el(self, t, ref, week=None):
+    """
+    Wraps the function :libswiftnav:`calc_sat_az_el_almanac`.
+
+    Parameters
+    ----------
+    t : float
+      The GPS time at which to calculate the azimuth and elevation.
+    ref : (float, float, float)
+      The tuple of coordinates of the reference position, `(x, y, z)`
+    week : int, optional
+      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
+      within one half week of the almanac time of applicability.
+
+    Returns
+    -------
+    out : (float, float)
+      The tuple (azimuth, elevation) in radians.
+
+    """
     if len(ref) != 3:
       raise ValueError("ECEF coordinates must have dimension 3.")
 
@@ -63,6 +134,25 @@ cdef class Almanac:
     return (az, el)
 
   def calc_doppler(self, t, ref, week=None):
+    """
+    Wraps the function :libswiftnav:`calc_sat_doppler_almanac`.
+
+    Parameters
+    ----------
+    t : float
+      The GPS time at which to calculate the Doppler shift.
+    ref : (float, float, float)
+      The tuple of coordinates of the reference position, `(x, y, z)`
+    week : int, optional
+      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
+      within one half week of the almanac time of applicability.
+
+    Returns
+    -------
+    out : float
+      The Doppler shift in Hz.
+
+    """
     if len(ref) != 3:
       raise ValueError("ECEF coordinates must have dimension 3.")
 
@@ -78,8 +168,8 @@ cdef class Almanac:
                                               &ref_[0])
 
   def __repr__(self):
-    return "<Almanac PRN %02d, Week %d, ToA %.1f>" % (self.prn, self.week,
-                                                      self.toa)
+    return "<Almanac PRN %02d, Week %d, ToA %.1f>" % \
+        (self.prn, self.week, self.toa)
 
   property ecc:
     def __get__(self):
