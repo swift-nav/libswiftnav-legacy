@@ -33,7 +33,7 @@ typedef struct {
   double af1;   /**< 1-order clock correction in seconds/second. */
   u16 week;     /**< GPS week number, modulo 1024. */
   u8 prn;       /**< PRN number of the satellite. */
-  u8 healthy;   /**< Satellite health status. */                          
+  u8 healthy;   /**< Satellite health status. */
 } almanac_t;
 
 /** \} */

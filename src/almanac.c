@@ -66,15 +66,15 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
   /* Iteratively solve for the Eccentric Anomaly
    * (from Keith Alter and David Johnston). */
   double ea = ma;  /* Starting value for E. */
-  double ea_old = ea + 1;
+  double ea_old;
   double temp;
 
-  while (fabs(ea - ea_old) > 1.0e-14)
-  {
+  do {
     ea_old = ea;
     temp = 1.0 - alm->ecc * cos(ea_old);
     ea = ea + (ma - ea_old + alm->ecc * sin(ea_old)) / temp;
-  }
+  } while (fabs(ea - ea_old) > 1.0e-14);
+
   double ea_dot = ma_dot / temp;
 
   /* Begin calculation for True Anomaly and Argument of Latitude. */
