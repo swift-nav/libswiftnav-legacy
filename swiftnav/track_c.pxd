@@ -29,52 +29,52 @@ cdef extern from "libswiftnav/track.h":
     double sat_vel[3]
 
   ctypedef struct simple_lf_state_t:
-    double y
+    float y
 
   ctypedef struct simple_tl_state_t:
-    double code_freq
-    double carr_freq
+    float code_freq
+    float carr_freq
 
   ctypedef struct comp_tl_state_t:
-    double code_freq
-    double carr_freq
+    float code_freq
+    float carr_freq
 
   ctypedef struct cn0_est_state_t:
     pass
 
   ctypedef struct correlation_t:
-    double I
-    double Q
+    float I
+    float Q
 
   void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
 
-  void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
-                       double *pgain, double *igain)
-  double costas_discriminator(double I, double Q)
-  double dll_discriminator(correlation_t cs[3])
+  void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
+                       float *pgain, float *igain)
+  float costas_discriminator(float I, float Q)
+  float dll_discriminator(correlation_t cs[3])
 
-  void simple_lf_init(simple_lf_state_t *s, double y0,
-                      double pgain, double igain)
-  double simple_lf_update(simple_lf_state_t *s, double error)
+  void simple_lf_init(simple_lf_state_t *s, float y0,
+                      float pgain, float igain)
+  float simple_lf_update(simple_lf_state_t *s, float error)
 
-  void simple_tl_init(simple_tl_state_t *s, double loop_freq,
-                      double code_freq, double code_bw,
-                      double code_zeta, double code_k,
-                      double carr_freq, double carr_bw,
-                      double carr_zeta, double carr_k)
+  void simple_tl_init(simple_tl_state_t *s, float loop_freq,
+                      float code_freq, float code_bw,
+                      float code_zeta, float code_k,
+                      float carr_freq, float carr_bw,
+                      float carr_zeta, float carr_k)
   void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
 
-  void comp_tl_init(comp_tl_state_t *s, double loop_freq,
-                      double code_freq, double code_bw,
-                      double code_zeta, double code_k,
-                      double carr_freq, double carr_bw,
-                      double carr_zeta, double carr_k,
-                      double tau, u32 sched)
+  void comp_tl_init(comp_tl_state_t *s, float loop_freq,
+                      float code_freq, float code_bw,
+                      float code_zeta, float code_k,
+                      float carr_freq, float carr_bw,
+                      float carr_zeta, float carr_k,
+                      float tau, float cpc, u32 sched)
   void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
 
-  void cn0_est_init(cn0_est_state_t* s, double bw, double cn0_0,
-                    double cutoff_freq, double loop_freq)
-  double cn0_est(cn0_est_state_t* s, double I)
+  void cn0_est_init(cn0_est_state_t* s, float bw, float cn0_0,
+                    float cutoff_freq, float loop_freq)
+  float cn0_est(cn0_est_state_t* s, float I)
 
 
 

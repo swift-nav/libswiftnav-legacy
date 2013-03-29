@@ -82,7 +82,7 @@ def calc_navigation_measurement(double t, chan_meas, es):
 
   return nav_meas
 
-def calc_loop_gains(double bw, double zeta, double k, double loop_freq):
+def calc_loop_gains(float bw, float zeta, float k, float loop_freq):
   """
   Wraps function :libswiftnav:`calc_loop_gains`.
 
@@ -103,8 +103,8 @@ def calc_loop_gains(double bw, double zeta, double k, double loop_freq):
     The tuple `(pgain, igain)`.
 
   """
-  cdef double pgain
-  cdef double igain
+  cdef float pgain
+  cdef float igain
   track_c.calc_loop_gains(bw, zeta, k, loop_freq, &pgain, &igain)
   return (pgain, igain)
 
@@ -226,9 +226,9 @@ cdef class SimpleTrackingLoop:
   """
 
   cdef track_c.simple_tl_state_t s
-  cdef double loop_freq
-  cdef double code_bw, code_zeta, code_k
-  cdef double carr_bw, carr_zeta, carr_k
+  cdef float loop_freq
+  cdef float code_bw, code_zeta, code_k
+  cdef float carr_bw, carr_zeta, carr_k
 
   def __cinit__(self, code_params, carr_params, loop_freq):
     self.loop_freq = loop_freq
@@ -316,20 +316,24 @@ cdef class CompTrackingLoop:
     The frequency with which loop updates are performed.
   tau : float
     The complimentary filter cross-over frequency.
+  cpc : float
+    The number of carrier cycles per complete code, or equivalently the ratio
+    of the carrier frequency to the nominal code frequency.
   sched : int, optional
     The gain scheduling count.
 
   """
 
   cdef track_c.comp_tl_state_t s
-  cdef double loop_freq, tau
-  cdef double code_bw, code_zeta, code_k
-  cdef double carr_bw, carr_zeta, carr_k
+  cdef float loop_freq, cpc, tau
+  cdef float code_bw, code_zeta, code_k
+  cdef float carr_bw, carr_zeta, carr_k
   cdef u32 sched
 
-  def __cinit__(self, code_params, carr_params, loop_freq, tau, sched=0):
+  def __cinit__(self, code_params, carr_params, loop_freq, tau, cpc, sched=0):
     self.loop_freq = loop_freq
     self.tau = tau
+    self.cpc = cpc
     self.sched = sched
     self.code_bw, self.code_zeta, self.code_k = code_params
     self.carr_bw, self.carr_zeta, self.carr_k = carr_params
@@ -341,9 +345,9 @@ cdef class CompTrackingLoop:
     Parameters
     ----------
     code_freq : float
-      The code phase rate (i.e. frequency).
+      The code phase rate (i.e. frequency) difference from nominal.
     carr_freq : float
-      The carrier frequency.
+      The carrier frequency difference from nominal, i.e. Doppler shift.
 
     """
     track_c.comp_tl_init(&self.s, self.loop_freq,
@@ -351,7 +355,7 @@ cdef class CompTrackingLoop:
                          self.code_zeta, self.code_k,
                          carr_freq, self.carr_bw,
                          self.carr_zeta, self.carr_k,
-                         self.tau, self.sched)
+                         self.tau, self.cpc, self.sched)
 
   def update(self, complex e, complex p, complex l):
     """
