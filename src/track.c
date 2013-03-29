@@ -97,22 +97,22 @@
  *                  \f$k_p\f$.
  * \param igain     Where to store the calculated integral gain, \f$k_i\f$.
  */
-void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
-                     double *pgain, double *igain)
+void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
+                     float *pgain, float *igain)
 {
   /* Find the natural frequency. */
-  double omega_n = bw*8*zeta / (4*zeta*zeta + 1);
+  float omega_n = 8.f*bw*zeta / (4.f*zeta*zeta + 1.f);
 
   /* Some intermmediate values. */
 /*
-  double T = 1. / loop_freq;
-  double denominator = k*(4 + 4*zeta*omega_n*T + omega_n*omega_n*T*T);
+  float T = 1. / loop_freq;
+  float denominator = k*(4 + 4*zeta*omega_n*T + omega_n*omega_n*T*T);
 
   *pgain = 8*zeta*omega_n*T / denominator;
   *igain = 4*omega_n*omega_n*T*T / denominator;
 */
   *igain = omega_n * omega_n / (k * loop_freq);
-  *pgain = 2.0 * zeta * omega_n / k;
+  *pgain = 2.f * zeta * omega_n / k;
 }
 
 /** Phase discriminator for a Costas loop.
@@ -135,9 +135,9 @@ void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
  * \param Q The prompt quadrature correlation, \f$Q_k\f$.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
-double costas_discriminator(double I, double Q)
+float costas_discriminator(float I, float Q)
 {
-  return atan(Q / I) / (2*M_PI);
+  return atanf(Q / I) * (float)(1/(2*M_PI));
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -166,12 +166,12 @@ double costas_discriminator(double I, double Q)
  *           and Late correlations.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
-double dll_discriminator(correlation_t cs[3])
+float dll_discriminator(correlation_t cs[3])
 {
-  double early_mag = sqrt((double)cs[0].I*cs[0].I + (double)cs[0].Q*cs[0].Q);
-  double late_mag = sqrt((double)cs[2].I*cs[2].I + (double)cs[2].Q*cs[2].Q);
+  float early_mag = sqrtf((float)cs[0].I*cs[0].I + (float)cs[0].Q*cs[0].Q);
+  float late_mag = sqrtf((float)cs[2].I*cs[2].I + (float)cs[2].Q*cs[2].Q);
 
-  return 0.5 * (early_mag - late_mag) / (early_mag + late_mag);
+  return 0.5f * (early_mag - late_mag) / (early_mag + late_mag);
 }
 
 /** Initialise a simple first-order loop filter.
@@ -182,11 +182,11 @@ double dll_discriminator(correlation_t cs[3])
  * \param pgain The proportional gain, \f$k_p\f$.
  * \param igain The integral gain, \f$k_i\f$.
  */
-void simple_lf_init(simple_lf_state_t *s, double y0,
-                    double pgain, double igain)
+void simple_lf_init(simple_lf_state_t *s, float y0,
+                    float pgain, float igain)
 {
   s->y = y0;
-  s->prev_error = 0;
+  s->prev_error = 0.f;
   s->pgain = pgain;
   s->igain = igain;
 }
@@ -207,7 +207,7 @@ void simple_lf_init(simple_lf_state_t *s, double y0,
  * \param error The error output from the discriminator, \f$\varepsilon_k\f$.
  * \return The updated output variable, \f$y_k\f$.
  */
-double simple_lf_update(simple_lf_state_t *s, double error)
+float simple_lf_update(simple_lf_state_t *s, float error)
 {
   s->y += s->pgain * (error - s->prev_error) + \
           s->igain * error;
@@ -230,13 +230,13 @@ double simple_lf_update(simple_lf_state_t *s, double error)
  * \param carr_zeta The carrier tracking loop damping ratio.
  * \param carr_k The carrier tracking loop gain.
  */
-void simple_tl_init(simple_tl_state_t *s, double loop_freq,
-                    double code_freq, double code_bw,
-                    double code_zeta, double code_k,
-                    double carr_freq, double carr_bw,
-                    double carr_zeta, double carr_k)
+void simple_tl_init(simple_tl_state_t *s, float loop_freq,
+                    float code_freq, float code_bw,
+                    float code_zeta, float code_k,
+                    float carr_freq, float carr_bw,
+                    float carr_zeta, float carr_k)
 {
-  double pgain, igain;
+  float pgain, igain;
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
   s->code_freq = code_freq;
@@ -263,9 +263,9 @@ void simple_tl_init(simple_tl_state_t *s, double loop_freq,
  */
 void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
 {
-  double code_error = dll_discriminator(cs);
+  float code_error = dll_discriminator(cs);
   s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
-  double carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+  float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
   s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
 }
 
@@ -278,26 +278,35 @@ void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
  * `sched` iterations, carrier phase information will be used in the code
  * tracking loop.
  *
+ * Note, this filter requires that the code and carrier frequencies are
+ * expressed as a difference from the nominal frequncy (e.g. 1.023MHz nominal
+ * GPS C/A code phase rate, 4.092MHz IF for the carrier).
+ *
  * \param s The tracking loop state struct to initialise.
- * \param code_freq The initial code phase rate (i.e. frequency).
+ * \param code_freq The initial code phase rate (i.e. frequency) difference
+ *                  from nominal.
  * \param code_bw The code tracking loop noise bandwidth.
  * \param code_zeta The code tracking loop damping ratio.
  * \param code_k The code tracking loop gain.
- * \param carr_freq The initial carrier frequency.
+ * \param carr_freq The initial carrier frequency difference from nominal, i.e.
+ *                  Doppler shift.
  * \param carr_bw The carrier tracking loop noise bandwidth.
  * \param carr_zeta The carrier tracking loop damping ratio.
  * \param carr_k The carrier tracking loop gain.
  * \param tau The complimentary filter cross-over frequency.
+ * \param cpc The number of carrier cycles per complete code, or equivalently
+ *            the ratio of the carrier frequency to the nominal code frequency.
  * \param sched The gain scheduling count.
  */
-void comp_tl_init(comp_tl_state_t *s, double loop_freq,
-                    double code_freq, double code_bw,
-                    double code_zeta, double code_k,
-                    double carr_freq, double carr_bw,
-                    double carr_zeta, double carr_k,
-                    double tau, u32 sched)
+void comp_tl_init(comp_tl_state_t *s, float loop_freq,
+                  float code_freq, float code_bw,
+                  float code_zeta, float code_k,
+                  float carr_freq, float carr_bw,
+                  float carr_zeta, float carr_k,
+                  float tau, float cpc,
+                  u32 sched)
 {
-  double pgain, igain;
+  float pgain, igain;
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
   s->code_freq = code_freq;
@@ -309,8 +318,9 @@ void comp_tl_init(comp_tl_state_t *s, double loop_freq,
 
   s->n = 0;
   s->sched = sched;
+  s->carr_to_code = 1.f / cpc;
 
-  s->A = 1.0 - (1.0 / (loop_freq * tau));
+  s->A = 1.f - (1.f / (loop_freq * tau));
 }
 
 /** Update step for a code/carrier phase complimentary filter tracking loop.
@@ -326,18 +336,17 @@ void comp_tl_init(comp_tl_state_t *s, double loop_freq,
  */
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
 {
-  double carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+  float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
   s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
 
-  double code_error = dll_discriminator(cs);
-  s->code_filt.y = 0;
-  double code_update = simple_lf_update(&(s->code_filt), -code_error);
+  float code_error = dll_discriminator(cs);
+  s->code_filt.y = 0.f;
+  float code_update = simple_lf_update(&(s->code_filt), -code_error);
 
   if (s->n > s->sched) {
     s->code_freq = s->A * s->code_freq + \
                    s->A * code_update + \
-                   (1.0 - s->A)*
-                     1.023e6*(1 + (s->carr_freq-4.092e6)/1.57542e9);
+                   (1.f - s->A)*s->carr_to_code*s->carr_freq;
   } else {
     s->code_freq += code_update;
   }
@@ -358,13 +367,13 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
  * \param cutoff_freq The low-pass filter cutoff frequency, \f$f_c\f$, in Hz.
  * \param loop_freq The loop update frequency, \f$f\f$, in Hz.
  */
-void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
-                  double cutoff_freq, double loop_freq)
+void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
+                  float cutoff_freq, float loop_freq)
 {
-  s->log_bw = 10*log10(bw);
+  s->log_bw = 10.f*log10f(bw);
   s->A = cutoff_freq / (loop_freq + cutoff_freq);
-  s->I_prev_abs = -1;
-  s->nsr = pow(10, 0.1*(s->log_bw - cn0_0));
+  s->I_prev_abs = -1.f;
+  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
 }
 
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
@@ -420,25 +429,25 @@ void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
  * \param I The prompt in-phase correlation from the tracking correlators.
  * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
  */
-double cn0_est(cn0_est_state_t *s, double I)
+float cn0_est(cn0_est_state_t *s, float I)
 {
-  double P_n, P_s;
+  float P_n, P_s;
 
-  if (s->I_prev_abs < 0) {
+  if (s->I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
     s->I_prev_abs = fabs(I);
   } else {
-    P_n = fabs(I) - s->I_prev_abs;
+    P_n = fabsf(I) - s->I_prev_abs;
     P_n = P_n*P_n;
 
-    P_s = 0.5*(I*I + s->I_prev_abs*s->I_prev_abs);
+    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
 
-    s->I_prev_abs = fabs(I);
+    s->I_prev_abs = fabsf(I);
 
-    s->nsr = s->A * (P_n / P_s) + (1 - s->A) * s->nsr;
+    s->nsr = s->A * (P_n / P_s) + (1.f - s->A) * s->nsr;
   }
 
-  return s->log_bw - 10*log10(s->nsr);
+  return s->log_bw - 10.f*log10f(s->nsr);
 }
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], navigation_measurement_t nav_meas[], double nav_time, ephemeris_t ephemerides[])

@@ -26,18 +26,18 @@
  * Should be initialised with simple_lf_init().
  */
 typedef struct {
-  double pgain;      /**< Proportional gain. */
-  double igain;      /**< Integral gain. */
-  double prev_error; /**< Previous error. */
-  double y;          /**< Output variable. */
+  float pgain;      /**< Proportional gain. */
+  float igain;      /**< Integral gain. */
+  float prev_error; /**< Previous error. */
+  float y;          /**< Output variable. */
 } simple_lf_state_t;
 
 /** State structure for a simple tracking loop.
  * Should be initialised with simple_tl_init().
  */
 typedef struct {
-  double code_freq;            /**< Code phase rate (i.e. frequency). */
-  double carr_freq;            /**< Carrier frequency. */
+  float code_freq;             /**< Code phase rate (i.e. frequency). */
+  float carr_freq;             /**< Carrier frequency. */
   simple_lf_state_t code_filt; /**< Code loop filter state. */
   simple_lf_state_t carr_filt; /**< Carrier loop filter state. */
 } simple_tl_state_t;
@@ -47,13 +47,14 @@ typedef struct {
  * Should be initialised with comp_tl_init().
  */
 typedef struct {
-  double code_freq;            /**< Code phase rate (i.e. frequency). */
-  double carr_freq;            /**< Carrier frequency. */
+  float code_freq;             /**< Code phase rate (i.e. frequency). */
+  float carr_freq;             /**< Carrier frequency. */
   simple_lf_state_t code_filt; /**< Code loop filter state. */
   simple_lf_state_t carr_filt; /**< Carrier loop filter state. */
   u32 sched;                   /**< Gain scheduling count. */
   u32 n;                       /**< Iteration counter. */
-  double A;                    /**< Complementary filter crossover gain. */
+  float A;                     /**< Complementary filter crossover gain. */
+  float carr_to_code;          /**< Scale factor from carrier to code. */
 } comp_tl_state_t;
 
 
@@ -61,18 +62,18 @@ typedef struct {
 
 /** Structure representing a complex valued correlation. */
 typedef struct {
-  double I; /**< In-phase correlation. */
-  double Q; /**< Quadrature correlation. */
+  float I; /**< In-phase correlation. */
+  float Q; /**< Quadrature correlation. */
 } correlation_t;
 
 /** State structure for the \f$ C / N_0 \f$ estimator.
  * Should be initialised with cn0_est_init().
  */
 typedef struct {
-  double log_bw;     /**< Noise bandwidth in dBHz. */
-  double A;          /**< IIR filter coeff. */
-  double I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
-  double nsr;        /**< Noise-to-signal ratio (1 / SNR). */
+  float log_bw;     /**< Noise bandwidth in dBHz. */
+  float A;          /**< IIR filter coeff. */
+  float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
+  float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
 } cn0_est_state_t;
 
 /** \} */
@@ -96,33 +97,33 @@ typedef struct {
   double sat_vel[3];
 } navigation_measurement_t;
 
-void calc_loop_gains(double bw, double zeta, double k, double loop_freq,
-                     double *pgain, double *igain);
-double costas_discriminator(double I, double Q);
-double dll_discriminator(correlation_t cs[3]);
+void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
+                     float *pgain, float *igain);
+float costas_discriminator(float I, float Q);
+float dll_discriminator(correlation_t cs[3]);
 
-void simple_lf_init(simple_lf_state_t *s, double y0,
-                    double pgain, double igain);
-double simple_lf_update(simple_lf_state_t *s, double error);
+void simple_lf_init(simple_lf_state_t *s, float y0,
+                    float pgain, float igain);
+float simple_lf_update(simple_lf_state_t *s, float error);
 
-void simple_tl_init(simple_tl_state_t *s, double loop_freq,
-                    double code_freq, double code_bw,
-                    double code_zeta, double code_k,
-                    double carr_freq, double carr_bw,
-                    double carr_zeta, double carr_k);
+void simple_tl_init(simple_tl_state_t *s, float loop_freq,
+                    float code_freq, float code_bw,
+                    float code_zeta, float code_k,
+                    float carr_freq, float carr_bw,
+                    float carr_zeta, float carr_k);
 void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3]);
 
-void comp_tl_init(comp_tl_state_t *s, double loop_freq,
-                    double code_freq, double code_bw,
-                    double code_zeta, double code_k,
-                    double carr_freq, double carr_bw,
-                    double carr_zeta, double carr_k,
-                    double tau, u32 sched);
+void comp_tl_init(comp_tl_state_t *s, float loop_freq,
+                    float code_freq, float code_bw,
+                    float code_zeta, float code_k,
+                    float carr_freq, float carr_bw,
+                    float carr_zeta, float carr_k,
+                    float tau, float cpc, u32 sched);
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
 
-void cn0_est_init(cn0_est_state_t *s, double bw, double cn0_0,
-                  double cutoff_freq, double loop_freq);
-double cn0_est(cn0_est_state_t *s, double I);
+void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
+                  float cutoff_freq, float loop_freq);
+float cn0_est(cn0_est_state_t *s, float I);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
