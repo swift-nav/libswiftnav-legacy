@@ -22,7 +22,7 @@ cdef class NavMsg:
       else:
         self.eph_valid = False
         #return Ephemeris(&self.eph)
-    return tow if tow != 0 else None
+    return None if tow < 0 else tow
 
   def gps_week_num(self):
     if self.eph_valid:
