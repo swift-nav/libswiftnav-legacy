@@ -70,13 +70,13 @@ u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 }
 
 
-u32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
+s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
 {
   /* Called once per tracking loop update (atm fixed at 1 PRN [1 ms]). Performs
    * the necessary steps to recover the nav bit clock, store the nav bits and
    * decode them. */
 
-  u32 TOW_ms = 0;
+  s32 TOW_ms = -1;
 
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
