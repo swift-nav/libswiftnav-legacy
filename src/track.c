@@ -480,6 +480,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->tot.tow = TOTs[i];
     mean_TOT += TOTs[i];
     nav_meas[i]->pseudorange_rate = NAV_C * -meas[i]->carrier_freq / GPS_L1_HZ;
+    nav_meas[i]->snr = meas[i]->snr;
+    nav_meas[i]->prn = meas[i]->prn;
   }
 
   mean_TOT = mean_TOT/n_channels;
