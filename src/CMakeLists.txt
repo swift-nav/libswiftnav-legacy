@@ -17,6 +17,7 @@ set(libswiftnav_SRCS
   linear_algebra.c
   prns.c
   almanac.c
+  gpstime.c
 )
 
 if (CMAKE_CROSSCOMPILING)

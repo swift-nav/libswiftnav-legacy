@@ -291,7 +291,9 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
       // Subframe 1: SV health, T_GD, t_oc, a_f2, a_f1, a_f0
 
-      e->wn = (n->frame_words[0][3-3] >> (30-10) & 0x3FF);       // GPS week number (mod 1024): Word 3, bits 20-30
+      e->toe.wn = (n->frame_words[0][3-3] >> (30-10) & 0x3FF);       // GPS week number (mod 1024): Word 3, bits 20-30
+      e->toe.wn += GPS_WEEK_CYCLE*1024;
+      e->toc.wn = e->toe.wn;
 
       e->healthy = !(n->frame_words[0][3-3] >> (30-17) & 1);     // Health flag: Word 3, bit 17
       if (!e->healthy)
@@ -300,7 +302,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
       onebyte.u8 = n->frame_words[0][7-3] >> (30-24) & 0xFF;  // t_gd: Word 7, bits 17-24
       e->tgd = onebyte.s8 * pow(2,-31);
 
-      e->toc = (n->frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;   // t_oc: Word 8, bits 8-24
+      e->toc.tow = (n->frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;   // t_oc: Word 8, bits 8-24
 
       onebyte.u8 = n->frame_words[0][9-3] >> (30-8) & 0xFF;         // a_f2: Word 9, bits 1-8
       e->af2 = onebyte.s8 * pow(2,-55);
@@ -342,7 +344,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
                   | (n->frame_words[1][9-3] >> (30-24) & 0xFFFFFF);     // and word 9, bits 1-24
       e->sqrta = fourbyte.u32 * pow(2,-19);
 
-      e->toe = (n->frame_words[1][10-3] >> (30-16) & 0xFFFF) * 16;   // t_oe: Word 10, bits 1-16
+      e->toe.tow = (n->frame_words[1][10-3] >> (30-16) & 0xFFFF) * 16;   // t_oe: Word 10, bits 1-16
 
 
       // Subframe 3: cic, omega0, cis, inc, crc, w, omegadot, inc_dot

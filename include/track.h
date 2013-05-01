@@ -92,7 +92,7 @@ typedef struct {
 typedef struct {
   double pseudorange;
   double pseudorange_rate;
-  double TOT;
+  gps_time_t tot;
   double sat_pos[3];
   double sat_vel[3];
 } navigation_measurement_t;

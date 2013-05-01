@@ -13,15 +13,15 @@
 #ifndef LIBSWIFTNAV_EPHEMERIS_H
 #define LIBSWIFTNAV_EPHEMERIS_H
 
+#include "gpstime.h"
 #include "common.h"
 
 typedef struct {
-  u16 wn;
   double tgd;
   double crs, crc, cuc, cus, cic, cis;
   double dn, m0, ecc, sqrta, omega0, omegadot, w, inc, inc_dot;
   double af0, af1, af2;
-  u32 toe, toc;
+  gps_time_t toe, toc;
   u8 valid;
   u8 healthy;
 } ephemeris_t;
@@ -29,10 +29,10 @@ typedef struct {
 int calc_sat_pos(double pos[3], double vel[3],
                  double *clock_err, double *clock_rate_err,
                  const ephemeris_t *ephemeris,
-                 double time_of_transmit);
+                 gps_time_t tot);
 
 double predict_range(double rx_pos[3],
-                     double time_of_transmit,
+                     gps_time_t tot,
                      ephemeris_t *ephemeris);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */

@@ -475,7 +475,9 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
     TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
 
-    nav_meas[i]->TOT = TOTs[i];
+    /** \todo Handle GPS time properly here, e.g. week rollover */
+    nav_meas[i]->tot.wn = ephemerides[i]->toe.wn;
+    nav_meas[i]->tot.tow = TOTs[i];
     mean_TOT += TOTs[i];
     nav_meas[i]->pseudorange_rate = NAV_C * -meas[i]->carrier_freq / GPS_L1_HZ;
   }
@@ -493,7 +495,7 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
   for (u8 i=0; i<n_channels; i++) {
     nav_meas[i]->pseudorange = (mean_TOT - TOTs[i])*NAV_C + NOMINAL_RANGE;
 
-    calc_sat_pos(nav_meas[i]->sat_pos, nav_meas[i]->sat_vel, &clock_err, &clock_rate_err, ephemerides[i], TOTs[i]);
+    calc_sat_pos(nav_meas[i]->sat_pos, nav_meas[i]->sat_vel, &clock_err, &clock_rate_err, ephemerides[i], nav_meas[i]->tot);
     wgsecef2azel(nav_meas[i]->sat_pos, WPR_ecef, &az, &el);
 
     /*nav_meas[i]->pseudorange -= tropo_correction(el);*/
