@@ -46,7 +46,7 @@ cdef class Solution:
 
   property tow:
     def __get__(self):
-      return self.soln.time
+      return self.soln.time.tow
 
   property dops:
     def __get__(self):

@@ -9,6 +9,7 @@
 
 from common cimport *
 from ephemeris_c cimport ephemeris_t
+from gpstime_c cimport gps_time_t
 
 cdef extern from "libswiftnav/track.h":
   ctypedef struct channel_measurement_t:
@@ -24,7 +25,7 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct navigation_measurement_t:
     double pseudorange
     double pseudorange_rate
-    double TOT
+    gps_time_t tot
     double sat_pos[3]
     double sat_vel[3]
 

@@ -26,7 +26,7 @@ cdef class NavMsg:
 
   def gps_week_num(self):
     if self.eph_valid:
-      return self.eph.wn
+      return self.eph.toe.wn
     else:
       return None
 

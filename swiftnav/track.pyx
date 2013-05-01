@@ -46,10 +46,11 @@ cdef class ChannelMeasurement:
                 self.meas.snr)) + '>'
 
 cdef class NavigationMeasurement:
-  def __cinit__(self, pr, prr, TOT, sat_pos, sat_vel):
+  def __cinit__(self, pr, prr, wn, tot, sat_pos, sat_vel):
     self.meas.pseudorange = pr
     self.meas.pseudorange_rate = prr
-    self.meas.TOT = TOT
+    self.meas.tot.tow = tot
+    self.meas.tot.wn = wn
     for i in range(3):
       self.meas.sat_pos[i] = sat_pos[i]
       self.meas.sat_vel[i] = sat_vel[i]
@@ -57,13 +58,13 @@ cdef class NavigationMeasurement:
   def __repr__(self):
     return '<NavigationMeasurement ' + str((self.meas.pseudorange,
                 self.meas.pseudorange_rate,
-                self.meas.TOT,
+                self.meas.tot.tow,
                 (self.meas.sat_pos[0], self.meas.sat_pos[1], self.meas.sat_pos[2]),
                 (self.meas.sat_vel[0], self.meas.sat_vel[1], self.meas.sat_vel[2]))) + '>'
 
 def calc_navigation_measurement(double t, chan_meas, es):
   n_channels = len(chan_meas)
-  nav_meas = [NavigationMeasurement(0, 0, 0, (0,0,0), (0,0,0)) for n in range(n_channels)]
+  nav_meas = [NavigationMeasurement(0, 0, 0, 0, (0,0,0), (0,0,0)) for n in range(n_channels)]
 
   cdef channel_measurement_t** chan_meas_ptrs = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t*))
   cdef navigation_measurement_t** nav_meas_ptrs = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t*))

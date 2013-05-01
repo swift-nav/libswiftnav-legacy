@@ -9,6 +9,7 @@
 
 from common cimport *
 from track_c cimport navigation_measurement_t
+from gpstime_c cimport gps_time_t
 
 cdef extern from "libswiftnav/pvt.h":
   ctypedef struct dops_t:
@@ -25,7 +26,7 @@ cdef extern from "libswiftnav/pvt.h":
     double vel_ecef[3]
     double vel_ned[3]
     double err_cov[7]
-    double time
+    gps_time_t time
     u8 gps_solution_valid
     u8 n_used
 
