@@ -35,6 +35,8 @@ get_filename_component(CMAKE_INSTALL_PREFIX
 get_filename_component(CMAKE_INSTALL_PREFIX
   "${CMAKE_INSTALL_PREFIX}/.." REALPATH
 )
+set(CMAKE_INSTALL_PREFIX  ${CMAKE_INSTALL_PREFIX} CACHE FILEPATH
+    "Install path prefix, prepended onto install directories.")
 
 message(STATUS "Cross-compiling with the gcc-arm-embedded toolchain")
 message(STATUS "Toolchain prefix: ${CMAKE_INSTALL_PREFIX}")
