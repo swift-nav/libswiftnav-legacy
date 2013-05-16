@@ -80,5 +80,7 @@ endif ()
 # separated lists, undo this here...
 string(REGEX REPLACE ";" " " CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "")
+
 set(BUILD_SHARED_LIBS OFF)
 
