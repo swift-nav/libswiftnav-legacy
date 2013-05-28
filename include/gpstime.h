@@ -32,8 +32,8 @@
 
 /** Structure representing a GPS time. */
 typedef struct {
-  u16 wn;     /**< GPS week number. */
   double tow; /**< Seconds since the GPS start of week. */
+  u16 wn;     /**< GPS week number. */
 } gps_time_t;
 
 gps_time_t normalize_gps_time(gps_time_t);
