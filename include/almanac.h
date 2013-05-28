@@ -34,6 +34,7 @@ typedef struct {
   u16 week;     /**< GPS week number, modulo 1024. */
   u8 prn;       /**< PRN number of the satellite. */
   u8 healthy;   /**< Satellite health status. */
+  u8 valid;     /**< Almanac is valid. */
 } almanac_t;
 
 /** \} */
