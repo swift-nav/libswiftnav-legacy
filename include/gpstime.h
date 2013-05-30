@@ -31,7 +31,7 @@
 #define GPS_EPOCH 315964800
 
 /** Structure representing a GPS time. */
-typedef struct {
+typedef struct __attribute__((packed)) {
   double tow; /**< Seconds since the GPS start of week. */
   u16 wn;     /**< GPS week number. */
 } gps_time_t;
