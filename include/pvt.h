@@ -72,10 +72,9 @@ typedef struct __attribute__((packed)) {
    */
   double err_cov[7];
 
-  /* GPS week number modulo 1024. */
-  u16 week_num;
-  /* GPS time of week [sec] */
+  /* GPS time */
   gps_time_t time;
+
   /* 0 = invalid, 1 = carrier phase, 2 = code phase */
   u8 gps_solution_valid;
   /* Number of channels used in the soluton. */
