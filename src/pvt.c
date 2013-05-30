@@ -12,6 +12,7 @@
  */
 
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "linear_algebra.h"
@@ -263,6 +264,28 @@ static double pvt_solve(double rx_state[],
   return tempd;
 }
 
+u8 filter_solution(gnss_solution* soln, dops_t* dops)
+{
+  if (dops->pdop > 50.0)
+    /* PDOP is too high to yeild a good solution. */
+    return 1;
+
+  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e8)
+    /* Altitude is unreasonable. */
+    return 2;
+
+  /* NOTE: The following condition is required to comply with US export
+   * regulations. It must not be removed. Any modification to this condition
+   * is strictly not approved by Swift Navigation Inc. */
+
+  if (soln->pos_llh[2] >= 0.3048*60000 &&
+      vector_norm(3, soln->vel_ecef) >= 0.514444444*1000)
+    /* Altitude is greater than 60000' and velocity is greater than 1000kts. */
+    return 3;
+
+  return 0;
+}
+
 u8 calc_PVT(const u8 n_used,
             const navigation_measurement_t const nav_meas[n_used],
             gnss_solution *soln,
@@ -333,6 +356,18 @@ u8 calc_PVT(const u8 n_used,
   soln->time = nav_meas[0].tot;
   soln->time.tow -= rx_state[3] / NAV_C;
   normalize_gps_time(soln->time);
+
+  u8 ret;
+  if ((ret = filter_solution(soln, dops))) {
+    memset(soln, 0, sizeof(soln));
+    memset(dops, 0, sizeof(dops));
+    /* Reset state if solution fails */
+    rx_state[0] = 0;
+    rx_state[1] = 0;
+    rx_state[2] = 0;
+    printf("Solution filtered: %d\n", ret);
+    return -1;
+  }
 
   return 0;
 }
