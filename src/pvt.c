@@ -190,9 +190,11 @@ static double pvt_solve(double rx_state[],
                              (double *) nav_meas[j].sat_pos,
                              (double *) xk_new);
 
+    /* Line of sight vector. */
+    vector_subtract(3, xk_new, rx_state, los);
+
     /* Predicted range from satellite position and estimated Rx position. */
-    vector_subtract(3, rx_state, xk_new, tempv);
-    p_pred[j] = vector_norm(3, tempv);
+    p_pred[j] = vector_norm(3, los);
 
     /* omp means "observed minus predicted" range -- this is E, the
      * prediction error vector (or innovation vector in Kalman/LS
@@ -200,18 +202,12 @@ static double pvt_solve(double rx_state[],
      */
     omp[j] = nav_meas[j].pseudorange - p_pred[j];
 
-    /* Line of sight vector. */
-    vector_subtract(3, nav_meas[j].sat_pos, rx_state, los);
 
     /* Construct a geometry matrix.  Each row (satellite) is
      * independently normalized into a unit vector.
      */
-    /* TODO: these aren't normalised now are they! But still
-     * seems to work ok.
-     */
     for (u8 i=0; i<3; i++) {
-      los[i] = los[i] / p_pred[j];
-      G[j][i] = -los[i];
+      G[j][i] = -los[i] / p_pred[j];
     }
 
     /* Set time covariance to 1. */
