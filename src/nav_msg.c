@@ -248,7 +248,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
 
-  /*printf("sf_id = %d\n",sf_id);*/
+  /*printf("sf_id = %d, nsf = %d\n",sf_id, n->next_subframe_id);*/
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
@@ -272,6 +272,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
       // Now let's actually go through the parameters...
 
       // These unions facilitate signed/unsigned conversion and sign extension
+      // TODO: Use types from common.h here
       union {
         char s8;
         unsigned char u8;
@@ -297,7 +298,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
       e->healthy = !(n->frame_words[0][3-3] >> (30-17) & 1);     // Health flag: Word 3, bit 17
       if (!e->healthy)
-        printf("UNHEALTHY");
+        printf("UNHEALTHY\n");
 
       onebyte.u8 = n->frame_words[0][7-3] >> (30-24) & 0xFF;  // t_gd: Word 7, bits 17-24
       e->tgd = onebyte.s8 * pow(2,-31);
