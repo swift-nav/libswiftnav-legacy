@@ -53,12 +53,10 @@ typedef struct __attribute__((packed)) {
   double pos_llh[3];
   /** Receiver position ECEF XYZ [m] */
   double pos_ecef[3];
-  /** Receiver position North East Down [m] */
-  double pos_ned[3];
-  /** Receiver velocity in ECEF XYZ [m/s] */
-  double vel_ecef[3];
   /** Receiver velocity in NED [m/s] */
   double vel_ned[3];
+  /** Receiver velocity in ECEF XYZ [m/s] */
+  double vel_ecef[3];
 
   /* This is the row-first upper diagonal matrix of error covariances
    * in x, y, z (all receiver clock covariance terms are ignored).  So

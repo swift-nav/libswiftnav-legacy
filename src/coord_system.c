@@ -210,6 +210,9 @@ void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
   ref_el = atan2(ref_ecef[2], tempd);
   ref_az = atan2(ref_ecef[1], ref_ecef[0]);
 
+  /* TODO: I think this could be rewritten so it doesn't use trig function
+   * calls. Also we have functions for multiplying matricies... */
+
   M[0][0] = -sin(ref_el) * cos(ref_az);
   M[0][1] = -sin(ref_el) * sin(ref_az);
   M[0][2] = cos(ref_el);

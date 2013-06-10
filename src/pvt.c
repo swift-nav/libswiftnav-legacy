@@ -347,6 +347,8 @@ u8 calc_PVT(const u8 n_used,
     soln->vel_ecef[i] = rx_state[4+i];
   }
 
+  wgsecef2ned(soln->vel_ecef, soln->pos_ecef, soln->vel_ned);
+
   /* Convert to lat, lon, hgt. */
   wgsecef2llh(rx_state, soln->pos_llh);
 
