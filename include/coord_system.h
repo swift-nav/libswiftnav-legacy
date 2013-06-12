@@ -39,7 +39,7 @@
 /* \} */
 
 void wgsllh2ecef(const double *llh, double *ecef);
-void wgsecef2llh(const double const ecef[3], double llh[3]);
+void wgsecef2llh(const double ecef[3], double llh[3]);
 
 void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
                  double ned[3]);
