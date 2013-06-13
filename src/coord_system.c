@@ -190,20 +190,16 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
  * \param M        3x3 matrix to be populated with rotation matrix.
  */
 static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
-  double ref_el, ref_az;
-  double tempd;
+  double hyp_az, hyp_el;
   double sin_el, cos_el, sin_az, cos_az;
 
-  /* TODO: I think this could be rewritten so it doesn't use trig function. */
-
   /* Convert reference point to spherical earth centered coordinates. */
-  tempd = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
-  ref_el = atan2(ref_ecef[2], tempd);
-  ref_az = atan2(ref_ecef[1], ref_ecef[0]);
-  sin_el = sin(ref_el);
-  cos_el = cos(ref_el);
-  sin_az = sin(ref_az);
-  cos_az = cos(ref_az);
+  hyp_az = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
+  hyp_el = sqrt(hyp_az*hyp_az + ref_ecef[2]*ref_ecef[2]);
+  sin_el = ref_ecef[2] / hyp_el;
+  cos_el = hyp_az / hyp_el;
+  sin_az = ref_ecef[1] / hyp_az;
+  cos_az = ref_ecef[0] / hyp_az;
 
   M[0][0] = -sin_el * cos_az;
   M[0][1] = -sin_el * sin_az;
