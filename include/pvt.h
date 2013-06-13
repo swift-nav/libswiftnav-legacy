@@ -73,8 +73,8 @@ typedef struct __attribute__((packed)) {
   /* GPS time */
   gps_time_t time;
 
-  /* 0 = invalid, 1 = carrier phase, 2 = code phase */
-  u8 gps_solution_valid;
+  /* 0 = invalid, 1 = code phase */
+  u8 valid;
   /* Number of channels used in the soluton. */
   u8 n_used;
 } gnss_solution;

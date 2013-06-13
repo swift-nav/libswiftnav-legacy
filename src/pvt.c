@@ -302,6 +302,8 @@ u8 calc_PVT(const u8 n_used,
 
   double H[4][4];
 
+  soln->valid = 0;
+
   soln->n_used = n_used; // Keep track of number of working channels
 
   /* reset state to zero !? */
@@ -371,6 +373,7 @@ u8 calc_PVT(const u8 n_used,
     return -1;
   }
 
+  soln->valid = 1;
   return 0;
 }
 
