@@ -181,6 +181,40 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
   llh[2] = (p*e_c*C + fabs(ecef[2])*S - WGS84_A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
 }
 
+/** Helper function which populates a provided 3x3 matrix with the
+ * appropriate rotation matrix to transform from ECEF to NED coordinates,
+ * given the provided ECEF reference vector.
+ *
+ * \param ref_ecef Cartesian coordinates of reference vector, passed as 
+ *                 [X, Y, Z], all in meters.
+ * \param M        3x3 matrix to be populated with rotation matrix.
+ */ 
+static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
+  double ref_el, ref_az;
+  double tempd;
+  double sin_el, cos_el, sin_az, cos_az;
+
+  /* Convert reference point to spherical earth centered coordinates. */
+  tempd = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
+  ref_el = atan2(ref_ecef[2], tempd);
+  ref_az = atan2(ref_ecef[1], ref_ecef[0]);
+  sin_el = sin(ref_el);
+  cos_el = cos(ref_el);
+  sin_az = sin(ref_az);
+  cos_az = cos(ref_az);
+
+  M[0][0] = -sin_el * cos_az;
+  M[0][1] = -sin_el * sin_az;
+  M[0][2] = cos_el;
+  M[1][0] = -sin_az;
+  M[1][1] = cos_az;
+  M[1][2] = 0.0;
+  M[2][0] = cos_el * cos_az;
+  M[2][1] = cos_el * sin_az;
+  M[2][2] = sin_el;
+}
+
+
 /** Converts a vector in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
  * coordinates to the local North, East, Down (NED) frame of a reference point,
  * also given in WGS84 ECEF coordinates.
@@ -202,27 +236,8 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
 void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
                  double ned[3]) {
   double M[3][3];
-  double ref_el, ref_az;
-  double tempd;
-
-  /* Convert reference point to spherical earth centered coordinates. */
-  tempd = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
-  ref_el = atan2(ref_ecef[2], tempd);
-  ref_az = atan2(ref_ecef[1], ref_ecef[0]);
-
-  M[0][0] = -sin(ref_el) * cos(ref_az);
-  M[0][1] = -sin(ref_el) * sin(ref_az);
-  M[0][2] = cos(ref_el);
-  M[1][0] = -sin(ref_az);
-  M[1][1] = cos(ref_az);
-  M[1][2] = 0.0;
-  M[2][0] = cos(ref_el) * cos(ref_az);
-  M[2][1] = cos(ref_el) * sin(ref_az);
-  M[2][2] = sin(ref_el);
-
-  ned[0] = M[0][0]*ecef[0] + M[0][1]*ecef[1] + M[0][2]*ecef[2];
-  ned[1] = M[1][0]*ecef[0] + M[1][1]*ecef[1] + M[1][2]*ecef[2];
-  ned[2] = -(M[2][0]*ecef[0] + M[2][1]*ecef[1] + M[2][2]*ecef[2]);
+  ecef2ned_matrix(ref_ecef, M);
+  matrix_multiply(3, 3, 1, (double *)M, ecef, ned);
 }
 
 /** Returns the vector \e to a point given in WGS84 Earth Centered, Earth Fixed
@@ -245,6 +260,52 @@ void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
   vector_subtract(3, ecef, ref_ecef, tempv);
   wgsecef2ned(tempv, ref_ecef, ned);
 }
+
+
+/** Converts a vector in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
+ * coordinates to the local North, East, Down (NED) frame of a reference point,
+ * also given in WGS84 ECEF coordinates.
+ *
+ * Note, this function only \e rotates the NED vector into the ECEF frame, as 
+ * would be appropriate for e.g. a velocity vector. To pass an NED position in 
+ * the reference frame of the NED, see \ref wgsned2ecef_d.
+ *
+ * \see wgsned2ecef_d.
+ *
+ * \param ned       The North, East, Down vector is passed as [N, E, D], all in 
+ *                  meters.
+ * \param ref_ecef  Cartesian coordinates of the reference point, passed as
+ *                  [X, Y, Z], all in meters.
+ * \param ecef      Cartesian coordinates of the point written into this array,
+ *                  [X, Y, Z], all in meters.
+ */
+void wgsned2ecef(const double ned[3], const double ref_ecef[3],
+                 double ecef[3]) {
+  double M[3][3], M_transpose[3][3];
+  ecef2ned_matrix(ref_ecef, M);
+  matrix_transpose(3, 3, (double *)M, (double *)M_transpose);
+  matrix_multiply(3, 3, 1, (double *)M_transpose, ned, ecef);
+}
+
+/** For a point given in the local North, East, Down (NED) frame of a provided
+ * ECEF reference point, return the vector to that point in ECEF coordinates.
+ *
+ * \see wgsned2ecef.
+ *
+ * \param ned       The North, East, Down vector is passed as [N, E, D], all in 
+ *                  meters.
+ * \param ref_ecef  Cartesian coordinates of the reference point, passed as
+ *                  [X, Y, Z], all in meters.
+ * \param ecef      Cartesian coordinates of the point written into this array,
+ *                  [X, Y, Z], all in meters.
+ */
+void wgsned2ecef_d(const double ned[3], const double ref_ecef[3],
+                   double ecef[3]) {
+  double tempv[3];
+  wgsned2ecef(ned, ref_ecef, tempv);
+  vector_add(3, tempv, ref_ecef, ecef);
+}
+
 
 /** Determine the azimuth and elevation of a point in WGS84 Earth Centered,
  * Earth Fixed (ECEF) Cartesian coordinates from a reference point given in
