@@ -12,6 +12,7 @@
  */
 
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "linear_algebra.h"
@@ -190,9 +191,11 @@ static double pvt_solve(double rx_state[],
                              (double *) nav_meas[j].sat_pos,
                              (double *) xk_new);
 
+    /* Line of sight vector. */
+    vector_subtract(3, xk_new, rx_state, los);
+
     /* Predicted range from satellite position and estimated Rx position. */
-    vector_subtract(3, rx_state, xk_new, tempv);
-    p_pred[j] = vector_norm(3, tempv);
+    p_pred[j] = vector_norm(3, los);
 
     /* omp means "observed minus predicted" range -- this is E, the
      * prediction error vector (or innovation vector in Kalman/LS
@@ -200,18 +203,12 @@ static double pvt_solve(double rx_state[],
      */
     omp[j] = nav_meas[j].pseudorange - p_pred[j];
 
-    /* Line of sight vector. */
-    vector_subtract(3, nav_meas[j].sat_pos, rx_state, los);
 
     /* Construct a geometry matrix.  Each row (satellite) is
      * independently normalized into a unit vector.
      */
-    /* TODO: these aren't normalised now are they! But still
-     * seems to work ok.
-     */
     for (u8 i=0; i<3; i++) {
-      los[i] = los[i] / p_pred[j];
-      G[j][i] = -los[i];
+      G[j][i] = -los[i] / p_pred[j];
     }
 
     /* Set time covariance to 1. */
@@ -267,6 +264,28 @@ static double pvt_solve(double rx_state[],
   return tempd;
 }
 
+u8 filter_solution(gnss_solution* soln, dops_t* dops)
+{
+  if (dops->pdop > 50.0)
+    /* PDOP is too high to yeild a good solution. */
+    return 1;
+
+  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e8)
+    /* Altitude is unreasonable. */
+    return 2;
+
+  /* NOTE: The following condition is required to comply with US export
+   * regulations. It must not be removed. Any modification to this condition
+   * is strictly not approved by Swift Navigation Inc. */
+
+  if (soln->pos_llh[2] >= 0.3048*60000 &&
+      vector_norm(3, soln->vel_ecef) >= 0.514444444*1000)
+    /* Altitude is greater than 60000' and velocity is greater than 1000kts. */
+    return 3;
+
+  return 0;
+}
+
 u8 calc_PVT(const u8 n_used,
             const navigation_measurement_t const nav_meas[n_used],
             gnss_solution *soln,
@@ -282,6 +301,8 @@ u8 calc_PVT(const u8 n_used,
   static double rx_state[8];
 
   double H[4][4];
+
+  soln->valid = 0;
 
   soln->n_used = n_used; // Keep track of number of working channels
 
@@ -328,15 +349,31 @@ u8 calc_PVT(const u8 n_used,
     soln->vel_ecef[i] = rx_state[4+i];
   }
 
+  wgsecef2ned(soln->vel_ecef, soln->pos_ecef, soln->vel_ned);
+
   /* Convert to lat, lon, hgt. */
   wgsecef2llh(rx_state, soln->pos_llh);
 
   /* Implicitly use the first receiver to calculate offset from GPS
    * TOW.  Maybe there's a better way to do this?  */
   /* TODO: what is this about? */
-  soln->time = nav_meas[0].TOT;
-  soln->time -= rx_state[3] / NAV_C;
+  soln->time = nav_meas[0].tot;
+  soln->time.tow -= rx_state[3] / NAV_C;
+  normalize_gps_time(soln->time);
 
+  u8 ret;
+  if ((ret = filter_solution(soln, dops))) {
+    memset(soln, 0, sizeof(soln));
+    memset(dops, 0, sizeof(dops));
+    /* Reset state if solution fails */
+    rx_state[0] = 0;
+    rx_state[1] = 0;
+    rx_state[2] = 0;
+    printf("Solution filtered: %d\n", ret);
+    return -1;
+  }
+
+  soln->valid = 1;
   return 0;
 }
 

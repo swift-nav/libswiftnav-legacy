@@ -22,7 +22,7 @@
 int calc_sat_pos(double pos[3], double vel[3],
              double *clock_err, double *clock_rate_err,
              const ephemeris_t *ephemeris,
-             double time_of_transmit)
+             gps_time_t tot)
 {
   /****************************************************************************
    * Calculate satellite position, velocity and clock offset from ephemeris
@@ -52,21 +52,13 @@ int calc_sat_pos(double pos[3], double vel[3],
 
   // Satellite clock terms
   // Seconds from clock data reference time (toc)
-  tdiff = time_of_transmit - ephemeris->toc;
-
-  // Correct time for beginning or end of week crossovers and limit to +/- 302400
-  if (tdiff > 302400.0) tdiff -= 604800.0;
-    else if (tdiff < -302400.0) tdiff += 604800.0;
+  tdiff = gpsdifftime(tot, ephemeris->toc);
 
   *clock_err = ephemeris->af0 + tdiff * (ephemeris->af1 + tdiff * ephemeris->af2) - ephemeris->tgd;
   *clock_rate_err = ephemeris->af1 + 2.0 * tdiff * ephemeris->af2;
 
   // Seconds from the time from ephemeris reference epoch (toe)
-  tdiff = (time_of_transmit - *clock_err) - (double) ephemeris->toe;
-  //DBG("tdiff %10.3f\n", tdiff);
-
-  if (tdiff > 302400.0) tdiff -= 604800.0;
-    else if (tdiff < -302400.0) tdiff += 604800.0;
+  tdiff = gpsdifftime(tot, ephemeris->toe);
 
   // If tdiff is too large our ephemeris isn't valid, maybe we want to wait until we get a
   // new one? At least let's warn the user.
@@ -129,7 +121,7 @@ int calc_sat_pos(double pos[3], double vel[3],
 
   // Corrected longitude of ascenting node
   om_dot = ephemeris->omegadot - NAV_OMEGAE_DOT;
-  om = ephemeris->omega0 + tdiff * om_dot - NAV_OMEGAE_DOT * ephemeris->toe;
+  om = ephemeris->omega0 + tdiff * om_dot - NAV_OMEGAE_DOT * ephemeris->toe.tow;
 
   // Compute the satellite's position in Earth-Centered Earth-Fixed coordiates
   pos[0] = x * cos (om) - y * cos (inc) * sin (om);
@@ -149,7 +141,7 @@ int calc_sat_pos(double pos[3], double vel[3],
 }
 
 double predict_range(double rx_pos[3],
-                     double time_of_transmit,
+                     gps_time_t tot,
                      ephemeris_t *ephemeris)
 {
   double sat_pos[3];
@@ -157,7 +149,7 @@ double predict_range(double rx_pos[3],
   double temp[3];
   double clock_err, clock_rate_err;
 
-  calc_sat_pos(sat_pos, sat_vel, &clock_err, &clock_rate_err, ephemeris, time_of_transmit);
+  calc_sat_pos(sat_pos, sat_vel, &clock_err, &clock_rate_err, ephemeris, tot);
 
   vector_subtract(3, sat_pos, rx_pos, temp); // temp = sat_pos - rx_pos
   return vector_norm(3, temp);

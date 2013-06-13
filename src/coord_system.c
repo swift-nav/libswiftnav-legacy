@@ -236,6 +236,7 @@ static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
 void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
                  double ned[3]) {
   double M[3][3];
+
   ecef2ned_matrix(ref_ecef, M);
   matrix_multiply(3, 3, 1, (double *)M, ecef, ned);
 }

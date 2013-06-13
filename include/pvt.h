@@ -53,12 +53,10 @@ typedef struct __attribute__((packed)) {
   double pos_llh[3];
   /** Receiver position ECEF XYZ [m] */
   double pos_ecef[3];
-  /** Receiver position North East Down [m] */
-  double pos_ned[3];
-  /** Receiver velocity in ECEF XYZ [m/s] */
-  double vel_ecef[3];
   /** Receiver velocity in NED [m/s] */
   double vel_ned[3];
+  /** Receiver velocity in ECEF XYZ [m/s] */
+  double vel_ecef[3];
 
   /* This is the row-first upper diagonal matrix of error covariances
    * in x, y, z (all receiver clock covariance terms are ignored).  So
@@ -72,10 +70,11 @@ typedef struct __attribute__((packed)) {
    */
   double err_cov[7];
 
-  /* GPS time of week [sec] */
-  double time;
-  /* 0 = invalid, 1 = carrier phase, 2 = code phase */
-  u8 gps_solution_valid;
+  /* GPS time */
+  gps_time_t time;
+
+  /* 0 = invalid, 1 = code phase */
+  u8 valid;
   /* Number of channels used in the soluton. */
   u8 n_used;
 } gnss_solution;

@@ -90,11 +90,13 @@ typedef struct {
 } channel_measurement_t;
 
 typedef struct {
+  u8 prn;
   double pseudorange;
   double pseudorange_rate;
-  double TOT;
+  gps_time_t tot;
   double sat_pos[3];
   double sat_vel[3];
+  double snr;
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,

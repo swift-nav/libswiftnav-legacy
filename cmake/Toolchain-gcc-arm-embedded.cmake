@@ -35,6 +35,8 @@ get_filename_component(CMAKE_INSTALL_PREFIX
 get_filename_component(CMAKE_INSTALL_PREFIX
   "${CMAKE_INSTALL_PREFIX}/.." REALPATH
 )
+set(CMAKE_INSTALL_PREFIX  ${CMAKE_INSTALL_PREFIX} CACHE FILEPATH
+    "Install path prefix, prepended onto install directories.")
 
 message(STATUS "Cross-compiling with the gcc-arm-embedded toolchain")
 message(STATUS "Toolchain prefix: ${CMAKE_INSTALL_PREFIX}")
@@ -77,6 +79,8 @@ endif ()
 # When we break up long strings in CMake we get semicolon
 # separated lists, undo this here...
 string(REGEX REPLACE ";" " " CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "")
 
 set(BUILD_SHARED_LIBS OFF)
 
