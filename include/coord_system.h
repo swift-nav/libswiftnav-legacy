@@ -46,6 +46,11 @@ void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
 void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
                    double ned[3]);
 
+void wgsned2ecef(const double ned[3], const double ref_ecef[3],
+                 double ecef[3]);
+void wgsned2ecef_d(const double ned[3], const double ref_ecef[3],
+                   double ecef[3]);
+
 void wgsecef2azel(const double ecef[3], const double ref_ecef[3],
                   double* azimuth, double* elevation);
 
