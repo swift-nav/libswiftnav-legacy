@@ -39,7 +39,7 @@ typedef struct {
 void nav_msg_init(nav_msg_t *n);
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real);
 bool subframe_ready(nav_msg_t *n);
-void process_subframe(nav_msg_t *n, ephemeris_t *e);
+s8 process_subframe(nav_msg_t *n, ephemeris_t *e);
 
 #endif /* LIBSWIFTNAV_NAV_MSG_H */
 

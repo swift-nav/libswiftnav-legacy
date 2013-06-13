@@ -224,7 +224,7 @@ bool subframe_ready(nav_msg_t *n) {
   return (n->subframe_start_index != 0);
 }
 
-void process_subframe(nav_msg_t *n, ephemeris_t *e) {
+s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   // Check parity and parse out the ephemeris from the most recently received subframe
 
   // First things first - check the parity, and invert bits if necessary.
@@ -236,14 +236,14 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
     printf(" process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
-    return;
+    return -1;
   }
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
       printf("SUBFRAME PARITY ERROR (word 2)\n");
       n->subframe_start_index = 0;  // Mark the subframe as processed
       n->next_subframe_id = 1;      // Make sure we start again next time
-      return;
+      return -2;
   }
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
@@ -259,7 +259,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
         printf("SUBFRAME PARITY ERROR (word %d)\n", w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
-        return;
+        return -3;
       }
     }
     n->subframe_start_index = 0;  // Mark the subframe as processed
@@ -376,6 +376,7 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
       fourbyte.s32 >>= 8; // sign-extend it
       e->omegadot = fourbyte.s32 * pow(2,-43) * M_PI;
 
+
       twobyte.u16 = n->frame_words[2][10-3] >> (30-22) & 0x3FFF;  // inc_dot (IDOT): Word 10, bits 9-22
       twobyte.u16 <<= 2;
       twobyte.s16 >>= 2;  // sign-extend
@@ -406,12 +407,15 @@ void process_subframe(nav_msg_t *n, ephemeris_t *e) {
       /*printf("W %16g\n", e->w);*/
       /*printf("omegadot %16g\n", e->omegadot);*/
       /*printf("inc_dot %16g\n", e->inc_dot);*/
+      return 1;
 
     }
   } else {  // didn't get the subframe that we want next
       n->next_subframe_id = 1;      // Make sure we start again next time
       n->subframe_start_index = 0;  // Mark the subframe as processed
   }
+
+  return 0;
 
 
 }
