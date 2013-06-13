@@ -185,14 +185,16 @@ void wgsecef2llh(const double const ecef[3], double llh[3]) {
  * appropriate rotation matrix to transform from ECEF to NED coordinates,
  * given the provided ECEF reference vector.
  *
- * \param ref_ecef Cartesian coordinates of reference vector, passed as 
+ * \param ref_ecef Cartesian coordinates of reference vector, passed as
  *                 [X, Y, Z], all in meters.
  * \param M        3x3 matrix to be populated with rotation matrix.
- */ 
+ */
 static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
   double ref_el, ref_az;
   double tempd;
   double sin_el, cos_el, sin_az, cos_az;
+
+  /* TODO: I think this could be rewritten so it doesn't use trig function. */
 
   /* Convert reference point to spherical earth centered coordinates. */
   tempd = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
@@ -267,13 +269,13 @@ void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
  * coordinates to the local North, East, Down (NED) frame of a reference point,
  * also given in WGS84 ECEF coordinates.
  *
- * Note, this function only \e rotates the NED vector into the ECEF frame, as 
- * would be appropriate for e.g. a velocity vector. To pass an NED position in 
+ * Note, this function only \e rotates the NED vector into the ECEF frame, as
+ * would be appropriate for e.g. a velocity vector. To pass an NED position in
  * the reference frame of the NED, see \ref wgsned2ecef_d.
  *
  * \see wgsned2ecef_d.
  *
- * \param ned       The North, East, Down vector is passed as [N, E, D], all in 
+ * \param ned       The North, East, Down vector is passed as [N, E, D], all in
  *                  meters.
  * \param ref_ecef  Cartesian coordinates of the reference point, passed as
  *                  [X, Y, Z], all in meters.
@@ -293,7 +295,7 @@ void wgsned2ecef(const double ned[3], const double ref_ecef[3],
  *
  * \see wgsned2ecef.
  *
- * \param ned       The North, East, Down vector is passed as [N, E, D], all in 
+ * \param ned       The North, East, Down vector is passed as [N, E, D], all in
  *                  meters.
  * \param ref_ecef  Cartesian coordinates of the reference point, passed as
  *                  [X, Y, Z], all in meters.
