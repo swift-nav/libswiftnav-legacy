@@ -363,8 +363,8 @@ u8 calc_PVT(const u8 n_used,
 
   u8 ret;
   if ((ret = filter_solution(soln, dops))) {
-    memset(soln, 0, sizeof(soln));
-    memset(dops, 0, sizeof(dops));
+    memset(soln, 0, sizeof(*soln));
+    memset(dops, 0, sizeof(*dops));
     /* Reset state if solution fails */
     rx_state[0] = 0;
     rx_state[1] = 0;
