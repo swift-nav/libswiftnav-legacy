@@ -59,6 +59,7 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
     "${CMAKE_C_FLAGS}"
     "-mcpu=cortex-m4 -march=armv7e-m -mthumb"
     "-mfloat-abi=hard -mfpu=fpv4-sp-d16"
+    "-ffunction-sections -fdata-sections"
   )
 
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
@@ -67,6 +68,7 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
     "${CMAKE_C_FLAGS}"
     "-mcpu=cortex-m3 -march=armv7-m -mthumb"
     "-msoft-float"
+    "-ffunction-sections -fdata-sections"
   )
 
 else ()
