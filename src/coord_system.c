@@ -207,9 +207,9 @@ static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
   M[1][0] = -sin_az;
   M[1][1] = cos_az;
   M[1][2] = 0.0;
-  M[2][0] = cos_el * cos_az;
-  M[2][1] = cos_el * sin_az;
-  M[2][2] = sin_el;
+  M[2][0] = -cos_el * cos_az;
+  M[2][1] = -cos_el * sin_az;
+  M[2][2] = -sin_el;
 }
 
 
