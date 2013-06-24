@@ -91,6 +91,8 @@ typedef struct {
 
 typedef struct {
   u8 prn;
+  double raw_pseudorange;
+  double raw_pseudorange_rate;
   double pseudorange;
   double pseudorange_rate;
   gps_time_t tot;
