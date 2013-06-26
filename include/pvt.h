@@ -70,6 +70,9 @@ typedef struct __attribute__((packed)) {
    */
   double err_cov[7];
 
+  double clock_offset;
+  double clock_bias;
+
   /* GPS time */
   gps_time_t time;
 

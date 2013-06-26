@@ -354,6 +354,9 @@ u8 calc_PVT(const u8 n_used,
   /* Convert to lat, lon, hgt. */
   wgsecef2llh(rx_state, soln->pos_llh);
 
+  soln->clock_offset = rx_state[3] / NAV_C;
+  soln->clock_bias = rx_state[7] / NAV_C;
+
   /* Implicitly use the first receiver to calculate offset from GPS
    * TOW.  Maybe there's a better way to do this?  */
   /* TODO: what is this about? */
