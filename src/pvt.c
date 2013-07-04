@@ -360,7 +360,12 @@ u8 calc_PVT(const u8 n_used,
   /* Implicitly use the first receiver to calculate offset from GPS
    * TOW.  Maybe there's a better way to do this?  */
   /* TODO: what is this about? */
+  /* Time at receiver is TOT plus time of flight. */
   soln->time = nav_meas[0].tot;
+  double tempv[3];
+  vector_subtract(3, rx_state, nav_meas[0].sat_pos, tempv);
+  soln->time.tow += vector_norm(3, tempv) / NAV_C;
+  /* Subtract clock offset. */
   soln->time.tow -= rx_state[3] / NAV_C;
   normalize_gps_time(soln->time);
 
