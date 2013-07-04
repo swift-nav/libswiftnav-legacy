@@ -95,6 +95,7 @@ typedef struct {
   double raw_pseudorange_rate;
   double pseudorange;
   double pseudorange_rate;
+  double carrier_phase;
   gps_time_t tot;
   double sat_pos[3];
   double sat_vel[3];
