@@ -34,6 +34,8 @@ typedef int8_t s8;
 typedef int16_t s16;
 /** Signed 32-bit integer. */
 typedef int32_t s32;
+/** Signed 64-bit integer. */
+typedef int64_t s64;
 /** Unsigned 8-bit integer. */
 typedef uint8_t u8;
 /** Unsigned 16-bit integer. */
