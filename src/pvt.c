@@ -357,17 +357,13 @@ u8 calc_PVT(const u8 n_used,
   soln->clock_offset = rx_state[3] / NAV_C;
   soln->clock_bias = rx_state[7] / NAV_C;
 
-  /* Implicitly use the first receiver to calculate offset from GPS
-   * TOW.  Maybe there's a better way to do this?  */
-  /* TODO: what is this about? */
-  /* Time at receiver is TOT plus time of flight. */
+  /* Time at receiver is TOT plus time of flight. Time of flight is eqaul to
+   * the pseudorange minus the clock bias. */
   soln->time = nav_meas[0].tot;
-  double tempv[3];
-  vector_subtract(3, rx_state, nav_meas[0].sat_pos, tempv);
-  soln->time.tow += vector_norm(3, tempv) / NAV_C;
+  soln->time.tow += nav_meas[0].pseudorange / NAV_C;
   /* Subtract clock offset. */
   soln->time.tow -= rx_state[3] / NAV_C;
-  normalize_gps_time(soln->time);
+  soln->time = normalize_gps_time(soln->time);
 
   u8 ret;
   if ((ret = filter_solution(soln, dops))) {
