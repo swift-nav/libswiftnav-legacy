@@ -480,6 +480,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->tot.wn = ephemerides[i]->toe.wn;
     nav_meas[i]->tot.tow = TOTs[i];
     mean_TOT += TOTs[i];
+    if (gpsdifftime(nav_meas[i]->tot, ephemerides[i]->toe) > 3*24*3600)
+      nav_meas[i]->tot.wn -= 1;
     nav_meas[i]->raw_pseudorange_rate = NAV_C * -meas[i]->carrier_freq / GPS_L1_HZ;
     nav_meas[i]->doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
@@ -506,6 +508,9 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
                                + clock_err*NAV_C;
     nav_meas[i]->pseudorange_rate = nav_meas[i]->raw_pseudorange_rate \
                                     - clock_rate_err*NAV_C;
+
+    nav_meas[i]->tot.tow -= clock_err;
+    nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
   }
 }
 
