@@ -468,8 +468,6 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], na
 void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
 {
   double TOTs[n_channels];
-  double mean_TOT = 0;
-  double mean_cp = 0;
 
   for (u8 i=0; i<n_channels; i++) {
     TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
@@ -479,9 +477,13 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     /** \todo Handle GPS time properly here, e.g. week rollover */
     nav_meas[i]->tot.wn = ephemerides[i]->toe.wn;
     nav_meas[i]->tot.tow = TOTs[i];
-    mean_TOT += TOTs[i];
+
     if (gpsdifftime(nav_meas[i]->tot, ephemerides[i]->toe) > 3*24*3600)
       nav_meas[i]->tot.wn -= 1;
+
+    if (TOTs[i] < min_TOT)
+      min_TOT = TOTs[i];
+
     nav_meas[i]->raw_pseudorange_rate = NAV_C * -meas[i]->carrier_freq / GPS_L1_HZ;
     nav_meas[i]->doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
@@ -489,22 +491,16 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
     nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
-    mean_cp += nav_meas[i]->carrier_phase;
   }
-
-  mean_TOT = mean_TOT/n_channels;
-  mean_cp = mean_cp / n_channels;
 
   double clock_err, clock_rate_err;
 
   for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i]->raw_pseudorange = (mean_TOT - TOTs[i])*NAV_C + NOMINAL_RANGE;
-    nav_meas[i]->carrier_phase -= mean_cp;
-    nav_meas[i]->carrier_phase += NOMINAL_RANGE / (NAV_C / 1575.42e6);
+    nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*NAV_C + NOMINAL_RANGE;
 
     calc_sat_pos(nav_meas[i]->sat_pos, nav_meas[i]->sat_vel, &clock_err, &clock_rate_err, ephemerides[i], nav_meas[i]->tot);
 
-    nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange\
+    nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err*NAV_C;
     nav_meas[i]->pseudorange_rate = nav_meas[i]->raw_pseudorange_rate \
                                     - clock_rate_err*NAV_C;
