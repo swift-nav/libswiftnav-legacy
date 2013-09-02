@@ -69,7 +69,7 @@
  * If the determinant is smaller than this value, we consider it
  * singular and error out.
  */
-#define MATRIX_EPSILON (1e-11)
+#define MATRIX_EPSILON (1e-60)
 
 /* \} */
 
