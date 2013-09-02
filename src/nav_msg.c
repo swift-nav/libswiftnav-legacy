@@ -232,6 +232,11 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   // printf("  %d  ", (n->subframe_start_index > 0));
 
+  /* TODO: Check if inverted has changed and detect half cycle slip. */
+  if (n->inverted != (n->subframe_start_index < 0))
+    printf("Nav phase flip\n");
+  n->inverted = (n->subframe_start_index < 0);
+
   if (!e) {
     printf(" process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed

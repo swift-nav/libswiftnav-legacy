@@ -34,6 +34,7 @@ typedef struct {
 
   u32 frame_words[3][8];
   u8 next_subframe_id;
+  u8 inverted;
 } nav_msg_t;
 
 void nav_msg_init(nav_msg_t *n);
