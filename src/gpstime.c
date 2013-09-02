@@ -21,6 +21,7 @@
  * \param t GPS time struct.
  * \return Normalized GPS time struct.
  */
+/* TODO: Either normalise in place or rename to normalised. */
 gps_time_t normalize_gps_time(gps_time_t t)
 {
   while(t.tow < 0) {
