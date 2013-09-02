@@ -89,18 +89,19 @@ typedef struct {
   double snr;
 } channel_measurement_t;
 
-typedef struct {
-  u8 prn;
+typedef struct __attribute__((packed)) {
   double raw_pseudorange;
   double raw_pseudorange_rate;
   double pseudorange;
   double pseudorange_rate;
   double carrier_phase;
   double doppler;
-  gps_time_t tot;
   double sat_pos[3];
   double sat_vel[3];
   double snr;
+  gps_time_t tot;
+  u8 prn;
+  u8 padding;
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,

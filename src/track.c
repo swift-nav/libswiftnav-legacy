@@ -420,7 +420,7 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  *
  * References:
  *    -# "Comparison of Four SNR Estimators for QPSK Modulations",
- *       Norman C.  Beaulieu, Andrew S. Toms, and David R. Pauluzzi (2000),
+ *       Norman C. Beaulieu, Andrew S. Toms, and David R. Pauluzzi (2000),
  *       IEEE Communications Letters, Vol. 4, No. 2
  *    -# "Are Carrier-to-Noise Algorithms Equivalent in All Situations?"
  *       Inside GNSS, Jan / Feb 2010.
