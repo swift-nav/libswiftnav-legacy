@@ -18,6 +18,7 @@ set(libswiftnav_SRCS
   prns.c
   almanac.c
   gpstime.c
+  edc.c
 )
 
 if (CMAKE_CROSSCOMPILING)
