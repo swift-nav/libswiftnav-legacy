@@ -17,6 +17,7 @@ else (CMAKE_CROSSCOMPILING)
       check_utils.c
 
       check_edc.c
+      check_bits.c
       check_coord_system.c
       check_linear_algebra.c
     )
