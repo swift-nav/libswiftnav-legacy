@@ -19,6 +19,7 @@ set(libswiftnav_SRCS
   almanac.c
   gpstime.c
   edc.c
+  rtcm3.c
   bits.c
 )
 
