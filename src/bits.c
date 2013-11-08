@@ -90,13 +90,6 @@ void setbitu(u8 *buff, u32 pos, u32 len, u32 data)
  */
 void setbits(u8 *buff, u32 pos, u32 len, s32 data)
 {
-  /* TODO: Why is this needed? If the data does not overflow the bit field then
-   * these operations shouldn't do anything? */
-  if (data < 0)
-    data |= 1 << (len - 1);
-  else
-    data &= ~(1 << (len - 1));
-
   setbitu(buff, pos, len, (u32)data);
 }
 

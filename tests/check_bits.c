@@ -77,6 +77,9 @@ START_TEST(test_setbitu)
   ret = getbitu(test_data, 10, 13);
   fail_unless(ret == 0x11A2,
       "test case 1 expected 0x11A2, got 0x%04X", ret);
+
+  /* TODO: Check that setbitu doesn't write to bits other than those in the bit
+   * field. */
 }
 END_TEST
 
