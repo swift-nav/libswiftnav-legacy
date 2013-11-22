@@ -101,7 +101,7 @@ typedef struct __attribute__((packed)) {
   double snr;
   gps_time_t tot;
   u8 prn;
-  u8 padding;
+  u8 obs_n;
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
