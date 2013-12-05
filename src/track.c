@@ -13,7 +13,7 @@
 #include <math.h>
 #include <float.h>
 
-#include "pvt.h"
+#include "constants.h"
 #include "prns.h"
 #include "track.h"
 #include "ephemeris.h"
@@ -486,7 +486,7 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     if (TOTs[i] < min_TOT)
       min_TOT = TOTs[i];
 
-    nav_meas[i]->raw_pseudorange_rate = NAV_C * -meas[i]->carrier_freq / GPS_L1_HZ;
+    nav_meas[i]->raw_pseudorange_rate = GPS_C * -meas[i]->carrier_freq / GPS_L1_HZ;
     nav_meas[i]->doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
     nav_meas[i]->prn = meas[i]->prn;
@@ -498,14 +498,14 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
   double clock_err, clock_rate_err;
 
   for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*NAV_C + NOMINAL_RANGE;
+    nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
 
     calc_sat_pos(nav_meas[i]->sat_pos, nav_meas[i]->sat_vel, &clock_err, &clock_rate_err, ephemerides[i], nav_meas[i]->tot);
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
-                               + clock_err*NAV_C;
+                               + clock_err*GPS_C;
     nav_meas[i]->pseudorange_rate = nav_meas[i]->raw_pseudorange_rate \
-                                    - clock_rate_err*NAV_C;
+                                    - clock_rate_err*GPS_C;
 
     nav_meas[i]->tot.tow -= clock_err;
     nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);

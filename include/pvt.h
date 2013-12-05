@@ -17,22 +17,6 @@
 #include "common.h"
 #include "track.h"
 
-/* GPS constants */
-/** \todo These constants don't belong in this file. */
-#define GPS_NUM_SATS  32
-#define GPS_PI      3.14159265358979323846
-#define GPS_L1_HZ     1.57542E9
-#define NAV_OMEGAE_DOT 7.2921151467e-005
-#define NAV_GM 3.986005e14
-#define NAV_C 299792458.0
-#define NAV_F -4.442807633e-010
-#define NOMINAL_RANGE 22980E3 /* Average distance to satellite, meters. */
-#define R2D (180.0/GPS_PI)    /* Radians to degrees. */
-#define D2R (GPS_PI/180.0)    /* Degrees to radians. */
-
-#define GNSS_MAX_OBS GPS_NUM_SATS
-#define GNSS_MAX_RECEIVERS 1
-
 #define PVT_MAX_ITERATIONS 20
 
 typedef struct {

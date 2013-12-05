@@ -4,7 +4,7 @@
 #include "check_utils.h"
 
 #include <coord_system.h>
-#include <pvt.h>
+#include <constants.h>
 
 /* Maximum allowable error in quantities with units of length (in meters). */
 #define MAX_DIST_ERROR_M 1e-6

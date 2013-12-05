@@ -12,7 +12,7 @@
 
 #include <math.h>
 
-#include "pvt.h"
+#include "constants.h"
 #include "linear_algebra.h"
 #include "coord_system.h"
 #include "almanac.h"
@@ -59,7 +59,7 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
   /* Calculate position and velocity per ICD-GPS-200D Table 20-IV. */
 
   /* Calculate mean motion in radians/sec. */
-  double ma_dot = sqrt (NAV_GM / (alm->a * alm->a * alm->a));
+  double ma_dot = sqrt (GPS_GM / (alm->a * alm->a * alm->a));
   /* Calculate corrected mean anomaly in radians. */
   double ma = alm->ma + ma_dot * dt;
 
@@ -94,8 +94,8 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
   double y_dot = r_dot * sin(al) + x * al_dot;
 
   /* Corrected longitude of ascending node. */
-  double om_dot = alm->rora - NAV_OMEGAE_DOT;
-  double om = alm->raaw + dt * om_dot - NAV_OMEGAE_DOT * alm->toa;
+  double om_dot = alm->rora - GPS_OMEGAE_DOT;
+  double om = alm->raaw + dt * om_dot - GPS_OMEGAE_DOT * alm->toa;
 
   /* Compute the satellite's position in Earth-Centered Earth-Fixed
    * coordinates. */
@@ -165,7 +165,7 @@ double calc_sat_doppler_almanac(almanac_t* alm, double t, s16 week,
                            vector_norm(3, vec_ref_sat);
 
   /* Return the Doppler shift. */
-  return GPS_L1_HZ * radial_velocity / NAV_C;
+  return GPS_L1_HZ * radial_velocity / GPS_C;
 }
 
 /** \} */

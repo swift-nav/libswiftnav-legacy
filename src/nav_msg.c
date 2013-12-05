@@ -328,11 +328,11 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       e->crs = twobyte.s16 * pow(2,-5);
 
       twobyte.u16 = n->frame_words[1][4-3] >> (30-16) & 0xFFFF;     // dn: Word 4, bits 1-16
-      e->dn = twobyte.s16 * pow(2,-43) * M_PI;
+      e->dn = twobyte.s16 * pow(2,-43) * GPS_PI;
 
       fourbyte.u32 = ((n->frame_words[1][4-3] >> (30-24) & 0xFF) << 24) // m0: Word 4, bits 17-24
                   | (n->frame_words[1][5-3] >> (30-24) & 0xFFFFFF);     // and word 5, bits 1-24
-      e->m0 = fourbyte.s32 * pow(2,-31) * M_PI;
+      e->m0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
       twobyte.u16 = n->frame_words[1][6-3] >> (30-16) & 0xFFFF;    // cuc: Word 6, bits 1-16
       e->cuc = twobyte.s16 * pow(2,-29);
@@ -360,32 +360,32 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
       fourbyte.u32 = ((n->frame_words[2][3-3] >> (30-24) & 0xFF) << 24) // omega0: Word 3, bits 17-24
                   | (n->frame_words[2][4-3] >> (30-24) & 0xFFFFFF);     // and word 4, bits 1-24
-      e->omega0 = fourbyte.s32 * pow(2,-31) * M_PI;
+      e->omega0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
       twobyte.u16 = n->frame_words[2][5-3] >> (30-16) & 0xFFFF; // cis: Word 5, bits 1-16
       e->cis = twobyte.s16 * pow(2,-29);
 
       fourbyte.u32 = ((n->frame_words[2][5-3] >> (30-24) & 0xFF) << 24) // inc (i0): Word 5, bits 17-24
                   | (n->frame_words[2][6-3] >> (30-24) & 0xFFFFFF);     // and word 6, bits 1-24
-      e->inc = fourbyte.s32 * pow(2,-31) * M_PI;
+      e->inc = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
       twobyte.u16 = n->frame_words[2][7-3] >> (30-16) & 0xFFFF; // crc: Word 7, bits 1-16
       e->crc = twobyte.s16 * pow(2,-5);
 
       fourbyte.u32 = ((n->frame_words[2][7-3] >> (30-24) & 0xFF) << 24) // w (omega): Word 7, bits 17-24
                   | (n->frame_words[2][8-3] >> (30-24) & 0xFFFFFF);     // and word 8, bits 1-24
-      e->w = fourbyte.s32 * pow(2,-31) * M_PI;
+      e->w = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
       fourbyte.u32 = n->frame_words[2][9-3] >> (30-24) & 0xFFFFFF;     // Omega_dot: Word 9, bits 1-24
       fourbyte.u32 <<= 8; // shift left for sign extension
       fourbyte.s32 >>= 8; // sign-extend it
-      e->omegadot = fourbyte.s32 * pow(2,-43) * M_PI;
+      e->omegadot = fourbyte.s32 * pow(2,-43) * GPS_PI;
 
 
       twobyte.u16 = n->frame_words[2][10-3] >> (30-22) & 0x3FFF;  // inc_dot (IDOT): Word 10, bits 9-22
       twobyte.u16 <<= 2;
       twobyte.s16 >>= 2;  // sign-extend
-      e->inc_dot = twobyte.s16 * pow(2,-43) * M_PI;
+      e->inc_dot = twobyte.s16 * pow(2,-43) * GPS_PI;
 
 
       e->valid = 1;

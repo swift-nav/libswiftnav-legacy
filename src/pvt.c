@@ -15,15 +15,16 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "constants.h"
 #include "linear_algebra.h"
 #include "coord_system.h"
-
-#include "pvt.h"
 #include "track.h"
 
+#include "pvt.h"
+
 static double vel_solve(double rx_vel[],
-                        const navigation_measurement_t const nav_meas[GPS_NUM_SATS],
                         const u8 n_used,
+                        const navigation_measurement_t const nav_meas[n_used],
                         const double const G[n_used][4],
                         const double const X[4][n_used])
 {
@@ -99,7 +100,7 @@ void compute_dops(const double const H[4][4],
  * the clock offset for each receiver used to make pseudorange
  * measurements.  The steps involved are roughly the following:
  *
- *     1. account for the Earth's rotation during transmission
+ *     1. Account for the Earth's rotation during transmission
  *
  *     2. Estimate the ECEF position for each satellite measured using
  *     the downloaded ephemeris
@@ -168,16 +169,16 @@ static double pvt_solve(double rx_state[],
 
     /* Magnitude of range vector converted into an approximate time in secs. */
     vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
-    double tau = vector_norm(3, tempv) / NAV_C;
+    double tau = vector_norm(3, tempv) / GPS_C;
 
     /* Rotation of Earth during time of flight in radians. */
-    double wEtau = NAV_OMEGAE_DOT * tau;
+    double wEtau = GPS_OMEGAE_DOT * tau;
 
     /* Apply linearlised rotation about Z-axis which will adjust for the
-     * satellite's position at time (t-tau). Note the rotation is through
+     * satellite's position at time t-tau. Note the rotation is through
      * -wEtau because it is the ECEF frame that is rotating with the Earth and
-     *  hence in the ECEF frame free falling bodies appear to rotate in the
-     *  opposite direction.
+     * hence in the ECEF frame free falling bodies appear to rotate in the
+     * opposite direction.
      *
      * Making a small angle approximation here leads to less than 1mm error in
      * the satellite position. */
@@ -251,7 +252,7 @@ static double pvt_solve(double rx_state[],
   /* The solution has converged! */
 
   /* Perform the velocity solution. */
-  vel_solve(&rx_state[4], nav_meas, n_used, (const double (*)[4]) G, (const double (*)[n_used]) X);
+  vel_solve(&rx_state[4], n_used, nav_meas, (const double (*)[4]) G, (const double (*)[n_used]) X);
 
   return tempd;
 }
@@ -346,15 +347,15 @@ u8 calc_PVT(const u8 n_used,
   /* Convert to lat, lon, hgt. */
   wgsecef2llh(rx_state, soln->pos_llh);
 
-  soln->clock_offset = rx_state[3] / NAV_C;
-  soln->clock_bias = rx_state[7] / NAV_C;
+  soln->clock_offset = rx_state[3] / GPS_C;
+  soln->clock_bias = rx_state[7] / GPS_C;
 
   /* Time at receiver is TOT plus time of flight. Time of flight is eqaul to
    * the pseudorange minus the clock bias. */
   soln->time = nav_meas[0].tot;
-  soln->time.tow += nav_meas[0].pseudorange / NAV_C;
+  soln->time.tow += nav_meas[0].pseudorange / GPS_C;
   /* Subtract clock offset. */
-  soln->time.tow -= rx_state[3] / NAV_C;
+  soln->time.tow -= rx_state[3] / GPS_C;
   soln->time = normalize_gps_time(soln->time);
 
   u8 ret;
