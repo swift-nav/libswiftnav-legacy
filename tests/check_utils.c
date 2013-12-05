@@ -6,11 +6,7 @@
 #include "check_utils.h"
 
 void seed_rng(void) {
-  FILE* fp = fopen("/dev/urandom", "r");
-  unsigned int seed;
-  int out;
-  if ((out = fread(&seed, sizeof(seed), 1, fp)) == sizeof(seed))
-    srandom(seed);
+  srandom(time(NULL));
 }
 
 double frand(double fmin, double fmax) {
