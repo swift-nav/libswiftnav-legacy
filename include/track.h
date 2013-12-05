@@ -99,6 +99,7 @@ typedef struct __attribute__((packed)) {
   double sat_pos[3];
   double sat_vel[3];
   double snr;
+  double lock_time;
   gps_time_t tot;
   u8 prn;
   u8 obs_n;

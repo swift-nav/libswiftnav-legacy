@@ -15,7 +15,20 @@
 
 #include "common.h"
 
+#include "gpstime.h"
+#include "track.h"
+
 s16 rtcm3_check_frame(u8 *buff);
 s8 rtcm3_write_frame(u16 len, u8 *buff);
+
+void rtcm3_write_header(u8 *buff, u16 type, u16 id, gps_time_t t,
+                        u8 sync, u8 n_sat, u8 div_free, u8 smooth);
+void rtcm3_read_header(u8 *buff, u16 *type, u16 *id, double *tow,
+                       u8 *sync, u8 *n_sat, u8 *div_free, u8 *smooth);
+
+u16 rtcm3_encode_1002(u8 *buff, u16 id, gps_time_t t, u8 n_sat,
+                      navigation_measurement_t *nm, u8 sync);
+s8 rtcm3_decode_1002(u8 *buff, u16 *id, double *tow, u8 *n_sat,
+                     navigation_measurement_t *nm, u8 *sync);
 
 #endif /* LIBSWIFTNAV_RTCM3_H */
