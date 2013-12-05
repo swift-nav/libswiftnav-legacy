@@ -8,7 +8,7 @@
 #include <linear_algebra.h>
 
 #define LINALG_TOL 1e-10
-#define LINALG_NUM 222
+#define LINALG_NUM 22
 #define MATRIX_MIN -1e22
 #define MATRIX_MAX 1e22
 #define mrand frand(MATRIX_MIN, MATRIX_MAX)

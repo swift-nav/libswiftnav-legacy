@@ -326,9 +326,9 @@ Suite* coord_system_suite(void)
   suite_add_tcase(s, tc_core);
 
   TCase *tc_random = tcase_create("Random");
-  tcase_add_loop_test(tc_random, test_random_wgsllh2ecef2llh, 0, 100);
-  tcase_add_loop_test(tc_random, test_random_wgsecef2llh2ecef, 0, 100);
-  tcase_add_loop_test(tc_random, test_random_wgsecef2ned_d_0, 0, 100);
+  tcase_add_loop_test(tc_random, test_random_wgsllh2ecef2llh, 0, 22);
+  tcase_add_loop_test(tc_random, test_random_wgsecef2llh2ecef, 0, 22);
+  tcase_add_loop_test(tc_random, test_random_wgsecef2ned_d_0, 0, 22);
   suite_add_tcase(s, tc_random);
 
   return s;
