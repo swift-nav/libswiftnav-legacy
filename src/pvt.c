@@ -162,34 +162,28 @@ static double pvt_solve(double rx_state[],
   }
 
   for (u8 j = 0; j < n_used; j++) {
-    /* The satellite positions need to be corrected for earth's
-     * rotation during the transmission time.  We base this correction
-     * on the range between our receiver and satellite k */
-    vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
+    /* The satellite positions need to be corrected for Earth's rotation during
+     * the signal time of flight. */
+    /* TODO: Explain more about how this corrects for the Sagnac effect. */
 
     /* Magnitude of range vector converted into an approximate time in secs. */
+    vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
     double tau = vector_norm(3, tempv) / NAV_C;
-    /* Rotation of Earth during transit in radians. */
+
+    /* Rotation of Earth during time of flight in radians. */
     double wEtau = NAV_OMEGAE_DOT * tau;
 
-    /* Form rotation matrix about Z-axis for Earth's motion which will
-     * adjust for the satellite's position at time (t-tau).
-     */
-    double rotm[3][3];
-    rotm[0][0] = cos(wEtau);
-    rotm[0][1] = sin(wEtau);
-    rotm[0][2] = 0.0;
-    rotm[1][0] = -sin(wEtau);
-    rotm[1][1] = cos(wEtau);
-    rotm[1][2] = 0.0;
-    rotm[2][0] = 0.0;
-    rotm[2][1] = 0.0;
-    rotm[2][2] = 1.0;
-
-    /* Result in xk_new, position of satellite k in ECEF. */
-    matrix_multiply(3, 3, 1, (double *) rotm,
-                             (double *) nav_meas[j].sat_pos,
-                             (double *) xk_new);
+    /* Apply linearlised rotation about Z-axis which will adjust for the
+     * satellite's position at time (t-tau). Note the rotation is through
+     * -wEtau because it is the ECEF frame that is rotating with the Earth and
+     *  hence in the ECEF frame free falling bodies appear to rotate in the
+     *  opposite direction.
+     *
+     * Making a small angle approximation here leads to less than 1mm error in
+     * the satellite position. */
+    xk_new[0] = nav_meas[j].sat_pos[0] + wEtau * nav_meas[j].sat_pos[1];
+    xk_new[1] = nav_meas[j].sat_pos[1] - wEtau * nav_meas[j].sat_pos[0];
+    xk_new[2] = nav_meas[j].sat_pos[2];
 
     /* Line of sight vector. */
     vector_subtract(3, xk_new, rx_state, los);
@@ -203,10 +197,8 @@ static double pvt_solve(double rx_state[],
      */
     omp[j] = nav_meas[j].pseudorange - p_pred[j];
 
-
     /* Construct a geometry matrix.  Each row (satellite) is
-     * independently normalized into a unit vector.
-     */
+     * independently normalized into a unit vector. */
     for (u8 i=0; i<3; i++) {
       G[j][i] = -los[i] / p_pred[j];
     }
@@ -221,7 +213,7 @@ static double pvt_solve(double rx_state[],
    * mixed with numerical iteration (not time-series recursion, but
    * iteration on a single set of measurements), it's basically
    * Newton's method.  There's a reasonably clear explanation of this
-   * on Wikipedia's article about GPS.
+   * in Wikipedia's article on GPS.
    */
 
   /* Gt := G^{T} */
