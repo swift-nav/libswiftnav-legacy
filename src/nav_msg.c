@@ -10,10 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "nav_msg.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
+#include "constants.h"
+#include "nav_msg.h"
 
 #define NAV_MSG_BIT_PHASE_THRES 5
 
