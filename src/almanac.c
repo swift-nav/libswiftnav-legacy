@@ -68,24 +68,29 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
   double ea = ma;  /* Starting value for E. */
   double ea_old;
   double temp;
+  double ecc = alm->ecc;
+  u32 count = 0;
 
   do {
     ea_old = ea;
-    temp = 1.0 - alm->ecc * cos(ea_old);
-    ea = ea + (ma - ea_old + alm->ecc * sin(ea_old)) / temp;
+    temp = 1.0 - ecc * cos(ea_old);
+    ea = ea + (ma - ea_old + ecc * sin(ea_old)) / temp;
+	count++;
+	if (count > 5)
+		break;
   } while (fabs(ea - ea_old) > 1.0e-14);
 
   double ea_dot = ma_dot / temp;
 
   /* Begin calculation for True Anomaly and Argument of Latitude. */
-  double temp2 = sqrt(1.0 - alm->ecc * alm->ecc);
+  double temp2 = sqrt(1.0 - ecc * ecc);
   /* Argument of Latitude = True Anomaly + Argument of Perigee. */
-  double al = atan2(temp2 * sin(ea), cos(ea) - alm->ecc) + alm->argp;
+  double al = atan2(temp2 * sin(ea), cos(ea) - ecc) + alm->argp;
   double al_dot = temp2 * ea_dot / temp;
 
   /* Calculate corrected radius based on argument of latitude. */
   double r = alm->a * temp;
-  double r_dot = alm->a * alm->ecc * sin(ea) * ea_dot;
+  double r_dot = alm->a * ecc * sin(ea) * ea_dot;
 
   /* Calculate position and velocity in orbital plane. */
   double x = r * cos(al);
