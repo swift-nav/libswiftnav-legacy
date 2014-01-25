@@ -393,8 +393,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
                     u32 (*write)(u8 *buff, u32 n))
 {
-  /* Check our payload data pointer isn't NULL. */
-  if (payload == 0)
+  /* Check our payload data pointer isn't NULL unless len = 0. */
+  if (len != 0 && payload == 0)
     return SBP_NULL_ERROR;
 
   /* Check our write function pointer isn't NULL. */
@@ -416,8 +416,10 @@ s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
   if ((*write)(&len, 1) != 1)
     return SBP_SEND_ERROR;
 
-  if ((*write)(payload, len) != len)
-    return SBP_SEND_ERROR;
+  if (len > 0) {
+    if ((*write)(payload, len) != len)
+      return SBP_SEND_ERROR;
+  }
 
   crc = crc16_ccitt((u8*)&(msg_type), 2, 0);
   crc = crc16_ccitt((u8*)&(sender_id), 2, 0);
