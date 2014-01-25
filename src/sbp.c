@@ -336,6 +336,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
       s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read);
     }
     if (s->n_read >= 2) {
+      s->state = WAITING;
+
       /* Swap bytes to little endian. */
       crc = crc16_ccitt((u8*)&(s->msg_type), 2, 0);
       crc = crc16_ccitt((u8*)&(s->sender_id), 2, 0);
@@ -350,7 +352,6 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
           return SBP_CALLBACK_ERROR;
       } else
           return SBP_CRC_ERROR;
-      s->state = WAITING;
     }
     break;
 
