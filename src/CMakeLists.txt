@@ -21,6 +21,7 @@ set(libswiftnav_SRCS
   edc.c
   rtcm3.c
   bits.c
+  sbp.c
 )
 
 if (CMAKE_CROSSCOMPILING)
