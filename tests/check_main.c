@@ -12,6 +12,7 @@ int main(void)
   SRunner *sr = srunner_create(s);
   srunner_add_suite(sr, rtcm3_suite());
   srunner_add_suite(sr, bits_suite());
+  srunner_add_suite(sr, sbp_suite());
   srunner_add_suite(sr, coord_system_suite());
   srunner_add_suite(sr, linear_algebra_suite());
 

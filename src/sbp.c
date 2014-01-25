@@ -154,6 +154,14 @@ sbp_msg_callbacks_node_t *sbp_msg_callbacks_head = 0;
 s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
                          sbp_msg_callbacks_node_t *node)
 {
+  /* Check our callback function pointer isn't NULL. */
+  if (cb == 0)
+    return SBP_NULL_ERROR;
+
+  /* Check our callback node pointer isn't NULL. */
+  if (node == 0)
+    return SBP_NULL_ERROR;
+
   /* Check if callback was already registered for this type. */
   if (sbp_find_callback(msg_type) != 0)
     return SBP_CALLBACK_ERROR;
@@ -184,6 +192,15 @@ s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
   p->next = node;
 
   return SBP_OK;
+}
+
+/** Clear all registered callbacks.
+ * This is probably only useful for testing but who knows!
+ */
+void sbp_clear_callbacks()
+{
+  /* Reset the head of the callbacks list to NULL. */
+  sbp_msg_callbacks_head = 0;
 }
 
 /** Find the callback function associated with a message type.
@@ -376,6 +393,14 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
                     u32 (*write)(u8 *buff, u32 n))
 {
+  /* Check our payload data pointer isn't NULL. */
+  if (payload == 0)
+    return SBP_NULL_ERROR;
+
+  /* Check our write function pointer isn't NULL. */
+  if (write == 0)
+    return SBP_NULL_ERROR;
+
   u16 crc;
 
   u8 preamble = SBP_PREAMBLE;

@@ -26,6 +26,8 @@
 #define SBP_CRC_ERROR      -2
 /** Return value indicating an error occured whilst sending an SBP message. */
 #define SBP_SEND_ERROR     -3
+/** Return value indicating an error occured because an argument was NULL. */
+#define SBP_NULL_ERROR     -4
 
 
 /** SBP callback function prototype definition. */
@@ -63,6 +65,7 @@ typedef struct {
 
 s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
                          sbp_msg_callbacks_node_t *node);
+void sbp_clear_callbacks();
 sbp_msg_callback_t sbp_find_callback(u16 msg_type);
 void sbp_state_init(sbp_state_t *s);
 s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n));
