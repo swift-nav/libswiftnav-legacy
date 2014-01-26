@@ -2,9 +2,9 @@ if (NOT DEFINED BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 endif (NOT DEFINED BUILD_SHARED_LIBS)
 
-file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/*.h")
+file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 
-include_directories("${PROJECT_SOURCE_DIR}/include")
+include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
 set(libswiftnav_SRCS
   ephemeris.c
