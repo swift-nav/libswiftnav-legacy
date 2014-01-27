@@ -10,7 +10,7 @@ else (CMAKE_CROSSCOMPILING)
     include_directories(${CHECK_INCLUDE_DIRS})
     set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav m)
 
-    include_directories("${PROJECT_SOURCE_DIR}/include")
+    include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
     add_executable(test_libswiftnav
       check_main.c
