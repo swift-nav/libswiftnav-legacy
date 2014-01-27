@@ -340,7 +340,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 
       /* Swap bytes to little endian. */
       crc = crc16_ccitt((u8*)&(s->msg_type), 2, 0);
-      crc = crc16_ccitt((u8*)&(s->sender_id), 2, 0);
+      crc = crc16_ccitt((u8*)&(s->sender_id), 2, crc);
       crc = crc16_ccitt(&(s->msg_len), 1, crc);
       crc = crc16_ccitt(s->msg_buff, s->msg_len, crc);
       if (s->crc == crc) {
@@ -423,7 +423,7 @@ s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
   }
 
   crc = crc16_ccitt((u8*)&(msg_type), 2, 0);
-  crc = crc16_ccitt((u8*)&(sender_id), 2, 0);
+  crc = crc16_ccitt((u8*)&(sender_id), 2, crc);
   crc = crc16_ccitt(&(len), 1, crc);
   crc = crc16_ccitt(payload, len, crc);
 
