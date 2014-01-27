@@ -140,7 +140,7 @@ START_TEST(test_sbp_process)
       "no callbacks should have been logged");
 
   u8 awesome_message[] = {0x55, 0x33, 0x22, 0x77, 0x66,
-                          0x02, 0x22, 0x33, 0xCD, 0x0C};
+                          0x02, 0x22, 0x33, 0x8A, 0x33};
   logging_reset();
   dummy_reset();
   dummy_rd = 0;
@@ -205,7 +205,7 @@ START_TEST(test_sbp_send_message)
         == SBP_OK,
       "sbp_send_message should return OK if payload is NULL and len == 0");
 
-  u8 zero_len_message[] = {0x55, 0x33, 0x22, 0x55, 0x44, 0x0, 0x36, 0x74};
+  u8 zero_len_message[] = {0x55, 0x33, 0x22, 0x55, 0x44, 0x00, 0x2C, 0x4C};
 
   fail_unless(memcmp(dummy_buff, zero_len_message, sizeof(zero_len_message))
         == 0,
@@ -215,7 +215,7 @@ START_TEST(test_sbp_send_message)
   sbp_send_message(0x2233, 0x6677, sizeof(s), s, &dummy_write);
 
   u8 awesome_message[] = {0x55, 0x33, 0x22, 0x77, 0x66,
-                          0x02, 0x22, 0x33, 0xCD, 0x0C};
+                          0x02, 0x22, 0x33, 0x8A, 0x33};
 
   fail_unless(memcmp(dummy_buff, awesome_message, sizeof(awesome_message))
         == 0,
