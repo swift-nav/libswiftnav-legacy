@@ -20,6 +20,38 @@
             type: u8
             desc: Status flags (reserved)
 
+ - DOPS:
+    id: 0x0206
+    short_desc: Dilution of Precision
+    desc: |
+      Dilution of Precision.
+    fields:
+        - tow:
+            type: u32
+            units: ms
+            desc: GPS Time of Week
+        - gdop:
+            type: u16
+            units: 0.01
+            desc: Geometric Dilution of Precision
+        - pdop:
+            type: u16
+            units: 0.01
+            desc: Position Dilution of Precision
+        - tdop:
+            type: u16
+            units: 0.01
+            desc: Time Dilution of Precision
+        - hdop:
+            type: u16
+            units: 0.01
+            desc: Horizontal Dilution of Precision
+        - vdop:
+            type: u16
+            units: 0.01
+            desc: Vertical Dilution of Precision
+
+
  - POS_ECEF:
     id: 0x0200
     short_desc: Position in ECEF
