@@ -3,14 +3,6 @@ import struct
 
 # Automatically generated from sbp.yaml with generate.py, do not hand edit!
 
-msg_classses = {
-((*- for m in msgs *))
-  ((('0x%04X'|format(m.id)))): ((( m.name | classnameify ))),
-((*- endfor *))
-}
-
-def sbp_decode(t, d):
-  return msg_classses[t](d)
 
 ((* for m in msgs *))
 class ((( m.name | classnameify ))):
@@ -38,3 +30,13 @@ class ((( m.name | classnameify ))):
     ))
 
 ((* endfor *))
+
+msg_classses = {
+((*- for m in msgs *))
+  ((('0x%04X'|format(m.id)))): ((( m.name | classnameify ))),
+((*- endfor *))
+}
+
+def sbp_decode(t, d):
+  return msg_classses[t](d)
+
