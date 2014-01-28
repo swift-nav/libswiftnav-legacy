@@ -5,6 +5,7 @@ import struct
 
 
 ((* for m in msgs *))
+SBP_(((m.name))) = ((('0x%04X'|format(m.id))))
 class ((( m.name | classnameify ))):
   """
   SBP class for message (((m.name))) ((('(0x%04X)'|format(m.id))))
