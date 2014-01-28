@@ -1,0 +1,21 @@
+((* extends "sbp_base.tex" *))
+
+((* block messages_table *))
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Message & Name & Size & Description \\
+    \midrule
+    ((* for m in msgs *))
+    \hyperref[sec:(((m.name)))]{\texttt{((( '0x%04X'|format(m.id) )))}} & \hyperref[sec:(((m.name)))]{\texttt{(((m.name|escape_tex)))}} & (((m.size))) & (((m.short_desc))) \\
+    ((* endfor *))
+    \bottomrule
+  \end{tabular}
+  \caption{Summary of message types}
+  \label{tab:messages_llh}
+\end{table}
+
+((* endblock *))
+
