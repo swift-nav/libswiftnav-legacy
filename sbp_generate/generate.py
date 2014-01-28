@@ -136,8 +136,8 @@ c_template = jenv.get_template('sbp_messages_template.h')
 with open("../include/libswiftnav/sbp_messages.h", 'w') as f:
     f.write(c_template.render(msgs=msgs))
 
-py_template = jenv.get_template('sbp_decode_template.py')
-with open("sbp_decode.py", 'w') as f:
+py_template = jenv.get_template('sbp_messages_template.py')
+with open("sbp_messages.py", 'w') as f:
     f.write(py_template.render(msgs=msgs))
 
 import subprocess
