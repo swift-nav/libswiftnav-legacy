@@ -1,3 +1,5 @@
 .DS_Store
 .deps
 build*/
+*.pyc
+sbp_generate/sbp_out.*

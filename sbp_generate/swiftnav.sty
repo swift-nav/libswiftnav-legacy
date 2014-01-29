@@ -1,0 +1,186 @@
+\ProvidesPackage{swiftnav}
+
+% Font
+%\usepackage[math]{iwona}
+\usepackage{cmbright}
+
+\usepackage[cm]{fullpage}
+\usepackage{multicol}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{lipsum}
+\usepackage{graphicx}
+\usepackage{boxedminipage}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{swiftnav_tikz}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{threeparttable}
+
+% PDF links and metadata setup
+\usepackage[pagebackref=true]{hyperref} % must be last
+\hypersetup{
+    pdfauthor = {Swift Navigation},
+    colorlinks,
+    citecolor=alt,
+    linkcolor=black,
+    urlcolor=alt
+}
+
+% Define our alternate color
+\definecolor{alt}{RGB}{140,0,0}
+
+% Colored section headings
+\titleformat*{\section}{\color{alt}\normalfont\huge\bfseries}
+\titleformat*{\subsection}{\color{alt}\normalfont\Large\bfseries}
+
+% Tweak the page layout
+\setlength{\headheight}{12.5pt}
+\setlength{\headsep}{25pt}
+\setlength{\voffset}{-15pt}
+\setlength{\columnsep}{20pt}
+\setlength\multicolsep{20pt}
+
+% Define command to set a document version.
+\newcommand{\theversion}{\VCRevisionMod}
+\newcommand{\version}[1]{
+  \renewcommand{\theversion}{#1}
+}
+
+\newcommand{\thesubtitle}{}
+\newcommand{\mysubtitle}[1]{
+  \renewcommand{\thesubtitle}{#1}
+}
+
+% Date from version control, maybe not?
+%\date{\VCDateTEX}
+
+% Fancy headers
+\pagestyle{fancy}
+\lhead{\@author}
+\chead{}
+\rhead{\@title}
+\lfoot{\footnotesize{Version \theversion, \@date}}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+
+\fancypagestyle{firstpage}{
+  \lhead{}
+  \rhead{}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+\fancypagestyle{lastpage}{
+  \setlength{\footskip}{0pt}
+  \lfoot{
+    Version \theversion, \@date\\
+    Copyright \copyright\ 2013 Swift Navigation Inc.\\
+  }
+  \rfoot{
+    \thepage\\
+    \url{http://www.swift-nav.com}
+  }
+}
+
+% Bullet point symbols
+\renewcommand{\labelitemi}{\color{alt}\footnotesize{$\blacksquare$}}
+% Bullet point style with no indent
+\newcommand{\bulletnoindent}{
+  \setlength{\itemsep}{0pt}
+  \setlength{\itemindent}{-12pt}
+}
+
+
+% Redefine the title style, very similar to article.cls
+\renewcommand{\maketitle}{\par
+  \begingroup
+    \renewcommand\thefootnote{\@fnsymbol\c@footnote}%
+    \def\@makefnmark{\rlap{\@textsuperscript{\normalfont\@thefnmark}}}%
+    \long\def\@makefntext##1{\parindent 1em\noindent
+            \hb@xt@1.8em{%
+                \hss\@textsuperscript{\normalfont\@thefnmark}}##1}%
+    \if@twocolumn
+      \ifnum \col@number=\@ne
+        \@maketitle
+      \else
+        \twocolumn[\@maketitle]%
+      \fi
+    \else
+      \newpage
+      \global\@topnum\z@   % Prevents figures from going at top of page.
+      \@maketitle
+    \fi
+    \@thanks
+  \endgroup
+  \setcounter{footnote}{0}%
+  \global\let\thanks\relax
+  \global\let\maketitle\relax
+  \global\let\@maketitle\relax
+  \global\let\title\relax
+  \global\let\author\relax
+  \global\let\date\relax
+  \global\let\and\relax
+}
+%\def\@maketitle{%
+  %\newpage%
+  %\null
+  %%\begin{center}%
+  %\let \footnote \thanks
+    %{
+      %\includegraphics{logo.pdf} \hfill
+      %\Huge{\textbf{\color{alt}\@title}}\\
+      %\Large{\textbf{\thesubtitle}}
+      %\par
+    %}%
+  %%\end{center}%
+  %\par
+  %\vskip 4em
+%}
+\def\@maketitle{%
+  \newpage%
+  \null%
+  \let \footnote \thanks%
+    {%
+      \vspace*{-35pt}%
+      \noindent%
+      \begin{tikzpicture}%
+        \node (top_right) at (\textwidth,0) {};
+        \draw[line width=0.5pt] (0,0) -- (top_right);
+        \node [anchor=north west] (logo) {\includegraphics[height=3cm]{logo.pdf}};%
+        \draw[line width=0.5pt] (logo.south west) -- (logo.south west -| top_right);
+        \node [
+          anchor=south east,
+          text width=15cm,
+          align=right
+        ] at (\textwidth, -1.5cm) {\Huge{\textbf{\color{alt}\@title}}};%
+        \node [
+          anchor=south east,
+          text width=15cm,
+          align=right
+        ] at (\textwidth, -3.0cm) {\Large{\textbf{\thesubtitle}}};%
+        %\draw [brown] (current bounding box.south west) rectangle (current bounding box.north east);%
+      \end{tikzpicture}%
+%
+      \par%
+    }%
+  \par%
+  \vskip 4em%
+}
+
+\newcommand{\multicolFigure}[3]{
+\begin{center}
+	\begin{minipage}[t]{\columnwidth}
+		\begin{center}
+			\refstepcounter{figure} #1\\\vspace{\baselineskip} \label{#3} Figure \arabic{figure}:\ #2\\
+      \vspace{\baselineskip}
+		\end{center}
+	\end{minipage}
+\end{center}
+}
+
+

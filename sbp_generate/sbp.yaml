@@ -1,0 +1,285 @@
+ - GPS_TIME:
+    id: 0x0100
+    short_desc: GPS Time
+    desc: |
+        GPS Time.
+    fields:
+        - wn:
+            type: u16
+            units: weeks
+            desc: GPS week number
+        - tow:
+            type: u32
+            units: ms
+            desc: GPS Time of Week rounded to the nearest ms
+        - ns:
+            type: s32
+            units: ns
+            desc: Nanosecond remainder of rounded tow
+        - flags:
+            type: u8
+            desc: Status flags (reserved)
+
+ - DOPS:
+    id: 0x0206
+    short_desc: Dilution of Precision
+    desc: |
+      Dilution of Precision.
+    fields:
+        - tow:
+            type: u32
+            units: ms
+            desc: GPS Time of Week
+        - gdop:
+            type: u16
+            units: 0.01
+            desc: Geometric Dilution of Precision
+        - pdop:
+            type: u16
+            units: 0.01
+            desc: Position Dilution of Precision
+        - tdop:
+            type: u16
+            units: 0.01
+            desc: Time Dilution of Precision
+        - hdop:
+            type: u16
+            units: 0.01
+            desc: Horizontal Dilution of Precision
+        - vdop:
+            type: u16
+            units: 0.01
+            desc: Vertical Dilution of Precision
+
+
+ - POS_ECEF:
+    id: 0x0200
+    short_desc: Position in ECEF
+    desc: |
+        Position solution in absolute Earth Centered Earth Fixed (ECEF) coordinates.
+    fields:
+        - tow:
+            type: u32
+            units: ms
+            desc: GPS Time of Week
+        - x:
+            type: double
+            units: m
+            desc: ECEF X coordinate
+        - y:
+            type: double
+            units: m
+            desc: ECEF Y coordinate
+        - z:
+            type: double
+            units: m
+            desc: ECEF Z coordinate
+        - accuracy:
+            type: u16
+            units: mm
+            desc: Position accuracy estimate
+        - n_sats:
+            type: u8
+            desc: Number of satellites used in solution
+        - flags:
+            type: u8
+            desc: Status flags
+            fields:
+              - 3-7:
+                  desc: Reserved
+              - 0-2:
+                  desc: Fix mode
+                  values:
+                      - 0: Single Point Positioning (SPP)
+                      - 1: RTK
+
+ - POS_LLH:
+    id: 0x0201
+    short_desc: Geodetic Position
+    desc: |
+        Geodetic position solution.
+    fields:
+        - tow:
+            type: u32
+            units: ms
+            desc: GPS Time of Week
+        - lat:
+            type: double
+            units: deg
+            desc: Latitude
+        - lon:
+            type: double
+            units: deg
+            desc: Longitude
+        - height:
+            type: double
+            units: m
+            desc: Height
+        - h_accuracy:
+            type: u16
+            units: mm
+            desc: Horizontal position accuracy estimate
+        - v_accuracy:
+            type: u16
+            units: mm
+            desc: Vertical position accuracy estimate
+        - n_sats:
+            type: u8
+            desc: Number of satellites used in solution
+        - flags:
+            type: u8
+            desc: Status flags
+            fields:
+              - 4-7:
+                  desc: Reserved
+              - 3:
+                  desc: Height Mode
+                  values:
+                      - 0: Height above Ellipsoid
+                      - 1: Height above mean sea level
+              - 0-2:
+                  desc: Fix mode
+                  values:
+                      - 0: Single Point Positioning (SPP)
+                      - 1: RTK
+
+ - BASELINE_ECEF:
+    id: 0x0202
+    short_desc: Baseline in ECEF
+    desc: |
+        Baseline in Earth Centered Earth Fixed (ECEF) coordinates.
+    fields:
+          - tow:
+              type: u32
+              units: ms
+              desc: GPS Time of Week
+          - x:
+              type: s32
+              units: mm
+              desc: Baseline ECEF X coordinate
+          - y:
+              type: s32
+              units: mm
+              desc: Baseline ECEF Y coordinate
+          - z:
+              type: s32
+              units: mm
+              desc: Baseline ECEF Z coordinate
+          - accuracy:
+              type: u16
+              units: mm
+              desc: Position accuracy estimate
+          - n_sats:
+              type: u8
+              desc: Number of satellites used in solution
+          - flags:
+              type: u8
+              desc: Status flags (reserved)
+
+ - BASELINE_NED:
+    id: 0x0203
+    short_desc: Baseline in NED
+    desc: |
+        Baseline in local North East Down (NED) coordinates.
+    fields:
+          - tow:
+              type: u32
+              units: ms
+              desc: GPS Time of Week
+          - n:
+              type: s32
+              units: mm
+              desc: Baseline North coordinate
+          - e:
+              type: s32
+              units: mm
+              desc: Baseline East coordinate
+          - d:
+              type: s32
+              units: mm
+              desc: Baseline Down coordinate
+          - h_accuracy:
+              type: u16
+              units: mm
+              desc: Horizontal position accuracy estimate
+          - v_accuracy:
+              type: u16
+              units: mm
+              desc: Vertical position accuracy estimate
+          - n_sats:
+              type: u8
+              desc: Number of satellites used in solution
+          - flags:
+              type: u8
+              desc: Status flags (reserved)
+
+ - VEL_ECEF:
+    id: 0x0204
+    short_desc: Velocity in ECEF
+    desc: |
+        Velocity in Earth Centered Earth Fixed (ECEF) coordinates.
+    fields:
+          - tow:
+              type: u32
+              units: ms
+              desc: GPS Time of Week
+          - x:
+              type: s32
+              units: mm/s
+              desc: Velocity ECEF X coordinate
+          - y:
+              type: s32
+              units: mm/s
+              desc: Velocity ECEF Y coordinate
+          - z:
+              type: s32
+              units: mm/s
+              desc: Velocity ECEF Z coordinate
+          - accuracy:
+              type: u16
+              units: mm/s
+              desc: Velocity accuracy estimate
+          - n_sats:
+              type: u8
+              desc: Number of satellites used in solution
+          - flags:
+              type: u8
+              desc: Status flags (reserved)
+
+ - VEL_NED:
+    id: 0x0205
+    short_desc: Velocity in NED
+    desc: |
+        Velocity in local North East Down (NED) coordinates.
+    fields:
+          - tow:
+              type: u32
+              units: ms
+              desc: GPS Time of Week
+          - n:
+              type: s32
+              units: mm/s
+              desc: Velocity North coordinate
+          - e:
+              type: s32
+              units: mm/s
+              desc: Velocity East coordinate
+          - d:
+              type: s32
+              units: mm/s
+              desc: Velocity Down coordinate
+          - h_accuracy:
+              type: u16
+              units: mm/s
+              desc: Horizontal velocity accuracy estimate
+          - v_accuracy:
+              type: u16
+              units: mm/s
+              desc: Vertical velocity accuracy estimate
+          - n_sats:
+              type: u8
+              desc: Number of satellites used in solution
+          - flags:
+              type: u8
+              desc: Status flags (reserved)
+

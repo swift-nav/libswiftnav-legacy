@@ -1,0 +1,17 @@
+\ProvidesPackage{swiftnav_tikz}
+
+\usepackage{cmbright}
+\usepackage{tikz}
+
+\definecolor{swift_red}{rgb}{140,0,0}
+
+% Matt's TikZ settings for block diagrams
+
+\usetikzlibrary{decorations,shapes,arrows,shadows,positioning}
+\definecolor{lightgrey}{gray}{0.9}
+\tikzstyle{block} = [draw, fill=orange!20, rectangle, 
+    minimum height=2em, minimum width=2em]
+\tikzstyle{sum} = [draw, fill=orange!40, circle={0.1cm}, node distance=1cm]
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
