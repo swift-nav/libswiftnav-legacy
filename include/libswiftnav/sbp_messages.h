@@ -14,8 +14,8 @@
  * Automatically generated from sbp.yaml with generate.py, do not hand edit! *
  *****************************************************************************/
 
-#ifndef LIBSWIFTNAV_SBP_H
-#define LIBSWIFTNAV_SBP_H
+#ifndef LIBSWIFTNAV_SBP_MESSAGES_H
+#define LIBSWIFTNAV_SBP_MESSAGES_H
 
 #include "common.h"
 
@@ -147,5 +147,5 @@ typedef struct __attribute__((packed)) {
 } sbp_vel_ned_t;
 
 
-#endif /* LIBSWIFTNAV_SBP_H */
+#endif /* LIBSWIFTNAV_SBP_MESSAGES_H */
 
