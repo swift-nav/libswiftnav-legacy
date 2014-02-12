@@ -11,6 +11,7 @@ else (CMAKE_CROSSCOMPILING)
     set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav m)
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
+    link_directories(${CMAKE_BINARY_SOURCE_DIR}/../src)
 
     add_executable(test_libswiftnav
       check_main.c
