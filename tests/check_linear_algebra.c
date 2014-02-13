@@ -14,26 +14,6 @@
 #define mrand frand(MATRIX_MIN, MATRIX_MAX)
 #define MSIZE_MAX 64
 
-#define VEC_PRINTF(v, _n) {                                     \
-    printf("%s:%u <|%s| %lf",                                   \
-           __FILE__, __LINE__, #v, v[0]);                       \
-    for (int _i = 1; _i < _n; _i++) printf(", %lf", v[_i]);     \
-    printf(">\n");                                              \
-  }
-
-#define MAT_PRINTF(m, _r, _c) {                    \
-    printf("%s:%u <|%s|",                          \
-           __FILE__, __LINE__, #m);                \
-    for (int _i = 0; _i < _r; _i++) {              \
-      printf(" [%lf", m[_i*_c + 0]);                \
-      for (int _j = 1; _j < _c; _j++)              \
-        printf(" %lf", m[_i*_c + _j]);               \
-      printf("]");                                 \
-      if (_r > 2 && _i < _r - 1) printf("\n\t\t\t       ");              \
-    }                                              \
-    printf(">\n");                                 \
-  }
-
 /* TODO: matrix_multiply, matrix_add_sc, matrix_copy, all vector functions */
 
 START_TEST(test_matrix_inverse_2x2) {

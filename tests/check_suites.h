@@ -1,6 +1,7 @@
 #ifndef CHECK_SUITES_H
 #define CHECK_SUITES_H
 
+Suite* float_kf_suite(void);
 Suite* coord_system_suite(void);
 Suite* rtcm3_suite(void);
 Suite* bits_suite(void);

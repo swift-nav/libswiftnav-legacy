@@ -15,6 +15,26 @@
 
 #include "common.h"
 
+ #define VEC_PRINTF(v, _n) {                                     \
+    printf("%s:%u <|%s| %lf",                                   \
+           __FILE__, __LINE__, #v, (v)[0]);                       \
+    for (u32 _i = 1; _i < (_n); _i++) printf(", %lf", (v)[_i]);     \
+    printf(">\n");                                              \
+  }
+
+#define MAT_PRINTF(m, _r, _c) {                    \
+    printf("%s:%u <|%s|",                          \
+           __FILE__, __LINE__, #m);                \
+    for (u32 _i = 0; _i < (_r); _i++) {              \
+      printf(" [%lf", (m)[_i*(_c) + 0]);                \
+      for (u32 _j = 1; _j < (_c); _j++)              \
+        printf(" %lf", (m)[_i*(_c) + _j]);               \
+      printf("]");                                 \
+      if ((_r) > 2 && _i < (_r) - 1) printf("\n\t\t\t");              \
+    }                                              \
+    printf(">\n");                                 \
+  }
+
 s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r);
 s32 qrdecomp(const double *a, u32 rows, u32 cols, double *qt, double *r);
 void qtmult(const double *qt, u32 n, const double *b, double *x);

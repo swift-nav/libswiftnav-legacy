@@ -32,7 +32,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   include(cmake/OptimizeForArchitecture.cmake)
   OptimizeForArchitecture()
   message(STATUS "Adding architecture flags: ${Vc_ARCHITECTURE_FLAGS}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS} -framework Accelerate")
 endif ()
 
 add_subdirectory(src)
