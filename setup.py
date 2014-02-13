@@ -127,8 +127,8 @@ if __name__ == "__main__":
     'swiftnav.correlate',
     'swiftnav.track',
     'swiftnav.almanac',
-    'swiftnav.clock',
-    'swiftnav.lam'
+    'swiftnav.lam',
+    'swiftnav.float_kf'
   ]
 
   extensions = [make_extension(name) for name in ext_names]
