@@ -20,4 +20,28 @@ def udu(M):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] D = \
     np.empty(n, dtype=np.double)
   float_kf_c.udu(n, <double **> &M_[0,0], <double **> &U[0,0], <double *> &D[0])
-  return (U, D)
+  return UDU_decomposition(U, D)
+
+def reconstruct_udu(ud):
+  n = ud.D.shape[0]
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] U = \
+    np.array(ud.U, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] D = \
+    np.array(ud.D, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] M = \
+    np.empty((n,n), dtype=np.double)
+
+  float_kf_c.reconstruct_udu(n, <double **> &U[0,0], <double *> &D[0], <double **> &M[0,0])
+  return M
+
+
+
+class UDU_decomposition:
+  def __init__(self, U, D):
+    self.U = U
+    self.D = D
+  def reconstruct(self):
+    return reconstruct_udu(self)
+
