@@ -7,22 +7,22 @@
 
 START_TEST(test_udu)
 {
-  double M1[2][2] = {
-    {1, 0},
-    {0, 1}
+  double M1[2 * 2] = {
+    1, 0,
+    0, 1
   };
-  double U[2][2];
+  double U[2 * 2];
   double D[2];
   udu(2, M1, U, D);
-  MAT_PRINTF((double *) U,2,2);
-  VEC_PRINTF((double *) D,2);
+  MAT_PRINTF(U,2,2);
+  VEC_PRINTF(D,2);
 
   reconstruct_udu(2, U, D, M1);
-  MAT_PRINTF((double *) M1, 2, 2);
+  MAT_PRINTF(M1, 2, 2);
 
-  double M2[2][2] = {
-    {1, 2},
-    {2, 1}
+  double M2[2 * 2] = {
+    1, 2,
+    2, 1
   };
   udu(2, M2, U, D);
   MAT_PRINTF((double *) U, 2, 2);

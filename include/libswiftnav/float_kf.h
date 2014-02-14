@@ -15,27 +15,33 @@
 
 #include "common.h"
 
-s8 udu(u32 n, double M[n][n], double U[n][n], double D[n]);
+#define MAX_SATS 15
+#define MAX_STATE_DIM (MAX_SATS + 6)
+#define MAX_OBS_DIM (2 * MAX_SATS)
 
-void triu(u32 n, double M[n][n]);
+s8 udu(u32 n, double *M, double *U, double *D);
 
-void eye(u32 n, double M[n][n]);
+void triu(u32 n, double *M);
 
-void reconstruct_udu(u32 n, double U[n][n], double D[n], double M[n][n]);
+void eye(u32 n, double *M);
 
-// typedef struct {
-//   u32 state_dim;
-//   u32 obs_dim;
-//   double transition_mtx;
-//   double transition_cov; 
-//   double obs_cov_root_inv; //the decorrelation matrix. takes raw measurements and decorrelates them
-//   double decor_obs_mtx; //the observation matrix for decorrelated measurements
-//   double decor_obs_cov; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
-// } kf_t;
+void reconstruct_udu(u32 n, double *U, double *D, double *M);
 
-// void filter_update(kf_t kf,
-//                    double *state_mean, double *state_cov_U, double *state_cov_D, 
-//                    double *raw_measurements);
+typedef struct {
+  u32 state_dim;
+  u32 obs_dim;
+  double transition_mtx[MAX_STATE_DIM * MAX_STATE_DIM];
+  double transition_cov[MAX_STATE_DIM * MAX_STATE_DIM]; 
+  double obs_cov_root_inv[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
+  double decor_obs_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
+  double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
+} kf_t;
+
+void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D);
+
+void filter_update(kf_t *kf,
+                   double *state_mean, double *state_cov_U, double *state_cov_D, 
+                   double *raw_measurements);
 
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
