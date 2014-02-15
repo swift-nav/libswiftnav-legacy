@@ -37,7 +37,15 @@ typedef struct {
   double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
 } kf_t;
 
-void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D);
+void predict_forward(u32 state_dim, double *transition_mtx, double *transition_cov,
+                     double *state_mean, double *state_cov_U, double *state_cov_D);
+
+void update_for_obs(u32 state_dim, u32 obs_dim, double *decor_obs_mtx, double *decor_obs_cov, 
+                    double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
+                    double *decor_obs);
+
+void update_scalar_measurement(u32 state_dim, double *h, double R,
+                               double *U, double *D, double *k);
 
 void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
