@@ -143,9 +143,6 @@
  *
  * \{ */
 
-/** Global pointer to the head of the linked list of callbacks. */
-//sbp_msg_callbacks_node_t *sbp_msg_callbacks_head = 0;
-
 /** Register a callback for a message type.
  * Register a callback that is called when a message
  * with type msg_type is received.
