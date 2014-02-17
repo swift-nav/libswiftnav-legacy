@@ -59,6 +59,7 @@ typedef struct {
   u8 msg_len;
   u8 n_read;
   u8 msg_buff[256];
+  void* io_context;
 } sbp_state_t;
 
 /** \} */
@@ -68,9 +69,10 @@ s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
 void sbp_clear_callbacks(void);
 sbp_msg_callback_t sbp_find_callback(u16 msg_type);
 void sbp_state_init(sbp_state_t *s);
-s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n));
-s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
-                    u32 (*write)(u8 *buff, u32 n));
+void sbp_state_set_io_context(sbp_state_t *s, void* context);
+s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void* context));
+s8 sbp_send_message(sbp_state_t *s, u16 msg_type, u16 sender_id, u8 len, u8 *payload,
+                    u32 (*write)(u8 *buff, u32 n, void* context));
 
 #endif /* LIBSWIFTNAV_SBP_H */
 

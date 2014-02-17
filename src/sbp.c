@@ -65,7 +65,7 @@
  * Here is an example based on reading from a typical UART interface:
  *
  * ~~~
- * u32 my_read(u8 *buff, u32 n)
+ * u32 my_read(u8 *buff, u32 n, void* context)
  * {
  *   for (u32 i=0; i<n; i++) {
  *     if (uart_has_data())
@@ -91,6 +91,10 @@
  * }
  * ~~~
  *
+ * If you're writing C++ code that wants to reference a pointer to an object in the
+ * my_read function, you can use the context set by calling `sbp_sbp_state_set_io_context`
+ *
+ *
  * Sending
  * -------
  *
@@ -111,7 +115,7 @@
  *   u8 x, y;
  * } my_awesome_struct;
  *
- * u32 my_write(u8 *buff, u32 n)
+ * u32 my_write(u8 *buff, u32 n, void* context)
  * {
  *   for (u32 i=0; i<n; i++) {
  *     if (uart_write_char(buff[i]) == ERROR)
@@ -135,6 +139,7 @@
  *   ...
  * }
  * ~~~
+ *
  *
  * \{ */
 
@@ -241,6 +246,19 @@ sbp_msg_callback_t sbp_find_callback(u16 msg_type)
 void sbp_state_init(sbp_state_t *s)
 {
   s->state = WAITING;
+  //Set the IO context pointer, passed to read and write functions, to NULL.
+  s->io_context = 0;
+}
+
+
+/** Set a context to pass to all function pointer calls made by sbp functions
+ * This helper function sets a void* context pointer in sbp_state.
+ * Whenever `sbp_process` calls the `read` function pointer, it passes this context.
+ * Whenever `sbp_send_message` calls the `write` function pointer, it passes this context.
+ * This allows c++ code to get a pointer to an object inside these functions. 
+ */
+void sbp_state_set_io_context(sbp_state_t *s, void* context) {
+  s->io_context = context;
 }
 
 /** Read and process SBP messages.
@@ -255,11 +273,13 @@ void sbp_state_init(sbp_state_t *s)
  * The supplied `read` function must have the prototype:
  *
  * ~~~
- * u32 read(u8 *buff, u32 n)
+ * u32 read(u8 *buff, u32 n, void* context)
  * ~~~
  *
  * where `n` is the number of bytes requested and `buff` is the buffer into
- * which to write the received data. The function should return the number of
+ * which to write the received data, and `context` is the arbitrary pointer 
+ * set by `sbp_state_set_io_context`.
+ * The function should return the number of
  * bytes successfully written into `buff` which may be between 0 and `n`
  * inclusive, but must never be greater than `n`.
  *
@@ -275,14 +295,14 @@ void sbp_state_init(sbp_state_t *s)
  *         be found for the decoded message `and SBP_CRC_ERROR` if a CRC error
  *         has occurred.
  */
-s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
+s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void* context))
 {
   u8 temp;
   u16 crc;
 
   switch (s->state) {
   case WAITING:
-    if ((*read)(&temp, 1) == 1)
+    if ((*read)(&temp, 1, s->io_context) == 1)
       if (temp == SBP_PREAMBLE) {
         s->n_read = 0;
         s->state = GET_TYPE;
@@ -291,7 +311,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 
   case GET_TYPE:
     if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read);
+      s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
     }
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
@@ -302,7 +322,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 
   case GET_SENDER:
     if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read);
+      s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
     }
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
@@ -311,7 +331,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
     break;
 
   case GET_LEN:
-    if ((*read)(&(s->msg_len), 1) == 1) {
+    if ((*read)(&(s->msg_len), 1, s->io_context) == 1) {
       s->n_read = 0;
       s->state = GET_MSG;
     }
@@ -322,7 +342,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
       /* Not received whole message yet, try and read some more. */
       s->n_read += (*read)(
         &(s->msg_buff[s->n_read]),
-        s->msg_len - s->n_read
+        s->msg_len - s->n_read,
+        s->io_context
       );
     }
     if (s->msg_len - s->n_read <= 0) {
@@ -333,7 +354,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
 
   case GET_CRC:
     if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read);
+      s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
     }
     if (s->n_read >= 2) {
       s->state = WAITING;
@@ -371,11 +392,12 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
  * The supplied `write` function must have the prototype:
  *
  * ~~~
- * u32 write(u8 *buff, u32 n)
+ * u32 write(u8 *buff, u32 n, void* context)
  * ~~~
  *
  * where `n` is the number of bytes to be written and `buff` is the buffer from
- * which to read the data to be written. The function should return the number
+ * which to read the data to be written, and `context` is the arbitrary pointer 
+ * set by `sbp_state_set_io_context`. The function should return the number
  * of bytes successfully written which may be between 0 and `n`. Currently, if
  * the number of bytes written is different from `n` then `sbp_send_message`
  * will immediately return with an error.
@@ -391,8 +413,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n))
  * \return `SBP_OK` (0) if successful, `SBP_WRITE_ERROR` if the message could
  *         not be sent or was only partially sent.
  */
-s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
-                    u32 (*write)(u8 *buff, u32 n))
+s8 sbp_send_message(sbp_state_t *s, u16 msg_type, u16 sender_id, u8 len, u8 *payload,
+                    u32 (*write)(u8 *buff, u32 n, void* context))
 {
   /* Check our payload data pointer isn't NULL unless len = 0. */
   if (len != 0 && payload == 0)
@@ -405,20 +427,20 @@ s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
   u16 crc;
 
   u8 preamble = SBP_PREAMBLE;
-  if ((*write)(&preamble, 1) != 1)
+  if ((*write)(&preamble, 1, s->io_context) != 1)
     return SBP_SEND_ERROR;
 
-  if ((*write)((u8*)&msg_type, 2) != 2)
+  if ((*write)((u8*)&msg_type, 2, s->io_context) != 2)
     return SBP_SEND_ERROR;
 
-  if ((*write)((u8*)&sender_id, 2) != 2)
+  if ((*write)((u8*)&sender_id, 2, s->io_context) != 2)
     return SBP_SEND_ERROR;
 
-  if ((*write)(&len, 1) != 1)
+  if ((*write)(&len, 1, s->io_context) != 1)
     return SBP_SEND_ERROR;
 
   if (len > 0) {
-    if ((*write)(payload, len) != len)
+    if ((*write)(payload, len, s->io_context) != len)
       return SBP_SEND_ERROR;
   }
 
@@ -427,7 +449,7 @@ s8 sbp_send_message(u16 msg_type, u16 sender_id, u8 len, u8 *payload,
   crc = crc16_ccitt(&(len), 1, crc);
   crc = crc16_ccitt(payload, len, crc);
 
-  if ((*write)((u8*)&crc, 2) != 2)
+  if ((*write)((u8*)&crc, 2, s->io_context) != 2)
     return SBP_SEND_ERROR;
 
   return SBP_OK;
