@@ -269,7 +269,7 @@ START_TEST(test_callbacks)
       "sbp_find_callback should return NULL if callback not registered");
 
   fail_unless(sbp_find_callback(&s, 0x2233) == &n,
-      "sbp_find_callback didn't return the correct callback function pointer");
+      "sbp_find_callback didn't return the correct callback node pointer");
 
   fail_unless(sbp_find_callback(&s, 0x2233)->context == &NUMBER,
       "sbp_find_callback didn't return the correct context pointer");

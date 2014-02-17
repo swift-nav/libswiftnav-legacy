@@ -32,7 +32,7 @@
  * function must have type #sbp_msg_callback_t, i.e. it must be of the form:
  *
  * ~~~
- * void my_callback(u16 sender_id, u8 len, u8 msg[])
+ * void my_callback(u16 sender_id, u8 len, u8 msg[], void *context)
  * {
  *   // Process msg.
  * }
@@ -49,7 +49,7 @@
  * Now register your callback function with the SBP library as follows:
  *
  * ~~~
- * sbp_register_callback(SBP_MY_MSG_TYPE, &my_callback, &my_callback_node);
+ * sbp_register_callback(&sbp_state, SBP_MY_MSG_TYPE, &my_callback, &context, &my_callback_node);
  * ~~~
  *
  * where `SBP_MY_MSG_TYPE` is the numerical identifier of your message type.
@@ -65,7 +65,7 @@
  * Here is an example based on reading from a typical UART interface:
  *
  * ~~~
- * u32 my_read(u8 *buff, u32 n, void* context)
+ * u32 my_read(u8 *buff, u32 n, void *context)
  * {
  *   for (u32 i=0; i<n; i++) {
  *     if (uart_has_data())
@@ -92,7 +92,7 @@
  * ~~~
  *
  * If you're writing C++ code that wants to reference a pointer to an object in the
- * my_read function, you can use the context set by calling "sbp_state_set_io_context()"
+ * my_read function, you can use the context set by calling sbp_state_set_io_context()
  *
  *
  * Sending
@@ -107,15 +107,15 @@
  *
  * ~~~
  * // Convenience macro for sending an SBP message.
- * #define SBP_MSG(msg_type, item) \
- *   sbp_send_message(msg_type, MY_SENDER_ID, \
+ * #define SBP_MSG(sbp_state, msg_type, item) \
+ *   sbp_send_message(&sbp_state, msg_type, MY_SENDER_ID, \
  *       sizeof(item), (u8 *)&(item), &my_write)
  *
  * typedef struct {
  *   u8 x, y;
  * } my_awesome_struct;
  *
- * u32 my_write(u8 *buff, u32 n, void* context)
+ * u32 my_write(u8 *buff, u32 n, void *context)
  * {
  *   for (u32 i=0; i<n; i++) {
  *     if (uart_write_char(buff[i]) == ERROR)
@@ -128,13 +128,16 @@
  * {
  *   ...
  *
- *   my_awesome_struct s = { 0x22, 0x33 };
+ *   sbp_state_t s;
+ *   sbp_state_init(&s);
  *
- *   sbp_send_message(SBP_MY_MSG_TYPE, MY_SENDER_ID, sizeof(s), (u8*)&s, &my_write);
+ *   my_awesome_struct payload = { 0x22, 0x33 };
+ *
+ *   sbp_send_message(&s, SBP_MY_MSG_TYPE, MY_SENDER_ID, sizeof(payload), (u8*)&payload, &my_write);
  *
  *   // or
  *
- *   SBP_MSG(SBP_MY_MSG_TYPE, s);
+ *   SBP_MSG(s, SBP_MY_MSG_TYPE, payload);
  *
  *   ...
  * }
@@ -212,7 +215,7 @@ void sbp_clear_callbacks(sbp_state_t *s)
  * associated with the passed message type.
  *
  * \param msg_type Message type to find callback for
- * \return Pointer to callback function (#sbp_msg_callback_t) or `NULL` if
+ * \return Pointer to callback node (#sbp_msg_callbacks_node_t) or `NULL` if
  *         callback not found for that message type.
  */
 sbp_msg_callbacks_node_t* sbp_find_callback(sbp_state_t *s, u16 msg_type)
