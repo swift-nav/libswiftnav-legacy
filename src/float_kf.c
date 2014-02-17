@@ -79,42 +79,42 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
   }
 }
 
-void predict_forward(u32 state_dim, double *transition_mtx, double *transition_cov, double *state_mean, double *state_cov_U, double *state_cov_D) 
+void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D) 
 {
-  double x[state_dim];
-  memcpy(x, state_mean, state_dim * sizeof(double));
+  double x[kf->state_dim];
+  memcpy(x, state_mean, kf->state_dim * sizeof(double));
 
   cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-              state_dim, state_dim, // int M, int N,
-              1, (double *) transition_mtx, state_dim, // double 1, double *A, int lda
+              kf->state_dim, kf->state_dim, // int M, int N,
+              1, (double *) kf->transition_mtx, kf->state_dim, // double 1, double *A, int lda
               x, 1, // double *X, int incX
               0, state_mean, 1); // double beta, double *Y, int incY
-  //VEC_PRINTF((double *) state_mean, state_dim);
+  //VEC_PRINTF((double *) state_mean, kf->state_dim);
 
-  double state_cov[state_dim * state_dim];
-  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
-  //MAT_PRINTF((double *) state_cov, state_dim, state_dim);
+  double state_cov[kf->state_dim * kf->state_dim];
+  reconstruct_udu(kf->state_dim, state_cov_U, state_cov_D, state_cov);
+  //MAT_PRINTF((double *) state_cov, kf->state_dim, kf->state_dim);
 
-  double FC[state_dim * state_dim];
+  double FC[kf->state_dim * kf->state_dim];
   cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
-              state_dim, state_dim, // int M, int N
-              1, state_cov, state_dim, // double alpha, double *A, int lda
-              transition_mtx, state_dim, // double *B, int ldb
-              0, FC, state_dim); // double beta, double *C, int ldc
-  //MAT_PRINTF((double *) FC, state_dim, state_dim);
+              kf->state_dim, kf->state_dim, // int M, int N
+              1, state_cov, kf->state_dim, // double alpha, double *A, int lda
+              kf->transition_mtx, kf->state_dim, // double *B, int ldb
+              0, FC, kf->state_dim); // double beta, double *C, int ldc
+  //MAT_PRINTF((double *) FC, kf->state_dim, kf->state_dim);
 
-  double FCF[state_dim * state_dim];
-  memcpy(FCF, transition_cov, state_dim * state_dim * sizeof(double));
+  double FCF[kf->state_dim * kf->state_dim];
+  memcpy(FCF, kf->transition_cov, kf->state_dim * kf->state_dim * sizeof(double));
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
-              state_dim, state_dim, state_dim, // int M, int N, int K
-              1, FC, state_dim, // double alpha, double *A, int lda
-              transition_mtx, state_dim, //double *B, int ldb
-              1, FCF, state_dim); //beta, double *C, int ldc
-  //MAT_PRINTF((double *) FCF, state_dim, state_dim);
+              kf->state_dim, kf->state_dim, kf->state_dim, // int M, int N, int K
+              1, FC, kf->state_dim, // double alpha, double *A, int lda
+              kf->transition_mtx, kf->state_dim, //double *B, int ldb
+              1, FCF, kf->state_dim); //beta, double *C, int ldc
+  //MAT_PRINTF((double *) FCF, kf->state_dim, kf->state_dim);
 
-  udu(state_dim, FCF, state_cov_U, state_cov_D);
-  // MAT_PRINTF((double *) state_cov_U, state_dim, state_dim);
-  // VEC_PRINTF((double *) state_cov_D, state_dim);
+  udu(kf->state_dim, FCF, state_cov_U, state_cov_D);
+  // MAT_PRINTF((double *) state_cov_U, kf->state_dim, kf->state_dim);
+  // VEC_PRINTF((double *) state_cov_D, kf->state_dim);
 }
 
 void update_for_obs(u32 state_dim, u32 obs_dim, double *decor_obs_mtx, double *decor_obs_cov, 
