@@ -254,7 +254,7 @@ void sbp_state_init(sbp_state_t *s)
   s->io_context = 0;
 
   /* Clear the callbacks, if any, currently in s */
-  sbp_clear_callbacks(&s);
+  sbp_clear_callbacks(s);
 }
 
 
