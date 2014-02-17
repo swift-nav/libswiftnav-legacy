@@ -92,7 +92,7 @@
  * ~~~
  *
  * If you're writing C++ code that wants to reference a pointer to an object in the
- * my_read function, you can use the context set by calling `sbp_sbp_state_set_io_context`
+ * my_read function, you can use the context set by calling "sbp_state_set_io_context()"
  *
  *
  * Sending
@@ -144,7 +144,7 @@
  * \{ */
 
 /** Global pointer to the head of the linked list of callbacks. */
-sbp_msg_callbacks_node_t *sbp_msg_callbacks_head = 0;
+//sbp_msg_callbacks_node_t *sbp_msg_callbacks_head = 0;
 
 /** Register a callback for a message type.
  * Register a callback that is called when a message
@@ -152,11 +152,12 @@ sbp_msg_callbacks_node_t *sbp_msg_callbacks_head = 0;
  *
  * \param msg_type Message type associated with callback
  * \param cb       Pointer to message callback function
+ * \param context  Pointer to context for callback function
  * \param node     Statically allocated #sbp_msg_callbacks_node_t struct
  * \return `SBP_OK` (0) if successful, `SBP_CALLBACK_ERROR` if callback was
  *         already registered for that message type.
  */
-s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
+s8 sbp_register_callback(sbp_state_t *s, u16 msg_type, sbp_msg_callback_t cb, void *context,
                          sbp_msg_callbacks_node_t *node)
 {
   /* Check our callback function pointer isn't NULL. */
@@ -168,12 +169,13 @@ s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
     return SBP_NULL_ERROR;
 
   /* Check if callback was already registered for this type. */
-  if (sbp_find_callback(msg_type) != 0)
+  if (sbp_find_callback(s, msg_type) != 0)
     return SBP_CALLBACK_ERROR;
 
   /* Fill in our new sbp_msg_callback_node_t. */
   node->msg_type = msg_type;
   node->cb = cb;
+  node->context = context;
   /* The next pointer is set to NULL, i.e. this
    * will be the new end of the linked list.
    */
@@ -182,15 +184,15 @@ s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
   /* If our linked list is empty then just
    * add the new node to the start.
    */
-  if (sbp_msg_callbacks_head == 0) {
-    sbp_msg_callbacks_head = node;
+  if (s->sbp_msg_callbacks_head == 0) {
+    s->sbp_msg_callbacks_head = node;
     return SBP_OK;
   }
 
   /* Find the tail of our linked list and
    * add our new node to the end.
    */
-  sbp_msg_callbacks_node_t *p = sbp_msg_callbacks_head;
+  sbp_msg_callbacks_node_t *p = s->sbp_msg_callbacks_head;
   while (p->next)
     p = p->next;
 
@@ -202,10 +204,10 @@ s8 sbp_register_callback(u16 msg_type, sbp_msg_callback_t cb,
 /** Clear all registered callbacks.
  * This is probably only useful for testing but who knows!
  */
-void sbp_clear_callbacks()
+void sbp_clear_callbacks(sbp_state_t *s)
 {
   /* Reset the head of the callbacks list to NULL. */
-  sbp_msg_callbacks_head = 0;
+  s->sbp_msg_callbacks_head = 0;
 }
 
 /** Find the callback function associated with a message type.
@@ -216,20 +218,20 @@ void sbp_clear_callbacks()
  * \return Pointer to callback function (#sbp_msg_callback_t) or `NULL` if
  *         callback not found for that message type.
  */
-sbp_msg_callback_t sbp_find_callback(u16 msg_type)
+sbp_msg_callbacks_node_t* sbp_find_callback(sbp_state_t *s, u16 msg_type)
 {
   /* If our list is empty, return NULL. */
-  if (!sbp_msg_callbacks_head)
+  if (!s->sbp_msg_callbacks_head)
     return 0;
 
   /* Traverse the linked list and return the callback
    * function pointer if we find a node with a matching
    * message id.
    */
-  sbp_msg_callbacks_node_t *p = sbp_msg_callbacks_head;
+  sbp_msg_callbacks_node_t *p = s->sbp_msg_callbacks_head;
   do
     if (p->msg_type == msg_type)
-      return p->cb;
+      return p;
 
   while ((p = p->next));
 
@@ -238,6 +240,7 @@ sbp_msg_callback_t sbp_find_callback(u16 msg_type)
 }
 
 /** Initialize an #sbp_state_t struct before use.
+ * This resets the entire state, including all callbacks.
  * Remember to use this function to initialize the state before calling
  * sbp_process() for the first time.
  *
@@ -246,8 +249,12 @@ sbp_msg_callback_t sbp_find_callback(u16 msg_type)
 void sbp_state_init(sbp_state_t *s)
 {
   s->state = WAITING;
-  //Set the IO context pointer, passed to read and write functions, to NULL.
+  
+  /* Set the IO context pointer, passed to read and write functions, to NULL. */
   s->io_context = 0;
+
+  /* Set the callbacks head to null. */
+  s->sbp_msg_callbacks_head = 0;
 }
 
 
@@ -255,9 +262,10 @@ void sbp_state_init(sbp_state_t *s)
  * This helper function sets a void* context pointer in sbp_state.
  * Whenever `sbp_process` calls the `read` function pointer, it passes this context.
  * Whenever `sbp_send_message` calls the `write` function pointer, it passes this context.
- * This allows c++ code to get a pointer to an object inside these functions. 
+ * This allows C++ code to get a pointer to an object inside these functions. 
  */
-void sbp_state_set_io_context(sbp_state_t *s, void* context) {
+void sbp_state_set_io_context(sbp_state_t *s, void *context) 
+{
   s->io_context = context;
 }
 
@@ -295,7 +303,7 @@ void sbp_state_set_io_context(sbp_state_t *s, void* context) {
  *         be found for the decoded message `and SBP_CRC_ERROR` if a CRC error
  *         has occurred.
  */
-s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void* context))
+s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
 {
   u8 temp;
   u16 crc;
@@ -366,11 +374,13 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void* context))
       crc = crc16_ccitt(s->msg_buff, s->msg_len, crc);
       if (s->crc == crc) {
         /* Message complete, process it. */
-        sbp_msg_callback_t cb = sbp_find_callback(s->msg_type);
-        if (cb)
-          (*cb)(s->sender_id, s->msg_len, s->msg_buff);
-        else
+        sbp_msg_callbacks_node_t* node = sbp_find_callback(s, s->msg_type);
+        if (node) {
+          (*node->cb)(s->sender_id, s->msg_len, s->msg_buff, node->context);
+          return SBP_CALLBACK_EXECUTED;
+        } else {
           return SBP_CALLBACK_ERROR;
+        }
       } else
           return SBP_CRC_ERROR;
     }
@@ -414,7 +424,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void* context))
  *         not be sent or was only partially sent.
  */
 s8 sbp_send_message(sbp_state_t *s, u16 msg_type, u16 sender_id, u8 len, u8 *payload,
-                    u32 (*write)(u8 *buff, u32 n, void* context))
+                    u32 (*write)(u8 *buff, u32 n, void *context))
 {
   /* Check our payload data pointer isn't NULL unless len = 0. */
   if (len != 0 && payload == 0)
