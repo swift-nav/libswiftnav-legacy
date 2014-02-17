@@ -5,11 +5,13 @@
 #include <sbp.h>
 
 
-int SOME_MEMORY = 0xdeadbeef;
+int DUMMY_MEMORY_FOR_CALLBACKS = 0xdeadbeef;
+int DUMMY_MEMORY_FOR_IO = 0xdead0000;
 
 u32 dummy_wr = 0;
 u32 dummy_rd = 0;
 u8 dummy_buff[1024];
+void* last_io_context;
 
 void dummy_reset()
 {
@@ -19,6 +21,7 @@ void dummy_reset()
 
 u32 dummy_write(u8 *buff, u32 n, void* context)
 {
+ last_io_context = context;
  u32 real_n = n;//(dummy_n > n) ? n : dummy_n;
  memcpy(dummy_buff + dummy_wr, buff, real_n);
  dummy_wr += real_n;
@@ -27,6 +30,7 @@ u32 dummy_write(u8 *buff, u32 n, void* context)
 
 u32 dummy_read(u8 *buff, u32 n, void* context)
 {
+ last_io_context = context;
  u32 real_n = n;//(dummy_n > n) ? n : dummy_n;
  memcpy(buff, dummy_buff + dummy_rd, real_n);
  dummy_rd += real_n;
@@ -35,6 +39,7 @@ u32 dummy_read(u8 *buff, u32 n, void* context)
 
 void printy_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
+  (void)context;
   printf("MSG id: 0x%04X, len: %d\n", sender_id, len);
   if (len > 0) {
     for (u8 i=0; i<len; i++)
@@ -49,6 +54,7 @@ u8 last_len;
 u8 last_msg[256];
 void* last_context;
 
+
 void logging_reset()
 {
   n_callbacks_logged = 0;
@@ -62,7 +68,7 @@ void logging_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   last_len = len;
   last_context = context;
   memcpy(last_msg, msg, len);
-
+  
   /*printy_callback(sender_id, len, msg);*/
 }
 
@@ -72,6 +78,7 @@ void test_callback(u16 sender_id, u8 len, u8 msg[], void* context)
   (void)sender_id;
   (void)len;
   (void)msg;
+  (void)context;
 }
 void test_callback2(u16 sender_id, u8 len, u8 msg[], void* context)
 {
@@ -79,6 +86,7 @@ void test_callback2(u16 sender_id, u8 len, u8 msg[], void* context)
   (void)sender_id;
   (void)len;
   (void)msg;
+  (void)context;
 }
 
 START_TEST(test_sbp_process)
@@ -87,10 +95,10 @@ START_TEST(test_sbp_process)
 
   sbp_state_t s;
   sbp_state_init(&s);
-  sbp_state_set_io_context(&s, &SOME_MEMORY);
+  sbp_state_set_io_context(&s, &DUMMY_MEMORY_FOR_IO);
 
   static sbp_msg_callbacks_node_t n;
-  sbp_register_callback(&s, 0x2269, &logging_callback, 0, &n);
+  sbp_register_callback(&s, 0x2269, &logging_callback, &DUMMY_MEMORY_FOR_CALLBACKS, &n);
 
   u8 test_data[] = { 0x01, 0x02, 0x03, 0x04 };
 
@@ -111,16 +119,24 @@ START_TEST(test_sbp_process)
   fail_unless(memcmp(last_msg, test_data, sizeof(test_data))
         == 0,
       "test data decoded incorrectly");
-  fail_unless(last_context = &SOME_MEMORY, 
+  fail_unless(last_context == &DUMMY_MEMORY_FOR_CALLBACKS, 
       "context pointer incorrectly passed");
 
   logging_reset();
   sbp_send_message(&s, 0x2269, 0x4243, 0, 0, &dummy_write);
 
+  fail_unless(last_io_context == &DUMMY_MEMORY_FOR_IO,
+      "io context pointer incorrectly passed");
+
+  last_io_context = 0;
+
   while (dummy_rd < dummy_wr) {
     fail_unless(sbp_process(&s, &dummy_read) >= SBP_OK,
         "sbp_process threw an error! (2)");
   }
+
+  fail_unless(last_io_context == &DUMMY_MEMORY_FOR_IO,
+      "io context pointer incorrectly passed");
 
 
   fail_unless(n_callbacks_logged == 1,
