@@ -79,6 +79,8 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
   }
 }
 
+/** In place prediction of the next state mean and covariances
+ */
 void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D) 
 {
   double x[kf->state_dim];
@@ -117,23 +119,25 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
   // VEC_PRINTF((double *) state_cov_D, kf->state_dim);
 }
 
-void update_for_obs(u32 state_dim, u32 obs_dim, double *decor_obs_mtx, double *decor_obs_cov, 
+/** In place updating of the state mean and covariances to use the (decorrelated) observations
+ */
+void update_for_obs(kf_t *kf,
                     double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
                     double *decor_obs)
 {
 
-  for (u32 i=0; i<obs_dim; i++) {
-    double *h = &decor_obs_mtx[state_dim * i]; //vector of length state_dim
-    double R = decor_obs_cov[i]; //scalar
-    double k[state_dim]; // vector of length state_dim
+  for (u32 i=0; i<kf->obs_dim; i++) {
+    double *h = &kf->decor_obs_mtx[kf->state_dim * i]; //vector of length kf->state_dim
+    double R = kf->decor_obs_cov[i]; //scalar
+    double k[kf->state_dim]; // vector of length kf->state_dim
     // printf("i=%i\n", i);
-    // VEC_PRINTF(h, state_dim);
+    // VEC_PRINTF(h, kf->state_dim);
 
-    update_scalar_measurement(state_dim, h, R, intermediate_cov_U, intermediate_cov_D, &k[0]); //updates cov and sets k
-    // VEC_PRINTF(k, state_dim);
+    update_scalar_measurement(kf->state_dim, h, R, intermediate_cov_U, intermediate_cov_D, &k[0]); //updates cov and sets k
+    // VEC_PRINTF(k, kf->state_dim);
 
     double predicted_obs = 0;
-    for (u32 j=0; j<state_dim; j++) {//TODO take advantage of sparsity of h
+    for (u32 j=0; j<kf->state_dim; j++) {//TODO take advantage of sparsity of h
       predicted_obs += h[j] * intermediate_mean[j];
     }
     double obs_minus_predicted_obs = decor_obs[i] - predicted_obs;
@@ -141,13 +145,15 @@ void update_for_obs(u32 state_dim, u32 obs_dim, double *decor_obs_mtx, double *d
     // printf("predi_obs = %f\n", predicted_obs);
     // printf(" diff_obs = %f\n", obs_minus_predicted_obs);
 
-    for (u32 j=0; j<state_dim; j++) {
+    for (u32 j=0; j<kf->state_dim; j++) {
       intermediate_mean[j] += k[j] * obs_minus_predicted_obs; // uses k to update mean
     }
-    // VEC_PRINTF(intermediate_mean, state_dim);
+    // VEC_PRINTF(intermediate_mean, kf->state_dim);
   }
 }
 
+/** In place updating of the state covariances and k vec to use a single decorrelated observation
+ */
 void update_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
@@ -198,22 +204,17 @@ void update_scalar_measurement(u32 state_dim, double *h, double R,
 
 }
 
-
+/** In place updating of the state mean and covariance. Modifies measurements.
+ */
 void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
-                   double *raw_measurements)
+                   double *measurements)
 {
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
               kf->obs_dim, kf->obs_cov_root_inv, 
-              kf->obs_dim, raw_measurements, 1); // replaces raw_measurements by its decorrelated version
-
-
-
-
-
-  memset(state_cov_U, 0, kf->state_dim * kf->state_dim * sizeof(double));
-  memset(state_cov_D, 0,                kf->state_dim * sizeof(double));
-  memset(state_mean,  0,                kf->state_dim * sizeof(double));
+              kf->obs_dim, measurements, 1); // replaces raw measurements by its decorrelated version
+  predict_forward(kf, state_mean, state_cov_U, state_cov_D);
+  update_for_obs(kf, state_mean, state_cov_U, state_cov_D, measurements);
 };
 
 
