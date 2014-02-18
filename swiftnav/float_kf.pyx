@@ -201,3 +201,12 @@ def get_transition_mtx(num_sats, dt):
         np.empty((state_dim, state_dim), dtype=np.double)
   float_kf_c.assign_transition_mtx(state_dim, dt, &transition_mtx[0,0])
   return transition_mtx
+
+def get_d_mtx(num_sats):
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] D = \
+        np.empty((num_sats - 1, num_sats), dtype=np.double)
+  float_kf_c.assign_d_mtx(num_sats, &D[0,0])
+  return D
+
+
+

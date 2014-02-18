@@ -33,4 +33,5 @@ cdef extern from "libswiftnav/float_kf.h":
                      double *measurements)
 
   void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
+  void assign_d_mtx(u8 num_sats, double *D)
 
