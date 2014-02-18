@@ -194,3 +194,10 @@ cdef class KalmanFilter:
       return decor_obs_cov
     def __set__(self, np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov):
       memcpy(self.kf.decor_obs_cov, &decor_obs_cov[0], self.obs_dim * sizeof(double))
+
+def get_transition_mtx(num_sats, dt):
+  state_dim = num_sats + 5
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx = \
+        np.empty((state_dim, state_dim), dtype=np.double)
+  float_kf_c.assign_transition_mtx(state_dim, dt, &transition_mtx[0,0])
+  return transition_mtx
