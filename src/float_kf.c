@@ -233,6 +233,20 @@ void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
   transition_mtx[2 * state_dim + 5] = dt;
 }
 
+void assign_d_mtx(u8 num_sats, double *D)
+{
+  memset(D, 0, (num_sats - 1) * num_sats * sizeof(double));
+  //shape = num_sats-1  x  num_sats
+  for(u8 i=0; i<num_sats-1; i++) {
+    D[i * num_sats] = -1;
+    D[i * num_sats + i + 1] = 1;
+  }
+}
+// void assign_de_mtx(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double ref_ecef, gps_time_t timestamp)
+// {
+//
+// }
+
 kf_t get_kf(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double *ref_ecef, gps_time_t timestamp, double dt)
 {
   u32 state_dim = num_sats + 5;
