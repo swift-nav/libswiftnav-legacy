@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <cblas.h>
 #include <linear_algebra.h>
+#include "gpstime.h"
+#include "ephemeris.h"
 #include "float_kf.h"
 
 s8 udu(u32 n, double *M, double *U, double *D) 
@@ -83,6 +85,8 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
  */
 void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D) 
 {
+  //TODO take advantage of sparsity in this function
+
   double x[kf->state_dim];
   memcpy(x, state_mean, kf->state_dim * sizeof(double));
 
@@ -91,11 +95,11 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
               1, (double *) kf->transition_mtx, kf->state_dim, // double 1, double *A, int lda
               x, 1, // double *X, int incX
               0, state_mean, 1); // double beta, double *Y, int incY
-  //VEC_PRINTF((double *) state_mean, kf->state_dim);
+  // VEC_PRINTF((double *) state_mean, kf->state_dim);
 
   double state_cov[kf->state_dim * kf->state_dim];
   reconstruct_udu(kf->state_dim, state_cov_U, state_cov_D, state_cov);
-  //MAT_PRINTF((double *) state_cov, kf->state_dim, kf->state_dim);
+  // MAT_PRINTF((double *) state_cov, kf->state_dim, kf->state_dim);
 
   double FC[kf->state_dim * kf->state_dim];
   cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
@@ -103,7 +107,7 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
               1, state_cov, kf->state_dim, // double alpha, double *A, int lda
               kf->transition_mtx, kf->state_dim, // double *B, int ldb
               0, FC, kf->state_dim); // double beta, double *C, int ldc
-  //MAT_PRINTF((double *) FC, kf->state_dim, kf->state_dim);
+  // MAT_PRINTF((double *) FC, kf->state_dim, kf->state_dim);
 
   double FCF[kf->state_dim * kf->state_dim];
   memcpy(FCF, kf->transition_cov, kf->state_dim * kf->state_dim * sizeof(double));
@@ -112,7 +116,7 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
               1, FC, kf->state_dim, // double alpha, double *A, int lda
               kf->transition_mtx, kf->state_dim, //double *B, int ldb
               1, FCF, kf->state_dim); //beta, double *C, int ldc
-  //MAT_PRINTF((double *) FCF, kf->state_dim, kf->state_dim);
+  // MAT_PRINTF((double *) FCF, kf->state_dim, kf->state_dim);
 
   udu(kf->state_dim, FCF, state_cov_U, state_cov_D);
   // MAT_PRINTF((double *) state_cov_U, kf->state_dim, kf->state_dim);
@@ -210,12 +214,39 @@ void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
                    double *measurements)
 {
+  // VEC_PRINTF(measurements, kf->obs_dim);
+  // MAT_PRINTF(kf->decor_obs_mtx, kf->obs_dim, kf->state_dim);
+  // MAT_PRINTF(kf->obs_cov_root_inv, kf->obs_dim, kf->obs_dim);
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
               kf->obs_dim, kf->obs_cov_root_inv, 
               kf->obs_dim, measurements, 1); // replaces raw measurements by its decorrelated version
+
   predict_forward(kf, state_mean, state_cov_U, state_cov_D);
   update_for_obs(kf, state_mean, state_cov_U, state_cov_D, measurements);
-};
+}
+
+void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
+{
+  eye(state_dim, transition_mtx);
+  transition_mtx[3] = dt;
+  transition_mtx[state_dim + 4] = dt;
+  transition_mtx[2 * state_dim + 5] = dt;
+}
+
+kf_t get_kf(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double *ref_ecef, gps_time_t timestamp, double dt)
+{
+  u32 state_dim = num_sats + 5;
+  double transition_mtx[state_dim * state_dim];
+  assign_transition_mtx(state_dim, 1, transition_mtx);
+  memset(sats_with_ref_first, 0, 1);
+  memset(ephemerides, 0, 1);
+  memset(ref_ecef, 0, 1);
+  printf("%f\n", timestamp.tow);
+
+  dt += 0;
+  kf_t kf;
+  return kf;
+}
 
 
 

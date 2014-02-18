@@ -12,7 +12,8 @@
 
 #ifndef LIBSWIFTNAV_FLOAT_KF_H
 #define LIBSWIFTNAV_FLOAT_KF_H
-
+#include "gpstime.h"
+#include "ephemeris.h"
 #include "common.h"
 
 #define MAX_SATS 15
@@ -49,6 +50,10 @@ void update_scalar_measurement(u32 state_dim, double *h, double R,
 void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
                    double *measurements);
+
+void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx);
+
+kf_t get_kf(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double *ref_ecef, gps_time_t timestamp, double dt);
 
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
