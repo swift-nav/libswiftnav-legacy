@@ -299,9 +299,11 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * \param read Function pointer to a function that reads `n` bytes from the
  *             input source into `buff` and returns the number of bytes
  *             successfully read.
- * \return `SBP_OK` (0) if successful, `SBP_CALLBACK_ERROR` if no callback could
- *         be found for the decoded message `and SBP_CRC_ERROR` if a CRC error
- *         has occurred.
+ * \return `SBP_OK` (0) if successful but no complete message yet, 
+ *         `SBP_OK_CALLBACK_EXECUTED` (1) if message decoded and callback executed,
+ *         `SBP_OK_CALLBACK_UNDEFINED` (2) if message decoded with no associated callback,  
+ *         and `SBP_CRC_ERROR` (-2) if a CRC error
+ *         has occurred. Thus can check for >0 to ensure good processing.
  */
 s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
 {
@@ -377,9 +379,9 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
         sbp_msg_callbacks_node_t* node = sbp_find_callback(s, s->msg_type);
         if (node) {
           (*node->cb)(s->sender_id, s->msg_len, s->msg_buff, node->context);
-          return SBP_CALLBACK_EXECUTED;
+          return SBP_OK_CALLBACK_EXECUTED;
         } else {
-          return SBP_CALLBACK_ERROR;
+          return SBP_OK_CALLBACK_UNDEFINED;
         }
       } else
           return SBP_CRC_ERROR;

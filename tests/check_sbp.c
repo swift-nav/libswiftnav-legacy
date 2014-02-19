@@ -154,8 +154,8 @@ START_TEST(test_sbp_process)
     ret |= sbp_process(&s, &dummy_read);
   }
 
-  fail_unless(ret == SBP_CALLBACK_ERROR,
-      "sbp_process should have returned SBP_CALLBACK_ERROR "
+  fail_unless(ret == SBP_OK_CALLBACK_UNDEFINED,
+      "sbp_process should have returned SBP_OK_CALLBACK_UNDEFINED "
       "if no cb was registered for that message type");
 
   fail_unless(n_callbacks_logged == 0,

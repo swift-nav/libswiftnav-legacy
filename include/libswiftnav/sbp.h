@@ -20,8 +20,10 @@
 
 /** Return value indicating success. */
 #define SBP_OK              0
-/** Return value indicating callback executed by sbp_process. */
-#define SBP_CALLBACK_EXECUTED 1
+/** Return value indicating message decoded and callback executed by sbp_process. */
+#define SBP_OK_CALLBACK_EXECUTED 1
+/** Return value indicating message decoded with no associated callback in sbp_process. */
+#define SBP_OK_CALLBACK_UNDEFINED 2
 /** Return value indicating an error with the callback (function defined). */
 #define SBP_CALLBACK_ERROR -1
 /** Return value indicating a CRC error. */
