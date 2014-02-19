@@ -43,8 +43,21 @@
  * \note This is actually not identical to the usual WGS84 definition. */
 #define GPS_GM 3.986005e14
 
-/** The official GPS value of the speed of light in m / s. */
+/** The official GPS value of the speed of light in m / s. 
+ * \note This is the exact value of the speed of light in vacuum (by the definition of meters). */
 #define GPS_C 299792458.0
+
+/** The speed of light in air at standard temperature and pressure.
+ * \note This is GPS_C / mu where mu is 1.0002926 */
+#define C_NO_VAC 299704764.3859407
+
+/** The wavelength of L1 in a vacuum.
+ * \note This is GPS_C / GPS_L1_HZ. */
+#define GPS_L1_LAMBDA 0.19029367279836487
+
+/** The wavelength of L1 in air at standard temperature and pressure.
+ * \note This is GPS_C_NO_VAC / GPS_L1_HZ. */
+#define GPS_L1_LAMBDA_NO_VAC 0.19023800915688557
 
 /** Approximate average distance to the GPS satellites in m. */
 #define GPS_NOMINAL_RANGE 22.980e6

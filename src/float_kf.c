@@ -15,6 +15,7 @@
 #include <cblas.h>
 #include <math.h>
 #include <linear_algebra.h>
+#include "constants.h"
 #include "track.h"
 #include "almanac.h"
 #include "gpstime.h"
@@ -316,10 +317,7 @@ void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
   }
 }
 
-// void assign_de_mtx(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double ref_ecef, gps_time_t timestamp)
-// {
-//
-// }
+
 
 kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double dt)
 {
