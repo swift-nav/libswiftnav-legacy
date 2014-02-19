@@ -232,6 +232,26 @@ def get_e_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
 
   return e_mtx
 
+def get_de_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
+  n = len(alms)
+  cdef almanac_t al[32]
+  cdef almanac_t a_
+  for i, a in enumerate(alms):
+    a_ = (<Almanac> a).almanac
+    memcpy(&al[i], &a_, sizeof(almanac_t))
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+
+  cdef gps_time_t timestamp_ = timestamp.gps_time
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] e_mtx = \
+        np.empty((len(alms) - 1, 3), dtype=np.double)
+
+  float_kf_c.assign_de_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0], &e_mtx[0,0])
+
+  return e_mtx
+
 
 
 
