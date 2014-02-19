@@ -56,6 +56,7 @@ void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx);
 void assign_d_mtx(u8 num_sats, double *D);
 void assign_e_mtx(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double *E);
 void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E);
+void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E);
 
 kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double *ref_ecef, double dt);
 

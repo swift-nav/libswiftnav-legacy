@@ -282,6 +282,40 @@ void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, 
   }
 }
 
+// presumes that the first alm entry is the reference sat
+void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
+{
+  memset(E, 0, (num_sats - 1) * 3 * sizeof(double));
+  double e0[3];
+  double v0[3];
+  calc_sat_state_almanac(&alms[0], timestamp.tow, timestamp.wn, e0, v0);
+  // printf("\nprn=%u\n", alms[i].prn);
+  // VEC_PRINTF(e, 3);
+  double x0 = e0[0] - ref_ecef[0];
+  double y0 = e0[1] - ref_ecef[1];
+  double z0 = e0[2] - ref_ecef[2];
+  double norm0 = sqrt(x0*x0 + y0*y0 + z0*z0);
+  e0[0] = x0 / norm0;
+  e0[1] = y0 / norm0;
+  e0[2] = z0 / norm0;
+  // VEC_PRINTF(ref_ecef, 3);
+  for (u8 i=1; i<num_sats; i++) {
+    double e[3];
+    double v[3];
+    // calc_sat_state_almanac(&alms[i], timestamp.tow, -1, e, v); //TODO change -1 back to timestamp.wn
+    calc_sat_state_almanac(&alms[i], timestamp.tow, timestamp.wn, e, v);
+    // printf("\nprn=%u\n", alms[i].prn);
+    // VEC_PRINTF(e, 3);
+    double x = e[0] - ref_ecef[0];
+    double y = e[1] - ref_ecef[1];
+    double z = e[2] - ref_ecef[2];
+    double norm = sqrt(x*x + y*y + z*z);
+    E[3*(i-1)] = x / norm - e0[0];
+    E[3*(i-1) + 1] = y / norm - e0[1];
+    E[3*(i-1) + 2] = z / norm - e0[2];
+  }
+}
+
 // void assign_de_mtx(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double ref_ecef, gps_time_t timestamp)
 // {
 //
