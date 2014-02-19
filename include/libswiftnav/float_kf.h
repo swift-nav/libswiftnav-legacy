@@ -12,8 +12,9 @@
 
 #ifndef LIBSWIFTNAV_FLOAT_KF_H
 #define LIBSWIFTNAV_FLOAT_KF_H
+#include "track.h"
+#include "almanac.h"
 #include "gpstime.h"
-#include "ephemeris.h"
 #include "common.h"
 
 #define MAX_SATS 15
@@ -53,8 +54,10 @@ void filter_update(kf_t *kf,
 
 void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx);
 void assign_d_mtx(u8 num_sats, double *D);
+void assign_e_mtx(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double *E);
+void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E);
 
-kf_t get_kf(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double *ref_ecef, gps_time_t timestamp, double dt);
+kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double *ref_ecef, double dt);
 
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 

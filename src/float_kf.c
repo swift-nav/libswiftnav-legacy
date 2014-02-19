@@ -13,9 +13,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <cblas.h>
+#include <math.h>
 #include <linear_algebra.h>
+#include "track.h"
+#include "almanac.h"
 #include "gpstime.h"
-#include "ephemeris.h"
 #include "float_kf.h"
 
 s8 udu(u32 n, double *M, double *U, double *D) 
@@ -242,20 +244,56 @@ void assign_d_mtx(u8 num_sats, double *D)
     D[i * num_sats + i + 1] = 1;
   }
 }
+
+void assign_e_mtx(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double *E)
+{
+  memset(E, 0, num_sats * 3 * sizeof(double));
+  for (u8 i=0; i<num_sats; i++) {
+    double *e = sats_with_ref_first[i].sat_pos;
+
+    double x = e[0] - ref_ecef[0];
+    double y = e[1] - ref_ecef[1];
+    double z = e[2] - ref_ecef[2];
+    double norm = sqrt(x*x + y*y + z*z);
+    E[3*i] = x / norm;
+    E[3*i + 1] = y / norm;
+    E[3*i + 2] = z / norm;
+  }
+}
+
+void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
+{
+  memset(E, 0, num_sats * 3 * sizeof(double));
+  // VEC_PRINTF(ref_ecef, 3);
+  for (u8 i=0; i<num_sats; i++) {
+    double e[3];
+    double v[3];
+    // calc_sat_state_almanac(&alms[i], timestamp.tow, -1, e, v); //TODO change -1 back to timestamp.wn
+    calc_sat_state_almanac(&alms[i], timestamp.tow, timestamp.wn, e, v);
+    // printf("\nprn=%u\n", alms[i].prn);
+    // VEC_PRINTF(e, 3);
+    double x = e[0] - ref_ecef[0];
+    double y = e[1] - ref_ecef[1];
+    double z = e[2] - ref_ecef[2];
+    double norm = sqrt(x*x + y*y + z*z);
+    E[3*i] = x / norm;
+    E[3*i + 1] = y / norm;
+    E[3*i + 2] = z / norm;
+  }
+}
+
 // void assign_de_mtx(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double ref_ecef, gps_time_t timestamp)
 // {
 //
 // }
 
-kf_t get_kf(u8 num_sats, u8 *sats_with_ref_first, ephemeris_t *ephemerides, double *ref_ecef, gps_time_t timestamp, double dt)
+kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double dt)
 {
   u32 state_dim = num_sats + 5;
   double transition_mtx[state_dim * state_dim];
   assign_transition_mtx(state_dim, 1, transition_mtx);
   memset(sats_with_ref_first, 0, 1);
-  memset(ephemerides, 0, 1);
   memset(ref_ecef, 0, 1);
-  printf("%f\n", timestamp.tow);
 
   dt += 0;
   kf_t kf;
