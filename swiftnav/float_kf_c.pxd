@@ -8,6 +8,8 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
+from almanac_c cimport *
+from gpstime_c cimport *
 
 cdef extern from "libswiftnav/float_kf.h":
   ctypedef struct kf_t:
@@ -34,4 +36,5 @@ cdef extern from "libswiftnav/float_kf.h":
 
   void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
   void assign_d_mtx(u8 num_sats, double *D)
+  void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
 

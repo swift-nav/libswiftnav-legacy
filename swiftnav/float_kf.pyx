@@ -11,6 +11,10 @@ import numpy as np
 cimport numpy as np
 cimport float_kf_c
 from libc.string cimport memcpy
+from almanac cimport *
+from almanac_c cimport *
+from gpstime cimport *
+from gpstime_c cimport *
 
 def udu(M):
   n = M.shape[0]
@@ -207,6 +211,30 @@ def get_d_mtx(num_sats):
         np.empty((num_sats - 1, num_sats), dtype=np.double)
   float_kf_c.assign_d_mtx(num_sats, &D[0,0])
   return D
+
+def get_e_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
+  n = len(alms)
+  cdef almanac_t al[32]
+  cdef almanac_t a_
+  for i, a in enumerate(alms):
+    a_ = (<Almanac> a).almanac
+    memcpy(&al[i], &a_, sizeof(almanac_t))
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+
+  cdef gps_time_t timestamp_ = timestamp.gps_time
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] e_mtx = \
+        np.empty((len(alms), 3), dtype=np.double)
+
+  float_kf_c.assign_e_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0], &e_mtx[0,0])
+
+  return e_mtx
+
+
+
+
 
 
 
