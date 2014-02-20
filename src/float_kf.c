@@ -284,9 +284,9 @@ void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, 
 }
 
 // presumes that the first alm entry is the reference sat
-void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
+void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *DE)
 {
-  memset(E, 0, (num_sats - 1) * 3 * sizeof(double));
+  memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
   double e0[3];
   double v0[3];
   calc_sat_state_almanac(&alms[0], timestamp.tow, timestamp.wn, e0, v0);
@@ -311,10 +311,37 @@ void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
     double y = e[1] - ref_ecef[1];
     double z = e[2] - ref_ecef[2];
     double norm = sqrt(x*x + y*y + z*z);
-    E[3*(i-1)] = x / norm - e0[0];
-    E[3*(i-1) + 1] = y / norm - e0[1];
-    E[3*(i-1) + 2] = z / norm - e0[2];
+    DE[3*(i-1)] = x / norm - e0[0];
+    DE[3*(i-1) + 1] = y / norm - e0[1];
+    DE[3*(i-1) + 2] = z / norm - e0[2];
   }
+}
+
+void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *obs_mtx)
+{
+  u32 obs_dim = 2 * (num_sats-1);
+  u32 state_dim = 5 + num_sats;
+
+  memset(obs_mtx, 0, obs_dim * state_dim * sizeof(double));
+  
+  double DE[(num_sats-1) * 3];
+  assign_de_mtx_from_alms(num_sats, alms, timestamp, ref_ecef, &DE[0]);
+
+  for (u32 i=0; i+1<num_sats; i++) {
+    obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim+1] = DE[i*3+1] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim+2] = DE[i*3+2] / GPS_L1_LAMBDA_NO_VAC;
+    // obs_mtx[i*state_dim] = DE[i*3] / 0.190293673;
+    // obs_mtx[i*state_dim+1] = DE[i*3+1] / 0.190293673;
+    // obs_mtx[i*state_dim+2] = DE[i*3+2] / 0.190293673;
+
+    obs_mtx[i*state_dim+6+i] = 1;
+
+    obs_mtx[(i+num_sats-1)*state_dim] = DE[i*3];
+    obs_mtx[(i+num_sats-1)*state_dim+1] = DE[i*3+1];
+    obs_mtx[(i+num_sats-1)*state_dim+2] = DE[i*3+2];
+  }
+
 }
 
 
