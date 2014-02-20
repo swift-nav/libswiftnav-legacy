@@ -37,6 +37,22 @@ u32 dummy_read(u8 *buff, u32 n, void* context)
  return real_n;
 }
 
+u32 dummy_read_single_byte(u8 *buff, u32 n, void* context)
+{
+  last_io_context = context;
+  memcpy(buff, dummy_buff + dummy_rd, 1);
+  dummy_rd += 1;
+  return 1;
+}
+
+u32 dummy_write_single_byte(u8 *buff, u32 n, void* context)
+{
+ last_io_context = context;
+ memcpy(dummy_buff + dummy_wr, buff, 1);
+ dummy_wr += 1;
+ return 1;
+}
+
 void printy_callback(u16 sender_id, u8 len, u8 msg[], void* context)
 {
   (void)context;
@@ -58,6 +74,7 @@ void* last_context;
 void logging_reset()
 {
   n_callbacks_logged = 0;
+  last_context = 0;
   memset(last_msg, 0, sizeof(last_msg));
 }
 
@@ -205,6 +222,66 @@ START_TEST(test_sbp_process)
 
   fail_unless(n_callbacks_logged == 0,
       "no callbacks should have been logged (2)");
+
+  /* Test sbp_process with a one-byte-at-a-time read process */
+
+  u8 awesome_message2[] = {0x55, 0x33, 0x22, 0x77, 0x66,
+                          0x02, 0x22, 0x33, 0x8A, 0x33};
+  logging_reset();
+  dummy_reset();
+  sbp_clear_callbacks(&s);
+  dummy_rd = 0;
+  dummy_wr = sizeof(awesome_message2);
+  memcpy(dummy_buff, awesome_message2, sizeof(awesome_message2));
+
+  static sbp_msg_callbacks_node_t p;
+  sbp_register_callback(&s, 0x2233, &logging_callback, 0, &p);
+
+  while (dummy_rd < dummy_wr) {
+    fail_unless(sbp_process(&s, &dummy_read_single_byte) >= SBP_OK,
+        "sbp_process threw an error! (3)");
+  }
+
+  fail_unless(n_callbacks_logged == 1,
+      "one callback should have been logged (3)");
+  fail_unless(last_sender_id == 0x6677,
+      "sender_id decoded incorrectly (3)");
+  fail_unless(last_len == 2,
+      "len decoded incorrectly (3)");
+  fail_unless(memcmp(last_msg, &awesome_message2[6], 2)
+        == 0,
+      "test data decoded incorrectly (3)");
+
+
+  /* Test sbp_process with a one-byte-at-a-time read that starts with garbage */
+
+  u8 crappy_then_awesome_message[] = {0x99, 0x88, 0x77, 0x66, 0x55, 0x33, 0x22, 0x77, 0x66,
+                          0x02, 0x22, 0x33, 0x8A, 0x33};
+  logging_reset();
+  dummy_reset();
+  sbp_clear_callbacks(&s);
+  dummy_rd = 0;
+  dummy_wr = sizeof(crappy_then_awesome_message);
+  memcpy(dummy_buff, crappy_then_awesome_message, sizeof(crappy_then_awesome_message));
+
+  static sbp_msg_callbacks_node_t q;
+  sbp_register_callback(&s, 0x2233, &logging_callback, 0, &q);
+
+  while (dummy_rd < dummy_wr) {
+    fail_unless(sbp_process(&s, &dummy_read_single_byte) >= SBP_OK,
+        "sbp_process threw an error! (3)");
+  }
+
+  fail_unless(n_callbacks_logged == 1,
+      "one callback should have been logged (3)");
+  fail_unless(last_sender_id == 0x6677,
+      "sender_id decoded incorrectly (3)");
+  fail_unless(last_len == 2,
+      "len decoded incorrectly (3)");
+  fail_unless(memcmp(last_msg, &crappy_then_awesome_message[10], 2)
+        == 0,
+      "test data decoded incorrectly (3)");
+
 }
 END_TEST
 
@@ -327,6 +404,7 @@ START_TEST(test_callbacks)
 
   fail_unless(sbp_find_callback(&s, 0x2233) == 0,
       "sbp_find_callback should return NULL if no callbacks registered (3)");
+
 }
 END_TEST
 
