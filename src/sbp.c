@@ -278,6 +278,9 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * callback is found then it is called with the ID of the sender, the message
  * length and the message payload data buffer as arguments.
  *
+ * INVARIANT: sbp_process will always call `read` with n > 0 
+ *            (aka it will attempt to always read something)
+ *
  * The supplied `read` function must have the prototype:
  *
  * ~~~
@@ -375,6 +378,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
       crc = crc16_ccitt(&(s->msg_len), 1, crc);
       crc = crc16_ccitt(s->msg_buff, s->msg_len, crc);
       if (s->crc == crc) {
+
         /* Message complete, process it. */
         sbp_msg_callbacks_node_t* node = sbp_find_callback(s, s->msg_type);
         if (node) {
