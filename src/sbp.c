@@ -278,6 +278,9 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * callback is found then it is called with the ID of the sender, the message
  * length and the message payload data buffer as arguments.
  *
+ * INVARIANT: sbp_process will always call `read` with n > 0 
+ *            (aka it will attempt to always read something)
+ *
  * The supplied `read` function must have the prototype:
  *
  * ~~~
@@ -320,9 +323,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_TYPE:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->n_read = 0;
@@ -331,9 +332,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_SENDER:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->state = GET_LEN;
@@ -348,14 +347,12 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_MSG:
-    if (s->msg_len - s->n_read > 0) {
-      /* Not received whole message yet, try and read some more. */
-      s->n_read += (*read)(
-        &(s->msg_buff[s->n_read]),
-        s->msg_len - s->n_read,
-        s->io_context
-      );
-    }
+    /* Not received whole message yet, try and read some more. */
+    s->n_read += (*read)(
+      &(s->msg_buff[s->n_read]),
+      s->msg_len - s->n_read,
+      s->io_context
+    );
     if (s->msg_len - s->n_read <= 0) {
       s->n_read = 0;
       s->state = GET_CRC;
@@ -363,9 +360,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_CRC:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       s->state = WAITING;
 
@@ -375,6 +370,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
       crc = crc16_ccitt(&(s->msg_len), 1, crc);
       crc = crc16_ccitt(s->msg_buff, s->msg_len, crc);
       if (s->crc == crc) {
+
         /* Message complete, process it. */
         sbp_msg_callbacks_node_t* node = sbp_find_callback(s, s->msg_type);
         if (node) {
