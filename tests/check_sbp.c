@@ -117,6 +117,8 @@ START_TEST(test_sbp_process)
   sbp_state_set_io_context(&s, &DUMMY_MEMORY_FOR_IO);
 
   static sbp_msg_callbacks_node_t n;
+  static sbp_msg_callbacks_node_t n2;
+
   sbp_register_callback(&s, 0x2269, &logging_callback, &DUMMY_MEMORY_FOR_CALLBACKS, &n);
 
   u8 test_data[] = { 0x01, 0x02, 0x03, 0x04 };
@@ -140,6 +142,10 @@ START_TEST(test_sbp_process)
       "test data decoded incorrectly");
   fail_unless(last_context == &DUMMY_MEMORY_FOR_CALLBACKS, 
       "context pointer incorrectly passed");
+
+  sbp_register_callback(&s, 0x2270, &logging_callback, &DUMMY_MEMORY_FOR_CALLBACKS, &n2);
+  fail_unless(sbp_find_callback(&s, 0x2270) > 0,
+    "second callback not found");
 
   logging_reset();
   sbp_send_message(&s, 0x2269, 0x4243, 0, 0, &dummy_write);
