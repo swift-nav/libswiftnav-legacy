@@ -39,6 +39,7 @@ u32 dummy_read(u8 *buff, u32 n, void* context)
 
 u32 dummy_read_single_byte(u8 *buff, u32 n, void* context)
 {
+  (void)n;
   last_io_context = context;
   memcpy(buff, dummy_buff + dummy_rd, 1);
   dummy_rd += 1;
@@ -47,10 +48,11 @@ u32 dummy_read_single_byte(u8 *buff, u32 n, void* context)
 
 u32 dummy_write_single_byte(u8 *buff, u32 n, void* context)
 {
- last_io_context = context;
- memcpy(dummy_buff + dummy_wr, buff, 1);
- dummy_wr += 1;
- return 1;
+  (void)n;
+  last_io_context = context;
+  memcpy(dummy_buff + dummy_wr, buff, 1);
+  dummy_wr += 1;
+  return 1;
 }
 
 void printy_callback(u16 sender_id, u8 len, u8 msg[], void* context)
