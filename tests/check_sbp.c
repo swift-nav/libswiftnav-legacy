@@ -144,7 +144,7 @@ START_TEST(test_sbp_process)
       "context pointer incorrectly passed");
 
   sbp_register_callback(&s, 0x2270, &logging_callback, &DUMMY_MEMORY_FOR_CALLBACKS, &n2);
-  fail_unless(sbp_find_callback(&s, 0x2270) > 0,
+  fail_unless(sbp_find_callback(&s, 0x2270) != 0,
     "second callback not found");
 
   logging_reset();
