@@ -323,9 +323,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_TYPE:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->n_read = 0;
@@ -334,9 +332,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_SENDER:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->state = GET_LEN;
@@ -351,14 +347,12 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_MSG:
-    if (s->msg_len - s->n_read > 0) {
-      /* Not received whole message yet, try and read some more. */
-      s->n_read += (*read)(
-        &(s->msg_buff[s->n_read]),
-        s->msg_len - s->n_read,
-        s->io_context
-      );
-    }
+    /* Not received whole message yet, try and read some more. */
+    s->n_read += (*read)(
+      &(s->msg_buff[s->n_read]),
+      s->msg_len - s->n_read,
+      s->io_context
+    );
     if (s->msg_len - s->n_read <= 0) {
       s->n_read = 0;
       s->state = GET_CRC;
@@ -366,9 +360,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_CRC:
-    if (s->n_read < 2) {
-      s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
-    }
+    s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       s->state = WAITING;
 
