@@ -34,7 +34,7 @@ typedef struct {
   u32 obs_dim;
   double transition_mtx[MAX_STATE_DIM * MAX_STATE_DIM];
   double transition_cov[MAX_STATE_DIM * MAX_STATE_DIM];
-  double obs_cov_root_inv[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
+  double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
   double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
   double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
 } kf_t;
@@ -47,7 +47,7 @@ void update_for_obs(kf_t *kf,
 
 void update_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k);
-
+void decorrelate(kf_t *kf, double *measurements);
 void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
                    double *measurements);
@@ -58,6 +58,10 @@ void assign_e_mtx(u8 num_sats, navigation_measurement_t *sats_with_ref_first, do
 void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E);
 void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *DE);
 void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *obs_mtx);
+void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
+                          double *decor_mtx, double *decor_obs_cov);
+void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
+                                    double ref_ecef[3], double *decor_mtx, double *obs_mtx);
 
 kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double *ref_ecef, double dt);
 

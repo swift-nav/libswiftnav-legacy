@@ -211,6 +211,17 @@ void update_scalar_measurement(u32 state_dim, double *h, double R,
 
 }
 
+void decorrelate(kf_t *kf, double *measurements)
+{
+  u8 n_diffs = kf->obs_dim/2;
+  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
+              n_diffs, kf->decor_mtx, 
+              n_diffs, measurements, 1); // replaces raw phase measurements by their decorrelated version
+  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
+              n_diffs, kf->decor_mtx, 
+              n_diffs, &measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
+}
+
 /** In place updating of the state mean and covariance. Modifies measurements.
  */
 void filter_update(kf_t *kf,
@@ -220,9 +231,13 @@ void filter_update(kf_t *kf,
   // VEC_PRINTF(measurements, kf->obs_dim);
   // MAT_PRINTF(kf->decor_obs_mtx, kf->obs_dim, kf->state_dim);
   // MAT_PRINTF(kf->obs_cov_root_inv, kf->obs_dim, kf->obs_dim);
-  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasNonUnit,
-              kf->obs_dim, kf->obs_cov_root_inv, 
-              kf->obs_dim, measurements, 1); // replaces raw measurements by its decorrelated version
+  u8 n_diffs = kf->obs_dim/2;
+  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
+              n_diffs, kf->decor_mtx, 
+              n_diffs, measurements, 1); // replaces raw phase measurements by their decorrelated version
+  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
+              n_diffs, kf->decor_mtx, 
+              n_diffs, &measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
 
   predict_forward(kf, state_mean, state_cov_U, state_cov_D);
   update_for_obs(kf, state_mean, state_cov_U, state_cov_D, measurements);
@@ -344,7 +359,51 @@ void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp
 
 }
 
+void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
+                          double *decor_mtx, double *decor_obs_cov)
+{
+  memset(decor_mtx, 0, num_diffs * num_diffs * sizeof(double)); //this is for a single set of observations (only code or only carrier)
+  memset(decor_obs_cov, 0, 2 * num_diffs * sizeof(double)); // this is the whole shebang (vector b/c independence)
 
+  for (u8 i=0; i<num_diffs; i++) {
+    double i_plus_one_divisor = 1.0 / (i+1.0);
+
+    //assign the decorrelated covariance
+    decor_obs_cov[i] = phase_var + phase_var * i_plus_one_divisor;
+    decor_obs_cov[i+num_diffs] = code_var + code_var * i_plus_one_divisor;
+    
+    //assign the decorrelation matrix
+    decor_mtx[i*num_diffs + i] = 1;
+    for (u8 j=0; j<i; j++) {
+      decor_mtx[i*num_diffs + j] = - i_plus_one_divisor;
+    }
+  }
+}
+
+void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
+                                    double ref_ecef[3], double *decor_mtx, double *obs_mtx)
+{
+  u32 num_diffs = num_sats-1;
+  u32 state_dim = num_diffs + 6;
+  u32 obs_dim = 2 * num_diffs;
+  memset(obs_mtx, 0, state_dim * obs_dim * sizeof(double));
+
+  double DE[num_diffs * 3];
+  assign_de_mtx_from_alms(num_sats, alms, timestamp, ref_ecef, &DE[0]);
+  cblas_dtrmm(CblasRowMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
+              num_diffs, 3, //M, N
+              1, &decor_mtx[0], num_diffs, //alpha, A, lda
+              &DE[0], 3); //B, ldb  
+
+  for (u32 i=0; i<num_diffs; i++) {
+    obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim + 1] = DE[i*3 + 1] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim + 2] = DE[i*3 + 2] / GPS_L1_LAMBDA_NO_VAC;
+
+    memcpy(&obs_mtx[(i+num_diffs)*state_dim], &DE[i*3], 3 * sizeof(double));
+    memcpy(&obs_mtx[i*state_dim + 6], &decor_mtx[i*num_diffs], (i+1) * sizeof(double));
+  }
+}
 
 kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double dt)
 {
