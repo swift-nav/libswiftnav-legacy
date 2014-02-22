@@ -75,14 +75,16 @@ int calc_sat_pos(double pos[3], double vel[3],
   ea = ma;      // Starting value for E
   double ecc = ephemeris->ecc;
   u32 count = 0;
-  
+
+  /* TODO: Implement convergence test using integer difference of doubles,
+   * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
   do {
     ea_old = ea;
     tempd1 = 1.0 - ecc * cos (ea_old);
     ea = ea + (ma - ea_old + ecc * sin (ea_old)) / tempd1;
-	count++;
-	if (count > 5)
-		break;
+    count++;
+    if (count > 5)
+      break;
   } while (fabs (ea - ea_old) > 1.0E-14);
   ea_dot = ma_dot / tempd1;
 
