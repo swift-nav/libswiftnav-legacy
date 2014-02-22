@@ -95,6 +95,15 @@ def update_for_obs(KalmanFilter kf,
                             <double *> &decor_obs_[0])
   return intermediate_mean_, UDU_decomposition(intermediate_cov_U_, intermediate_cov_D_)
 
+def decorrelate(KalmanFilter kf, obs):
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
+    np.array(obs, dtype=np.double)
+
+  float_kf_c.decorrelate(&(kf.kf),
+                        <double *> &obs_[0])
+
+  return obs_
+
 def filter_update(KalmanFilter kf,
                      state_mean, state_cov_UDU,
                      obs):
@@ -127,14 +136,14 @@ cdef class KalmanFilter:
   def __init__(self, 
                np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx,
                np.ndarray[np.double_t, ndim=2, mode="c"] transition_cov,
-               np.ndarray[np.double_t, ndim=2, mode="c"] obs_cov_root_inv, 
+               np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx, 
                np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx, 
                np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov):
     self.state_dim = transition_mtx.shape[0]
-    self.obs_dim = obs_cov_root_inv.shape[0]
+    self.obs_dim = decor_mtx.shape[0] * 2
     self.transition_mtx = transition_mtx
     self.transition_cov = transition_cov
-    self.obs_cov_root_inv = obs_cov_root_inv
+    self.decor_mtx = decor_mtx
     self.decor_obs_mtx = decor_obs_mtx
     self.decor_obs_cov = decor_obs_cov
 
@@ -172,14 +181,14 @@ cdef class KalmanFilter:
     def __set__(self, np.ndarray[np.double_t, ndim=2, mode="c"] transition_cov):
       memcpy(self.kf.transition_cov, &transition_cov[0,0], self.state_dim * self.state_dim * sizeof(double))
 
-  property obs_cov_root_inv:
+  property decor_mtx:
     def __get__(self):
-      cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_cov_root_inv = \
-        np.empty((self.obs_dim, self.obs_dim), dtype=np.double)
-      memcpy(&obs_cov_root_inv[0,0], self.kf.obs_cov_root_inv, self.obs_dim * self.obs_dim * sizeof(double))
-      return obs_cov_root_inv
-    def __set__(self, np.ndarray[np.double_t, ndim=2, mode="c"] obs_cov_root_inv):
-      memcpy(self.kf.obs_cov_root_inv, &obs_cov_root_inv[0,0], self.obs_dim * self.obs_dim * sizeof(double))
+      cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx = \
+        np.empty((self.obs_dim/2, self.obs_dim/2), dtype=np.double)
+      memcpy(&decor_mtx[0,0], self.kf.decor_mtx, self.obs_dim * self.obs_dim * sizeof(double) / 4)
+      return decor_mtx
+    def __set__(self, np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx):
+      memcpy(self.kf.decor_mtx, &decor_mtx[0,0], self.obs_dim * self.obs_dim * sizeof(double) / 4)
 
   property decor_obs_mtx:
     def __get__(self):
@@ -275,9 +284,45 @@ def get_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
 
   return obs_mtx
 
+def get_decor_obs_cov(num_diffs, phase_var, code_var):
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov = \
+    np.empty(2 * num_diffs, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx = \
+        np.empty((num_diffs, num_diffs), dtype=np.double)
+
+  float_kf_c.assign_decor_obs_cov(num_diffs, phase_var, code_var, &decor_mtx[0,0], &decor_obs_cov[0])
+
+  return decor_mtx, decor_obs_cov
 
 
+def get_decor_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef, decor_mtx):
+  n = len(alms)
+  state_dim = n + 5
+  obs_dim = 2 * (n-1)
 
+  cdef almanac_t al[32]
+  cdef almanac_t a_
+  for i, a in enumerate(alms):
+    a_ = (<Almanac> a).almanac
+    memcpy(&al[i], &a_, sizeof(almanac_t))
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx_ = \
+    np.array(decor_mtx, dtype=np.double)
+
+  cdef gps_time_t timestamp_ = timestamp.gps_time
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_mtx = \
+        np.empty((obs_dim, state_dim), dtype=np.double)
+
+  float_kf_c.assign_decor_obs_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0],
+                                            &decor_mtx_[0,0], &obs_mtx[0,0])
+
+  return obs_mtx
 
 
 

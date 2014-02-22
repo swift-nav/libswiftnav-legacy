@@ -17,7 +17,7 @@ cdef extern from "libswiftnav/float_kf.h":
     u32 obs_dim
     double *transition_mtx
     double *transition_cov
-    double *obs_cov_root_inv
+    double *decor_mtx
     double *decor_obs_mtx
     double *decor_obs_cov
   s8 udu(u32 n, double *M, double *U, double *D)
@@ -30,6 +30,7 @@ cdef extern from "libswiftnav/float_kf.h":
   void update_for_obs(kf_t *kf,
                     double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
                     double *decor_obs)
+  void decorrelate(kf_t *kf, double *measurements)
   void filter_update(kf_t *kf,
                      double *state_mean, double *state_cov_U, double *state_cov_D, 
                      double *measurements)
@@ -39,4 +40,8 @@ cdef extern from "libswiftnav/float_kf.h":
   void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
   void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
   void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *obs_mtx)
+  void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
+                            double *decor_mtx, double *decor_obs_cov)
+  void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
+                                    double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
