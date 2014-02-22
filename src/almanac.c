@@ -71,13 +71,15 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
   double ecc = alm->ecc;
   u32 count = 0;
 
+  /* TODO: Implement convergence test using integer difference of doubles,
+   * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
   do {
     ea_old = ea;
     temp = 1.0 - ecc * cos(ea_old);
     ea = ea + (ma - ea_old + ecc * sin(ea_old)) / temp;
-	count++;
-	if (count > 5)
-		break;
+    count++;
+    if (count > 5)
+      break;
   } while (fabs(ea - ea_old) > 1.0e-14);
 
   double ea_dot = ma_dot / temp;
