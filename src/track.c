@@ -486,8 +486,7 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     if (TOTs[i] < min_TOT)
       min_TOT = TOTs[i];
 
-    nav_meas[i]->raw_pseudorange_rate = GPS_C * -meas[i]->carrier_freq / GPS_L1_HZ;
-    nav_meas[i]->doppler = meas[i]->carrier_freq;
+    nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
     nav_meas[i]->prn = meas[i]->prn;
 
@@ -504,12 +503,66 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err*GPS_C;
-    nav_meas[i]->pseudorange_rate = nav_meas[i]->raw_pseudorange_rate \
-                                    - clock_rate_err*GPS_C;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err*GPS_L1_HZ;
 
     nav_meas[i]->tot.tow -= clock_err;
     nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
   }
+}
+
+/** Compare navigation message by PRN.
+ * This function is designed to be used together with qsort() etc.
+ */
+int nav_meas_cmp(const void *a, const void *b)
+{
+  return (s8)((navigation_measurement_t*)a)->prn
+       - (s8)((navigation_measurement_t*)b)->prn;
+}
+
+/** Set measurement precise Doppler using time difference of carrier phase.
+ * \note The return array `m_tdcp` should have space to contain the number
+ * of measurements with common PRNs between `m_new` and `m_old`. Making the
+ * array at least `MIN(n_new, n_old)` long will ensure sufficient space.
+ *
+ * \param n_new Number of measurements in `m_new`
+ * \oaram m_new Array of new navigation measurements
+ * \param n_old Number of measurements in `m_old`
+ * \oaram m_new Array of old navigation measurements, sorted by PRN
+ * \param m_tdcp Array in which to store the output measurements
+ * \return The number of measurements written to `m_tdcp`
+ */
+u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
+                u8 n_old, navigation_measurement_t *m_old,
+                navigation_measurement_t *m_corrected)
+{
+  /* Sort m_new, m_old should already be sorted. */
+  qsort(m_new, n_new, sizeof(navigation_measurement_t), nav_meas_cmp);
+
+  u8 i, j, n = 0;
+
+  /* Loop over m_new and m_old and check if a PRN is present in both. */
+  for (i=0, j=0; i<n_new && j<n_old; i++, j++) {
+    if (m_new[i].prn < m_old[j].prn)
+      j--;
+    else if (m_new[i].prn > m_old[j].prn)
+      i--;
+    else {
+      /* Copy m_new to m_corrected. */
+      memcpy(&m_corrected[n], &m_new[i], sizeof(navigation_measurement_t));
+      /* Calculate the Doppler correction between raw and corrected. */
+      double dopp_corr = m_corrected[n].doppler - m_corrected[n].raw_doppler;
+      /* Calculate raw Doppler from time difference of carrier phase. */
+      /* TODO: check that using difference of TOTs here is a valid
+       * approximation. */
+      m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
+                                    / gpsdifftime(m_new[i].tot, m_old[j].tot);
+      /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
+      m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
+      n++;
+    }
+  }
+
+  return n;
 }
 
 /** \} */
