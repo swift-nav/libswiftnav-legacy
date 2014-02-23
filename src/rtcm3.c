@@ -353,7 +353,7 @@ s8 rtcm3_decode_1002(u8 *buff, u16 *id, double *tow, u8 *n_sat,
   u16 bit = 64;
   for (u8 i=0; i<*n_sat; i++) {
     /* TODO: Handle SBAS prns properly, numbered differently in RTCM? */
-    nm[i].prn = getbitu(buff, bit, 6); bit += 6;
+    nm[i].prn = getbitu(buff, bit, 6) - 1; bit += 6;
 
     u8 code = getbitu(buff, bit, 1); bit += 1;
     /* TODO: When we start storing the signal/system etc. properly we can
