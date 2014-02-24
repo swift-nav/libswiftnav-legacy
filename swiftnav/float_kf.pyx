@@ -324,5 +324,76 @@ def get_decor_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef, decor_mtx):
 
   return obs_mtx
 
+def decorrelate(KalmanFilter kf, obs):
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
+    np.array(obs, dtype=np.double)
+
+  float_kf_c.decorrelate(&(kf.kf),
+                        <double *> &obs_[0])
+
+  return obs_
+
+def get_kf_from_alms(phase_var, code_var, pos_var, vel_var, int_var,
+                     alms, GpsTime timestamp, ref_ecef, dt):
+  n = len(alms)
+  state_dim = n + 5
+  obs_dim = 2 * (n-1)
+  print obs_dim
+
+  cdef almanac_t al[32]
+  cdef almanac_t a_
+  for i, a in enumerate(alms):
+    a_ = (<Almanac> a).almanac
+    memcpy(&al[i], &a_, sizeof(almanac_t))
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+
+  cdef gps_time_t timestamp_ = timestamp.gps_time
+
+  cdef float_kf_c.kf_t kf = float_kf_c.get_kf_from_alms(phase_var, code_var, pos_var, vel_var, int_var,
+                                                 n, &al[0], timestamp_, &ref_ecef_[0], dt)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx = \
+        np.empty((state_dim, state_dim), dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_cov = \
+        np.empty((state_dim, state_dim), dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx = \
+        np.empty((n-1, n-1), dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx = \
+        np.empty((obs_dim, state_dim), dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov = \
+        np.empty(obs_dim, dtype=np.double)
+
+  memcpy(&transition_mtx[0,0], kf.transition_mtx, state_dim * state_dim * sizeof(double))
+  memcpy(&transition_cov[0,0], kf.transition_cov, state_dim * state_dim * sizeof(double))
+  memcpy(&decor_mtx[0,0], kf.decor_mtx, (n-1) * (n-1) * sizeof(double))
+  memcpy(&decor_obs_mtx[0,0], kf.decor_obs_mtx, obs_dim * state_dim * sizeof(double))
+  memcpy(&decor_obs_cov[0], kf.decor_obs_cov, obs_dim * sizeof(double))
+
+  return KalmanFilter(transition_mtx,
+                      transition_cov,
+                      decor_mtx,
+                      decor_obs_mtx,
+                      decor_obs_cov)
+
+def least_squares_solve(KalmanFilter kf, measurements):
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] measurements_ = \
+    np.array(measurements, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] lsq_state = \
+    np.empty(max(kf.state_dim, kf.obs_dim), dtype=np.double)
+
+  float_kf_c.least_squares_solve(&(kf.kf),
+                                 &measurements_[0],
+                                 &lsq_state[0])
+  return lsq_state[:kf.state_dim]
+
+
+
 
 

@@ -45,3 +45,8 @@ cdef extern from "libswiftnav/float_kf.h":
   void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
+  kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+                      u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
+
+  void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
+
