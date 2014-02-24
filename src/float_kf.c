@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <cblas.h>
+#include <clapack.h>
 #include <math.h>
 #include <linear_algebra.h>
 #include "constants.h"
@@ -20,6 +21,9 @@
 #include "almanac.h"
 #include "gpstime.h"
 #include "float_kf.h"
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 s8 udu(u32 n, double *M, double *U, double *D) 
 {
@@ -93,6 +97,7 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
   double x[kf->state_dim];
   memcpy(x, state_mean, kf->state_dim * sizeof(double));
 
+  //TODO make more efficient via the structure of the transition matrix
   cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
               kf->state_dim, kf->state_dim, // int M, int N,
               1, (double *) kf->transition_mtx, kf->state_dim, // double 1, double *A, int lda
@@ -104,6 +109,7 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
   reconstruct_udu(kf->state_dim, state_cov_U, state_cov_D, state_cov);
   // MAT_PRINTF((double *) state_cov, kf->state_dim, kf->state_dim);
 
+  //TODO make more efficient via the structure of the transition matrix
   double FC[kf->state_dim * kf->state_dim];
   cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
               kf->state_dim, kf->state_dim, // int M, int N
@@ -112,6 +118,7 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
               0, FC, kf->state_dim); // double beta, double *C, int ldc
   // MAT_PRINTF((double *) FC, kf->state_dim, kf->state_dim);
 
+  //TODO make more efficient via the structure of the transition matrix
   double FCF[kf->state_dim * kf->state_dim];
   memcpy(FCF, kf->transition_cov, kf->state_dim * kf->state_dim * sizeof(double));
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
@@ -405,22 +412,71 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
   }
 }
 
-kf_t get_kf(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double dt)
+void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
 {
-  u32 state_dim = num_sats + 5;
-  double transition_mtx[state_dim * state_dim];
-  assign_transition_mtx(state_dim, 1, transition_mtx);
-  memset(sats_with_ref_first, 0, 1);
-  memset(ref_ecef, 0, 1);
-
-  dt += 0;
-  kf_t kf;
-  return kf;
+  decorrelate(kf, measurements);
+  s32 obs_dim = kf->obs_dim;
+  s32 state_dim = kf->state_dim;
+  s32 nrhs = 1;
+  double decor_obs_mtx_transpose[kf->obs_dim * kf->state_dim];
+  for (u32 i=0; i<kf->obs_dim; i++) {
+    for (u32 j=0; j<kf->state_dim; j++) {
+      decor_obs_mtx_transpose[i + j*kf->obs_dim] = kf->decor_obs_mtx[i*kf->state_dim + j];
+    }
+  }
+  memcpy(lsq_state, measurements, kf->obs_dim * sizeof(double));
+  s32 ldb = (s32) MAX(kf->state_dim, kf->obs_dim);
+  double s[MIN(kf->state_dim, kf->obs_dim)];
+  double rcond = 1e-12;
+  s32 rank;
+  double w[1]; //try 25 + 10*num_sats
+  s32 lwork = -1;
+  s32 info;
+  dgelss_(&obs_dim, &state_dim, &nrhs, //M, N, NRHS
+                 &decor_obs_mtx_transpose[0], &obs_dim, //A, LDA
+                 &lsq_state[0], &ldb, //B, LDB
+                 &s[0], &rcond, // S, RCOND
+                 &rank, //RANK
+                 &w[0], &lwork, // WORK, LWORK
+                 &info); //INFO
+  lwork = round(w[0]);
+  
+  double work[lwork];
+  dgelss_(&obs_dim, &state_dim, &nrhs, //M, N, NRHS
+                 &decor_obs_mtx_transpose[0], &obs_dim, //A, LDA
+                 &lsq_state[0], &ldb, //B, LDB
+                 &s[0], &rcond, // S, RCOND
+                 &rank, //RANK
+                 &work[0], &lwork, // WORK, LWORK
+                 &info); //INFO
 }
 
+void assign_transition_cov(u32 state_dim, double pos_var, double vel_var, double int_var, double *transition_cov)
+{
+  memset(transition_cov, 0, state_dim * state_dim * sizeof(double));
+  transition_cov[0] = pos_var;
+  transition_cov[state_dim + 1] = pos_var;
+  transition_cov[2 * state_dim + 2] = pos_var;
+  transition_cov[3 * state_dim + 3] = vel_var;
+  transition_cov[4 * state_dim + 4] = vel_var;
+  transition_cov[5 * state_dim + 5] = vel_var;
+  for (u32 i=6; i<state_dim; i++) {
+    transition_cov[i * state_dim + i] = int_var;
+  }
+}
 
-
-
+kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+                      u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
+{
+  u32 state_dim = num_sats + 5;
+  u32 num_diffs = num_sats-1;
+  kf_t kf;
+  assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
+  assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
+  assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
+  assign_decor_obs_mtx_from_alms(num_sats, alms, timestamp, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
+  return kf;
+}
 
 
 
