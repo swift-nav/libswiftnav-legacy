@@ -132,6 +132,7 @@ START_TEST(test_rtcm3_encode_decode)
   seed_rng();
 
   for (u8 i=0; i<22; i++) {
+    nm[i].prn = i;
     nm[i].raw_pseudorange = frand(19e6, 21e6);
     nm[i].carrier_phase = frand(-5e5, 5e5);
     nm[i].lock_time = frand(0, 1000);
@@ -165,6 +166,9 @@ START_TEST(test_rtcm3_encode_decode)
   ret = rtcm3_decode_1002(buff, &id, &tow_out, &n_sat, nm_out, &sync);
 
   for (u8 i=0; i<22; i++) {
+    fail_unless(nm[i].prn == nm_out[i].prn, "[%d] PRNs not equal - "
+        "decoded %d, expected %d", i, nm_out[i].prn, nm[i].prn);
+
     double pr_err = nm[i].raw_pseudorange - nm_out[i].raw_pseudorange;
     fail_unless(fabs(pr_err) < 0.02, "[%d] pseudorange error > 0.04m - "
         "decoded %f, expected %f, error %f", i, nm_out[i].raw_pseudorange, nm[i].raw_pseudorange, pr_err);

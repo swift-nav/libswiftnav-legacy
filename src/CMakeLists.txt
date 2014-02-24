@@ -30,6 +30,7 @@ set(libswiftnav_SRCS
   sbp.c
   lambda.c
   float_kf.c
+  single_diff.c
 )
 
 if (CMAKE_CROSSCOMPILING)

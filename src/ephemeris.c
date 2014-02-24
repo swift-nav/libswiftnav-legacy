@@ -73,20 +73,27 @@ int calc_sat_pos(double pos[3], double vel[3],
 
   // Iteratively solve for the Eccentric Anomaly (from Keith Alter and David Johnston)
   ea = ma;      // Starting value for E
+  double ecc = ephemeris->ecc;
+  u32 count = 0;
 
+  /* TODO: Implement convergence test using integer difference of doubles,
+   * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
   do {
     ea_old = ea;
-    tempd1 = 1.0 - ephemeris->ecc * cos (ea_old);
-    ea = ea + (ma - ea_old + ephemeris->ecc * sin (ea_old)) / tempd1;
+    tempd1 = 1.0 - ecc * cos (ea_old);
+    ea = ea + (ma - ea_old + ecc * sin (ea_old)) / tempd1;
+    count++;
+    if (count > 5)
+      break;
   } while (fabs (ea - ea_old) > 1.0E-14);
   ea_dot = ma_dot / tempd1;
 
   // Relativistic correction term
-  einstein = -4.442807633E-10 * ephemeris->ecc * ephemeris->sqrta * sin (ea);
+  einstein = -4.442807633E-10 * ecc * ephemeris->sqrta * sin (ea);
 
   // Begin calc for True Anomaly and Argument of Latitude
-  tempd2 = sqrt (1.0 - ephemeris->ecc * ephemeris->ecc);
-  al = atan2 (tempd2 * sin (ea), cos (ea) - ephemeris->ecc) + ephemeris->w; // [rad] Argument of Latitude = True Anomaly + Argument of Perigee
+  tempd2 = sqrt (1.0 - ecc * ecc);
+  al = atan2 (tempd2 * sin (ea), cos (ea) - ecc) + ephemeris->w; // [rad] Argument of Latitude = True Anomaly + Argument of Perigee
   al_dot = tempd2 * ea_dot / tempd1;
 
   // Calculate corrected argument of latitude based on position
@@ -101,7 +108,7 @@ int calc_sat_pos(double pos[3], double vel[3],
     a * tempd1 + ephemeris->crc * cos (2.0 * al) +
     ephemeris->crs * sin (2.0 * al);
   r_dot =
-    a * ephemeris->ecc * sin (ea) * ea_dot +
+    a * ecc * sin (ea) * ea_dot +
     2.0 * al_dot * (ephemeris->crs * cos (2.0 * al) -
         ephemeris->crc * sin (2.0 * al));
 
