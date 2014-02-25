@@ -10,11 +10,14 @@
 from common cimport *
 from almanac_c cimport *
 from gpstime_c cimport *
+from single_diff_c cimport *
 
 cdef extern from "libswiftnav/float_kf.h":
   ctypedef struct kf_t:
     u32 state_dim
     u32 obs_dim
+    u8 num_sats
+    u8 *prns_with_ref_first
     double *transition_mtx
     double *transition_cov
     double *decor_mtx
@@ -37,6 +40,11 @@ cdef extern from "libswiftnav/float_kf.h":
 
   void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
   void assign_d_mtx(u8 num_sats, double *D)
+
+  void assign_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *obs_mtx)
+  void assign_decor_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first,
+                          double ref_ecef[3], double *decor_mtx, double *obs_mtx)
+
   void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
   void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *E)
   void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *obs_mtx)
@@ -45,6 +53,8 @@ cdef extern from "libswiftnav/float_kf.h":
   void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
+  kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+            u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
   kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 

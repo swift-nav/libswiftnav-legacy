@@ -129,7 +129,8 @@ if __name__ == "__main__":
     'swiftnav.almanac',
     'swiftnav.lam',
     'swiftnav.float_kf',
-    'swiftnav.gpstime'
+    'swiftnav.gpstime',
+    'swiftnav.single_diff'
   ]
 
   extensions = [make_extension(name) for name in ext_names]
