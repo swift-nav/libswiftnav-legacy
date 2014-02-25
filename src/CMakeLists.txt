@@ -4,6 +4,10 @@ endif (NOT DEFINED BUILD_SHARED_LIBS)
 
 file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 
+include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
+include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
+include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
+
 include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
 set(libswiftnav_SRCS

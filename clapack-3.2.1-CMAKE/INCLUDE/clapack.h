@@ -3,6 +3,8 @@
 #ifndef __CLAPACK_H
 #define __CLAPACK_H
 
+#include "f2c.h"
+
 /* Subroutine */ int caxpy_(integer *n, complex *ca, complex *cx, integer *
 	incx, complex *cy, integer *incy);
 
@@ -7206,14 +7208,14 @@ doublereal zlantr_(char *norm, char *uplo, char *diag, integer *m, integer *n,
 /* Subroutine */ int dlamc1_(integer *beta, integer *t, logical *rnd, logical 
 	*ieee1);
 
-doublereal dsecnd_();
+doublereal dsecnd_(void);
 
 /* Subroutine */ int ilaver_(integer *vers_major__, integer *vers_minor__, 
 	integer *vers_patch__);
 
 logical lsame_(char *ca, char *cb);
 
-doublereal second_();
+doublereal second_(void);
 
 doublereal slamch_(char *cmach);
 
