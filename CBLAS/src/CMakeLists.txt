@@ -133,7 +133,8 @@ set(ALEV3 ${SLEV3} ${DLEV3} ${CLEV3} ${ZLEV3})
 
 set(ALLOBJ ${ALEV1} ${ALEV2} ${ALEV3})
 
-add_library(cblas ${ALLOBJ})
+#add_library(cblas ${ALLOBJ})
+add_library(cblas ${SLEV1} ${DLEV1} ${SLEV2} ${DLEV2} ${SLEV3} ${DLEV3})
 target_link_libraries(cblas blas)
 set_target_properties(cblas PROPERTIES COMPILE_FLAGS ${CBLAS_FAIL_FLAGS})
 

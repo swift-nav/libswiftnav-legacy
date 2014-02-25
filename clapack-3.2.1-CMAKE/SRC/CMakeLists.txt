@@ -375,7 +375,11 @@ endif()
 if(BUILD_COMPLEX16)
   set(ALLOBJ  ${ZLASRC} ${ALLAUX} ${DZLAUX})
 endif()
-add_library(lapack ${ALLOBJ} ${ALLXOBJ})
+
+set(LIBSWIFTNAV_REQUIRED dgelss.c ${SCLAUX} ${DZLAUX} ${ALLAUX})
+
+#add_library(lapack ${ALLOBJ} ${ALLXOBJ})
+add_library(lapack ${LIBSWIFTNAV_REQUIRED})
 target_link_libraries(lapack blas)
 set_target_properties(lapack PROPERTIES COMPILE_FLAGS ${F2C_FAIL_FLAGS})
 

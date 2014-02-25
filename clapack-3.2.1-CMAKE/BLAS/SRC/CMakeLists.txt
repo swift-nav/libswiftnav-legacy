@@ -135,8 +135,8 @@ if(BLAS_COMPLEX16)
 	${ALLBLAS} ${ZBLAS2} ${ZBLAS3})
 endif()
   
-  
-add_library(blas ${ALLOBJ})
+#add_library(blas ${ALLOBJ})
+add_library(blas ${SBLAS1} ${SBLAS2} ${SBLAS3} ${DBLAS1} ${DBLAS2} ${DBLAS3})
 if(UNIX)
   target_link_libraries(blas m)
 endif()

@@ -645,7 +645,10 @@ set(OBJ src/lapacke_cbdsqr.c src/lapacke_cbdsqr_work.c src/lapacke_cgbbrd.c
   src/lapacke_zupgtr.c src/lapacke_zupgtr_work.c src/lapacke_zupmtr.c
   src/lapacke_zupmtr_work.c)
 
-add_library(lapacke ${OBJ} ${OBJ_UTILS})
+set(LIBSWIFTNAV_REQUIRED src/lapacke_dgelss.c src/lapacke_dgelss_work.c)
+
+#add_library(lapacke ${OBJ} ${OBJ_UTILS})
+add_library(lapacke ${LIBSWIFTNAV_REQUIRED})
 target_link_libraries(lapacke blas)
 target_link_libraries(lapacke lapack)
 
