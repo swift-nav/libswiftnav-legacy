@@ -38,18 +38,25 @@ set(TIME dtime_.c etime_.c)
 
 # For INTEGER*8 support (which requires system-dependent adjustments to
 # f2c.h), add ${QINT} to the OFILES  assignment below...
-add_executable(arithchk arithchk.c)
-if(UNIX)
-  target_link_libraries(arithchk m)
-endif()
-set_target_properties(arithchk PROPERTIES COMPILE_DEFINITIONS 
-  "NO_FPINIT;NO_LONG_LONG")
+if (NOT CMAKE_CROSSCOMPILING)
+  add_executable(arithchk arithchk.c)
+  if(UNIX)
+    target_link_libraries(arithchk m)
+  endif()
+  set_target_properties(arithchk PROPERTIES COMPILE_DEFINITIONS 
+    "NO_FPINIT;NO_LONG_LONG")
+  ADD_CUSTOM_COMMAND(
+     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/arith_${CMAKE_SYSTEM_PROCESSOR}.h
+     COMMAND arithchk > ${CMAKE_CURRENT_SOURCE_DIR}/arith_${CMAKE_SYSTEM_PROCESSOR}.h
+     DEPENDS arithchk
+     )
+endif ()
+
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/arith.h
-   COMMAND arithchk > ${CMAKE_CURRENT_BINARY_DIR}/arith.h
-   DEPENDS arithchk
+   COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/arith_${CMAKE_SYSTEM_PROCESSOR}.h ${CMAKE_CURRENT_BINARY_DIR}/arith.h
+   DEPENDS arith_${CMAKE_SYSTEM_PROCESSOR}.h
    )
-
 
 set(OFILES  ${MISC} ${POW} ${CX} ${DCX} ${REAL} ${DBL} ${INT} 
   ${HALF} ${CMP} ${EFL} ${CHAR} ${I77} ${TIME})
@@ -58,5 +65,7 @@ if(WIN32)
 endif()
 include_directories(${CLAPACK_SOURCE_DIR}/F2CLIBS/libf2c)
 include_directories(${CLAPACK_BINARY_DIR}/F2CLIBS/libf2c)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(f2c ${OFILES} ${CMAKE_CURRENT_BINARY_DIR}/arith.h)
 set_property(TARGET f2c PROPERTY PREFIX lib)
+set_target_properties(f2c PROPERTIES COMPILE_FLAGS ${F2C_FAIL_FLAGS})

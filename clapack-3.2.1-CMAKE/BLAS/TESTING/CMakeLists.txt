@@ -32,6 +32,7 @@ macro(add_blas_test name src)
   add_executable(${name} ${src})
   get_target_property(TEST_LOC ${name} LOCATION)
   target_link_libraries(${name} blas)
+  set_target_properties(${name} PROPERTIES COMPILE_FLAGS ${F2C_FAIL_FLAGS})
   if(EXISTS "${TEST_INPUT}")
     add_test(${name} "${CMAKE_COMMAND}"
       -DTEST=${TEST_LOC}

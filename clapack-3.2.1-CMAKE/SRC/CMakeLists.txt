@@ -377,4 +377,5 @@ if(BUILD_COMPLEX16)
 endif()
 add_library(lapack ${ALLOBJ} ${ALLXOBJ})
 target_link_libraries(lapack blas)
+set_target_properties(lapack PROPERTIES COMPILE_FLAGS ${F2C_FAIL_FLAGS})
 

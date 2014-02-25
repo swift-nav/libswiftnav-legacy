@@ -141,3 +141,5 @@ if(UNIX)
   target_link_libraries(blas m)
 endif()
 target_link_libraries(blas f2c)
+set_target_properties(blas PROPERTIES COMPILE_FLAGS ${F2C_FAIL_FLAGS})
+

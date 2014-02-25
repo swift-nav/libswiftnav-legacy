@@ -10,6 +10,8 @@
 		http://www.netlib.org/f2c/libf2c.zip
 */
 
+#include <stdio.h>
+
 #include "f2c.h"
 #include "blaswrap.h"
 
