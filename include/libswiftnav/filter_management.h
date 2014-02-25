@@ -14,7 +14,18 @@
 #include "float_kf.h"
 
 typedef struct {
-  double state_mean[MAX_STATE_DIM];
-  double state_covariance_U[MAX_STATE_DIM * MAX_STATE_DIM];
-  double state_covariance_D[MAX_STATE_DIM];
+  double mean[MAX_STATE_DIM];
+  double cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
+  double cov_D[MAX_STATE_DIM];
 } state_t;
+
+void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
+void initialize_state(kf_t *kf, double *dd_measurements,
+                      double pos_init_var, double vel_init_var, double int_init_var,
+                      state_t *state);
+kf_t start_filter(double phase_var, double code_var,
+                  double pos_trans_var, double vel_trans_var, double int_trans_var,
+                  double pos_init_var, double vel_init_var, double int_init_var,
+                  u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dt,
+                  state_t *state);
+u8 update_filter(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, state_t *state);
