@@ -268,7 +268,7 @@ void assign_d_mtx(u8 num_sats, double *D)
   }
 }
 
-void assign_e_mtx(u8 num_sats, navigation_measurement_t *sats_with_ref_first, double ref_ecef[3], double *E)
+void assign_e_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *E)
 {
   memset(E, 0, num_sats * 3 * sizeof(double));
   for (u8 i=0; i<num_sats; i++) {
@@ -306,6 +306,30 @@ void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, 
 }
 
 // presumes that the first alm entry is the reference sat
+void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE)
+{
+  memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
+  double e0[3];
+  double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
+  double y0 = sats_with_ref_first[0].sat_pos[1] - ref_ecef[1];
+  double z0 = sats_with_ref_first[0].sat_pos[2] - ref_ecef[2];
+  double norm0 = sqrt(x0*x0 + y0*y0 + z0*z0);
+  e0[0] = x0 / norm0;
+  e0[1] = y0 / norm0;
+  e0[2] = z0 / norm0;
+  // VEC_PRINTF(ref_ecef, 3);
+  for (u8 i=1; i<num_sats; i++) {
+    double x = sats_with_ref_first[i].sat_pos[0] - ref_ecef[0];
+    double y = sats_with_ref_first[i].sat_pos[1] - ref_ecef[1];
+    double z = sats_with_ref_first[i].sat_pos[2] - ref_ecef[2];
+    double norm = sqrt(x*x + y*y + z*z);
+    DE[3*(i-1)] = x / norm - e0[0];
+    DE[3*(i-1) + 1] = y / norm - e0[1];
+    DE[3*(i-1) + 2] = z / norm - e0[2];
+  }
+}
+
+// presumes that the first alm entry is the reference sat
 void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *DE)
 {
   memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
@@ -339,6 +363,32 @@ void assign_de_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
   }
 }
 
+void assign_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *obs_mtx)
+{
+  u32 obs_dim = 2 * (num_sats-1);
+  u32 state_dim = 5 + num_sats;
+
+  memset(obs_mtx, 0, obs_dim * state_dim * sizeof(double));
+  
+  double DE[(num_sats-1) * 3];
+  assign_de_mtx(num_sats, sats_with_ref_first, ref_ecef, &DE[0]);
+
+  for (u32 i=0; i+1<num_sats; i++) {
+    obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim+1] = DE[i*3+1] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim+2] = DE[i*3+2] / GPS_L1_LAMBDA_NO_VAC;
+    // obs_mtx[i*state_dim] = DE[i*3] / 0.190293673;
+    // obs_mtx[i*state_dim+1] = DE[i*3+1] / 0.190293673;
+    // obs_mtx[i*state_dim+2] = DE[i*3+2] / 0.190293673;
+
+    obs_mtx[i*state_dim+6+i] = 1;
+
+    obs_mtx[(i+num_sats-1)*state_dim] = DE[i*3];
+    obs_mtx[(i+num_sats-1)*state_dim+1] = DE[i*3+1];
+    obs_mtx[(i+num_sats-1)*state_dim+2] = DE[i*3+2];
+  }
+}
+
 void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double *obs_mtx)
 {
   u32 obs_dim = 2 * (num_sats-1);
@@ -363,7 +413,6 @@ void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp
     obs_mtx[(i+num_sats-1)*state_dim+1] = DE[i*3+1];
     obs_mtx[(i+num_sats-1)*state_dim+2] = DE[i*3+2];
   }
-
 }
 
 void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
@@ -384,6 +433,31 @@ void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
     for (u8 j=0; j<i; j++) {
       decor_mtx[i*num_diffs + j] = - i_plus_one_divisor;
     }
+  }
+}
+
+void assign_decor_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first,
+                          double ref_ecef[3], double *decor_mtx, double *obs_mtx)
+{
+  u32 num_diffs = num_sats-1;
+  u32 state_dim = num_diffs + 6;
+  u32 obs_dim = 2 * num_diffs;
+  memset(obs_mtx, 0, state_dim * obs_dim * sizeof(double));
+
+  double DE[num_diffs * 3];
+  assign_de_mtx(num_sats, sats_with_ref_first, ref_ecef, &DE[0]);
+  cblas_dtrmm(CblasRowMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
+              num_diffs, 3, //M, N
+              1, &decor_mtx[0], num_diffs, //alpha, A, lda
+              &DE[0], 3); //B, ldb  
+
+  for (u32 i=0; i<num_diffs; i++) {
+    obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim + 1] = DE[i*3 + 1] / GPS_L1_LAMBDA_NO_VAC;
+    obs_mtx[i*state_dim + 2] = DE[i*3 + 2] / GPS_L1_LAMBDA_NO_VAC;
+
+    memcpy(&obs_mtx[(i+num_diffs)*state_dim], &DE[i*3], 3 * sizeof(double));
+    memcpy(&obs_mtx[i*state_dim + 6], &decor_mtx[i*num_diffs], (i+1) * sizeof(double));
   }
 }
 
@@ -465,12 +539,37 @@ void assign_transition_cov(u32 state_dim, double pos_var, double vel_var, double
   }
 }
 
+kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+            u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
+{
+  u32 state_dim = num_sats + 5;
+  u32 num_diffs = num_sats-1;
+  kf_t kf;
+  kf.state_dim = state_dim;
+  kf.obs_dim = 2*num_diffs;
+  kf.num_sats = num_sats;
+  for (u8 i=0; i<num_sats; i++) {
+    kf.prns_with_ref_first[i] = sats_with_ref_first[i].prn;
+  }
+  assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
+  assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
+  assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
+  assign_decor_obs_mtx(num_sats, sats_with_ref_first, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
+  return kf;
+}
+
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 {
   u32 state_dim = num_sats + 5;
   u32 num_diffs = num_sats-1;
   kf_t kf;
+  kf.state_dim = state_dim;
+  kf.obs_dim = 2*num_diffs;
+  kf.num_sats = num_sats;
+  for (u8 i=0; i<num_sats; i++) {
+    kf.prns_with_ref_first[i] = alms[i].prn;
+  }
   assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
   assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
   assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);

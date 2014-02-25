@@ -15,6 +15,8 @@
 
 #include "common.h"
 #include "track.h"
+#include "almanac.h"
+#include "gpstime.h"
 
 typedef struct {
   double pseudorange;
@@ -29,6 +31,8 @@ typedef struct {
 u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
                sdiff_t *sds);
+
+void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs);
 
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
 
