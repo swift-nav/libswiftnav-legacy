@@ -10,6 +10,10 @@ include_directories(${LAPACK_INCLUDE})
 
 file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 
+include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
+include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
+include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
+
 include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
 set(libswiftnav_SRCS
@@ -38,10 +42,14 @@ if (CMAKE_CROSSCOMPILING)
 endif (CMAKE_CROSSCOMPILING)
 
 add_library(swiftnav-static${LIB_SUFFIX} STATIC ${libswiftnav_SRCS})
+target_link_libraries(swiftnav-static${LIB_SUFFIX} cblas)
+target_link_libraries(swiftnav-static${LIB_SUFFIX} lapacke)
 install(TARGETS swiftnav-static${LIB_SUFFIX} DESTINATION lib)
 
 if(BUILD_SHARED_LIBS)
   add_library(swiftnav${LIB_SUFFIX} SHARED ${libswiftnav_SRCS})
+  target_link_libraries(swiftnav${LIB_SUFFIX} cblas)
+  target_link_libraries(swiftnav${LIB_SUFFIX} lapacke)
   install(TARGETS swiftnav${LIB_SUFFIX} DESTINATION lib)
 else(BUILD_SHARED_LIBS)
   message(STATUS "Not building shared libraries")
