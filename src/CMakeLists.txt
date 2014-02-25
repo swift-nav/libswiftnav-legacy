@@ -2,12 +2,6 @@ if (NOT DEFINED BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 endif (NOT DEFINED BUILD_SHARED_LIBS)
 
-find_package(LAPACK REQUIRED) # LAPACK also finds BLAS
-find_path(BLAS_INCLUDE cblas.h)
-include_directories(${BLAS_INCLUDE})
-find_path(LAPACK_INCLUDE clapack.h)
-include_directories(${LAPACK_INCLUDE})
-
 file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 
 include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
