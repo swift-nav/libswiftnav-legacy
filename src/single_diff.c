@@ -14,8 +14,6 @@
 
 #include "single_diff.h"
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
  * \{ */
@@ -62,6 +60,11 @@ u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
   }
 
   return n;
+}
+
+int sdiff_search_prn(const void *a, const void *b)
+{
+  return (*(u8*)a - ((sdiff_t *)b)->prn);
 }
 
 /** Convert a list of almanacs to a list of single differences.

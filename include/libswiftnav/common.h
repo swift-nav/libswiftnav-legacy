@@ -18,6 +18,9 @@
  * Common definitions used throughout the library.
  * \{ */
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+
 #include <stdint.h>
 #include <stdbool.h>
 

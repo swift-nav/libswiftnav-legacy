@@ -376,7 +376,7 @@ if(BUILD_COMPLEX16)
   set(ALLOBJ  ${ZLASRC} ${ALLAUX} ${DZLAUX})
 endif()
 
-set(LIBSWIFTNAV_REQUIRED dgelss.c ${SCLAUX} ${DZLAUX} ${ALLAUX})
+set(LIBSWIFTNAV_REQUIRED dgelss.c dgelsy.c ${SCLAUX} ${DZLAUX} ${ALLAUX})
 
 #add_library(lapack ${ALLOBJ} ${ALLXOBJ})
 add_library(lapack ${LIBSWIFTNAV_REQUIRED})

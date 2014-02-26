@@ -19,6 +19,9 @@
  * Useful constants.
  * \{ */
 
+#define MAX_CHANNELS 15 /**< Maximum sats we can track */
+#define MAX_SATS 32 /**< Maximum sats in the universe */
+
 #define R2D (180.0 / M_PI) /**< Conversion factor from radians to degrees. */
 #define D2R (M_PI / 180.0) /**< Conversion factor from degrees to radians. */
 
@@ -49,15 +52,15 @@
 
 /** The speed of light in air at standard temperature and pressure.
  * \note This is GPS_C / mu where mu is 1.0002926 */
-#define C_NO_VAC 299704764.3859407
+#define GPS_C_NO_VAC (GPS_C / 1.0002926)
 
 /** The wavelength of L1 in a vacuum.
  * \note This is GPS_C / GPS_L1_HZ. */
-#define GPS_L1_LAMBDA 0.19029367279836487
+#define GPS_L1_LAMBDA (GPS_C / GPS_L1_HZ)
 
 /** The wavelength of L1 in air at standard temperature and pressure.
  * \note This is GPS_C_NO_VAC / GPS_L1_HZ. */
-#define GPS_L1_LAMBDA_NO_VAC 0.19023800915688557
+#define GPS_L1_LAMBDA_NO_VAC (GPS_C_NO_VAC / GPS_L1_HZ)
 
 /** Approximate average distance to the GPS satellites in m. */
 #define GPS_NOMINAL_RANGE 22.980e6

@@ -645,7 +645,11 @@ set(OBJ src/lapacke_cbdsqr.c src/lapacke_cbdsqr_work.c src/lapacke_cgbbrd.c
   src/lapacke_zupgtr.c src/lapacke_zupgtr_work.c src/lapacke_zupmtr.c
   src/lapacke_zupmtr_work.c)
 
-set(LIBSWIFTNAV_REQUIRED src/lapacke_dgelss.c src/lapacke_dgelss_work.c)
+set(LIBSWIFTNAV_REQUIRED 
+  src/lapacke_dgelss.c src/lapacke_dgelss_work.c
+  src/lapacke_dgelsy.c src/lapacke_dgelsy_work.c
+  utils/lapacke_xerbla.c utils/lapacke_dge_trans.c utils/lapacke_d_nancheck.c utils/lapacke_dge_nancheck.c
+)
 
 #add_library(lapacke ${OBJ} ${OBJ_UTILS})
 add_library(lapacke ${LIBSWIFTNAV_REQUIRED})

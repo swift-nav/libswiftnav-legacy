@@ -32,6 +32,8 @@ u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
                sdiff_t *sds);
 
+int sdiff_search_prn(const void *a, const void *b);
+
 void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs);
 
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
