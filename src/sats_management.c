@@ -94,6 +94,8 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
       sats_management->prns[j] = sdiffs[i].prn;
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
+    } else {
+      memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
     }
   }
 }

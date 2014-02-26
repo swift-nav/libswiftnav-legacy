@@ -38,11 +38,12 @@ void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
 
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
-  double dd_measurements[2*(num_sats-1)];
-  make_measurements(num_sats-1, sdiffs, dd_measurements);
 
   sdiff_t sdiffs_with_ref_first[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, sdiffs_with_ref_first);
+
+  double dd_measurements[2*(num_sats-1)];
+  make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 /*
   kf = get_kf(PHASE_VAR, CODE_VAR,
               POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
@@ -50,6 +51,7 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
               num_sats, sdiffs_with_ref_first, dd_measurements, reciever_ecef, dt);
 */
   (void) dt;
+  /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
   double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree
   init_stupid_filter(&stupid_state, num_sats, sdiffs_with_ref_first, dd_measurements, b_init, reciever_ecef);
 }
@@ -75,13 +77,15 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
   //all the changed sat stuff
-  update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sats,
-                            sdiffs_with_ref_first, dd_measurements, reciever_ecef);
+  /*update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sats,*/
+                            /*sdiffs_with_ref_first, dd_measurements, reciever_ecef);*/
 
   // update for observation
   double b[3];
   update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs_with_ref_first,
                         dd_measurements, b, reciever_ecef); //todo use midpoint for reference
+
+  printf("b: %.3f %.3f %.3f\n", b[0], b[1], b[2]);
 }
 
 

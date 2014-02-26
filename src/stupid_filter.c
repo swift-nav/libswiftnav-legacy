@@ -29,7 +29,7 @@ void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
 
   /* Solve for ambiguity vector, i.e.
-   * N = dd_meas - DE . b */
+   * N = dd_meas - DE . b / lambda */
   double b_dot_DE[num_sats-1];
   cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
             num_sats-1, 3, // int M, int N,
@@ -126,7 +126,7 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
 
   /* Solve for b via least squares, i.e.
    * dd_meas = DE . b + N 
-   *  =>  DE . b = dd_meas - N */
+   *  =>  DE . b = (dd_meas - N) * lambda */
 
   /* min | A.x - b | wrt x
    * A <= DE
@@ -142,7 +142,7 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
    LAPACKE_dgelsy(LAPACK_ROW_MAJOR, num_sats-1, 3,
                   1, DE, 3,
                   rhs, 1, jpvt,
-                  1e-12, &rank);
+                  -1, &rank);
    memcpy(b, rhs, 3*sizeof(double));
 }
 
