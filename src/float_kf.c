@@ -499,15 +499,15 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
     }
   }
   memcpy(lsq_state, measurements, kf->obs_dim * sizeof(double));
-  s32 ldb = (s32) MAX(kf->state_dim, kf->obs_dim);
+  integer ldb = (s32) MAX(kf->state_dim, kf->obs_dim);
   double s[MIN(kf->state_dim, kf->obs_dim)];
   double rcond = 1e-12;
-  s32 rank;
+  integer rank;
   double w[1]; //try 25 + 10*num_sats
-  s32 lwork = -1;
-  s32 info;
-  dgelss_(&obs_dim, &state_dim, &nrhs, //M, N, NRHS
-                 &decor_obs_mtx_transpose[0], &obs_dim, //A, LDA
+  integer lwork = -1;
+  integer info;
+  dgelss_((integer *) &obs_dim, (integer *) &state_dim, (integer *) &nrhs, //M, N, NRHS
+                 &decor_obs_mtx_transpose[0], (integer *) &obs_dim, //A, LDA
                  &lsq_state[0], &ldb, //B, LDB
                  &s[0], &rcond, // S, RCOND
                  &rank, //RANK
@@ -516,13 +516,15 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
   lwork = round(w[0]);
   
   double work[lwork];
-  dgelss_(&obs_dim, &state_dim, &nrhs, //M, N, NRHS
-                 &decor_obs_mtx_transpose[0], &obs_dim, //A, LDA
+  dgelss_((integer *) &obs_dim, (integer *) &state_dim, (integer *) &nrhs, //M, N, NRHS
+                 &decor_obs_mtx_transpose[0], (integer *) &obs_dim, //A, LDA
                  &lsq_state[0], &ldb, //B, LDB
                  &s[0], &rcond, // S, RCOND
                  &rank, //RANK
                  &work[0], &lwork, // WORK, LWORK
                  &info); //INFO
+
+  memset(&lsq_state[3],0,3 * sizeof(double)); //should already be nearly zero, because this bit of state is independent of the obs
 }
 
 void assign_transition_cov(u32 state_dim, double pos_var, double vel_var, double int_var, double *transition_cov)

@@ -29,6 +29,7 @@ set(libswiftnav_SRCS
   lambda.c
   float_kf.c
   single_diff.c
+  filter_management.c
 )
 
 if (CMAKE_CROSSCOMPILING)
