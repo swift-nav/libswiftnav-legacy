@@ -34,20 +34,16 @@ set(libswiftnav_SRCS
   sats_management.c
 )
 
-if (CMAKE_CROSSCOMPILING)
-  set(LIB_SUFFIX "-${CMAKE_SYSTEM_PROCESSOR}")
-endif (CMAKE_CROSSCOMPILING)
-
-add_library(swiftnav-static${LIB_SUFFIX} STATIC ${libswiftnav_SRCS})
-target_link_libraries(swiftnav-static${LIB_SUFFIX} cblas)
-target_link_libraries(swiftnav-static${LIB_SUFFIX} lapacke)
-install(TARGETS swiftnav-static${LIB_SUFFIX} DESTINATION lib)
+add_library(swiftnav-static STATIC ${libswiftnav_SRCS})
+target_link_libraries(swiftnav-static cblas)
+target_link_libraries(swiftnav-static lapacke)
+install(TARGETS swiftnav-static DESTINATION lib${LIB_SUFFIX})
 
 if(BUILD_SHARED_LIBS)
-  add_library(swiftnav${LIB_SUFFIX} SHARED ${libswiftnav_SRCS})
-  target_link_libraries(swiftnav${LIB_SUFFIX} cblas)
-  target_link_libraries(swiftnav${LIB_SUFFIX} lapacke)
-  install(TARGETS swiftnav${LIB_SUFFIX} DESTINATION lib)
+  add_library(swiftnav SHARED ${libswiftnav_SRCS})
+  target_link_libraries(swiftnav cblas)
+  target_link_libraries(swiftnav lapacke)
+  install(TARGETS swiftnav DESTINATION lib${LIB_SUFFIX})
 else(BUILD_SHARED_LIBS)
   message(STATUS "Not building shared libraries")
 endif(BUILD_SHARED_LIBS)
