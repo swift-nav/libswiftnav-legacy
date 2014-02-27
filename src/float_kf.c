@@ -215,15 +215,16 @@ void update_scalar_measurement(u32 state_dim, double *h, double R,
 
 }
 
-void decorrelate(kf_t *kf, double *measurements)
+void decorrelate(kf_t *kf, double *measurements, double *decor_measurements)
 {
   u8 n_diffs = kf->obs_dim/2;
+  memcpy(decor_measurements, measurements, kf->obs_dim * sizeof(double));
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
               n_diffs, kf->decor_mtx, 
-              n_diffs, measurements, 1); // replaces raw phase measurements by their decorrelated version
+              n_diffs, decor_measurements, 1); // replaces raw phase measurements by their decorrelated version
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
               n_diffs, kf->decor_mtx, 
-              n_diffs, &measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
+              n_diffs, &decor_measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
 }
 
 /** In place updating of the state mean and covariance. Modifies measurements.
@@ -485,7 +486,8 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
 
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
 {
-  decorrelate(kf, measurements);
+  double decor_measurements[kf->obs_dim];
+  decorrelate(kf, measurements, decor_measurements);
   s32 obs_dim = kf->obs_dim;
   s32 state_dim = kf->state_dim;
   s32 nrhs = 1;
@@ -495,7 +497,7 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
       decor_obs_mtx_transpose[i + j*kf->obs_dim] = kf->decor_obs_mtx[i*kf->state_dim + j];
     }
   }
-  memcpy(lsq_state, measurements, kf->obs_dim * sizeof(double));
+  memcpy(lsq_state, decor_measurements, kf->obs_dim * sizeof(double));
   integer ldb = (s32) MAX(kf->state_dim, kf->obs_dim);
   double s[MIN(kf->state_dim, kf->obs_dim)];
   double rcond = 1e-12;

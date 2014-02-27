@@ -53,7 +53,7 @@ void update_for_obs(kf_t *kf,
 
 void update_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k);
-void decorrelate(kf_t *kf, double *measurements);
+void decorrelate(kf_t *kf, double *measurements, double *decor_measurements);
 void filter_update(kf_t *kf,
                    double *state_mean, double *state_cov_U, double *state_cov_D, 
                    double *measurements);

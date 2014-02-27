@@ -49,7 +49,8 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
               num_sats, sdiffs_with_ref_first, dd_measurements, reciever_ecef, dt);
 
   /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
-  double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree
+  double b_init[3] = {-1.4861289 ,  0.84761746, -0.01029364}; // colin's piksi data
+  // double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree
   // double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched
   init_stupid_filter(&stupid_state, num_sats, sdiffs_with_ref_first, dd_measurements, b_init, reciever_ecef);
 
@@ -76,8 +77,8 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
   //all the changed sat stuff
-  /*update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sats,*/
-                            /*sdiffs_with_ref_first, dd_measurements, reciever_ecef);*/
+  update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sats,
+                            sdiffs_with_ref_first, dd_measurements, reciever_ecef);
 
   // update for observation
   double b[3];
