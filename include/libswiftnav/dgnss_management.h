@@ -26,6 +26,7 @@
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
+void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 kf_t * get_dgnss_kf();
 s32 * get_stupid_filter_ints();
 sats_management_t * get_sats_management();
