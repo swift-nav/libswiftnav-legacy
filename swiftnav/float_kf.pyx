@@ -44,6 +44,8 @@ def reconstruct_udu(ud):
   return M
 
 def predict_forward(KalmanFilter kf, state_mean, state_cov_UDU):
+  float_kf_c.predict_forward(&(kf.kf))
+
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] state_mean_ = \
     np.array(state_mean, dtype=np.double)
 
@@ -52,10 +54,12 @@ def predict_forward(KalmanFilter kf, state_mean, state_cov_UDU):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] state_cov_D_ = \
     np.array(state_cov_UDU.D, dtype=np.double)
 
-  float_kf_c.predict_forward(&(kf.kf),
-                             <double *> &state_mean_[0], 
-                             <double *> &state_cov_U_[0,0], 
-                             <double *> &state_cov_D_[0])
+  float_kf_c.predict_forward(&(kf.kf))
+
+  memcpy(&state_mean_[0], kf.kf.state_mean, kf.state_dim * sizeof(double))
+  memcpy(&state_cov_U_[0,0], kf.kf.state_cov_U, kf.state_dim * kf.state_dim * sizeof(double))
+  memcpy(&state_cov_D_[0], kf.kf.state_cov_D, kf.state_dim * sizeof(double))
+  
   return state_mean_, UDU_decomposition(state_cov_U_, state_cov_D_)
 
 def update_scalar_measurement(h, R, U, D):
@@ -78,51 +82,53 @@ def update_scalar_measurement(h, R, U, D):
                                        <double *> &k[0])
   return UDU_decomposition(U_, D_), k
 
-def update_for_obs(KalmanFilter kf,
-                   intermediate_mean, intermediate_cov_UDU,
-                   decor_obs):
+def update_for_obs(KalmanFilter kf, decor_obs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] intermediate_mean_ = \
-    np.array(intermediate_mean, dtype=np.double)
+    np.empty(kf.state_dim, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=2, mode="c"] intermediate_cov_U_ = \
-    np.array(intermediate_cov_UDU.U, dtype=np.double)
+    np.empty((kf.state_dim, kf.state_dim), dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] intermediate_cov_D_ = \
-    np.array(intermediate_cov_UDU.D, dtype=np.double)
+    np.empty(kf.state_dim, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_ =  \
     np.array(decor_obs, dtype=np.double)
 
-  float_kf_c.update_for_obs(&(kf.kf),
-                            <double *> &intermediate_mean_[0], 
-                            <double *> &intermediate_cov_U_[0,0], 
-                            <double *> &intermediate_cov_D_[0],
-                            <double *> &decor_obs_[0])
+  float_kf_c.incorporate_obs(&(kf.kf), <double *> &decor_obs_[0])
+
+  memcpy(&intermediate_mean_[0], kf.kf.state_mean, kf.state_dim * sizeof(double))
+  memcpy(&intermediate_cov_U_[0,0], kf.kf.state_cov_U, kf.state_dim * kf.state_dim * sizeof(double))
+  memcpy(&intermediate_cov_D_[0], kf.kf.state_cov_D, kf.state_dim * sizeof(double))
+
+
   return intermediate_mean_, UDU_decomposition(intermediate_cov_U_, intermediate_cov_D_)
 
 def decorrelate(KalmanFilter kf, obs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
     np.array(obs, dtype=np.double)
 
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_ =  \
+    np.empty(obs.shape, dtype=np.double)
+
   float_kf_c.decorrelate(&(kf.kf),
-                        <double *> &obs_[0])
+                        <double *> &obs_[0],
+                        <double *> &decor_obs_[0])
 
-  return obs_
+  return decor_obs_
 
-def filter_update(KalmanFilter kf,
-                     state_mean, state_cov_UDU,
-                     obs):
+def filter_update(KalmanFilter kf, obs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] state_mean_ = \
-    np.array(state_mean, dtype=np.double)
+    np.empty(kf.state_dim, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=2, mode="c"] state_cov_U_ = \
-    np.array(state_cov_UDU.U, dtype=np.double)
+    np.empty((kf.state_dim, kf.state_dim), dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] state_cov_D_ = \
-    np.array(state_cov_UDU.D, dtype=np.double)
+    np.empty(kf.state_dim, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
     np.array(obs, dtype=np.double)
 
-  float_kf_c.filter_update(&(kf.kf),
-                           <double *> &state_mean_[0], 
-                           <double *> &state_cov_U_[0,0],
-                           <double *> &state_cov_D_[0], 
-                           <double *> &obs_[0])
+  float_kf_c.kalman_filter_update(&(kf.kf), <double *> &obs_[0])
+
+  memcpy(&state_mean_[0], kf.kf.state_mean, kf.state_dim * sizeof(double))
+  memcpy(&state_cov_U_[0,0], kf.kf.state_cov_U, kf.state_dim * kf.state_dim * sizeof(double))
+  memcpy(&state_cov_D_[0], kf.kf.state_cov_D, kf.state_dim * sizeof(double))
 
   return state_mean_, UDU_decomposition(state_cov_U_, state_cov_D_)
 
@@ -164,6 +170,31 @@ cdef class KalmanFilter:
   def __repr__(self):
     return "<KalmanFilter with state_dim=" + str(self.state_dim) + \
            ", obs_dim=" + str(self.obs_dim) + ">"
+
+  def testeq(KalmanFilter self, KalmanFilter other not None):
+    state_dim_eq = self.state_dim == other.state_dim
+    obs_dim_eq = self.obs_dim == other.obs_dim
+    transition_mtx_eq = bool(np.all(self.transition_mtx == other.transition_mtx))
+    transition_cov_eq = bool(np.all(self.transition_cov == other.transition_cov))
+    decor_mtx_eq = bool(np.all(self.decor_mtx == other.decor_mtx))
+    decor_obs_mtx_eq = bool(np.all(self.decor_obs_mtx == other.decor_obs_mtx))
+    decor_obs_cov_eq = bool(np.all(self.decor_obs_cov == other.decor_obs_cov))
+    state_mean_eq = bool(np.all(self.state_mean == other.state_mean))
+    state_cov_U_eq = bool(np.all(self.state_cov_U == other.state_cov_U))
+    state_cov_D_eq = bool(np.all(self.state_cov_D == other.state_cov_D))
+    eq_dict = {'state_dim'      : state_dim_eq,
+               'obs_dim'        : obs_dim_eq,
+               'transition_mtx' : transition_mtx_eq,
+               'transition_cov' : transition_cov_eq,
+               'decor_mtx'      : decor_mtx_eq,
+               'decor_obs_mtx'  : decor_obs_mtx_eq,
+               'decor_obs_cov'  : decor_obs_cov_eq,
+               'state_mean'     : state_mean_eq,
+               'state_cov_U'    : state_cov_U_eq,
+               'state_cov_D'    : state_cov_D_eq}
+    return all(eq_dict.values()), eq_dict
+
+
 
   def cmp(KalmanFilter self, KalmanFilter other not None):
     return memcmp(&self.kf, &other.kf, sizeof(kf_t))
@@ -447,14 +478,6 @@ def get_decor_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef, decor_mtx):
 
   return obs_mtx
 
-def decorrelate(KalmanFilter kf, obs):
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
-    np.array(obs, dtype=np.double)
-
-  float_kf_c.decorrelate(&(kf.kf),
-                        <double *> &obs_[0])
-
-  return obs_
 
 def get_kf_from_alms_using_sdiffs(phase_var, code_var,
                                   pos_trans_var, vel_trans_var, int_trans_var,

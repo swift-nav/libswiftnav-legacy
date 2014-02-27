@@ -28,16 +28,12 @@ cdef extern from "libswiftnav/float_kf.h":
   void triu(u32 n, double *M)
   void eye(u32 n, double *M)
   void reconstruct_udu(u32 n, double *U, double *D, double *M)
-  void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D)
+  void predict_forward(kf_t *kf)
   void update_scalar_measurement(u32 state_dim, double *h, double R,
                                  double *U, double *D, double *k)
-  void update_for_obs(kf_t *kf,
-                    double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
-                    double *decor_obs)
-  void decorrelate(kf_t *kf, double *measurements)
-  void filter_update(kf_t *kf,
-                     double *state_mean, double *state_cov_U, double *state_cov_D, 
-                     double *measurements)
+  void incorporate_obs(kf_t *kf, double *decor_obs)
+  void decorrelate(kf_t *kf, double *measurements, double * decor_measurements)
+  void kalman_filter_update(kf_t *kf, double *measurements)
 
   void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
   void assign_d_mtx(u8 num_sats, double *D)
