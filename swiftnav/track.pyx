@@ -48,7 +48,7 @@ cdef class ChannelMeasurement:
 cdef class NavigationMeasurement:
   def __cinit__(self, pr, prr, wn, tot, sat_pos, sat_vel):
     self.meas.pseudorange = pr
-    self.meas.pseudorange_rate = prr
+    #self.meas.pseudorange_rate = prr
     self.meas.tot.tow = tot
     self.meas.tot.wn = wn
     for i in range(3):
@@ -57,7 +57,7 @@ cdef class NavigationMeasurement:
 
   def __repr__(self):
     return '<NavigationMeasurement ' + str((self.meas.pseudorange,
-                self.meas.pseudorange_rate,
+                #self.meas.pseudorange_rate,
                 self.meas.tot.tow,
                 (self.meas.sat_pos[0], self.meas.sat_pos[1], self.meas.sat_pos[2]),
                 (self.meas.sat_vel[0], self.meas.sat_vel[1], self.meas.sat_vel[2]))) + '>'

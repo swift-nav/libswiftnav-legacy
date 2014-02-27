@@ -24,7 +24,6 @@ cdef extern from "libswiftnav/track.h":
 
   ctypedef struct navigation_measurement_t:
     double pseudorange
-    double pseudorange_rate
     gps_time_t tot
     double sat_pos[3]
     double sat_vel[3]

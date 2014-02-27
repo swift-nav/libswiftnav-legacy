@@ -16,13 +16,14 @@ cdef extern from "libswiftnav/float_kf.h":
   ctypedef struct kf_t:
     u32 state_dim
     u32 obs_dim
-    u8 num_sats
-    u8 *prns_with_ref_first
     double *transition_mtx
     double *transition_cov
     double *decor_mtx
     double *decor_obs_mtx
     double *decor_obs_cov
+    double *state_mean
+    double *state_cov_U
+    double *state_cov_D
   s8 udu(u32 n, double *M, double *U, double *D)
   void triu(u32 n, double *M)
   void eye(u32 n, double *M)
@@ -54,7 +55,8 @@ cdef extern from "libswiftnav/float_kf.h":
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
   kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
-            u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
+            double pos_init_var, double vel_init_var, double int_init_var,
+            u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt)
   kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 

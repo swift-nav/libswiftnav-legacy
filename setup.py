@@ -115,7 +115,7 @@ if __name__ == "__main__":
     return Extension(
       ext_name, [ext_path],
       include_dirs = [np.get_include(), '.'],
-      extra_compile_args = ['-O3', '-Wall', '-Wno-unused-function'],
+      extra_compile_args = ['-O0', '-g'], #['-O3', '-Wall', '-Wno-unused-function'],
       extra_link_args = ['-g'],
       libraries = ['m', 'swiftnav'],
     )
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     'swiftnav.float_kf',
     'swiftnav.gpstime',
     'swiftnav.single_diff',
-    'swiftnav.filter_management'
+    'swiftnav.dgnss_management'
   ]
 
   extensions = [make_extension(name) for name in ext_names]
