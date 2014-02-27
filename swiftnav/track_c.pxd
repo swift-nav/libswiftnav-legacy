@@ -23,10 +23,17 @@ cdef extern from "libswiftnav/track.h":
     double snr
 
   ctypedef struct navigation_measurement_t:
+    double raw_pseudorange
     double pseudorange
-    gps_time_t tot
+    double carrier_phase
+    double raw_doppler
+    double doppler
     double sat_pos[3]
     double sat_vel[3]
+    double snr
+    double lock_time
+    gps_time_t tot
+    u8 prn
 
   ctypedef struct simple_lf_state_t:
     float y

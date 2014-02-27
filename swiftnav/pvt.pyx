@@ -48,6 +48,14 @@ cdef class Solution:
     def __get__(self):
       return self.soln.time.tow
 
+  property clock_offset:
+    def __get__(self):
+      return self.soln.clock_offset
+
+  property clock_bias:
+    def __get__(self):
+      return self.soln.clock_bias
+
   property dops:
     def __get__(self):
       return (self.dops.pdop,

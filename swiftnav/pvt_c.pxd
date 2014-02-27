@@ -26,6 +26,8 @@ cdef extern from "libswiftnav/pvt.h":
     double vel_ecef[3]
     double vel_ned[3]
     double err_cov[7]
+    double clock_bias
+    double clock_offset
     gps_time_t time
     u8 gps_solution_valid
     u8 n_used
