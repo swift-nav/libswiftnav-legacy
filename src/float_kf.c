@@ -543,16 +543,16 @@ void initialize_state(kf_t *kf, double *dd_measurements,
 {
   double lsq_solution[MAX(kf->obs_dim,kf->state_dim)];
   least_squares_solve(kf, dd_measurements, lsq_solution);
-  memcpy(kf->mean, lsq_solution, kf->state_dim * sizeof(double));
-  eye(kf->state_dim, kf->cov_U);
-  kf->cov_D[0] = pos_init_var;
-  kf->cov_D[1] = pos_init_var;
-  kf->cov_D[2] = pos_init_var;
-  kf->cov_D[3] = vel_init_var;
-  kf->cov_D[4] = vel_init_var;
-  kf->cov_D[5] = vel_init_var;
+  memcpy(kf->state_mean, lsq_solution, kf->state_dim * sizeof(double));
+  eye(kf->state_dim, kf->state_cov_U);
+  kf->state_cov_D[0] = pos_init_var;
+  kf->state_cov_D[1] = pos_init_var;
+  kf->state_cov_D[2] = pos_init_var;
+  kf->state_cov_D[3] = vel_init_var;
+  kf->state_cov_D[4] = vel_init_var;
+  kf->state_cov_D[5] = vel_init_var;
   for (u32 i=6; i<kf->state_dim; i++) {
-    kf->cov_D[i] = int_init_var;
+    kf->state_cov_D[i] = int_init_var;
   }
 }
 
@@ -569,7 +569,7 @@ kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, d
   assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
   assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
   assign_decor_obs_mtx(num_sats, sats_with_ref_first, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
-  initialize_state(&kf, &dd_measurements[0],
+  initialize_state(&kf, dd_measurements,
                    pos_init_var, vel_init_var, int_init_var);
   return kf;
 }
@@ -626,7 +626,7 @@ void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  rebase_mean(&(kf->mean[6]), num_sats, old_prns, new_prns);
+  rebase_mean(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
   //todo rebase covariance
 }
 

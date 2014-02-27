@@ -38,9 +38,9 @@ typedef struct {
   double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
   double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
   double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
-  double mean[MAX_STATE_DIM];
-  double cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
-  double cov_D[MAX_STATE_DIM];
+  double state_mean[MAX_STATE_DIM];
+  double state_cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
+  double state_cov_D[MAX_STATE_DIM];
 } kf_t;
 
 
@@ -76,7 +76,8 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx);
 void assign_transition_cov(u32 state_dim, double pos_var, double vel_var, double int_var, double *transition_cov);
 
-kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+kf_t get_kf(double phase_var, double code_var,
+            double pos_var, double vel_var, double int_var, 
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt);
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 

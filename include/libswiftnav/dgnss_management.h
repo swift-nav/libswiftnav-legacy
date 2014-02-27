@@ -12,6 +12,7 @@
 
 
 #include "float_kf.h"
+#include "sats_management.h"
 
 #define PHASE_VAR 9e-4
 #define CODE_VAR 100
@@ -25,4 +26,6 @@
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
-u8 update_filter(kf_t *kf, u8 num_sats, sdiff_t *sdiffs);
+kf_t * get_dgnss_kf();
+s32 * get_stupid_filter_ints();
+sats_management_t * get_sats_management();

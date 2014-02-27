@@ -16,7 +16,6 @@
 #include "stupid_filter.h"
 #include "single_diff.h"
 #include "dgnss_management.h"
-#include "sats_management.h"
 
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -38,22 +37,22 @@ void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
 
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
-
   sdiff_t sdiffs_with_ref_first[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, sdiffs_with_ref_first);
 
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
-/*
+
   kf = get_kf(PHASE_VAR, CODE_VAR,
               POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
               POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
               num_sats, sdiffs_with_ref_first, dd_measurements, reciever_ecef, dt);
-*/
-  (void) dt;
+
   /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
   double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree
+  // double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched
   init_stupid_filter(&stupid_state, num_sats, sdiffs_with_ref_first, dd_measurements, b_init, reciever_ecef);
+
 }
 
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
@@ -86,6 +85,21 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
                         dd_measurements, b, reciever_ecef); //todo use midpoint for reference
 
   printf("b: %.3f %.3f %.3f\n", b[0], b[1], b[2]);
+}
+
+kf_t * get_dgnss_kf()
+{
+  return &kf;
+}
+
+s32 * get_stupid_filter_ints()
+{
+  return stupid_state.N;
+}
+
+sats_management_t * get_sats_management()
+{
+  return &sats_management;
 }
 
 

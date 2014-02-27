@@ -10,6 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef LIBSWIFTNAV_SATS_MANAGEMENT_H
+#define LIBSWIFTNAV_SATS_MANAGEMENT_H
+
 #include "constants.h"
 
 #define OLD_REF 0
@@ -27,3 +30,6 @@ void init_sats_management(sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 s8 update_sats_management(sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
+
+
+#endif /* LIBSWIFTNAV_SATS_MANAGEMENT_H */
