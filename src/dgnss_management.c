@@ -71,21 +71,50 @@ void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dou
   }
 }
 
-void dgnss_update_sats(u8 num_sats, double reciever_ecef[3], sdiff_t *corrected_sdiffs,
+bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
+{
+  if (sats_management.num_sats-1 != num_non_ref_sdiffs)
+    return false;
+  for (u8 i=0; i<num_non_ref_sdiffs; i++) {
+    //iterate through the non-reference_sats
+    if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *corrected_sdiffs,
                        double * dd_measurements)
 {
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
 
-  update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sats,
+  if (!prns_match(&old_prns[1], num_sdiffs-1, &corrected_sdiffs[1])) {
+    //project everything onto the sats common to the new measurements and the old state
+
+
+    //incorporate any of the new sats
+
+    update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
                             corrected_sdiffs, dd_measurements, reciever_ecef);
+  }
+  
 }
 
-void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements)
+void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef)
 {
-  
-  (void) sdiffs;
-  (void) dd_measurements;
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0] + kf.state_mean[0]*0.5;
+  ref_ecef[1] = reciever_ecef[1] + kf.state_mean[1]*0.5;
+  ref_ecef[2] = reciever_ecef[2] + kf.state_mean[2]*0.5;
+  assign_decor_obs_mtx(sats_management.num_sats, sdiffs, ref_ecef, kf.decor_mtx, kf.decor_obs_mtx); //TODO make a common DE and use it instead
+  kalman_filter_update(&kf, dd_measurements);
+
+  double b[3];
+  update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,
+                        dd_measurements, b, ref_ecef);
+  printf("b: %.3f %.3f %.3f\n", b[0], b[1], b[2]);
 }
 
 
@@ -106,12 +135,10 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   dgnss_update_sats(num_sats, reciever_ecef, corrected_sdiffs, dd_measurements);
 
   // update for observation
-  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements);
-  double b[3];
-  update_stupid_filter(&stupid_state, sats_management.num_sats, corrected_sdiffs,
-                        dd_measurements, b, reciever_ecef); //todo use midpoint for reference
+  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef);
+  
 
-  printf("b: %.3f %.3f %.3f\n", b[0], b[1], b[2]);
+  
 }
 
 kf_t * get_dgnss_kf()
