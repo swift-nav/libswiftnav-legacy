@@ -135,6 +135,70 @@ def wgsecef2ned_d(ecef, ref_ecef):
 
   return ned
 
+def wgsned2ecef(ned, ref_ecef):
+  """
+  Wraps function :libswiftnav:`wgsned2ecef`.
+
+  Parameters
+  ----------
+  ned : (float, float, float)
+    The tuple of coordinates, `(n, e, d)`
+  ref_ecef : (float, float, float)
+    The tuple of coordinates of the reference position, `(x, y, z)`
+
+  Returns
+  -------
+  out : :class:`numpy.ndarray`, shape(3,)
+    The array `[x, y, z]`.
+
+  """
+
+  if len(ned) != 3 or len(ref_ecef) != 3:
+    raise ValueError("Coordinates must have dimension 3.")
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ned_ = \
+    np.array(ned, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ecef = \
+    np.empty(3, dtype=np.double)
+
+  coord_system_c.wgsned2ecef(&ned_[0], &ref_ecef_[0], &ecef[0])
+
+  return ecef
+
+def wgsned2ecef_d(ned, ref_ecef):
+  """
+  Wraps function :libswiftnav:`wgsned2ecef_d`.
+
+  Parameters
+  ----------
+  ned : (float, float, float)
+    The tuple of coordinates, `(n, e, d)`
+  ref_ecef : (float, float, float)
+    The tuple of coordinates of the reference position, `(x, y, z)`
+
+  Returns
+  -------
+  out : :class:`numpy.ndarray`, shape(3,)
+    The array `[x, y, z]`.
+
+  """
+
+  if len(ned) != 3 or len(ref_ecef) != 3:
+    raise ValueError("Coordinates must have dimension 3.")
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ned_ = \
+    np.array(ned, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ecef = \
+    np.empty(3, dtype=np.double)
+
+  coord_system_c.wgsned2ecef_d(&ned_[0], &ref_ecef_[0], &ecef[0])
+
+  return ecef
+
 def wgsecef2azel(ecef, ref_ecef):
   """
   Wraps function :libswiftnav:`wgsecef2azel`.

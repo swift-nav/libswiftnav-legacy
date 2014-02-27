@@ -12,6 +12,8 @@ cdef extern from "libswiftnav/coord_system.h":
   void wgsecef2llh(double ecef[3], double llh[3])
   void wgsecef2ned(double ecef[3], double ref_ecef[3], double ned[3])
   void wgsecef2ned_d(double ecef[3], double ref_ecef[3], double ned[3])
+  void wgsned2ecef(double ned[3], double ref_ecef[3], double ecef[3])
+  void wgsned2ecef_d(double ned[3], double ref_ecef[3], double ecef[3])
   void wgsecef2azel(double ecef[3], double ref_ecef[3],
                     double* azimuth, double* elevation)
 
