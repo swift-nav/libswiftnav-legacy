@@ -76,10 +76,23 @@ kf_t get_kf(double phase_var, double code_var,
             double pos_var, double vel_var, double int_var, 
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt);
+void reset_kf_except_state(kf_t *kf, 
+                           double phase_var, double code_var,
+                           double pos_var, double vel_var, double int_var,
+                           u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt);
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt);
 
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state);
-
+void kalman_filter_state_projection(kf_t *kf,
+                                    u8 num_old_non_ref_sats,
+                                    u8 num_new_non_ref_sats,
+                                    u8 *ndx_of_new_sat_in_old);
+void kalman_filter_state_inclusion(kf_t *kf,
+                                   u8 num_old_non_ref_sats,
+                                   u8 num_new_non_ref_sats,
+                                   u8 *ndx_of_old_sat_in_new,
+                                   double int_init_var,
+                                   double *dd_measurements);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
