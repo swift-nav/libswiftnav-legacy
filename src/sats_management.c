@@ -19,7 +19,6 @@
 
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
-  return 6;
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
   for (u8 i=1; i<num_sats-1; i++) {
