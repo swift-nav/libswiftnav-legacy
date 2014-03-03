@@ -49,8 +49,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(CMAKE_C_FLAGS
   "${CMAKE_C_FLAGS}"
-  "-fno-common"
-  "-Wstrict-prototypes -ffunction-sections -fdata-sections"
+  "-fno-common -ffunction-sections -fdata-sections"
 )
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
@@ -59,7 +58,6 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
     "${CMAKE_C_FLAGS}"
     "-mcpu=cortex-m4 -march=armv7e-m -mthumb"
     "-mfloat-abi=hard -mfpu=fpv4-sp-d16"
-    "-ffunction-sections -fdata-sections"
   )
 
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
@@ -68,7 +66,6 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
     "${CMAKE_C_FLAGS}"
     "-mcpu=cortex-m3 -march=armv7-m -mthumb"
     "-msoft-float"
-    "-ffunction-sections -fdata-sections"
   )
 
 else ()
