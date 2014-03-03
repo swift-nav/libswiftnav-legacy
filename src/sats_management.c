@@ -84,6 +84,9 @@ u8 intersect_sats(u8 num_sats1, u8 num_sats2, u8 *sats1, sdiff_t *sdiffs,
 //   u8 control_logic = check_and_rebase_reference_sat(kf, num_sats, sdiffs, state);
 // }
 
+
+/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
+ */
 void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -111,7 +114,7 @@ void init_sats_management(sats_management_t *sats_management,
 
 /** Updates sats to the new measurements' sat set
  */
-s8 update_sats_management(sats_management_t *sats_management,
+s8 rebase_sats_management(sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   s8 return_code;

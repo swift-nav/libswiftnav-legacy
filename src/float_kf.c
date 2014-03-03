@@ -87,23 +87,23 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
 
 /** In place prediction of the next state mean and covariances
  */
-void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D) 
+void predict_forward(kf_t *kf) 
 {
   //TODO take advantage of sparsity in this function
 
   double x[kf->state_dim];
-  memcpy(x, state_mean, kf->state_dim * sizeof(double));
+  memcpy(x, kf->state_mean, kf->state_dim * sizeof(double));
 
   //TODO make more efficient via the structure of the transition matrix
   cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
               kf->state_dim, kf->state_dim, // int M, int N,
               1, (double *) kf->transition_mtx, kf->state_dim, // double 1, double *A, int lda
               x, 1, // double *X, int incX
-              0, state_mean, 1); // double beta, double *Y, int incY
+              0, kf->state_mean, 1); // double beta, double *Y, int incY
   // VEC_PRINTF((double *) state_mean, kf->state_dim);
 
   double state_cov[kf->state_dim * kf->state_dim];
-  reconstruct_udu(kf->state_dim, state_cov_U, state_cov_D, state_cov);
+  reconstruct_udu(kf->state_dim, kf->state_cov_U, kf->state_cov_D, state_cov);
   // MAT_PRINTF((double *) state_cov, kf->state_dim, kf->state_dim);
 
   //TODO make more efficient via the structure of the transition matrix
@@ -125,16 +125,14 @@ void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *
               1, FCF, kf->state_dim); //beta, double *C, int ldc
   // MAT_PRINTF((double *) FCF, kf->state_dim, kf->state_dim);
 
-  udu(kf->state_dim, FCF, state_cov_U, state_cov_D);
+  udu(kf->state_dim, FCF, kf->state_cov_U, kf->state_cov_D);
   // MAT_PRINTF((double *) state_cov_U, kf->state_dim, kf->state_dim);
   // VEC_PRINTF((double *) state_cov_D, kf->state_dim);
 }
 
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
  */
-void update_for_obs(kf_t *kf,
-                    double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
-                    double *decor_obs)
+void incorporate_obs(kf_t *kf, double *decor_obs)
 {
 
   for (u32 i=0; i<kf->obs_dim; i++) {
@@ -144,12 +142,12 @@ void update_for_obs(kf_t *kf,
     // printf("i=%i\n", i);
     // VEC_PRINTF(h, kf->state_dim);
 
-    update_scalar_measurement(kf->state_dim, h, R, intermediate_cov_U, intermediate_cov_D, &k[0]); //updates cov and sets k
+    update_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]); //updates cov and sets k
     // VEC_PRINTF(k, kf->state_dim);
 
     double predicted_obs = 0;
     for (u32 j=0; j<kf->state_dim; j++) {//TODO take advantage of sparsity of h
-      predicted_obs += h[j] * intermediate_mean[j];
+      predicted_obs += h[j] * kf->state_mean[j];
     }
     double obs_minus_predicted_obs = decor_obs[i] - predicted_obs;
     // printf("decor_obs = %f\n", decor_obs[i]);
@@ -157,7 +155,7 @@ void update_for_obs(kf_t *kf,
     // printf(" diff_obs = %f\n", obs_minus_predicted_obs);
 
     for (u32 j=0; j<kf->state_dim; j++) {
-      intermediate_mean[j] += k[j] * obs_minus_predicted_obs; // uses k to update mean
+      kf->state_mean[j] += k[j] * obs_minus_predicted_obs; // uses k to update mean
     }
     // VEC_PRINTF(intermediate_mean, kf->state_dim);
   }
@@ -229,9 +227,7 @@ void decorrelate(kf_t *kf, double *measurements, double *decor_measurements)
 
 /** In place updating of the state mean and covariance. Modifies measurements.
  */
-void filter_update(kf_t *kf,
-                   double *state_mean, double *state_cov_U, double *state_cov_D, 
-                   double *measurements)
+void kalman_filter_update(kf_t *kf, double *measurements)
 {
   // VEC_PRINTF(measurements, kf->obs_dim);
   // MAT_PRINTF(kf->decor_obs_mtx, kf->obs_dim, kf->state_dim);
@@ -244,8 +240,8 @@ void filter_update(kf_t *kf,
               n_diffs, kf->decor_mtx, 
               n_diffs, &measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
 
-  predict_forward(kf, state_mean, state_cov_U, state_cov_D);
-  update_for_obs(kf, state_mean, state_cov_U, state_cov_D, measurements);
+  predict_forward(kf);
+  incorporate_obs(kf, measurements);
 }
 
 void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
@@ -576,6 +572,21 @@ kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, d
   return kf;
 }
 
+void reset_kf_except_state(kf_t *kf, 
+                           double phase_var, double code_var,
+                           double pos_var, double vel_var, double int_var,
+                           u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
+{
+  u32 state_dim = num_sats + 5;
+  u32 num_diffs = num_sats-1;
+  kf->state_dim = state_dim;
+  kf->obs_dim = 2*num_diffs;
+  assign_transition_mtx(state_dim, dt, &kf->transition_mtx[0]);
+  assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf->transition_cov[0]);
+  assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf->decor_mtx[0], &kf->decor_obs_cov[0]);
+  assign_decor_obs_mtx(num_sats, sats_with_ref_first, &ref_ecef[0], &kf->decor_mtx[0], &kf->decor_obs_mtx[0]);
+}
+
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 {
@@ -623,9 +634,6 @@ void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 }
 
 
-
-
-
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   rebase_mean(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
@@ -635,6 +643,100 @@ void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 
 
 
+
+
+
+
+
+void kalman_filter_state_projection(kf_t *kf,
+                                    u8 num_old_non_ref_sats,
+                                    u8 num_new_non_ref_sats,
+                                    u8 *ndx_of_new_sat_in_old)
+{
+  u32 old_state_dim = num_old_non_ref_sats + 6;
+  double old_cov[old_state_dim * old_state_dim];
+  reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
+
+  u32 new_state_dim = num_new_non_ref_sats + 6;
+  double new_cov[new_state_dim * new_state_dim];
+  double new_mean[new_state_dim];
+  
+  //copy the bits that only relate to the baseline
+  memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
+  for (u32 i=0; i<6; i++) {
+    memcpy(&new_cov[i*new_state_dim], &old_cov,  6 * sizeof(double));
+  }
+
+  //copy the bits that relate to the dd ambiguities
+  for (u32 i=0; i<num_new_non_ref_sats; i++) {
+    u32 ndxi = ndx_of_new_sat_in_old[i];
+    new_mean[6+i] = kf->state_mean[6+ndxi];
+    
+    //copy the bits that are baseline-ambiguity covariances
+    for (u32 j=0; j<6; j++) {
+      new_cov[(6+i)*new_state_dim + j] = old_cov[(6+ndxi)*old_state_dim + j];
+      new_cov[j*new_state_dim + 6+i] = old_cov[j*old_state_dim + 6+ndxi];
+    }
+    //copy the bits that are the pure ambiguity covariances
+    for (u32 j=0; j<num_new_non_ref_sats; j++) {
+      u32 ndxj = ndx_of_new_sat_in_old[j];
+      new_cov[(i+6)*new_state_dim + j+6] = old_cov[(6+ndxi)*old_state_dim + 6+ndxj];
+    }
+  }
+
+  //put it all back into the kf
+  memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
+  udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
+  //NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE
+}
+
+void kalman_filter_state_inclusion(kf_t *kf,
+                                   u8 num_old_non_ref_sats,
+                                   u8 num_new_non_ref_sats,
+                                   u8 *ndx_of_old_sat_in_new,
+                                   double int_init_var,
+                                   double *dd_measurements)
+{
+  //NOTE: since UDU operates appropriately on block diagonal matrices, we don't need to reconstruct the UDU to do the inclusion
+  u32 old_state_dim = num_old_non_ref_sats + 6;
+  u32 new_state_dim = num_new_non_ref_sats + 6;
+  double new_cov_U[new_state_dim * new_state_dim];
+  double new_cov_D[new_state_dim * new_state_dim];
+  double new_mean[new_state_dim];
+  
+  
+  memcpy(new_cov_D, kf->state_cov_D, 6 * sizeof(double));
+  for (u32 i=0; i<num_new_non_ref_sats; i++) {
+    new_cov_D[6+i] = int_init_var; //actually, only need to to the ones in new_non_ref_sats\old_non_ref_sats ( "\" is set difference)
+  }
+  
+  least_squares_solve(kf, dd_measurements, new_mean);
+  memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
+  
+  eye(new_state_dim, new_cov_U);
+  for (u32 i=0; i<5; i++) {
+    memcpy(&new_cov_U[i*new_state_dim + i + 1], &kf->state_cov_U[i*old_state_dim + i+1], (5-i) * sizeof(double)); //copy the off-diagonals in the first 6x6 block
+  }
+  for (u32 i=0; i<num_old_non_ref_sats; i++) {
+    u8 ndxi = ndx_of_old_sat_in_new[i];
+    new_mean[ndxi+6] = kf->state_mean[i+6];
+    new_cov_D[ndxi+6] = kf->state_cov_D[i+6];
+    for (u32 j=0; j<6; j++) {
+      new_cov_U[j*new_state_dim + ndxi + 6] = kf->state_cov_U[j*old_state_dim + i+6]; // copy everything in that column above the diagonal up to the 6th piece
+    }
+    for (u32 j=0; j<i; j++) {
+      u8 ndxj = ndx_of_old_sat_in_new[j];
+      new_cov_U[(ndxj+6)*new_state_dim + ndxi + 6] = kf->state_cov_U[(j+6)*old_state_dim + i+6];  // copy everything in that column above the diagonal (that was there in the old sats)
+    }
+    for (u32 j=i+1; j<num_old_non_ref_sats; j++) {
+      u8 ndxj = ndx_of_old_sat_in_new[j];
+      new_cov_U[(ndxi+6)*new_state_dim + ndxj+6] = kf->state_cov_U[(i+6)*old_state_dim + j+6]; // copy everything in that column to the right of the diagonal (that was there in the old sats)
+    }
+  }
+  memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
+  memcpy(kf->state_cov_U, new_cov_U, new_state_dim * new_state_dim * sizeof(double));
+  memcpy(kf->state_cov_D, new_cov_D, new_state_dim * sizeof(double));
+}
 
 
 

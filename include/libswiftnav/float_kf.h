@@ -45,18 +45,14 @@ typedef struct {
 
 
 
-void predict_forward(kf_t *kf, double *state_mean, double *state_cov_U, double *state_cov_D);
+void predict_forward(kf_t *kf);
 
-void update_for_obs(kf_t *kf,
-                    double *intermediate_mean, double *intermediate_cov_U, double *intermediate_cov_D,
-                    double *decor_obs);
+void incorporate_obs(kf_t *kf, double *decor_obs);
 
 void update_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k);
 void decorrelate(kf_t *kf, double *measurements, double *decor_measurements);
-void filter_update(kf_t *kf,
-                   double *state_mean, double *state_cov_U, double *state_cov_D, 
-                   double *measurements);
+void kalman_filter_update(kf_t *kf, double *measurements);
 
 void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx);
 void assign_d_mtx(u8 num_sats, double *D);
@@ -80,10 +76,23 @@ kf_t get_kf(double phase_var, double code_var,
             double pos_var, double vel_var, double int_var, 
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt);
+void reset_kf_except_state(kf_t *kf, 
+                           double phase_var, double code_var,
+                           double pos_var, double vel_var, double int_var,
+                           u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt);
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt);
 
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state);
-
+void kalman_filter_state_projection(kf_t *kf,
+                                    u8 num_old_non_ref_sats,
+                                    u8 num_new_non_ref_sats,
+                                    u8 *ndx_of_new_sat_in_old);
+void kalman_filter_state_inclusion(kf_t *kf,
+                                   u8 num_old_non_ref_sats,
+                                   u8 num_new_non_ref_sats,
+                                   u8 *ndx_of_old_sat_in_new,
+                                   double int_init_var,
+                                   double *dd_measurements);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
