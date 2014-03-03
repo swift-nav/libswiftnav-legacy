@@ -22,7 +22,7 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
   return 6;
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
-  for (u8 i=1; i<num_sats; i++) {
+  for (u8 i=1; i<num_sats-1; i++) {
     if (sats[i].snr > best_snr) {
       best_snr = sats[i].snr;
       best_prn = sats[i].prn;
@@ -90,7 +90,7 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
   sats_management->num_sats = num_sats;
   sats_management->prns[0] = ref_prn;
   u8 j=1;
-  for (u8 i=0; i<num_sats; i++) {
+  for (u8 i=0; i<num_sats-1; i++) {
     if (sdiffs[i].prn != ref_prn) {
       sats_management->prns[j] = sdiffs[i].prn;
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
