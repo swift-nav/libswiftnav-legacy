@@ -28,8 +28,10 @@ typedef struct {
 
 void init_sats_management(sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
+void print_sats_management(sats_management_t *sats_management);
 s8 rebase_sats_management(sats_management_t *sats_management,
                           u8 num_sats, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
+void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs);
 
 
 #endif /* LIBSWIFTNAV_SATS_MANAGEMENT_H */
