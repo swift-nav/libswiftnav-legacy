@@ -92,7 +92,6 @@ void kalman_filter_state_inclusion(kf_t *kf,
                                    u8 num_old_non_ref_sats,
                                    u8 num_new_non_ref_sats,
                                    u8 *ndx_of_old_sat_in_new,
-                                   double int_init_var,
-                                   double *dd_measurements);
+                                   double int_init_var);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 

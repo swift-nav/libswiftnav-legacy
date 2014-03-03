@@ -440,6 +440,7 @@ void assign_decor_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first,
 
   double DE[num_diffs * 3];
   assign_de_mtx(num_sats, sats_with_ref_first, ref_ecef, &DE[0]);
+  //assign L^-1 * DE into DE
   cblas_dtrmm(CblasRowMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
               num_diffs, 3, //M, N
               1, &decor_mtx[0], num_diffs, //alpha, A, lda
@@ -483,6 +484,7 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
 {
   double decor_measurements[kf->obs_dim];
+  VEC_PRINTF(measurements, kf->obs_dim);
   decorrelate(kf, measurements, decor_measurements);
   s32 obs_dim = kf->obs_dim;
   s32 state_dim = kf->state_dim;
@@ -556,17 +558,17 @@ void initialize_state(kf_t *kf, double *dd_measurements,
 
 kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var,
             double pos_init_var, double vel_init_var, double int_init_var,
-            u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt)
+            u8 num_sdiffs, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt)
 {
-  u32 state_dim = num_sats + 5;
-  u32 num_diffs = num_sats-1;
+  u32 state_dim = num_sdiffs + 5;
+  u32 num_diffs = num_sdiffs-1;
   kf_t kf;
   kf.state_dim = state_dim;
   kf.obs_dim = 2*num_diffs;
   assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
   assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
   assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
-  assign_decor_obs_mtx(num_sats, sats_with_ref_first, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
+  assign_decor_obs_mtx(num_sdiffs, sats_with_ref_first, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
   initialize_state(&kf, dd_measurements,
                    pos_init_var, vel_init_var, int_init_var);
   return kf;
@@ -575,30 +577,30 @@ kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, d
 void reset_kf_except_state(kf_t *kf, 
                            double phase_var, double code_var,
                            double pos_var, double vel_var, double int_var,
-                           u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
+                           u8 num_sdiffs, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
 {
-  u32 state_dim = num_sats + 5;
-  u32 num_diffs = num_sats-1;
+  u32 state_dim = num_sdiffs + 5;
+  u32 num_diffs = num_sdiffs-1;
   kf->state_dim = state_dim;
   kf->obs_dim = 2*num_diffs;
   assign_transition_mtx(state_dim, dt, &kf->transition_mtx[0]);
   assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf->transition_cov[0]);
   assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf->decor_mtx[0], &kf->decor_obs_cov[0]);
-  assign_decor_obs_mtx(num_sats, sats_with_ref_first, &ref_ecef[0], &kf->decor_mtx[0], &kf->decor_obs_mtx[0]);
+  assign_decor_obs_mtx(num_sdiffs, sats_with_ref_first, &ref_ecef[0], &kf->decor_mtx[0], &kf->decor_obs_mtx[0]);
 }
 
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
-                      u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
+                      u8 num_sdiffs, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 {
-  u32 state_dim = num_sats + 5;
-  u32 num_diffs = num_sats-1;
+  u32 state_dim = num_sdiffs + 5;
+  u32 num_diffs = num_sdiffs-1;
   kf_t kf;
   kf.state_dim = state_dim;
   kf.obs_dim = 2*num_diffs;
   assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
   assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
   assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
-  assign_decor_obs_mtx_from_alms(num_sats, alms, timestamp, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
+  assign_decor_obs_mtx_from_alms(num_sdiffs, alms, timestamp, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
   return kf;
 }
 
@@ -656,6 +658,7 @@ void kalman_filter_state_projection(kf_t *kf,
   u32 old_state_dim = num_old_non_ref_sats + 6;
   double old_cov[old_state_dim * old_state_dim];
   reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
+  MAT_PRINTF(old_cov, old_state_dim, old_state_dim);
 
   u32 new_state_dim = num_new_non_ref_sats + 6;
   double new_cov[new_state_dim * new_state_dim];
@@ -664,7 +667,7 @@ void kalman_filter_state_projection(kf_t *kf,
   //copy the bits that only relate to the baseline
   memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
   for (u32 i=0; i<6; i++) {
-    memcpy(&new_cov[i*new_state_dim], &old_cov,  6 * sizeof(double));
+    memcpy(&new_cov[i*new_state_dim], &old_cov[i*old_state_dim],  6 * sizeof(double));
   }
 
   //copy the bits that relate to the dd ambiguities
@@ -683,6 +686,7 @@ void kalman_filter_state_projection(kf_t *kf,
       new_cov[(i+6)*new_state_dim + j+6] = old_cov[(6+ndxi)*old_state_dim + 6+ndxj];
     }
   }
+  MAT_PRINTF(new_cov, new_state_dim, new_state_dim);
 
   //put it all back into the kf
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
@@ -691,6 +695,47 @@ void kalman_filter_state_projection(kf_t *kf,
 }
 
 void kalman_filter_state_inclusion(kf_t *kf,
+                                   u8 num_old_non_ref_sats,
+                                   u8 num_new_non_ref_sats,
+                                   u8 *ndx_of_old_sat_in_new,
+                                   double int_init_var)
+{
+  u32 old_state_dim = num_old_non_ref_sats + 6;
+  double old_cov[old_state_dim * old_state_dim];
+  reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
+
+  u32 new_state_dim = num_new_non_ref_sats + 6;
+  double new_cov[new_state_dim * new_state_dim];
+  memset(new_cov, 0, new_state_dim * new_state_dim * sizeof(double));
+  for (u32 i=0; i<num_new_non_ref_sats; i++) {
+    new_cov[(i+6)*new_state_dim + i+6] = int_init_var;
+  }
+  double new_mean[new_state_dim];
+  // least_squares_solve(kf, dd_measurements, new_mean); //TODO do we really want to initialize new states this way?
+  memset(new_mean, 0, new_state_dim * sizeof(double));
+  
+  //copy the bits that only relate to the baseline
+  memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
+  for (u32 i=0; i<6; i++) {
+    memcpy(&new_cov[i*new_state_dim], &old_cov[i*old_state_dim],  6 * sizeof(double));
+  }
+  for (u32 i=0; i<num_old_non_ref_sats; i++) {
+    u8 ndxi = ndx_of_old_sat_in_new[i];
+    new_mean[ndxi + 6] = kf->state_mean[i+6];
+    for (u32 j=0; j<6; j++) {
+      new_cov[(ndxi+6)*new_state_dim + j] = old_cov[(i+6)*old_state_dim + j];
+      new_cov[j*new_state_dim + ndxi + 6] = old_cov[j*old_state_dim + i + 6];
+    }
+    for (u32 j=0;j<num_old_non_ref_sats; j++) {
+      u8 ndxj = ndx_of_old_sat_in_new[j];
+      new_cov[(ndxi+6)*new_state_dim + ndxj+6] = old_cov[(i+6)*old_state_dim + j+6];
+    }
+  }
+  udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
+  memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
+}
+
+void kalman_filter_state_inclusion_independent(kf_t *kf,
                                    u8 num_old_non_ref_sats,
                                    u8 num_new_non_ref_sats,
                                    u8 *ndx_of_old_sat_in_new,

@@ -142,24 +142,18 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
                           PHASE_VAR, CODE_VAR,
                           POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
                           num_sdiffs, corrected_sdiffs, reciever_ecef, dt);
-    MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
     if (num_intersection_sats < sats_management.num_sats) { //lost sats
-      printf("kf_projection\n");
-      VEC_PRINTF(kf.state_mean, kf.state_dim);
       kalman_filter_state_projection(&kf,
                                      sats_management.num_sats-1,
                                      num_intersection_sats-1,
                                      &ndx_of_intersection_in_old[1]);
-      VEC_PRINTF(kf.state_mean, kf.state_dim);
     }
     if (num_intersection_sats < num_sdiffs) { //gained sats
-      printf("kf_inclusion\n");
       kalman_filter_state_inclusion(&kf,
                                     num_intersection_sats-1,
                                     num_sdiffs-1,
                                     &ndx_of_intersection_in_new[1],
-                                    INT_INIT_VAR,
-                                    dd_measurements);
+                                    NEW_INT_VAR);
     }
 
     update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
@@ -168,7 +162,6 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
     print_sats_management(&sats_management);
   }
-MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
 }
 
 void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef)

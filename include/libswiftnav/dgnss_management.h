@@ -22,6 +22,7 @@
 #define POS_INIT_VAR 1e2
 #define VEL_INIT_VAR 4e2
 #define INT_INIT_VAR 1e4
+#define NEW_INT_VAR 1e10
 
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
