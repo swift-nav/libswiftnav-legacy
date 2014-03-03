@@ -9,6 +9,8 @@
 #ifndef CBLAS_F77_H
 #define CBLAS_f77_H
 
+#define ADD_
+
 #ifdef CRAY
    #include <fortran.h>
    #define F77_CHAR _fcd
