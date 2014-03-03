@@ -263,11 +263,11 @@ cdef class KalmanFilter:
   property decor_obs_mtx:
     def __get__(self):
       cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx = \
-        np.empty((self.obs_dim, self.obs_dim), dtype=np.double)
-      memcpy(&decor_obs_mtx[0,0], self.kf.decor_obs_mtx, self.obs_dim * self.obs_dim * sizeof(double))
+        np.empty((self.obs_dim, self.state_dim), dtype=np.double)
+      memcpy(&decor_obs_mtx[0,0], self.kf.decor_obs_mtx, self.obs_dim * self.state_dim * sizeof(double))
       return decor_obs_mtx
     def __set__(self, np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx):
-      memcpy(self.kf.decor_obs_mtx, &decor_obs_mtx[0,0], self.obs_dim * self.obs_dim * sizeof(double))
+      memcpy(self.kf.decor_obs_mtx, &decor_obs_mtx[0,0], self.obs_dim * self.state_dim * sizeof(double))
 
   property decor_obs_cov:
     def __get__(self):
