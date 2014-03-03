@@ -26,13 +26,13 @@ kf_t kf;
 stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
 
-void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
+void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   double phase0 = sdiffs[0].carrier_phase;
   double code0 = sdiffs[0].pseudorange;
-  for (u8 i=0; i<num_diffs; i++) {
+  for (u8 i=0; i<num_double_diffs; i++) {
     raw_measurements[i] = sdiffs[i+1].carrier_phase - phase0;
-    raw_measurements[i+num_diffs] = sdiffs[i+1].pseudorange - code0;
+    raw_measurements[i+num_double_diffs] = sdiffs[i+1].pseudorange - code0;
   }
 }
 
