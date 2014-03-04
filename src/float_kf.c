@@ -487,7 +487,7 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
 {
   double decor_measurements[kf->obs_dim];
-  VEC_PRINTF(measurements, kf->obs_dim);
+  /*VEC_PRINTF(measurements, kf->obs_dim);*/
   decorrelate(kf, measurements, decor_measurements);
   s32 obs_dim = kf->obs_dim;
   s32 state_dim = kf->state_dim;
@@ -513,7 +513,7 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
                  &rank, //RANK
                  &w[0], &lwork, // WORK, LWORK
                  &info); //INFO
-  lwork = round(w[0]);
+  lwork = MAX(1000, round(w[0]));
   
   double work[lwork];
   dgelss_((integer *) &obs_dim, (integer *) &state_dim, (integer *) &nrhs, //M, N, NRHS
@@ -659,7 +659,7 @@ void kalman_filter_state_projection(kf_t *kf,
   u32 old_state_dim = num_old_non_ref_sats + 6;
   double old_cov[old_state_dim * old_state_dim];
   reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
-  MAT_PRINTF(old_cov, old_state_dim, old_state_dim);
+  /*MAT_PRINTF(old_cov, old_state_dim, old_state_dim);*/
 
   u32 new_state_dim = num_new_non_ref_sats + 6;
   double new_cov[new_state_dim * new_state_dim];
@@ -687,7 +687,7 @@ void kalman_filter_state_projection(kf_t *kf,
       new_cov[(i+6)*new_state_dim + j+6] = old_cov[(6+ndxi)*old_state_dim + 6+ndxj];
     }
   }
-  MAT_PRINTF(new_cov, new_state_dim, new_state_dim);
+  /*MAT_PRINTF(new_cov, new_state_dim, new_state_dim);*/
 
   //put it all back into the kf
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
