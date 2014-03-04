@@ -229,19 +229,22 @@ void decorrelate(kf_t *kf, double *measurements, double *decor_measurements)
  */
 void kalman_filter_update(kf_t *kf, double *measurements)
 {
+  double measurements_copy[kf->obs_dim];
+  memcpy(measurements_copy, measurements, kf->obs_dim * sizeof(double));
   // VEC_PRINTF(measurements, kf->obs_dim);
   // MAT_PRINTF(kf->decor_obs_mtx, kf->obs_dim, kf->state_dim);
   // MAT_PRINTF(kf->obs_cov_root_inv, kf->obs_dim, kf->obs_dim);
   u8 n_diffs = kf->obs_dim/2;
+
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
               n_diffs, kf->decor_mtx, 
-              n_diffs, measurements, 1); // replaces raw phase measurements by their decorrelated version
+              n_diffs, measurements_copy, 1); // replaces raw phase measurements by their decorrelated version
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
               n_diffs, kf->decor_mtx, 
-              n_diffs, &measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
+              n_diffs, &measurements_copy[n_diffs], 1); // replaces raw measurements by their decorrelated version
 
   predict_forward(kf);
-  incorporate_obs(kf, measurements);
+  incorporate_obs(kf, measurements_copy);
 }
 
 void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx)
