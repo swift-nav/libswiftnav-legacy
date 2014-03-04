@@ -115,7 +115,7 @@ START_TEST(test_rtcm3_read_write_header)
 
   fail_unless(type == 1234, "type decode error, decoded %d, expected 1234", type);
   fail_unless(id == 2269, "id decode error, decoded %d, expected 2269", id);
-  fail_unless(fabs(tow - t.tow) < 1e3, "TOW decode error, decoded %f, expected %f", tow, t.tow);
+  fail_unless(fabs(tow - t.tow) < 1e-3, "TOW decode error, decoded %f, expected %f", tow, t.tow);
   fail_unless(sync == 1, "id decode error, decoded %d, expected 1", id);
   fail_unless(n_sat == 22, "n_sat decode error, decoded %d, expected 22", n_sat);
   fail_unless(div_free == 1, "div_free decode error, decoded %d, expected 1", div_free);
