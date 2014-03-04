@@ -16,6 +16,7 @@
 #include "stupid_filter.h"
 #include "single_diff.h"
 #include "dgnss_management.h"
+#include "linear_algebra.h"
 
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -25,26 +26,30 @@ kf_t kf;
 stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
 
-void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
+void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   double phase0 = sdiffs[0].carrier_phase;
   double code0 = sdiffs[0].pseudorange;
-  for (u8 i=0; i<num_diffs; i++) {
+  for (u8 i=0; i<num_double_diffs; i++) {
     raw_measurements[i] = sdiffs[i+1].carrier_phase - phase0;
-    raw_measurements[i+num_diffs] = sdiffs[i+1].pseudorange - code0;
+    raw_measurements[i+num_double_diffs] = sdiffs[i+1].pseudorange - code0;
   }
 }
 
 bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
 {
-  if (sats_management.num_sats-1 != num_non_ref_sdiffs)
+  if (sats_management.num_sats-1 != num_non_ref_sdiffs) {
+    printf("len_doesn't match\n");
     return false;
+  }
   for (u8 i=0; i<num_non_ref_sdiffs; i++) {
     //iterate through the non-reference_sats
+    printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);
     if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
       return false;
     }
   }
+  printf("prns_match\n");
   return true;
 }
 
@@ -148,14 +153,15 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
                                     num_intersection_sats-1,
                                     num_sdiffs-1,
                                     &ndx_of_intersection_in_new[1],
-                                    INT_INIT_VAR,
-                                    dd_measurements);
+                                    NEW_INT_VAR);
     }
 
     update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
                             corrected_sdiffs, dd_measurements, reciever_ecef);
+    print_sats_management(&sats_management);
+    update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
+    print_sats_management(&sats_management);
   }
-  
 }
 
 void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef)
@@ -180,20 +186,18 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
-
   //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
   dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, dt, old_prns, corrected_sdiffs);
   
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
-
+  
   //all the added/dropped sat stuff
   dgnss_update_sats(num_sats, reciever_ecef, corrected_sdiffs, dd_measurements, dt);
-
+  printf("done updating sats\n");
+  MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef);
-  
-
   
 }
 

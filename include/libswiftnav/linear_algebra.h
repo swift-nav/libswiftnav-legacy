@@ -23,14 +23,13 @@
   }
 
 #define MAT_PRINTF(m, _r, _c) {                    \
-    printf("%s:%u <|%s|",                          \
+    printf("%s:%u <|%s|\n",                          \
            __FILE__, __LINE__, #m);                \
     for (u32 _i = 0; _i < (_r); _i++) {              \
-      printf(" [%lf", (m)[_i*(_c) + 0]);                \
+      printf(" [% 12lf", (m)[_i*(_c) + 0]);                \
       for (u32 _j = 1; _j < (_c); _j++)              \
-        printf(" %lf", (m)[_i*(_c) + _j]);               \
-      printf("]");                                 \
-      if ((_r) > 2 && _i < (_r) - 1) printf("\n\t\t\t");              \
+        printf(" % 12lf", (m)[_i*(_c) + _j]);               \
+      printf("]\n");                                 \
     }                                              \
     printf(">\n");                                 \
   }
