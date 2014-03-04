@@ -22,7 +22,7 @@
 #include "gpstime.h"
 #include "float_kf.h"
 
-s8 udu(u32 n, double *M, double *U, double *D) 
+s8 udu(u32 n, double *M, double *U, double *D)
 {
   double alpha, beta;
   triu(n, M);
@@ -43,7 +43,7 @@ s8 udu(u32 n, double *M, double *U, double *D)
         M[kk*n + k-1] = M[kk*n + k-1] - beta * U[kk*n + j-1];
       }
     }
-    
+
   }
   D[0] = M[0];
   return 0;
@@ -68,7 +68,7 @@ void triu(u32 n, double *M)
 
 /** Reconsructs a UDU' decomposed matrix
  */
-void reconstruct_udu(u32 n, double *U, double *D, double *M) 
+void reconstruct_udu(u32 n, double *U, double *D, double *M)
 {
   memset(M, 0, n * n * sizeof(double));
   // TODO: will be symmetric, only need to bother populating part of it
@@ -87,7 +87,7 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
 
 /** In place prediction of the next state mean and covariances
  */
-void predict_forward(kf_t *kf) 
+void predict_forward(kf_t *kf)
 {
   //TODO take advantage of sparsity in this function
 
@@ -218,10 +218,10 @@ void decorrelate(kf_t *kf, double *measurements, double *decor_measurements)
   u8 n_diffs = kf->obs_dim/2;
   memcpy(decor_measurements, measurements, kf->obs_dim * sizeof(double));
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              n_diffs, kf->decor_mtx, 
+              n_diffs, kf->decor_mtx,
               n_diffs, decor_measurements, 1); // replaces raw phase measurements by their decorrelated version
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              n_diffs, kf->decor_mtx, 
+              n_diffs, kf->decor_mtx,
               n_diffs, &decor_measurements[n_diffs], 1); // replaces raw measurements by their decorrelated version
 }
 
@@ -237,10 +237,10 @@ void kalman_filter_update(kf_t *kf, double *measurements)
   u8 n_diffs = kf->obs_dim/2;
 
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              n_diffs, kf->decor_mtx, 
+              n_diffs, kf->decor_mtx,
               n_diffs, measurements_copy, 1); // replaces raw phase measurements by their decorrelated version
   cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              n_diffs, kf->decor_mtx, 
+              n_diffs, kf->decor_mtx,
               n_diffs, &measurements_copy[n_diffs], 1); // replaces raw measurements by their decorrelated version
 
   predict_forward(kf);
@@ -366,7 +366,7 @@ void assign_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3
   u32 state_dim = 5 + num_sats;
 
   memset(obs_mtx, 0, obs_dim * state_dim * sizeof(double));
-  
+
   double DE[(num_sats-1) * 3];
   assign_de_mtx(num_sats, sats_with_ref_first, ref_ecef, &DE[0]);
 
@@ -392,7 +392,7 @@ void assign_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp
   u32 state_dim = 5 + num_sats;
 
   memset(obs_mtx, 0, obs_dim * state_dim * sizeof(double));
-  
+
   double DE[(num_sats-1) * 3];
   assign_de_mtx_from_alms(num_sats, alms, timestamp, ref_ecef, &DE[0]);
 
@@ -424,7 +424,7 @@ void assign_decor_obs_cov(u8 num_diffs, double phase_var, double code_var,
     //assign the decorrelated covariance
     decor_obs_cov[i] = phase_var + phase_var * i_plus_one_divisor;
     decor_obs_cov[i+num_diffs] = code_var + code_var * i_plus_one_divisor;
-    
+
     //assign the decorrelation matrix
     decor_mtx[i*num_diffs + i] = 1;
     for (u8 j=0; j<i; j++) {
@@ -447,7 +447,7 @@ void assign_decor_obs_mtx(u8 num_sats, sdiff_t *sats_with_ref_first,
   cblas_dtrmm(CblasRowMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
               num_diffs, 3, //M, N
               1, &decor_mtx[0], num_diffs, //alpha, A, lda
-              &DE[0], 3); //B, ldb  
+              &DE[0], 3); //B, ldb
 
   for (u32 i=0; i<num_diffs; i++) {
     obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
@@ -472,7 +472,7 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
   cblas_dtrmm(CblasRowMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
               num_diffs, 3, //M, N
               1, &decor_mtx[0], num_diffs, //alpha, A, lda
-              &DE[0], 3); //B, ldb  
+              &DE[0], 3); //B, ldb
 
   for (u32 i=0; i<num_diffs; i++) {
     obs_mtx[i*state_dim] = DE[i*3] / GPS_L1_LAMBDA_NO_VAC;
@@ -513,8 +513,8 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
                  &rank, //RANK
                  &w[0], &lwork, // WORK, LWORK
                  &info); //INFO
-  lwork = MAX(1000, round(w[0]));
-  
+  lwork = round(w[0]);
+
   double work[lwork];
   dgelss_((integer *) &obs_dim, (integer *) &state_dim, (integer *) &nrhs, //M, N, NRHS
                  &decor_obs_mtx_transpose[0], (integer *) &obs_dim, //A, LDA
@@ -575,7 +575,7 @@ void get_kf(kf_t *kf, double phase_var, double code_var, double pos_var, double 
                    pos_init_var, vel_init_var, int_init_var);
 }
 
-void reset_kf_except_state(kf_t *kf, 
+void reset_kf_except_state(kf_t *kf,
                            double phase_var, double code_var,
                            double pos_var, double vel_var, double int_var,
                            u8 num_sdiffs, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt)
@@ -590,7 +590,7 @@ void reset_kf_except_state(kf_t *kf,
   assign_decor_obs_mtx(num_sdiffs, sats_with_ref_first, &ref_ecef[0], &kf->decor_mtx[0], &kf->decor_obs_mtx[0]);
 }
 
-kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var,
                       u8 num_sdiffs, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 {
   u32 state_dim = num_sdiffs + 5;
@@ -636,20 +636,60 @@ void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
   memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
 }
 
+void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+{
+  u32 state_dim = num_sats + 5;
+  memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
+  u8 old_ref = old_prns[0];
+  u8 new_ref = new_prns[0];
+
+  for (u8 i=0; i<6; i++) {
+    rebase_mtx[i*state_dim + i] = 1;
+  }
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
+  for (u32 i=0; i<(u32)(num_sats-1); i++) {
+    rebase_mtx[(i+6)*state_dim + index_of_new_ref_in_old+6] = -1;
+    if (i != (u32) index_of_old_ref_in_new) {
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
+      rebase_mtx[(i+6)*state_dim + index_of_this_sat_in_old_basis+6] = 1;
+    }
+  }
+  // MAT_PRINTF(rebase_mtx, state_dim, state_dim);
+}
+
+void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
+{
+  u32 state_dim = num_sats + 5;
+  double rebase_mtx[state_dim * state_dim];
+  assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
+  double state_cov[state_dim * state_dim];
+  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
+  double intermediate_cov[state_dim * state_dim];
+  //TODO make more efficient via structure of rebase_mtx
+  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
+              state_dim, state_dim, // int M, int N
+              1, state_cov, state_dim, // double alpha, double *A, int lda
+              rebase_mtx, state_dim, // double *B, int ldb
+              0, intermediate_cov, state_dim); // double beta, double *C, int ldc
+  // MAT_PRINTF(intermediate_cov, state_dim, state_dim);
+
+  //TODO make more efficient via the structure of rebase_mtx
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
+              state_dim, state_dim, state_dim, // int M, int N, int K
+              1, intermediate_cov, state_dim, // double alpha, double *A, int lda
+              rebase_mtx, state_dim, //double *B, int ldb
+              0, state_cov, state_dim); //beta, double *C, int ldc
+  // MAT_PRINTF(state_cov, state_dim, state_dim);
+  udu(state_dim, state_cov, state_cov_U, state_cov_D);
+
+}
 
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   rebase_mean(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
-  //todo rebase covariance
+  rebase_covariance(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
-
-
-
-
-
-
-
-
 
 void kalman_filter_state_projection(kf_t *kf,
                                     u8 num_old_non_ref_sats,
@@ -664,7 +704,7 @@ void kalman_filter_state_projection(kf_t *kf,
   u32 new_state_dim = num_new_non_ref_sats + 6;
   double new_cov[new_state_dim * new_state_dim];
   double new_mean[new_state_dim];
-  
+
   //copy the bits that only relate to the baseline
   memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
   for (u32 i=0; i<6; i++) {
@@ -675,7 +715,7 @@ void kalman_filter_state_projection(kf_t *kf,
   for (u32 i=0; i<num_new_non_ref_sats; i++) {
     u32 ndxi = ndx_of_new_sat_in_old[i];
     new_mean[6+i] = kf->state_mean[6+ndxi];
-    
+
     //copy the bits that are baseline-ambiguity covariances
     for (u32 j=0; j<6; j++) {
       new_cov[(6+i)*new_state_dim + j] = old_cov[(6+ndxi)*old_state_dim + j];
@@ -714,7 +754,7 @@ void kalman_filter_state_inclusion(kf_t *kf,
   double new_mean[new_state_dim];
   // least_squares_solve(kf, dd_measurements, new_mean); //TODO do we really want to initialize new states this way?
   memset(new_mean, 0, new_state_dim * sizeof(double));
-  
+
   //copy the bits that only relate to the baseline
   memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
   for (u32 i=0; i<6; i++) {
@@ -749,16 +789,16 @@ void kalman_filter_state_inclusion_independent(kf_t *kf,
   double new_cov_U[new_state_dim * new_state_dim];
   double new_cov_D[new_state_dim * new_state_dim];
   double new_mean[new_state_dim];
-  
-  
+
+
   memcpy(new_cov_D, kf->state_cov_D, 6 * sizeof(double));
   for (u32 i=0; i<num_new_non_ref_sats; i++) {
     new_cov_D[6+i] = int_init_var; //actually, only need to to the ones in new_non_ref_sats\old_non_ref_sats ( "\" is set difference)
   }
-  
+
   least_squares_solve(kf, dd_measurements, new_mean);
   memcpy(new_mean, kf->state_mean, 6 * sizeof(double));
-  
+
   eye(new_state_dim, new_cov_U);
   for (u32 i=0; i<5; i++) {
     memcpy(&new_cov_U[i*new_state_dim + i + 1], &kf->state_cov_U[i*old_state_dim + i+1], (5-i) * sizeof(double)); //copy the off-diagonals in the first 6x6 block

@@ -18,7 +18,6 @@
 #include "linear_algebra.h"
 
 
-
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
@@ -91,14 +90,27 @@ u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
 void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
-  sats_management->prns[0] = ref_prn;
-  u8 j=1;
-  u8 old_prns[sats_management->num_sats];
-  memcpy(old_prns, sats_management->prns, sats_management->num_sats);
-  for (u8 i=0; i<sats_management->num_sats; i++) {
-    if (old_prns[i] != ref_prn) {
-      sats_management->prns[j] = old_prns[i];
-      j++;
+  u8 old_ref = sats_management->prns[0];
+  u8 j;
+  if (old_ref != ref_prn) {
+    j = 1;
+    u8 old_prns[sats_management->num_sats];
+    memcpy(old_prns, sats_management->prns, sats_management->num_sats);
+    u8 set_old_yet = 0;
+    sats_management->prns[0] = ref_prn;
+    for (u8 i=1; i<sats_management->num_sats; i++) {
+      if (old_prns[i] != ref_prn) {
+        if (old_prns[i]>old_ref && set_old_yet == 0) {
+          sats_management->prns[j] = old_ref;
+          j++;
+          i--;
+          set_old_yet = 1;
+        }
+        else {
+          sats_management->prns[j] = old_prns[i];
+          j++;
+        }
+      }
     }
   }
   j=1;
@@ -150,7 +162,6 @@ void print_sats_management(sats_management_t *sats_management)
 s8 rebase_sats_management(sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
-
   s8 return_code;
   u8 ref_prn;
   // Check if old reference is in sdiffs

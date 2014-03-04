@@ -23,7 +23,6 @@
 #define MAX_OBS_DIM (2 * MAX_CHANNELS)
 
 s8 udu(u32 n, double *M, double *U, double *D);
-
 void triu(u32 n, double *M);
 
 void eye(u32 n, double *M);
@@ -95,5 +94,8 @@ void kalman_filter_state_inclusion(kf_t *kf,
                                    u8 num_new_non_ref_sats,
                                    u8 *ndx_of_old_sat_in_new,
                                    double int_init_var);
+
+void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
+void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
