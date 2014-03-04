@@ -39,17 +39,17 @@ void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measure
 bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
 {
   if (sats_management.num_sats-1 != num_non_ref_sdiffs) {
-    printf("len_doesn't match\n");
+    // printf("len_doesn't match\n");
     return false;
   }
   for (u8 i=0; i<num_non_ref_sdiffs; i++) {
     //iterate through the non-reference_sats
-    printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);
+    // printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);
     if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
       return false;
     }
   }
-  printf("prns_match\n");
+  // printf("prns_match\n");
   return true;
 }
 
