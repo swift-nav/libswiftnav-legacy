@@ -72,7 +72,7 @@ void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t tim
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx);
 void assign_transition_cov(u32 state_dim, double pos_var, double vel_var, double int_var, double *transition_cov);
 
-kf_t get_kf(double phase_var, double code_var,
+void get_kf(kf_t *kf, double phase_var, double code_var,
             double pos_var, double vel_var, double int_var, 
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt);

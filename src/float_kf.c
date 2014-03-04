@@ -556,22 +556,20 @@ void initialize_state(kf_t *kf, double *dd_measurements,
   }
 }
 
-kf_t get_kf(double phase_var, double code_var, double pos_var, double vel_var, double int_var,
+void get_kf(kf_t *kf, double phase_var, double code_var, double pos_var, double vel_var, double int_var,
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sdiffs, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt)
 {
   u32 state_dim = num_sdiffs + 5;
   u32 num_diffs = num_sdiffs-1;
-  kf_t kf;
-  kf.state_dim = state_dim;
-  kf.obs_dim = 2*num_diffs;
-  assign_transition_mtx(state_dim, dt, &kf.transition_mtx[0]);
-  assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf.transition_cov[0]);
-  assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf.decor_mtx[0], &kf.decor_obs_cov[0]);
-  assign_decor_obs_mtx(num_sdiffs, sats_with_ref_first, &ref_ecef[0], &kf.decor_mtx[0], &kf.decor_obs_mtx[0]);
-  initialize_state(&kf, dd_measurements,
+  kf->state_dim = state_dim;
+  kf->obs_dim = 2*num_diffs;
+  assign_transition_mtx(state_dim, dt, &kf->transition_mtx[0]);
+  assign_transition_cov(state_dim, pos_var, vel_var, int_var, &kf->transition_cov[0]);
+  assign_decor_obs_cov(num_diffs, phase_var, code_var, &kf->decor_mtx[0], &kf->decor_obs_cov[0]);
+  assign_decor_obs_mtx(num_sdiffs, sats_with_ref_first, &ref_ecef[0], &kf->decor_mtx[0], &kf->decor_obs_mtx[0]);
+  initialize_state(kf, dd_measurements,
                    pos_init_var, vel_init_var, int_init_var);
-  return kf;
 }
 
 void reset_kf_except_state(kf_t *kf, 

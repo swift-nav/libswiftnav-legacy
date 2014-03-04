@@ -85,16 +85,16 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
-  kf = get_kf(PHASE_VAR, CODE_VAR,
-              POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
-              POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
-              num_sats, corrected_sdiffs, dd_measurements, reciever_ecef, dt);
+  get_kf(&kf, PHASE_VAR, CODE_VAR,
+         POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
+         POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
+         num_sats, corrected_sdiffs, dd_measurements, reciever_ecef, dt);
 
   /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
-  double b_init[3] = {-1.4861289 ,  0.84761746, -0.01029364}; // colin's piksi data
-  // double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree
+  /*double b_init[3] = {-1.4861289 ,  0.84761746, -0.01029364}; // colin's piksi data*/
+   /*double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree*/
   // double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched
-  init_stupid_filter(&stupid_state, num_sats, corrected_sdiffs, dd_measurements, b_init, reciever_ecef);
+  /*init_stupid_filter(&stupid_state, num_sats, corrected_sdiffs, dd_measurements, b_init, reciever_ecef);*/
 
 }
 
