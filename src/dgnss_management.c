@@ -109,7 +109,7 @@ void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dou
   else if (sats_management_code == NEW_REF) {
     // do everything related to changing the reference sat here
     rebase_stupid_filter(&stupid_state, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);
-    // rebase_kf(&kf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]); //TODO implement correctly
+    rebase_kf(&kf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]); //TODO implement correctly
   }
 }
 
@@ -119,6 +119,8 @@ void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
     prns[i] = sdiffs[i].prn;
   }
 }
+
+
 
 void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *corrected_sdiffs,
                        double * dd_measurements, double dt)
@@ -158,9 +160,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
 
     update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
                             corrected_sdiffs, dd_measurements, reciever_ecef);
-    print_sats_management(&sats_management);
     update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
-    print_sats_management(&sats_management);
   }
 }
 
@@ -194,8 +194,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   
   //all the added/dropped sat stuff
   dgnss_update_sats(num_sats, reciever_ecef, corrected_sdiffs, dd_measurements, dt);
-  printf("done updating sats\n");
-  MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
+  // MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef);
   

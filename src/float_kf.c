@@ -511,6 +511,7 @@ void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
                  &w[0], &lwork, // WORK, LWORK
                  &info); //INFO
   lwork = round(w[0]);
+  // printf("lwork= %i\n", (int) lwork);
   
   double work[lwork];
   dgelss_((integer *) &obs_dim, (integer *) &state_dim, (integer *) &nrhs, //M, N, NRHS
@@ -635,20 +636,60 @@ void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
   memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
 }
 
+void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+{
+  u32 state_dim = num_sats + 5;
+  memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
+  u8 old_ref = old_prns[0];
+  u8 new_ref = new_prns[0];
+
+  for (u8 i=0; i<6; i++) {
+    rebase_mtx[i*state_dim + i] = 1;
+  }
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
+  for (u32 i=0; i<(u32)(num_sats-1); i++) {
+    rebase_mtx[(i+6)*state_dim + index_of_new_ref_in_old+6] = -1;
+    if (i != (u32) index_of_old_ref_in_new) {
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
+      rebase_mtx[(i+6)*state_dim + index_of_this_sat_in_old_basis+6] = 1;
+    }
+  }
+  // MAT_PRINTF(rebase_mtx, state_dim, state_dim);
+}
+
+void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
+{
+  u32 state_dim = num_sats + 5;
+  double rebase_mtx[state_dim * state_dim];
+  assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
+  double state_cov[state_dim * state_dim];
+  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
+  double intermediate_cov[state_dim * state_dim];
+  //TODO make more efficient via structure of rebase_mtx
+  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
+              state_dim, state_dim, // int M, int N
+              1, state_cov, state_dim, // double alpha, double *A, int lda
+              rebase_mtx, state_dim, // double *B, int ldb
+              0, intermediate_cov, state_dim); // double beta, double *C, int ldc
+  // MAT_PRINTF(intermediate_cov, state_dim, state_dim);
+
+  //TODO make more efficient via the structure of rebase_mtx
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
+              state_dim, state_dim, state_dim, // int M, int N, int K
+              1, intermediate_cov, state_dim, // double alpha, double *A, int lda
+              rebase_mtx, state_dim, //double *B, int ldb
+              0, state_cov, state_dim); //beta, double *C, int ldc
+  // MAT_PRINTF(state_cov, state_dim, state_dim);
+  udu(state_dim, state_cov, state_cov_U, state_cov_D);
+  
+}
 
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   rebase_mean(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
-  //todo rebase covariance
+  rebase_covariance(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
-
-
-
-
-
-
-
-
 
 void kalman_filter_state_projection(kf_t *kf,
                                     u8 num_old_non_ref_sats,
@@ -658,7 +699,7 @@ void kalman_filter_state_projection(kf_t *kf,
   u32 old_state_dim = num_old_non_ref_sats + 6;
   double old_cov[old_state_dim * old_state_dim];
   reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
-  MAT_PRINTF(old_cov, old_state_dim, old_state_dim);
+  // MAT_PRINTF(old_cov, old_state_dim, old_state_dim);
 
   u32 new_state_dim = num_new_non_ref_sats + 6;
   double new_cov[new_state_dim * new_state_dim];
@@ -686,7 +727,7 @@ void kalman_filter_state_projection(kf_t *kf,
       new_cov[(i+6)*new_state_dim + j+6] = old_cov[(6+ndxi)*old_state_dim + 6+ndxj];
     }
   }
-  MAT_PRINTF(new_cov, new_state_dim, new_state_dim);
+  // MAT_PRINTF(new_cov, new_state_dim, new_state_dim);
 
   //put it all back into the kf
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
