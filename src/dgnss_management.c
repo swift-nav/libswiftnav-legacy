@@ -44,12 +44,12 @@ bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sd
   }
   for (u8 i=0; i<num_non_ref_sdiffs; i++) {
     //iterate through the non-reference_sats
-    printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);
+    /*printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);*/
     if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
       return false;
     }
   }
-  printf("prns_match\n");
+  /*printf("prns_match\n");*/
   return true;
 }
 
@@ -108,8 +108,8 @@ void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dou
   }
   else if (sats_management_code == NEW_REF) {
     // do everything related to changing the reference sat here
-    rebase_stupid_filter(&stupid_state, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);
-    // rebase_kf(&kf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]); //TODO implement correctly
+    /*rebase_stupid_filter(&stupid_state, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);*/
+     rebase_kf(&kf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]); //TODO implement correctly
   }
 }
 
@@ -156,49 +156,53 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
                                     NEW_INT_VAR);
     }
 
-    update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
-                            corrected_sdiffs, dd_measurements, reciever_ecef);
-    print_sats_management(&sats_management);
+    (void)dd_measurements;
+    /*update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,*/
+                            /*corrected_sdiffs, dd_measurements, reciever_ecef);*/
+    /*print_sats_management(&sats_management);*/
     update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
-    print_sats_management(&sats_management);
+    /*print_sats_management(&sats_management);*/
   }
 }
 
-void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef)
+void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, double b[3])
 {
   double ref_ecef[3];
+
   ref_ecef[0] = reciever_ecef[0] + kf.state_mean[0]*0.5;
   ref_ecef[1] = reciever_ecef[1] + kf.state_mean[1]*0.5;
   ref_ecef[2] = reciever_ecef[2] + kf.state_mean[2]*0.5;
   assign_decor_obs_mtx(sats_management.num_sats, sdiffs, ref_ecef, kf.decor_mtx, kf.decor_obs_mtx); //TODO make a common DE and use it instead
   kalman_filter_update(&kf, dd_measurements);
 
-  double b[3];
-  update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,
-                        dd_measurements, b, ref_ecef);
-  printf("b: %.3f %.3f %.3f\n", b[0], b[1], b[2]);
+  memcpy(b, kf.state_mean, 3 * sizeof(double));
+
+  (void) dt;
+  double b_init[3] = {0, 0, 0}; // Zero baseline
+  init_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs, dd_measurements, b_init, reciever_ecef);
+  /*update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,*/
+                        /*dd_measurements, b, ref_ecef);*/
 }
 
 
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, double b[3])
 {
   sdiff_t corrected_sdiffs[num_sats];
-  
+
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
   //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
   dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, dt, old_prns, corrected_sdiffs);
-  
+
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
-  
+
   //all the added/dropped sat stuff
   dgnss_update_sats(num_sats, reciever_ecef, corrected_sdiffs, dd_measurements, dt);
-  printf("done updating sats\n");
-  MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);
+  /*printf("done updating sats\n");*/
+  /*MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);*/
   // update for observation
-  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef);
-  
+  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, b);
 }
 
 kf_t * get_dgnss_kf()
