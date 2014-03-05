@@ -19,83 +19,75 @@
 #include "stupid_filter.h"
 #include "float_kf.h"
 #include "linear_algebra.h"
-#include "lambda.h"
 
 #include <lapacke.h>
 
+/** Estimate the integer ambiguity vector from a double difference measurement
+ * and a given baseline.
+ *
+ * Given the double difference carrier phase measurement equation:
+ * \f[
+ *    \Delta \nabla \phi_i = N_i + \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} + \epsilon
+ * \f]
+ * where \f$ \Delta \nabla \phi_i \f$ is the double differenced carrier phase
+ * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
+ * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is the
+ * unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the baseline
+ * vector between the reover and reference station.
+ *
+ * We can estimate \f$N_i\f$ given the baseline \f$\mathbf{b}\f$ as follows:
+ * \f[
+ *    \tilde{N_i} = \mathrm{round}\left(\Delta \nabla \phi_i - \frac{1}{\lambda} [\mathbf{DE} \cdot \mathbf{b}]_i + \epsilon\right)
+ * \f]
+ * where the \f$\mathbf{DE}\f$ matrix is defined as:
+ * \f[
+ *    \mathbf{DE}_i = \mathbf{e}_i - \mathbf{e}_r
+ * \f]
+ *
+ * \param num_sats Number of satellites used
+ * \param DE Double differenced matrix of unit vectors to the satellites
+ * \param dd_meas Double differenced carrier phase measurements in cycles,
+ *                length `num_sats - 1`
+ * \param b Baseline vector in meters
+ * \param N Vector where integer ambiguity estimate will be stored
+ */
+void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
+                       double b[3], s32 *N)
+{
+  double N_float[num_sats-1];
+  /* Solve for ambiguity vector using the observation equation, i.e.
+   *   N_float = dd_meas - DE . b / lambda
+   * where N_float is a real valued vector */
+
+  /* N_float <= dd_meas
+   * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
+   * beta <= 1.0
+   * N_float <= beta * N_float + alpha * (DE . b)
+   */
+  memcpy(N_float, dd_meas, (num_sats-1) * sizeof(double));
+  cblas_dgemv(
+    CblasRowMajor, CblasNoTrans, num_sats-1, 3,
+    -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, b, 1,
+    1.0, N_float, 1
+  );
+
+  /* Round the values of N_float to estimate the integer valued ambiguities. */
+  for (u8 i=0; i<num_sats-1; i++) {
+    N[i] = (s32)lround(N_float[i]);
+  }
+}
+
 void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
-                        double *dd_measurements, double b[3], double ref_ecef[3])
+                        double *dd_meas, double b[3], double ref_ecef[3])
 {
   double DE[(num_sats-1)*3];
 
   /* Calculate DE matrix */
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
 
-#define SIGMA_BASELINE 50e-3
-#define SIGMA_PHASERANGE 10e-3
-
-  /* Calculate covariance of N
-   * Q = DE . DE^T / lambda^2 */
-  double Q[(num_sats-1)*(num_sats-1)];
-  /* Initial Q is D.D^T for the phase DD covariace term. */
-  memset(Q, 1, (num_sats-1)*(num_sats-1)*sizeof(double));
-  for (u8 i=0; i<num_sats-1; i++) {
-    Q[(num_sats-1)*i + i] = 2;
-  }
-  cblas_dgemm(
-    CblasRowMajor, CblasNoTrans, CblasTrans,
-    num_sats-1, num_sats-1, 3,
-    SIGMA_BASELINE*SIGMA_BASELINE / (GPS_L1_LAMBDA_NO_VAC * GPS_L1_LAMBDA_NO_VAC),
-    DE, 3,
-    DE, 3,
-    SIGMA_PHASERANGE*SIGMA_PHASERANGE / (GPS_L1_LAMBDA_NO_VAC * GPS_L1_LAMBDA_NO_VAC),
-    Q, num_sats-1
-  );
-
-  /* Calculate lambda decorrelation mtx given Q. */
-  double Z[(num_sats-1)*(num_sats-1)];
-  lambda_reduction(num_sats-1, Q, Z);
-
-  /* Solve for ambiguity vector, i.e.
-   * N = dd_meas - DE . b / lambda */
-  double N_float[num_sats-1];
-  memcpy(N_float, dd_measurements, (num_sats-1)*sizeof(double));
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-            num_sats-1, 3, // int M, int N,
-            -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, // double alpha, double *A, int lda
-            b, 1, // double *X, int incX
-            1.0, N_float, 1); // double beta, double *Y, int incY
-  VEC_PRINTF(N_float, (u32) num_sats-1);
-
-  double N_decor[num_sats-1];
-  /* Decorrelate N_float with lambda Z. */
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-            num_sats-1, num_sats-1, // int M, int N,
-            1, Z, num_sats-1, // double alpha, double *A, int lda
-            N_float, 1, // double *X, int incX
-            0, N_decor, 1); // double beta, double *Y, int incY
-  VEC_PRINTF(N_decor, (u32) num_sats-1);
-
-  /* Round decorrelated Ns */
-  for (u8 i=0; i<num_sats-1; i++) {
-    N_decor[i] = round(N_decor[i]);
-  }
-
-  /* Calculate inverse of Z to transform back. */
-  double Z_inv[(num_sats-1)*(num_sats-1)];
-  matrix_inverse(num_sats-1, Z, Z_inv);
-
-  /* Transform back N_decor to N_float using Z_inv. */
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-            num_sats-1, num_sats-1, // int M, int N,
-            1, Z_inv, num_sats-1, // double alpha, double *A, int lda
-            N_decor, 1, // double *X, int incX
-            0, N_float, 1); // double beta, double *Y, int incY
-
-  for (u8 i=0; i<num_sats-1; i++) {
-    s->N[i] = round(N_float[i]);
-  }
+  amb_from_baseline(num_sats, DE, dd_meas, b, s->N);
 }
+
 
 static s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
 {
