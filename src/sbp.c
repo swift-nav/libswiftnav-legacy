@@ -16,7 +16,7 @@
 
 #define SBP_PREAMBLE 0x55
 
-/** \addtogroup io
+/** \addtogroup io Input / Output
  * \{ */
 
 /** \defgroup sbp SBP
