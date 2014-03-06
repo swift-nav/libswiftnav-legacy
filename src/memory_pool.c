@@ -15,6 +15,27 @@
 
 #include "memory_pool.h"
 
+struct node;
+
+typedef struct {
+  struct node *next;
+} memory_pool_node_hdr_t;
+
+typedef struct node {
+  memory_pool_node_hdr_t hdr;
+  /* C99 "flexible member array" (see C99 std. ch. 6.7.2.1),
+   * Allows us to get a pointer to the top of the unknown size element. */
+  element_t elem[];
+} node_t;
+
+struct _memory_pool {
+  u32 n_elements;
+  size_t element_size;
+  node_t *pool;
+  node_t *free_nodes_head;
+  node_t *allocated_nodes_head;
+};
+
 /** \defgroup memory_pool Memory Pool
  * Simple fixed size memory pool supporting map and fold operations.
  * \{ */

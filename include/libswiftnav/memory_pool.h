@@ -22,26 +22,7 @@
  * flexible member array in node_t. */
 typedef u8 element_t;
 
-struct node;
-
-typedef struct {
-  struct node *next;
-} memory_pool_node_hdr_t;
-
-typedef struct node {
-  memory_pool_node_hdr_t hdr;
-  /* C99 "flexible member array" (see C99 std. ch. 6.7.2.1),
-   * Allows us to get a pointer to the top of the unknown size element. */
-  element_t elem[];
-} node_t;
-
-typedef struct {
-  u32 n_elements;
-  size_t element_size;
-  node_t *pool;
-  node_t *free_nodes_head;
-  node_t *allocated_nodes_head;
-} memory_pool_t;
+typedef struct _memory_pool memory_pool_t;
 
 memory_pool_t *new_memory_pool(u32 n_elements, size_t element_size);
 void destroy_memory_pool(memory_pool_t *pool);
