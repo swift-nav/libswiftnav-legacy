@@ -17,16 +17,16 @@ void setup()
 
   s32 *x;
   for (u32 i=0; i<22; i++) {
-    x = (s32 *)memory_pool_append(test_pool_seq);
-    fail_unless(x != 0, "Null pointer returned by memory_pool_append");
+    x = (s32 *)memory_pool_add(test_pool_seq);
+    fail_unless(x != 0, "Null pointer returned by memory_pool_add");
     *x = i;
   }
   /* Create a new pool and fill it entirely with random numbers. */
   test_pool_random = memory_pool_new(20, sizeof(s32));
 
   for (u32 i=0; i<20; i++) {
-    x = (s32 *)memory_pool_append(test_pool_random);
-    fail_unless(x != 0, "Null pointer returned by memory_pool_append");
+    x = (s32 *)memory_pool_add(test_pool_random);
+    fail_unless(x != 0, "Null pointer returned by memory_pool_add");
     *x = sizerand(16);
   }
 
@@ -117,7 +117,7 @@ END_TEST
 
 START_TEST(test_full)
 {
-  fail_unless(memory_pool_append(test_pool_random) == 0,
+  fail_unless(memory_pool_add(test_pool_random) == 0,
       "Adding to a full pool should return a NULL pointer.");
 }
 END_TEST
@@ -137,7 +137,7 @@ START_TEST(test_n_free)
       "Error calculating free space in pool, expected 50, got %d", n);
 
   s32 i = 49;
-  while(memory_pool_append(test_pool_empty)) {
+  while(memory_pool_add(test_pool_empty)) {
     n = memory_pool_n_free(test_pool_empty);
     fail_unless(n == i,
         "Error calculating free space in pool, expected %d, got %d", i, n);
@@ -161,7 +161,7 @@ START_TEST(test_n_allocated)
       "Error calculating free space in pool, expected 0, got %d", n);
 
   s32 i = 1;
-  while(memory_pool_append(test_pool_empty)) {
+  while(memory_pool_add(test_pool_empty)) {
     n = memory_pool_n_allocated(test_pool_empty);
     fail_unless(n == i,
         "Error calculating free space in pool, expected %d, got %d", i, n);

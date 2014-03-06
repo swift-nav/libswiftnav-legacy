@@ -47,7 +47,7 @@ inline static node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
 }
 
 /** \defgroup memory_pool Functional Memory Pool
- * Simple fixed size memory pool supporting functional operations.
+ * Simple fixed size memory pool collection supporting functional operations.
  *
  * The functional memory pool container is both a memory pool handling
  * allocation of fixed size 'elements' and a container type that arranges
@@ -61,10 +61,25 @@ inline static node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
  *
  * \{ */
 
-/* The pool consists of n_elements nodes, each of which contains a node header
- * for internal bookkeeping and an 'element' which is the user defined payload.
- * */
-
+/** Create a new memory pool.
+ * Creates a new memory pool containing a maximum of `n_elements` elements of
+ * size `element_size`. This function calles malloc() to reserve space for a
+ * ::memory_pool_t struct and for the memory pool itself. Each element stored
+ * in the memory pool has an overhead of one pointer size so the total space
+ * used for the pool will be:
+ *
+ * ~~~
+ * n_elements * (element_size + sizeof(void *))
+ * ~~~
+ *
+ * Remember to free the pool with memory_pool_destroy(), and for embedded
+ * systems it is recommended that all pools be initialized once at start-up to
+ * prevent all the usual caveats associated with dynamic memory allocation.
+ *
+ * \param n_elements Number of elements that the pool can hold
+ * \param element_size Size in bytes of the user payload elements
+ * \returns Pointer to a new ::memory_pool_t or NULL upon a malloc() failure
+ */
 memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
 {
   memory_pool_t *new_pool = malloc(sizeof(memory_pool_t));
@@ -102,12 +117,24 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
   return new_pool;
 }
 
+/** Destroy a memory pool.
+ * Cleans up and frees the memory associated with the pool.
+ *
+ * \param pool Pointer to the memory pool to destroy.
+ */
 void memory_pool_destroy(memory_pool_t *pool)
 {
   free(pool->pool);
   free(pool);
 }
 
+/** Calculates the number of free (unallocated) elements remaining in the
+ * collection.
+ * This operation is O(N) in the number of free elements.
+ *
+ * \param pool Pointer to a memory pool
+ * \returns Number of free elements or `< 0` on an error.
+ */
 s32 memory_pool_n_free(memory_pool_t *pool)
 {
   u32 count = 0;
@@ -126,6 +153,12 @@ s32 memory_pool_n_free(memory_pool_t *pool)
   return count;
 }
 
+/** Calculates the number of elements already allocated in the collection.
+ * This operation is O(N) in the number of allocated elements.
+ *
+ * \param pool Pointer to a memory pool
+ * \returns Number of allocated elements or `< 0` on an error.
+ */
 s32 memory_pool_n_allocated(memory_pool_t *pool)
 {
   u32 count = 0;
@@ -144,6 +177,18 @@ s32 memory_pool_n_allocated(memory_pool_t *pool)
   return count;
 }
 
+/** Write all of the elements of a collection to an array.
+ * To determine how much space is needed in the destination array you must call
+ * memory_pool_n_allocated(). The required space is:
+ *
+ * ~~~
+ * memory_pool_n_allocated() * element_size
+ * ~~~
+ *
+ * \param pool Pointer to a memory pool
+ * \param array Array to which the elements will be written
+ * \return Number of elements written to the array or `< 0` on an error.
+ */
 s32 memory_pool_to_array(memory_pool_t *pool, void *array)
 {
   u32 count = 0;
@@ -163,7 +208,14 @@ s32 memory_pool_to_array(memory_pool_t *pool, void *array)
   return count;
 }
 
-element_t *memory_pool_append(memory_pool_t *pool)
+/** Adds an element to a collection.
+ * Allocates and element from the pool and adds it to the collection of
+ * elements, then returns a pointer to the new element.
+ *
+ * \param pool Pointer to a memory pool
+ * \return A pointer to the new element or NULL if the pool is full.
+ */
+element_t *memory_pool_add(memory_pool_t *pool)
 {
   /* Take the head of the list of free nodes, insert it as the head of the
    * allocated nodes and return a pointer to the node's element. */
@@ -182,6 +234,12 @@ element_t *memory_pool_append(memory_pool_t *pool)
   return new_node->elem;
 }
 
+/** Map a function across all elements allocated in the collection.
+ *
+ * \param pool Pointer to a memory pool
+ * \param f Pointer to a function that does an in-place update of an element.
+ * \return Number of elements mapped across or `< 0` on an error.
+ */
 s32 memory_pool_map(memory_pool_t *pool, void (*f)(element_t *elem))
 {
   u32 count = 0;
@@ -201,6 +259,16 @@ s32 memory_pool_map(memory_pool_t *pool, void (*f)(element_t *elem))
   return count;
 }
 
+/** Calculate a fold reduction on the collection, optionally applying a map at
+ * the same time.
+ *
+ * \param pool Pointer to a memory pool
+ * \param x0 Pointer to an initial accumulator state.
+ * \param f Pointer to a function that does an in-place update of an
+ *          accumulator state given an element and optionally updates that
+ *          element in-place.
+ * \return Number of elements folded or `< 0` on an error.
+ */
 s32 memory_pool_fold(memory_pool_t *pool, void *x0,
                      void (*f)(void *x, element_t *elem))
 {
@@ -221,6 +289,16 @@ s32 memory_pool_fold(memory_pool_t *pool, void *x0,
   return count;
 }
 
+/** Calculate a double valued fold reduction on the collection, optionally
+ * applying a map at the same time.
+ *
+ * \param pool Pointer to a memory pool
+ * \param x0 Initial accumulator state.
+ * \param f Pointer to a function that returns a new accumulator value given a
+ *          current accumulator value and an element, optionally updating the
+ *          element in-place.
+ * \return Result of the fold operation, i.e. final accumulator value.
+ */
 double memory_pool_dfold(memory_pool_t *pool, double x0,
                          double (*f)(double x, element_t *elem))
 {
@@ -237,6 +315,16 @@ double memory_pool_dfold(memory_pool_t *pool, double x0,
   return x;
 }
 
+/** Calculate a float valued fold reduction on the collection, optionally
+ * applying a map at the same time.
+ *
+ * \param pool Pointer to a memory pool
+ * \param x0 Initial accumulator state.
+ * \param f Pointer to a function that returns a new accumulator value given a
+ *          current accumulator value and an element, optionally updating the
+ *          element in-place.
+ * \return Result of the fold operation, i.e. final accumulator value.
+ */
 float memory_pool_ffold(memory_pool_t *pool, float x0,
                         float (*f)(float x, element_t *elem))
 {
@@ -253,6 +341,16 @@ float memory_pool_ffold(memory_pool_t *pool, float x0,
   return x;
 }
 
+/** Calculate a s32 valued fold reduction on the collection, optionally
+ * applying a map at the same time.
+ *
+ * \param pool Pointer to a memory pool
+ * \param x0 Initial accumulator state.
+ * \param f Pointer to a function that returns a new accumulator value given a
+ *          current accumulator value and an element, optionally updating the
+ *          element in-place.
+ * \return Result of the fold operation, i.e. final accumulator value.
+ */
 s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
                       s32 (*f)(s32 x, element_t *elem))
 {
@@ -269,6 +367,14 @@ s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
   return x;
 }
 
+/** Filter elements in the collection, returning filtered out elements back to
+ * the pool.
+ *
+ * \param pool Pointer to a memory pool
+ * \param f Pointer to a function that takes an element and returns `0` to
+ *          discard that element or `!=0` to keep that element.
+ * \return Number of elements in the filtered collection or `< 0` on an error.
+ */
 s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
 {
   u32 count = 0;

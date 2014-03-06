@@ -29,7 +29,7 @@ void memory_pool_destroy(memory_pool_t *pool);
 s32 memory_pool_n_free(memory_pool_t *pool);
 s32 memory_pool_n_allocated(memory_pool_t *pool);
 
-element_t *memory_pool_append(memory_pool_t *pool);
+element_t *memory_pool_add(memory_pool_t *pool);
 s32 memory_pool_to_array(memory_pool_t *pool, void *array);
 
 s32 memory_pool_map(memory_pool_t *pool, void (*f)(element_t *elem));
