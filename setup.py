@@ -131,7 +131,8 @@ if __name__ == "__main__":
     'swiftnav.float_kf',
     'swiftnav.gpstime',
     'swiftnav.single_diff',
-    'swiftnav.dgnss_management'
+    'swiftnav.dgnss_management',
+    'swiftnav.ambiguity_test'
   ]
 
   extensions = [make_extension(name) for name in ext_names]
