@@ -36,10 +36,6 @@ struct _memory_pool {
   node_t *allocated_nodes_head;
 };
 
-/** \defgroup memory_pool Memory Pool
- * Simple fixed size memory pool supporting map and fold operations.
- * \{ */
-
 inline static size_t calc_node_size(size_t element_size)
 {
   return element_size + sizeof(memory_pool_node_hdr_t);
@@ -50,11 +46,26 @@ inline static node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
   return (node_t *)((u8 *)head + calc_node_size(pool->element_size) * n);
 }
 
+/** \defgroup memory_pool Functional Memory Pool
+ * Simple fixed size memory pool supporting functional operations.
+ *
+ * The functional memory pool container is both a memory pool handling
+ * allocation of fixed size 'elements' and a container type that arranges
+ * allocated elements in a linked list, exposing functional style primitives
+ * such as map and fold that operate over the container. Elements can be
+ * removed from the container and released back to the pool with a filter
+ * operation.
+ *
+ * Allocation and deallocation from the pool are guaranteed constant time and
+ * map and fold are O(N).
+ *
+ * \{ */
+
 /* The pool consists of n_elements nodes, each of which contains a node header
  * for internal bookkeeping and an 'element' which is the user defined payload.
  * */
 
-memory_pool_t *new_memory_pool(u32 n_elements, size_t element_size)
+memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
 {
   memory_pool_t *new_pool = malloc(sizeof(memory_pool_t));
   if (!new_pool) {
@@ -91,7 +102,7 @@ memory_pool_t *new_memory_pool(u32 n_elements, size_t element_size)
   return new_pool;
 }
 
-void destroy_memory_pool(memory_pool_t *pool)
+void memory_pool_destroy(memory_pool_t *pool)
 {
   free(pool->pool);
   free(pool);

@@ -13,7 +13,7 @@ memory_pool_t *test_pool_empty;
 void setup()
 {
   /* Create a new pool and fill it with a sequence of ints. */
-  test_pool_seq = new_memory_pool(50, sizeof(s32));
+  test_pool_seq = memory_pool_new(50, sizeof(s32));
 
   s32 *x;
   for (u32 i=0; i<22; i++) {
@@ -22,7 +22,7 @@ void setup()
     *x = i;
   }
   /* Create a new pool and fill it entirely with random numbers. */
-  test_pool_random = new_memory_pool(20, sizeof(s32));
+  test_pool_random = memory_pool_new(20, sizeof(s32));
 
   for (u32 i=0; i<20; i++) {
     x = (s32 *)memory_pool_append(test_pool_random);
@@ -31,13 +31,13 @@ void setup()
   }
 
   /* Create a new pool and leave it empty. */
-  test_pool_empty = new_memory_pool(50, sizeof(s32));
+  test_pool_empty = memory_pool_new(50, sizeof(s32));
 }
 
 void teardown()
 {
-  destroy_memory_pool(test_pool_seq);
-  destroy_memory_pool(test_pool_random);
+  memory_pool_destroy(test_pool_seq);
+  memory_pool_destroy(test_pool_random);
 }
 
 void print_elem(element_t *elem)

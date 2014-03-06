@@ -24,8 +24,8 @@ typedef u8 element_t;
 
 typedef struct _memory_pool memory_pool_t;
 
-memory_pool_t *new_memory_pool(u32 n_elements, size_t element_size);
-void destroy_memory_pool(memory_pool_t *pool);
+memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size);
+void memory_pool_destroy(memory_pool_t *pool);
 s32 memory_pool_n_free(memory_pool_t *pool);
 s32 memory_pool_n_allocated(memory_pool_t *pool);
 
