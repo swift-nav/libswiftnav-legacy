@@ -509,10 +509,11 @@ def get_kf_from_alms_using_sdiffs(phase_var, code_var,
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] dd_measurements_ = \
     np.array(dd_measurements, dtype=np.double)
 
-  cdef float_kf_c.kf_t kf = float_kf_c.get_kf(phase_var, code_var,
-                                              pos_trans_var, vel_trans_var, int_trans_var,
-                                              pos_init_var, vel_init_var, int_init_var,
-                                              n, &sdiffs[0], &dd_measurements_[0], &ref_ecef_[0], dt)
+  cdef float_kf_c.kf_t kf
+  float_kf_c.get_kf(&kf, phase_var, code_var,
+                    pos_trans_var, vel_trans_var, int_trans_var,
+                    pos_init_var, vel_init_var, int_init_var,
+                    n, &sdiffs[0], &dd_measurements_[0], &ref_ecef_[0], dt)
   cdef KalmanFilter pykf = KalmanFilter()
   memcpy(&(pykf.kf), &kf, sizeof(float_kf_c.kf_t))
 

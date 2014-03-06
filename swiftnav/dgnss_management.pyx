@@ -80,7 +80,14 @@ def dgnss_update(alms, GpsTime timestamp,
     sdiffs[i].pseudorange = c
     sdiffs[i].carrier_phase = l
 
-  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt)
+  cdef double b_[3]
+  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt, b_)
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+  memcpy(&b[0],b_, 3*sizeof(double))
+  return b
+  
 
 def get_dgnss_kf():
   cdef kf_t *kf = dgnss_management_c.get_dgnss_kf()
