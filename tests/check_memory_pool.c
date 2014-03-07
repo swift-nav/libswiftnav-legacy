@@ -1,6 +1,7 @@
 
 #include <check.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include <memory_pool.h>
@@ -13,6 +14,9 @@ memory_pool_t *test_pool_empty;
 
 void setup()
 {
+  /* Seed the random number generator with a specific seed for our test. */
+  srandom(1);
+
   /* Create a new pool and fill it with a sequence of ints. */
   test_pool_seq = memory_pool_new(50, sizeof(s32));
 
