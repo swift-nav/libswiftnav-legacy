@@ -84,7 +84,7 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
 {
   memory_pool_t *new_pool = malloc(sizeof(memory_pool_t));
   if (!new_pool) {
-    return 0;
+    return NULL;
   }
 
   new_pool->n_elements = n_elements;
@@ -95,14 +95,14 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
   new_pool->pool = (node_t *)malloc(node_size * n_elements);
   if (!new_pool->pool) {
     free(new_pool);
-    return 0;
+    return NULL;
   }
 
   /* Create linked list out of all the nodes in the pool, adding them to the
    * list of free nodes so they are ready to be allocated. */
   new_pool->free_nodes_head = new_pool->pool;
-  node_t *current = 0;
-  node_t *next_free = 0;
+  node_t *current = NULL;
+  node_t *next_free = NULL;
   /* Make linked list from last element to first,
    * very last element points to NULL. */
   for (s32 i=n_elements-1; i>=0; i--) {
@@ -112,7 +112,7 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
   }
 
   /* No nodes currently allocated. */
-  new_pool->allocated_nodes_head = 0;
+  new_pool->allocated_nodes_head = NULL;
 
   return new_pool;
 }
@@ -222,7 +222,7 @@ element_t *memory_pool_add(memory_pool_t *pool)
 
   if (!pool->free_nodes_head) {
     /* free_nodes_head is NULL, no free nodes available, pool is full. */
-    return 0;
+    return NULL;
   }
 
   node_t *new_node = pool->free_nodes_head;
@@ -415,6 +415,163 @@ s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
     return -1;
 
   return count;
+}
+
+/** Sort the elements in a collection.
+ * This is implemented as a merge sort on a linked list and has O(N log N) time
+ * complexity and O(1) space complexity. The implementation is stable and has
+ * no pathological cases. The worst-case running time is still O(N log N).
+ *
+ * This implementation is based on the excellent implementation by Simon Tatham:
+ *
+ * http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
+ *
+ * > Based on code copyright 2001 Simon Tatham.
+ * >
+ * > Permission is hereby granted, free of charge, to any person
+ * > obtaining a copy of this software and associated documentation
+ * > files (the "Software"), to deal in the Software without
+ * > restriction, including without limitation the rights to use,
+ * > copy, modify, merge, publish, distribute, sublicense, and/or
+ * > sell copies of the Software, and to permit persons to whom the
+ * > Software is furnished to do so, subject to the following
+ * > conditions:
+ * >
+ * > The above copyright notice and this permission notice shall be
+ * > included in all copies or substantial portions of the Software.
+ * >
+ * > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * > EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * > OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * > NONINFRINGEMENT.  IN NO EVENT SHALL SIMON TATHAM BE LIABLE FOR
+ * > ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * > CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * > SOFTWARE.
+ */
+void memory_pool_sort(memory_pool_t *pool, void *arg,
+                      s32 (*cmp)(void *arg, element_t *a, element_t *b))
+{
+  /* If collection is empty, return immediately. */
+  if (!pool->allocated_nodes_head)
+    return;
+
+  u32 insize = 1;
+
+  while (1) {
+    node_t *p = pool->allocated_nodes_head;
+    pool->allocated_nodes_head = NULL;
+    node_t *tail = NULL;
+
+    u32 nmerges = 0;  /* count number of merges we do in this pass */
+
+    while (p) {
+      nmerges++;  /* there exists a merge to be done */
+      /* step `insize' places along from p */
+      node_t *q = p;
+      u32 psize = 0;
+      for (u32 i = 0; i < insize; i++) {
+        psize++;
+        q = q->hdr.next;
+        if (!q) break;
+      }
+
+      /* if q hasn't fallen off end, we have two lists to merge */
+      u32 qsize = insize;
+
+      /* now we have two lists; merge them */
+      while (psize > 0 || (qsize > 0 && q)) {
+
+        node_t *e;
+
+        /* decide whether next element of merge comes from p or q */
+        if (psize == 0) {
+          /* p is empty; e must come from q. */
+          e = q; q = q->hdr.next; qsize--;
+        } else if (qsize == 0 || !q) {
+          /* q is empty; e must come from p. */
+          e = p; p = p->hdr.next; psize--;
+        } else if (cmp(arg, p->elem, q->elem) <= 0) {
+          /* First element of p is lower (or same);
+           * e must come from p. */
+          e = p; p = p->hdr.next; psize--;
+        } else {
+          /* First element of q is lower; e must come from q. */
+          e = q; q = q->hdr.next; qsize--;
+        }
+
+        /* add the next element to the merged list */
+        if (tail) {
+          tail->hdr.next = e;
+        } else {
+          pool->allocated_nodes_head = e;
+        }
+        tail = e;
+      }
+
+      /* now p has stepped `insize' places along, and q has too */
+      p = q;
+    }
+    tail->hdr.next = NULL;
+
+    /* If we have done only one merge, we're finished. */
+    if (nmerges <= 1)   /* allow for nmerges==0, the empty list case */
+      return;
+
+    /* Otherwise repeat, merging lists twice the size */
+    insize *= 2;
+  }
+}
+
+void memory_pool_group_by(memory_pool_t *pool, void *arg,
+                          s32 (*cmp)(void *arg, element_t *a, element_t *b),
+                          void *x0, size_t x_size,
+                          void (*agg)(element_t *new, void *x, u32 n, element_t *elem))
+{
+  /* If collection is empty, return immediately. */
+  if (!pool->allocated_nodes_head)
+    return;
+
+  /* First sort the existing list using the compare function. */
+  memory_pool_sort(pool, arg, cmp);
+
+  /* Save the head of the unaggregated list and reset the pool head where the
+   * aggregated data will be added. */
+  node_t *old_head = pool->allocated_nodes_head;
+  pool->allocated_nodes_head = NULL;
+
+  /* Allocate working area for the fold function. */
+  u8 x_work[x_size];
+
+  u32 count = 0;
+
+  node_t *p = old_head;
+
+  while (p && count <= pool->n_elements) {
+    u32 group_count = 0;
+
+    /* Keep a pointer to the head of the group. */
+    node_t *group_head = p;
+
+    /* Re-initialize the working area. */
+    if (x_size)
+      memcpy(x_work, x0, x_size);
+
+    /* Create a new element to hold the aggregate of this group. */
+    element_t *new_elem = memory_pool_add(pool);
+
+    /* Initialize the new element to the first element in the group. */
+    memcpy(new_elem, p->elem, pool->element_size);
+
+    /* Aggregate this group. */
+    do {
+      agg(new_elem, (void *)x_work, group_count, p->elem);
+      group_count++;
+      p = p->hdr.next;
+    } while(p && cmp(arg, group_head->elem, p->elem) == 0);
+
+    count++;
+  }
 }
 
 
