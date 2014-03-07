@@ -17,4 +17,4 @@ cdef extern from "libswiftnav/ambiguity_test.h":
     double *null_projector
     double *res_cov_inverse
 
-  void assign_phase_obs_null_basis(u8 num_sats, double *DE_mtx, double *q)
+  void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
