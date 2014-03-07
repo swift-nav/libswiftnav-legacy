@@ -519,6 +519,57 @@ START_TEST(test_groupby_2)
 }
 END_TEST
 
+void prod_N(element_t *new_, void *x_, u32 n_xs, u32 n, element_t *elem_)
+{
+  (void)n;
+  u8 *x = (u8 *)x_;
+  hypothesis_t *new = (hypothesis_t *)new_;
+  hypothesis_t *elem = (hypothesis_t *)elem_;
+
+  new->len = elem->len + 1;
+  new->p = elem->p / n_xs;
+  new->N[new->len-1] = *x;
+}
+
+START_TEST(test_prod)
+{
+  /* Create a new pool. */
+  memory_pool_t *test_pool_hyps = memory_pool_new(50, sizeof(hypothesis_t));
+
+  for (u32 i=0; i<3; i++) {
+    hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(test_pool_hyps);
+    fail_unless(hyp != 0, "Null pointer returned by memory_pool_add");
+    hyp->len = 4;
+    for (u8 j=0; j<hyp->len; j++) {
+      hyp->N[j] = sizerand(5);
+    }
+    hyp->p = frand(0, 1);
+  }
+
+  u8 new_N_vals[3] = {7, 8, 9};
+
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+
+  memory_pool_product(test_pool_hyps, new_N_vals, 3, sizeof(u8), &prod_N);
+
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+
+  fail_unless(memory_pool_n_allocated(test_pool_hyps) == 9,
+      "Reduced length does not match");
+
+  u8 col = 4;
+  memory_pool_group_by(test_pool_hyps, &col, &group_by_N_i,
+                       &col, 1, &agg_sum_p);
+
+  fail_unless(memory_pool_n_allocated(test_pool_hyps) == 3,
+      "Reduced length does not match");
+
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+
+  memory_pool_destroy(test_pool_hyps);
+}
+END_TEST
+
 Suite* memory_pool_suite(void)
 {
   Suite *s = suite_create("Memory Pools");
@@ -539,6 +590,7 @@ Suite* memory_pool_suite(void)
   tcase_add_test(tc_core, test_sort);
   tcase_add_test(tc_core, test_groupby_1);
   tcase_add_test(tc_core, test_groupby_2);
+  tcase_add_test(tc_core, test_prod);
   suite_add_tcase(s, tc_core);
 
   return s;

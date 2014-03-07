@@ -49,6 +49,8 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
                           s32 (*cmp)(void *arg, element_t *a, element_t *b),
                           void *x0, size_t x_size,
                           void (*agg)(element_t *new, void *x, u32 n, element_t *elem));
+s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
+                        void (*prod)(element_t *new, void *x, u32 n_xs, u32 n, element_t *elem));
 
 #endif /* LIBSWIFTNAV_MEMORY_POOL_H */
 

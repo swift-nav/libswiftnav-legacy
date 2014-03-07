@@ -627,6 +627,66 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
   }
 }
 
+/** Cartesian product of a memory pool collection with an array.
+ * For each pair of an element in the original collection and an item in the
+ * array `xs`, a new element is created in the updated collection formed by the
+ * function `prod` acting on that element together with that array item.
+ *
+ * The product function takes a pointer to the new element which should be
+ * updated in-place, a pointer to an item `x` from the input array `xs` and a
+ * pointer to the old element `elem`.
+ *
+ * As a convenience the product function is also supplied with the total numer
+ * of items in the array `n_xs` and the current item number from the array `n`.
+ *
+ * \param pool Pointer to a memory pool
+ * \param xs Array to take the Cartesian product with
+ * \param n_xs Number of items in array `xs`
+ * \param x_size The size in bytes of each item in `xs`
+ * \param prod The product function
+ */
+s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
+                        void (*prod)(element_t *new, void *x, u32 n_xs, u32 n, element_t *elem))
+{
+  /* Save the head of the original list and reset the pool head where the
+   * product data will be added. */
+  node_t *old_head = pool->allocated_nodes_head;
+  pool->allocated_nodes_head = NULL;
+
+  u32 count = 0;
+
+  node_t *p = old_head;
+  while (p && count <= pool->n_elements) {
+    /* Add one element to the new list for each pair of
+     * the current element and an item in xs. */
+    for (u32 i=0; i<n_xs; i++) {
+      element_t *new = memory_pool_add(pool);
+      /* Initialize the element to the same as the original element. */
+      memcpy(new, p->elem, pool->element_size);
+      if (!new)
+        return -2;
+      prod(new, ((u8 *)xs + i*x_size), n_xs, i, p->elem);
+    }
+
+    /* Store pointer to next node to process. */
+    node_t *next_p = p->hdr.next;
+
+    /* Return current node to the pool. */
+    p->hdr.next = pool->free_nodes_head;
+    pool->free_nodes_head = p;
+
+    p = next_p;
+
+    count++;
+  }
+
+  if (count == pool->n_elements && p)
+    /* The list of elements is larger than the pool,
+     * something has gone horribly wrong. */
+    return -1;
+
+  return count;
+}
 
 /** \} */
 
