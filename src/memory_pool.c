@@ -422,6 +422,12 @@ s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
  * complexity and O(1) space complexity. The implementation is stable and has
  * no pathological cases. The worst-case running time is still O(N log N).
  *
+ * Ordering is defined by a comparison function `cmp` which takes two elements `a` and `b` and returns `>0` if `a` should be placed before `b`, `<0` if `b` should be placed before `a` ans `0` if they are 'equal' and their current ordering should be preserved.
+ *
+ * The comparison function also takes an arbitrary argument which is passed
+ * through from memory_pool_sort(), this can be used to pass a key or index to
+ * sort on to a general comparison function, for example.
+ *
  * This implementation is based on the excellent implementation by Simon Tatham:
  *
  * http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
@@ -448,6 +454,10 @@ s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
  * > CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * > SOFTWARE.
+ *
+ * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the comparison function
+ * \param cmp Comparison function used to define the sort ordering
  */
 void memory_pool_sort(memory_pool_t *pool, void *arg,
                       s32 (*cmp)(void *arg, element_t *a, element_t *b))
@@ -523,6 +533,41 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
   }
 }
 
+/** Perform a groupby type reduction on a collection.
+ * A groupby reduction consists of two steps:
+ *
+ * 1. First the collection is grouped according to some comparison function,
+ *    i.e. grouped into sets where the comparison function evaluates to `0` for
+ *    any pair of elements in that set.
+ *
+ *    The definition of the comparison function is the same as for
+ *    memory_pool_sort() and is required to define a global ordering on the
+ *    whole collection.
+ *
+ * 2. Next each group is iterated over by an aggregation function which reduces
+ *    the whole group to exactly one new element that will be in the collection
+ *    after reduction. The aggregation function is similar to a fold function.
+ *
+ *    The aggregation function is called once for each element of the group and
+ *    passed a pointer to the new element that is the aggregate of all elements
+ *    in the group. The new element is initialized as being a copy of the first
+ *    element of the group but should be updated in-place by the aggregation
+ *    function. The aggregation function is also passed a variable `n` which
+ *    indicated which element of the group is being passed and the current
+ *    group element is passed as parameter `elem`.
+ *
+ *    The aggregation function also takes an arbitrary argument `x` which is
+ *    reset to `x0` at the start of processing each group by copying `x0` into
+ *    a working area each time.
+ *
+ * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the comparison function
+ * \param cmp Comparison function used to define the grouping
+ * \param x0 Arbitrary argument passed to the aggregation function, reset to
+ *           this value on each new group.
+ * \param x_size The size in bytes of the `x0` argument
+ * \param agg The aggregation function
+ */
 void memory_pool_group_by(memory_pool_t *pool, void *arg,
                           s32 (*cmp)(void *arg, element_t *a, element_t *b),
                           void *x0, size_t x_size,

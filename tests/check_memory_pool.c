@@ -41,7 +41,7 @@ void teardown()
   memory_pool_destroy(test_pool_random);
 }
 
-void print_elem(element_t *elem)
+void print_s32(element_t *elem)
 {
   printf("%d ", *((s32 *)elem));
 }
@@ -388,7 +388,7 @@ START_TEST(test_groupby_1)
   fail_unless(memcmp(xs, test_xs_reduced, sizeof(test_xs_reduced)) == 0,
       "Output of groupby operation does not match test data");
 
-  /*memory_pool_map(test_pool_seq, &print_elem); printf("\n");*/
+  /*memory_pool_map(test_pool_seq, &print_s32); printf("\n");*/
 }
 END_TEST
 
