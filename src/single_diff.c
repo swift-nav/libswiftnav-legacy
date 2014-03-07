@@ -87,9 +87,9 @@ void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff
     else {
       sdiffs[i].snr = 0;
     }
-    if (sdiffs[i].prn == 16) {
-      sdiffs[i].snr = 2;
-    }
+    // if (sdiffs[i].prn == 16) {
+    //   sdiffs[i].snr = 2;
+    // }
   }
 
 }
