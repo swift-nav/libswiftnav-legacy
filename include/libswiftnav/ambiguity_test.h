@@ -23,7 +23,8 @@ typedef struct {
 } residual_mtxs_t;
 
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_covar);
-void assign_phase_obs_null_basis(u8 num_sats, double *DE_mtx, double *q);
+void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
+void assign_residual_covariance_inverse(u8 num_dds, double *obs_covar, double *q, double *r_cov_inv);
 void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements, double *r_vec);
 void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *hypothesis, double *r_mean);
 double assign_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *hypothesis, double *r_vec);

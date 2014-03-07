@@ -17,10 +17,12 @@
  #include "common.h"
  #include "linear_algebra.h"
 
-// void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_covar)
-// {
+void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_covar)
+{
+  assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
+  (void) obs_covar;
 
-// }
+}
 
 
 void QR_part1(integer m, integer n, double *A, double *tau)
@@ -61,7 +63,7 @@ void QR_part2(integer m, integer n, double *A, double *tau)
           work, &lwork, &info);
 }
 
-void assign_phase_obs_null_basis(u8 num_sats, double *DE_mtx, double *q)
+void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
 {
   // use either GEQRF or GEQP3. GEQP3 is the version with pivoting
   // int dgeqrf_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
@@ -71,18 +73,26 @@ void assign_phase_obs_null_basis(u8 num_sats, double *DE_mtx, double *q)
   //        __CLPK_integer *info)
 
   //DE is num_sats-1 by 3, need to transpose it to column major
-  double A[(num_sats-1)*(num_sats-1)];
-  for (u8 i=0; i+1<num_sats; i++) {
+  double A[num_dds * num_dds];
+  for (u8 i=0; i<num_dds; i++) {
     for (u8 j=0; j<3; j++) {
-      A[j*(num_sats-1) + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
+      A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
     }
   }
-  integer m = num_sats - 1;
+  integer m = num_dds;
   integer n = 3;
   double tau[3];
   QR_part1(m, n, A, tau);
   QR_part2(m, n, A, tau);
-  memcpy(q, &A[3*(num_sats-1)], (num_sats-4) * (num_sats-1) * sizeof(double));
+  memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
+}
+
+void assign_residual_covariance_inverse(u8 num_dds, double *obs_covar, double *q, double *r_cov_inv)
+{
+  (void) num_dds;
+  (void) obs_covar;
+  (void) q;
+  (void) r_cov_inv;
 }
 
 // void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *dd_measurements, double *r_vec)
