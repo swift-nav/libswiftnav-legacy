@@ -41,8 +41,25 @@ void setup()
 
 void teardown()
 {
+  /* Test pools for leaks. */
+  fail_unless(memory_pool_n_free(test_pool_seq)
+              + memory_pool_n_allocated(test_pool_seq)
+              == 50,
+              "Memory leak! test_pool_seq lost elements!");
+
+  fail_unless(memory_pool_n_free(test_pool_random)
+              + memory_pool_n_allocated(test_pool_random)
+              == 20,
+              "Memory leak! test_pool_random lost elements!");
+
+  fail_unless(memory_pool_n_free(test_pool_empty)
+              + memory_pool_n_allocated(test_pool_empty)
+              == 50,
+              "Memory leak! test_pool_empty lost elements!");
+
   memory_pool_destroy(test_pool_seq);
   memory_pool_destroy(test_pool_random);
+  memory_pool_destroy(test_pool_empty);
 }
 
 void print_s32(element_t *elem)
@@ -491,6 +508,12 @@ START_TEST(test_groupby_2)
   fail_unless(fabs(reduced_hyps[5].p - 0.374936) < 0.00001,
       "Output of groupby operation does not match test data, p[5] = %f, expected 0.375",
       reduced_hyps[5].p);
+
+  /* Test pool for leaks. */
+  fail_unless(memory_pool_n_free(test_pool_hyps)
+              + memory_pool_n_allocated(test_pool_hyps)
+              == 50,
+              "Memory leak! test_pool_hyps lost elements!");
 
   memory_pool_destroy(test_pool_hyps);
 }

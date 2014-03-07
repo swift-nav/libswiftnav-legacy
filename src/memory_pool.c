@@ -612,7 +612,15 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
     do {
       agg(new_elem, (void *)x_work, group_count, p->elem);
       group_count++;
-      p = p->hdr.next;
+
+      /* Store pointer to next node to process. */
+      node_t *next_p = p->hdr.next;
+
+      /* Return current node to the pool. */
+      p->hdr.next = pool->free_nodes_head;
+      pool->free_nodes_head = p;
+
+      p = next_p;
     } while(p && cmp(arg, group_head->elem, p->elem) == 0);
 
     count++;
