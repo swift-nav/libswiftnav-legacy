@@ -43,5 +43,12 @@ float memory_pool_ffold(memory_pool_t *pool, float x0,
 s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
                       s32 (*f)(s32 x, element_t *elem));
 
+void memory_pool_sort(memory_pool_t *pool, void *arg,
+                      s32 (*cmp)(void *arg, element_t *a, element_t *b));
+void memory_pool_group_by(memory_pool_t *pool, void *arg,
+                          s32 (*cmp)(void *arg, element_t *a, element_t *b),
+                          void *x0, size_t x_size,
+                          void (*agg)(element_t *new, void *x, u32 n, element_t *elem));
+
 #endif /* LIBSWIFTNAV_MEMORY_POOL_H */
 

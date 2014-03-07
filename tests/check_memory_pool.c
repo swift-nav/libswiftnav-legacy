@@ -1,6 +1,8 @@
 
 #include <check.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include <memory_pool.h>
 
@@ -12,6 +14,9 @@ memory_pool_t *test_pool_empty;
 
 void setup()
 {
+  /* Seed the random number generator with a specific seed for our test. */
+  srandom(1);
+
   /* Create a new pool and fill it with a sequence of ints. */
   test_pool_seq = memory_pool_new(50, sizeof(s32));
 
@@ -40,7 +45,7 @@ void teardown()
   memory_pool_destroy(test_pool_random);
 }
 
-void print_elem(element_t *elem)
+void print_s32(element_t *elem)
 {
   printf("%d ", *((s32 *)elem));
 }
@@ -294,6 +299,203 @@ START_TEST(test_filter_4)
 }
 END_TEST
 
+s32 cmp_s32s(void *arg, element_t *a_, element_t *b_)
+{
+  (void)arg;
+  s32 *a = (s32 *)a_;
+  s32 *b = (s32 *)b_;
+
+  return *a - *b;
+}
+
+START_TEST(test_sort)
+{
+  s32 xs[22];
+  s32 test_xs_sorted[22] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+    12, 13, 14, 15, 16, 17, 18, 19, 20, 21
+  };
+
+  memory_pool_sort(test_pool_seq, 0, &cmp_s32s);
+  fail_unless(memory_pool_n_allocated(test_pool_seq) == 22,
+      "Sorted length does not match");
+
+  memory_pool_to_array(test_pool_seq, xs);
+  fail_unless(memcmp(xs, test_xs_sorted, sizeof(test_xs_sorted)) == 0,
+      "Output of sort operation does not match test data");
+
+  s32 ys[20];
+  s32 test_ys_sorted[20] = {
+    3, 4, 5, 6, 6, 7, 8, 9, 9, 10, 11,
+    11, 12, 13, 13, 13, 14, 15, 15, 16
+  };
+
+  memory_pool_sort(test_pool_random, 0, &cmp_s32s);
+  fail_unless(memory_pool_n_allocated(test_pool_random) == 20,
+      "Sorted length does not match");
+
+  memory_pool_to_array(test_pool_random, ys);
+  fail_unless(memcmp(ys, test_ys_sorted, sizeof(test_ys_sorted)) == 0,
+      "Output of sort operation does not match test data");
+
+  /* Test sorting an empty list. */
+  memory_pool_sort(test_pool_empty, 0, &cmp_s32s);
+  fail_unless(memory_pool_n_allocated(test_pool_empty) == 0,
+      "Sorted length does not match");
+  fail_unless(memory_pool_n_free(test_pool_empty) == 50,
+      "Sorted length does not match");
+
+  /* Test sorting a single element list. */
+  s32 *x = (s32 *)memory_pool_add(test_pool_empty); *x = 22;
+
+  memory_pool_sort(test_pool_empty, 0, &cmp_s32s);
+  fail_unless(memory_pool_n_allocated(test_pool_empty) == 1,
+      "Sorted length does not match");
+  fail_unless(memory_pool_n_free(test_pool_empty) == 49,
+      "Sorted length does not match");
+}
+END_TEST
+
+s32 group_evens(void *arg, element_t *a_, element_t *b_)
+{
+  (void)arg;
+  s32 *a = (s32 *)a_;
+  s32 *b = (s32 *)b_;
+
+  return (*a % 2) - (*b % 2);
+}
+
+void agg_sum_s32s(element_t *new_, void *x, u32 n, element_t *elem_)
+{
+  (void)x;
+
+  s32 *new = (s32 *)new_;
+  s32 *elem = (s32 *)elem_;
+
+  if (n == 0)
+    *new = 0;
+
+  *new += *elem;
+}
+
+START_TEST(test_groupby_1)
+{
+  s32 xs[2];
+  s32 test_xs_reduced[2] = {121, 110};
+
+  memory_pool_group_by(test_pool_seq, 0, &group_evens, 0, 0, &agg_sum_s32s);
+
+  fail_unless(memory_pool_n_allocated(test_pool_seq) == 2,
+      "Reduced length does not match");
+
+  memory_pool_to_array(test_pool_seq, xs);
+  fail_unless(memcmp(xs, test_xs_reduced, sizeof(test_xs_reduced)) == 0,
+      "Output of groupby operation does not match test data");
+
+  /*memory_pool_map(test_pool_seq, &print_s32); printf("\n");*/
+}
+END_TEST
+
+typedef struct __attribute__((packed)) {
+  float p;
+  u8 len;
+  u8 N[15];
+} hypothesis_t;
+
+void print_hyp(element_t *hyp_)
+{
+  hypothesis_t *hyp = (hypothesis_t *)hyp_;
+  printf("[ ");
+  for (u8 i=0; i<hyp->len; i++)
+    printf("%d ", hyp->N[i]);
+  printf("] %.3f\n", hyp->p);
+}
+
+s32 group_by_N_i(void *i_, element_t *a_, element_t *b_)
+{
+  u8 *i = (u8 *)i_;
+  hypothesis_t *a = (hypothesis_t *)a_;
+  hypothesis_t *b = (hypothesis_t *)b_;
+
+  for (u8 n=0; n<a->len; n++) {
+    if (n == *i)
+      continue;
+    if (a->N[n] < b->N[n])
+      return -1;
+    if (a->N[n] > b->N[n])
+      return 1;
+  }
+  return 0;
+}
+
+void agg_sum_p(element_t *new_, void *x_, u32 n, element_t *elem_)
+{
+  u8 *x = (u8 *)x_;
+  hypothesis_t *new = (hypothesis_t *)new_;
+  hypothesis_t *elem = (hypothesis_t *)elem_;
+
+  if (n == 0) {
+    new->len = elem->len - 1;
+    new->p = 0;
+    u8 j=0;
+    for (u8 i=0; i<elem->len; i++) {
+      if (i != *x) {
+        new->N[j] = elem->N[i];
+        j++;
+      }
+    }
+  }
+  new->p += elem->p;
+}
+
+START_TEST(test_groupby_2)
+{
+  /* Create a new pool. */
+  memory_pool_t *test_pool_hyps = memory_pool_new(50, sizeof(hypothesis_t));
+
+  for (u32 i=0; i<10; i++) {
+    hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(test_pool_hyps);
+    fail_unless(hyp != 0, "Null pointer returned by memory_pool_add");
+    hyp->len = 4;
+    for (u8 j=0; j<hyp->len; j++) {
+      hyp->N[j] = sizerand(2);
+    }
+    hyp->p = frand(0, 1);
+  }
+
+  u8 col = 1;
+
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_sort(test_pool_hyps, &col, &group_by_N_i);*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+
+  memory_pool_group_by(test_pool_hyps, &col, &group_by_N_i,
+                       &col, 1, &agg_sum_p);
+
+  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+
+  fail_unless(memory_pool_n_allocated(test_pool_hyps) == 7,
+      "Reduced length does not match");
+
+  hypothesis_t reduced_hyps[7];
+  memory_pool_to_array(test_pool_hyps, reduced_hyps);
+
+  for (u32 i=0; i<7; i++) {
+    fail_unless(reduced_hyps[i].len == 3,
+        "Output of groupby operation does not match test data");
+    fail_unless(reduced_hyps[i].p >= 0 && reduced_hyps[i].p <= 2,
+        "Output of groupby operation does not match test data, p not in range: %f",
+        reduced_hyps[i].p);
+  }
+
+  fail_unless(fabs(reduced_hyps[5].p - 0.374936) < 0.00001,
+      "Output of groupby operation does not match test data, p[5] = %f, expected 0.375",
+      reduced_hyps[5].p);
+
+  memory_pool_destroy(test_pool_hyps);
+}
+END_TEST
+
 Suite* memory_pool_suite(void)
 {
   Suite *s = suite_create("Memory Pools");
@@ -311,6 +513,9 @@ Suite* memory_pool_suite(void)
   tcase_add_test(tc_core, test_filter_2);
   tcase_add_test(tc_core, test_filter_3);
   tcase_add_test(tc_core, test_filter_4);
+  tcase_add_test(tc_core, test_sort);
+  tcase_add_test(tc_core, test_groupby_1);
+  tcase_add_test(tc_core, test_groupby_2);
   suite_add_tcase(s, tc_core);
 
   return s;
