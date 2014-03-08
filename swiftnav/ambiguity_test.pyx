@@ -10,6 +10,7 @@
 cimport ambiguity_test_c
 import numpy as np
 cimport numpy as np
+from common cimport *
 
 def get_phase_obs_null_basis(DE):
   num_dds = DE.shape[0]
@@ -21,3 +22,18 @@ def get_phase_obs_null_basis(DE):
 
   ambiguity_test_c.assign_phase_obs_null_basis(DE.shape[0], &DE_[0,0], &q_[0,0])
   return q_
+
+def get_residual_covariance_inverse(obs_cov, q):
+  cdef u8 num_dds = obs_cov.shape[0]/2
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] q_ = \
+    np.array(q, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_cov_ = \
+    np.array(obs_cov, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] r_cov_inv_ = \
+    np.empty((2*num_dds-3, 2*num_dds-3), dtype=np.double)
+
+  ambiguity_test_c.assign_residual_covariance_inverse(num_dds, &obs_cov_[0,0], &q_[0,0], &r_cov_inv_[0,0])
+  return r_cov_inv_
