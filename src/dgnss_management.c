@@ -225,5 +225,3 @@ sats_management_t * get_sats_management()
 }
 
 
-
-

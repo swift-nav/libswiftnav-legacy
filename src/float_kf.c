@@ -22,7 +22,7 @@
 #include "gpstime.h"
 #include "float_kf.h"
 
-s8 udu(u32 n, double *M, double *U, double *D)
+s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
 {
   double alpha, beta;
   triu(n, M);

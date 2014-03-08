@@ -11,17 +11,18 @@
  */
 
  #include <clapack.h>
+ #include <cblas.h>
  #include <stdio.h>
  #include <string.h>
  #include "ambiguity_test.h"
  #include "common.h"
+ #include "constants.h"
  #include "linear_algebra.h"
 
-void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_covar)
+void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
 {
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
-  (void) obs_covar;
-
+  assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->res_cov_inv);
 }
 
 
@@ -87,12 +88,56 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
   memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
 }
 
-void assign_residual_covariance_inverse(u8 num_dds, double *obs_covar, double *q, double *r_cov_inv)
+void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {
-  (void) num_dds;
-  (void) obs_covar;
-  (void) q;
-  (void) r_cov_inv;
+  integer dd_dim = 2*num_dds;
+  integer res_dim = dd_dim - 3;
+  u32 nullspace_dim = num_dds-3;
+  double q_tilde[res_dim * dd_dim];
+  memset(q_tilde, 0, res_dim * dd_dim * sizeof(double));
+  // MAT_PRINTF(obs_cov, dd_dim, dd_dim);
+  
+  // MAT_PRINTF(q, nullspace_dim, num_dds);
+  for (u8 i=0; i<nullspace_dim; i++) {
+    memcpy(&q_tilde[i*dd_dim], &q[i*num_dds], num_dds * sizeof(double));
+  }
+  // MAT_PRINTF(q_tilde, res_dim, dd_dim);
+  for (u8 i=0; i<num_dds; i++) {
+    q_tilde[(i+nullspace_dim)*dd_dim + i] = 1;
+    q_tilde[(i+nullspace_dim)*dd_dim + i+num_dds] = -1 / GPS_L1_LAMBDA_NO_VAC;
+  }
+  // MAT_PRINTF(q_tilde, res_dim, dd_dim);
+  
+  //TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx
+  double QC[res_dim * dd_dim];
+  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
+              res_dim, dd_dim, // int M, int N
+              1, obs_cov, dd_dim, // double alpha, double *A, int lda
+              q_tilde, dd_dim, // double *B, int ldb
+              0, QC, dd_dim); // double beta, double *C, int ldc
+  // MAT_PRINTF((double *) FC, kf->state_dim, kf->state_dim);
+  // MAT_PRINTF(QC, res_dim, dd_dim);
+
+  //TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
+              res_dim, res_dim, dd_dim, // int M, int N, int K
+              1, QC, dd_dim, // double alpha, double *A, int lda
+              q_tilde, dd_dim, //double *B, int ldb
+              0, r_cov_inv, res_dim); //beta, double *C, int ldc
+  // MAT_PRINTF(r_cov_inv, res_dim, res_dim);
+
+  // dpotrf_(char *uplo, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
+  //       lda, __CLPK_integer *info)
+  //dpotri_(char *uplo, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
+  //        lda, __CLPK_integer *info)
+  char uplo = 'L'; //actually this makes it upper. the lapack stuff is all column major, but we're good since we're operiating on symmetric matrices
+  integer info;
+  dpotrf_(&uplo, &res_dim, r_cov_inv, &res_dim, &info);
+  printf("info: %i\n", (int) info);
+  // MAT_PRINTF(r_cov_inv, res_dim, res_dim);
+  dpotri_(&uplo, &res_dim, r_cov_inv, &res_dim, &info);
+  printf("info: %i\n", (int) info);
+  // MAT_PRINTF(r_cov_inv, res_dim, res_dim);
 }
 
 // void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *dd_measurements, double *r_vec)
@@ -105,7 +150,7 @@ void assign_residual_covariance_inverse(u8 num_dds, double *obs_covar, double *q
 
 // }
 
-// double assign_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *hypothesis, double *r_vec)
+// double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, s8 *hypothesis, double *r_vec)
 // {
 
 // }
