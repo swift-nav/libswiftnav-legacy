@@ -15,7 +15,11 @@ cdef extern from "libswiftnav/ambiguity_test.h":
     u32 res_dim
     u8 null_space_dim
     double *null_projector
-    double *res_cov_inv
+    double *half_res_cov_inv
 
   void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
   void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv)
+  void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
+  void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements, double *r_vec)
+  void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_mean)
+  double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_vec)
