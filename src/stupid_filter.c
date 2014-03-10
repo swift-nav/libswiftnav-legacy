@@ -22,37 +22,75 @@
 
 #include <lapacke.h>
 
-void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
-                        double *dd_measurements, double b[3], double ref_ecef[3])
+/** Estimate the integer ambiguity vector from a double difference measurement
+ * and a given baseline.
+ *
+ * Given the double difference carrier phase measurement equation:
+ * \f[
+ *    \Delta \nabla \phi_i = N_i + \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} + \epsilon
+ * \f]
+ * where \f$ \Delta \nabla \phi_i \f$ is the double differenced carrier phase
+ * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
+ * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is the
+ * unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the baseline
+ * vector between the reover and reference station.
+ *
+ * We can estimate \f$N_i\f$ given the baseline \f$\mathbf{b}\f$ as follows:
+ * \f[
+ *    \tilde{N_i} = \mathrm{round}\left(\Delta \nabla \phi_i - \frac{1}{\lambda} [\mathbf{DE} \cdot \mathbf{b}]_i + \epsilon\right)
+ * \f]
+ * where the \f$\mathbf{DE}\f$ matrix is defined as:
+ * \f[
+ *    \mathbf{DE}_i = \mathbf{e}_i - \mathbf{e}_r
+ * \f]
+ *
+ * \param num_sats Number of satellites used
+ * \param DE Double differenced matrix of unit vectors to the satellites
+ * \param dd_meas Double differenced carrier phase measurements in cycles,
+ *                length `num_sats - 1`
+ * \param b Baseline vector in meters
+ * \param N Vector where integer ambiguity estimate will be stored
+ */
+void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
+                       double b[3], s32 *N)
 {
-  // VEC_PRINTF(b,3);
-  // VEC_PRINTF(ref_ecef, 3);
-  // VEC_PRINTF(dd_measurements, (u32) num_sats-1);
+  double N_float[num_sats-1];
+  /* Solve for ambiguity vector using the observation equation, i.e.
+   *   N_float = dd_meas - DE . b / lambda
+   * where N_float is a real valued vector */
 
+  /* N_float <= dd_meas
+   * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
+   * beta <= 1.0
+   * N_float <= beta * N_float + alpha * (DE . b)
+   */
+  memcpy(N_float, dd_meas, (num_sats-1) * sizeof(double));
+  cblas_dgemv(
+    CblasRowMajor, CblasNoTrans, num_sats-1, 3,
+    -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, b, 1,
+    1.0, N_float, 1
+  );
+
+  /* Round the values of N_float to estimate the integer valued ambiguities. */
+  for (u8 i=0; i<num_sats-1; i++) {
+    N[i] = (s32)lround(N_float[i]);
+  }
+}
+
+void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
+                        double *dd_meas, double b[3], double ref_ecef[3])
+{
   double DE[(num_sats-1)*3];
 
   /* Calculate DE matrix */
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
-  // MAT_PRINTF(DE, (u32) num_sats-1, 3);
 
-  /* Solve for ambiguity vector, i.e.
-   * N = dd_meas - DE . b / lambda */
-  double b_dot_DE[num_sats-1];
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-            num_sats-1, 3, // int M, int N,
-            1, DE, 3, // double alpha, double *A, int lda
-            b, 1, // double *X, int incX
-            0, b_dot_DE, 1); // double beta, double *Y, int incY
-  // VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
-
-  
-  for (u8 i=0; i<num_sats-1; i++) {
-    s->N[i] = round(dd_measurements[i] - b_dot_DE[i] / GPS_L1_LAMBDA_NO_VAC);
-  }
-  // VEC_PRINTF(s->N, (u32) num_sats-1);
+  amb_from_baseline(num_sats, DE, dd_meas, b, s->N);
 }
 
-static s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list) {
+
+static s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
+{
   for (u32 i=0; i<num_elements; i++) {
     if (x == list[i]) {
       return i;
@@ -121,6 +159,20 @@ void update_sats_stupid_filter(stupid_filter_state_t *s, u8 num_old, u8 *old_prn
   memcpy(&intersection_sats[0], &sdiffs[0], sizeof(sdiff_t));
   s32 intersection_N[MAX_CHANNELS];
   u8 n_intersection = intersect_o_tron(num_old-1, num_new-1, &old_prns[1], &sdiffs[1], dd_measurements, &intersection_sats[1], intersection_dd_measurements, s->N, intersection_N);
+
+  if ((num_old-1) == (num_new-1) && (num_old-1) == n_intersection) {
+    u8 flag = 0;
+    for (u8 i=0; i<n_intersection+1; i++) {
+      if (intersection_sats[i].prn != old_prns[i])
+        flag = 1;
+    }
+    if (flag == 0)
+      // No changes!
+      return;
+  }
+
+  printf("====== UPDATE =======\n");
+
   // ok to overwite s->N because we are going to call init in a second anyway
   memcpy(&(s->N), intersection_N, n_intersection*sizeof(s32));
   // calc least sq. b from intersection sat using new data
@@ -152,6 +204,7 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
    for (u8 i=0; i<num_sats-1; i++) {
      rhs[i] = (dd_measurements[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
    }
+  VEC_PRINTF(rhs, (u32) num_sats-1);
    int jpvt[3] = {0, 0, 0};
    int rank;
    LAPACKE_dgelsy(LAPACK_ROW_MAJOR, num_sats-1, 3,
@@ -159,6 +212,25 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
                   rhs, 1, jpvt,
                   -1, &rank);
    memcpy(b, rhs, 3*sizeof(double));
+
+  /* Calculate DE matrix */
+  assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
+
+  /* Solve for ambiguity vector, i.e.
+   * N = dd_meas - DE . b / lambda */
+  double b_dot_DE[num_sats-1];
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
+            num_sats-1, 3, // int M, int N,
+            1, DE, 3, // double alpha, double *A, int lda
+            rhs, 1, // double *X, int incX
+            0, b_dot_DE, 1); // double beta, double *Y, int incY
+  VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
+
+  for (u8 i=0; i<num_sats-1; i++) {
+    b_dot_DE[i] -= (dd_measurements[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
+    b_dot_DE[i] = 100 * b_dot_DE[i];
+  }
+  VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
 }
 
 
