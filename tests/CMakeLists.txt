@@ -25,6 +25,7 @@ else (CMAKE_CROSSCOMPILING)
       check_float_kf.c
       check_edc.c
       check_bits.c
+      check_memory_pool.c
       check_sbp.c
       check_rtcm3.c
       check_coord_system.c
