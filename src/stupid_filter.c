@@ -25,15 +25,15 @@
 void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
                         double *dd_measurements, double b[3], double ref_ecef[3])
 {
-  VEC_PRINTF(b,3);
-  VEC_PRINTF(ref_ecef, 3);
-  VEC_PRINTF(dd_measurements, (u32) num_sats-1);
+  // VEC_PRINTF(b,3);
+  // VEC_PRINTF(ref_ecef, 3);
+  // VEC_PRINTF(dd_measurements, (u32) num_sats-1);
 
   double DE[(num_sats-1)*3];
 
   /* Calculate DE matrix */
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
-  MAT_PRINTF(DE, (u32) num_sats-1, 3);
+  // MAT_PRINTF(DE, (u32) num_sats-1, 3);
 
   /* Solve for ambiguity vector, i.e.
    * N = dd_meas - DE . b / lambda */
@@ -43,7 +43,7 @@ void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
             1, DE, 3, // double alpha, double *A, int lda
             b, 1, // double *X, int incX
             0, b_dot_DE, 1); // double beta, double *Y, int incY
-  VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
+  // VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
 
   
   for (u8 i=0; i<num_sats-1; i++) {
