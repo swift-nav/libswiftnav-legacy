@@ -43,8 +43,8 @@
 */
 
 void llhdeg2rad(const double llhDeg[3], double llhRad[3]) {
-  llhRad[0] = (GPS_PI * llhDeg[0]) / 180.0;
-  llhRad[1] = (GPS_PI * llhDeg[1]) / 180.0;
+  llhRad[0] = llhDeg[0]*D2R;
+  llhRad[1] = llhDeg[1]*D2R;
   llhRad[2] = llhDeg[2];
 }
 
