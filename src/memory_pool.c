@@ -240,13 +240,13 @@ element_t *memory_pool_add(memory_pool_t *pool)
  * \param f Pointer to a function that does an in-place update of an element.
  * \return Number of elements mapped across or `< 0` on an error.
  */
-s32 memory_pool_map(memory_pool_t *pool, void (*f)(element_t *elem))
+s32 memory_pool_map(memory_pool_t *pool, void *arg, void (*f)(void *arg, element_t *elem))
 {
   u32 count = 0;
 
   node_t *p = pool->allocated_nodes_head;
   while (p && count <= pool->n_elements) {
-    (*f)(p->elem);
+    (*f)(arg, p->elem);
     p = p->hdr.next;
     count++;
   }
@@ -375,7 +375,7 @@ s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
  *          discard that element or `!=0` to keep that element.
  * \return Number of elements in the filtered collection or `< 0` on an error.
  */
-s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
+s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem))
 {
   u32 count = 0;
 
@@ -391,7 +391,7 @@ s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem))
   node_t *p = pool->allocated_nodes_head;
 
   while (p && count <= pool->n_elements) {
-    if ((*f)(p->elem)) {
+    if ((*f)(arg, p->elem)) {
       /* Keep element, move along.. */
       p_prev = p;
       p = p->hdr.next;
@@ -661,11 +661,14 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
      * the current element and an item in xs. */
     for (u32 i=0; i<n_xs; i++) {
       element_t *new = memory_pool_add(pool);
+      if (!new) {
+        /* Pool is full. */
+        return -2;
+      }
       /* Initialize the element to the same as the original element. */
       memcpy(new, p->elem, pool->element_size);
-      if (!new)
-        return -2;
       prod(new, ((u8 *)xs + i*x_size), n_xs, i, p->elem);
+      count++;
     }
 
     /* Store pointer to next node to process. */
@@ -676,8 +679,59 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
     pool->free_nodes_head = p;
 
     p = next_p;
+  }
 
-    count++;
+  if (count == pool->n_elements && p)
+    /* The list of elements is larger than the pool,
+     * something has gone horribly wrong. */
+    return -1;
+
+  return count;
+}
+
+s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, size_t x_size,
+                                  s8 (*next)(void *x, u32 n),
+                                  void (*prod)(element_t *new, void *x, u32 n, element_t *elem))
+{
+  /* Save the head of the original list and reset the pool head where the
+   * product data will be added. */
+  node_t *old_head = pool->allocated_nodes_head;
+  pool->allocated_nodes_head = NULL;
+
+  u32 count = 0;
+
+  node_t *p = old_head;
+  while (p && count <= pool->n_elements) {
+    /* Iterate through our generator adding a new element for each pair
+     * of a generated element and the current element from the old list. */
+    u8 x_work[x_size];
+    memcpy(x_work, x0, x_size);
+    u32 x_count = 0;
+    while (next(x_work, x_count)) {
+      if (x_count > max_xs) {
+        /* Exceded maximum number of generator iterations. */
+        return -3;
+      }
+      element_t *new = memory_pool_add(pool);
+      if (!new) {
+        /* Pool is full. */
+        return -2;
+      }
+      /* Initialize the element to the same as the original element. */
+      memcpy(new, p->elem, pool->element_size);
+      prod(new, x_work, x_count, p->elem);
+      x_count++;
+      count++;
+    }
+
+    /* Store pointer to next node to process. */
+    node_t *next_p = p->hdr.next;
+
+    /* Return current node to the pool. */
+    p->hdr.next = pool->free_nodes_head;
+    pool->free_nodes_head = p;
+
+    p = next_p;
   }
 
   if (count == pool->n_elements && p)

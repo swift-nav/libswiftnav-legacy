@@ -89,17 +89,6 @@ void init_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
 }
 
 
-static s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
-{
-  for (u32 i=0; i<num_elements; i++) {
-    if (x == list[i]) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-
 static void rebase_N(s32 *N, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   u8 old_ref = old_prns[0];

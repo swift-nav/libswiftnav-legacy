@@ -206,8 +206,9 @@ START_TEST(test_pool_to_array)
 }
 END_TEST
 
-void times_two(element_t *elem)
+void times_two(void *arg, element_t *elem)
 {
+  (void) arg;
   s32 *x = (s32 *)elem;
   *x = *x * 2;
 }
@@ -220,7 +221,7 @@ START_TEST(test_map)
     22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0
   };
 
-  memory_pool_map(test_pool_seq, &times_two);
+  memory_pool_map(test_pool_seq, NULL, &times_two);
 
   memory_pool_to_array(test_pool_seq, xs);
   fail_unless(memcmp(xs, test_xs, sizeof(xs)) == 0,
@@ -228,8 +229,9 @@ START_TEST(test_map)
 }
 END_TEST
 
-s8 less_than_12(element_t *elem)
+s8 less_than_12(void *arg, element_t *elem)
 {
+  (void) arg;
   return *((s32 *)elem) < 12;
 }
 
@@ -240,7 +242,7 @@ START_TEST(test_filter_1)
     11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
   };
 
-  memory_pool_filter(test_pool_seq, &less_than_12);
+  memory_pool_filter(test_pool_seq, NULL, &less_than_12);
   fail_unless(memory_pool_n_allocated(test_pool_seq) == 12,
       "Filtered length does not match");
 
@@ -250,8 +252,9 @@ START_TEST(test_filter_1)
 }
 END_TEST
 
-s8 between_15_7(element_t *elem)
+s8 between_15_7(void *arg, element_t *elem)
 {
+  (void) arg;
   return *((s32 *)elem) <= 15 && *((s32 *)elem) >= 7;
 }
 
@@ -262,7 +265,7 @@ START_TEST(test_filter_2)
     15, 14, 13, 12, 11, 10, 9, 8, 7
   };
 
-  memory_pool_filter(test_pool_seq, &between_15_7);
+  memory_pool_filter(test_pool_seq, NULL, &between_15_7);
   fail_unless(memory_pool_n_allocated(test_pool_seq) == 9,
       "Filtered length does not match");
 
@@ -272,8 +275,9 @@ START_TEST(test_filter_2)
 }
 END_TEST
 
-s8 greater_than_11(element_t *elem)
+s8 greater_than_11(void *arg, element_t *elem)
 {
+  (void) arg;
   return *((s32 *)elem) > 11;
 }
 
@@ -284,7 +288,7 @@ START_TEST(test_filter_3)
     21, 20, 19, 18, 17, 16, 15, 14, 13, 12
   };
 
-  memory_pool_filter(test_pool_seq, &greater_than_11);
+  memory_pool_filter(test_pool_seq, NULL, &greater_than_11);
   fail_unless(memory_pool_n_allocated(test_pool_seq) == 10,
       "Filtered length does not match");
 
@@ -294,8 +298,9 @@ START_TEST(test_filter_3)
 }
 END_TEST
 
-s8 even(element_t *elem)
+s8 even(void *arg, element_t *elem)
 {
+  (void) arg;
   return *((s32 *)elem) % 2 == 0;
 }
 
@@ -306,7 +311,7 @@ START_TEST(test_filter_4)
     20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0
   };
 
-  memory_pool_filter(test_pool_seq, &even);
+  memory_pool_filter(test_pool_seq, NULL, &even);
   fail_unless(memory_pool_n_allocated(test_pool_seq) == 11,
       "Filtered length does not match");
 
@@ -419,7 +424,7 @@ typedef struct __attribute__((packed)) {
   u8 N[15];
 } hypothesis_t;
 
-void print_hyp(element_t *hyp_)
+void print_hyp_elem(element_t *hyp_)
 {
   hypothesis_t *hyp = (hypothesis_t *)hyp_;
   printf("[ ");
@@ -482,14 +487,14 @@ START_TEST(test_groupby_2)
 
   u8 col = 1;
 
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
   /*memory_pool_sort(test_pool_hyps, &col, &group_by_N_i);*/
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
 
   memory_pool_group_by(test_pool_hyps, &col, &group_by_N_i,
                        &col, 1, &agg_sum_p);
 
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
 
   fail_unless(memory_pool_n_allocated(test_pool_hyps) == 7,
       "Reduced length does not match");
@@ -548,11 +553,11 @@ START_TEST(test_prod)
 
   u8 new_N_vals[3] = {7, 8, 9};
 
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
 
   memory_pool_product(test_pool_hyps, new_N_vals, 3, sizeof(u8), &prod_N);
 
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
 
   fail_unless(memory_pool_n_allocated(test_pool_hyps) == 9,
       "Reduced length does not match");
@@ -564,7 +569,72 @@ START_TEST(test_prod)
   fail_unless(memory_pool_n_allocated(test_pool_hyps) == 3,
       "Reduced length does not match");
 
-  /*memory_pool_map(test_pool_hyps, &print_hyp); printf("\n");*/
+  /*memory_pool_map(test_pool_hyps, &print_hyp_elem); printf("\n");*/
+
+  memory_pool_destroy(test_pool_hyps);
+}
+END_TEST
+
+typedef struct {
+  u8 val;
+  u8 n_vals;
+  u8 i;
+} test_gen_state_t;
+
+s8 test_next(void *x_, u32 n)
+{
+  (void) n;
+  test_gen_state_t *x = (test_gen_state_t *)x_;
+  x->val = x->i * x->i;
+  x->i++;
+  if (x->i > x->n_vals)
+    return 0;
+  return 1;
+}
+
+void prod_N_gen(element_t *new_, void *x_, u32 n, element_t *elem_)
+{
+  (void)n;
+  test_gen_state_t *x = (test_gen_state_t *)x_;
+  hypothesis_t *new = (hypothesis_t *)new_;
+  hypothesis_t *elem = (hypothesis_t *)elem_;
+
+  new->len = elem->len + 1;
+  new->N[new->len-1] = x->val;
+}
+
+START_TEST(test_prod_generator)
+{
+  /* Create a new pool. */
+  memory_pool_t *test_pool_hyps = memory_pool_new(50, sizeof(hypothesis_t));
+
+  for (u32 i=0; i<3; i++) {
+    hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(test_pool_hyps);
+    fail_unless(hyp != 0, "Null pointer returned by memory_pool_add");
+    hyp->len = 4;
+    for (u8 j=0; j<hyp->len; j++) {
+      hyp->N[j] = sizerand(5);
+    }
+    hyp->p = frand(0, 1);
+  }
+
+  test_gen_state_t test_gen_state = {
+    .val = 0,
+    .n_vals = 3,
+    .i = 0
+  };
+
+  memory_pool_product_generator(test_pool_hyps, &test_gen_state, 100, sizeof(test_gen_state_t), &test_next, &prod_N_gen);
+
+  fail_unless(memory_pool_n_allocated(test_pool_hyps) == 9,
+      "Reduced length does not match22");
+
+  u8 col = 4;
+  memory_pool_group_by(test_pool_hyps, &col, &group_by_N_i,
+                       &col, 1, &agg_sum_p);
+
+  fail_unless(memory_pool_n_allocated(test_pool_hyps) == 3,
+      "Reduced length does not match33");
 
   memory_pool_destroy(test_pool_hyps);
 }
@@ -591,6 +661,7 @@ Suite* memory_pool_suite(void)
   tcase_add_test(tc_core, test_groupby_1);
   tcase_add_test(tc_core, test_groupby_2);
   tcase_add_test(tc_core, test_prod);
+  tcase_add_test(tc_core, test_prod_generator);
   suite_add_tcase(s, tc_core);
 
   return s;

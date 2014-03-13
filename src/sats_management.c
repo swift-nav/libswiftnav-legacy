@@ -84,6 +84,38 @@ u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
 //   u8 control_logic = check_and_rebase_reference_sat(kf, num_sats, sdiffs, state);
 // }
 
+/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
+ */
+void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns)
+{
+  u8 old_ref = prns[0];
+  u8 j;
+  if (old_ref != ref_prn) {
+    j = 1;
+    u8 old_prns[num_sats];
+    memcpy(old_prns, prns, num_sats * sizeof(u8));
+    u8 set_old_yet = 0;
+    prns[0] = ref_prn;
+    for (u8 i=1; i<num_sats; i++) {
+      if (old_prns[i] != ref_prn) {
+        if (old_prns[i]>old_ref && set_old_yet == 0) {
+          prns[j] = old_ref;
+          j++;
+          i--;
+          set_old_yet = 1;
+        }
+        else {
+          prns[j] = old_prns[i];
+          j++;
+        }
+      }
+      else if (i == num_sats-1) {
+        prns[j] = old_ref;
+      }
+    }
+  }
+}
+
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
  */
@@ -95,7 +127,7 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
   if (old_ref != ref_prn) {
     j = 1;
     u8 old_prns[sats_management->num_sats];
-    memcpy(old_prns, sats_management->prns, sats_management->num_sats);
+    memcpy(old_prns, sats_management->prns, sats_management->num_sats * sizeof(u8));
     u8 set_old_yet = 0;
     sats_management->prns[0] = ref_prn;
     for (u8 i=1; i<sats_management->num_sats; i++) {
@@ -110,6 +142,9 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
           sats_management->prns[j] = old_prns[i];
           j++;
         }
+      }
+      else if (i == sats_management->num_sats-1) {
+        sats_management->prns[j] = old_ref;
       }
     }
   }
@@ -133,10 +168,14 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
   for (u8 i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn != ref_prn) {
       sats_management->prns[j] = sdiffs[i].prn;
-      memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
+      if (sdiffs_with_ref_first) {
+        memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
+      }
       j++;
     } else {
-      memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
+      if (sdiffs_with_ref_first) {
+        memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
+      }
     }
   }
 }
@@ -144,6 +183,11 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
 void init_sats_management(sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
+  if (num_sdiffs == 0) {
+    sats_management->num_sats = 0;
+    return;
+  }
+
   u8 ref_prn = choose_reference_sat(num_sdiffs, sdiffs);
   set_reference_sat_and_prns(ref_prn, sats_management,
                              num_sdiffs, sdiffs, sdiffs_with_ref_first);
@@ -164,6 +208,12 @@ s8 rebase_sats_management(sats_management_t *sats_management,
 {
   s8 return_code;
   u8 ref_prn;
+
+  if (sats_management->num_sats == 0) {
+    // Need to init first.
+    init_sats_management(sats_management, num_sdiffs, sdiffs, 0);
+  }
+
   // Check if old reference is in sdiffs
   if (bsearch(&(sats_management->prns[0]), sdiffs, num_sdiffs, sizeof(sdiff_t), &sdiff_search_prn)) {
     ref_prn = sats_management->prns[0];

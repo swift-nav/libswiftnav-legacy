@@ -605,7 +605,8 @@ kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double 
   return kf;
 }
 
-s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list) {
+s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
+{
   for (u32 i=0; i<num_elements; i++) {
     if (x == list[i]) {
       return i;

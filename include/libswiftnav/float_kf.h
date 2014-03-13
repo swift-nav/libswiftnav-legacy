@@ -81,7 +81,7 @@ void reset_kf_except_state(kf_t *kf,
                            u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double dt);
 kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt);
-
+s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list);
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 
 void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state);
@@ -95,6 +95,7 @@ void kalman_filter_state_inclusion(kf_t *kf,
                                    u8 *ndx_of_old_sat_in_new,
                                    double int_init_var);
 
+void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx);
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */

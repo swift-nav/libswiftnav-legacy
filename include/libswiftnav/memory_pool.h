@@ -32,8 +32,8 @@ s32 memory_pool_n_allocated(memory_pool_t *pool);
 element_t *memory_pool_add(memory_pool_t *pool);
 s32 memory_pool_to_array(memory_pool_t *pool, void *array);
 
-s32 memory_pool_map(memory_pool_t *pool, void (*f)(element_t *elem));
-s32 memory_pool_filter(memory_pool_t *pool, s8 (*f)(element_t *elem));
+s32 memory_pool_map(memory_pool_t *pool, void *arg, void (*f)(void *arg, element_t *elem));
+s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem));
 s32 memory_pool_fold(memory_pool_t *pool, void *x0,
                      void (*f)(void *x, element_t *elem));
 double memory_pool_dfold(memory_pool_t *pool, double x0,
@@ -49,8 +49,11 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
                           s32 (*cmp)(void *arg, element_t *a, element_t *b),
                           void *x0, size_t x_size,
                           void (*agg)(element_t *new, void *x, u32 n, element_t *elem));
-s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
+s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 max_xs, size_t x_size,
                         void (*prod)(element_t *new, void *x, u32 n_xs, u32 n, element_t *elem));
+s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 n_xs, size_t x_size,
+                                  s8 (*next)(void *x, u32 n),
+                                  void (*prod)(element_t *new, void *x, u32 n, element_t *elem));
 
 #endif /* LIBSWIFTNAV_MEMORY_POOL_H */
 
