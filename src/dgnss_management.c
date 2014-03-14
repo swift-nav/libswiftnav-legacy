@@ -249,7 +249,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
                           state_cov, DE, obs_cov);
     } else {
       update_ambiguity_test(&ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
-                            state_cov, DE, obs_cov);
+                            state_cov);
     } 
   }
 }

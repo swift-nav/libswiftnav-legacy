@@ -97,6 +97,7 @@ void kalman_filter_state_inclusion(kf_t *kf,
 
 void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx);
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
+void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 
