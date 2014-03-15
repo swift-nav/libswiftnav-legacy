@@ -198,16 +198,6 @@ void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, do
                         dd_measurements, b, ref_ecef);
 }
 
-void dmtx_printf(double *mtx, u32 m, u32 n)
-{
-  for (u32 i = 0; i < m; i++) {
-    printf(" [% 12lf", mtx[i*n + 0]);
-    for (u32 j = 1; j < n; j++)
-      printf(" % 12lf", mtx[i*n + j]);
-    printf("]\n");
-  }
-}
-
 void dvec_printf(double *v, u32 n)
 {
     for (u32 i = 0; i < n; i++) printf(", %f", v[i]);

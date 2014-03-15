@@ -52,6 +52,19 @@
  */
 #define MATRIX_EPSILON (1e-60)
 
+
+
+void dmtx_printf(double *mtx, u32 m, u32 n)
+{
+  for (u32 i = 0; i < m; i++) {
+    printf(" [% 12lf", mtx[i*n + 0]);
+    for (u32 j = 1; j < n; j++)
+      printf(" % 12lf", mtx[i*n + j]);
+    printf("]\n");
+  }
+}
+
+
 /* \} */
 
 /** \defgroup matrices Matrix Mathematics

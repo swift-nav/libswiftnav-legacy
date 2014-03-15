@@ -124,7 +124,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
                                           float_sats, float_mean, float_cov);
 
   sdiff_t ambiguity_sdiffs[amb_test->sats.num_sats];
-  double ambiguity_dd_measurements[amb_test->sats.num_sats-1];
+  double ambiguity_dd_measurements[2*(amb_test->sats.num_sats-1)];
   make_ambiguity_dd_measurements_and_sdiffs(amb_test, num_sdiffs, sdiffs, ambiguity_dd_measurements, ambiguity_sdiffs);
 
   if (1 == 1 || changed_sats == 1) {
@@ -209,11 +209,11 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
   double ref_pseudorange;
   u8 i=0;
   u8 j=0;
-  u8 *amb_test_non_dd_prns = &amb_test->sats.prns[1];
+  u8 *amb_test_non_ref_prns = &amb_test->sats.prns[1];
   u8 num_dds = amb_test->sats.num_sats-1;
   u8 found_ref = 0; //DEBUG
   while (i < num_dds) {
-    if (amb_test_non_dd_prns[i] == sdiffs[j].prn) {
+    if (amb_test_non_ref_prns[i] == sdiffs[j].prn) {
       memcpy(&amb_sdiffs[i+1], &sdiffs[j], sizeof(sdiff_t));
       ambiguity_dd_measurements[i] = sdiffs[j].carrier_phase;
       ambiguity_dd_measurements[i+num_dds] = sdiffs[j].pseudorange;
@@ -229,7 +229,7 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
     // else {
     //   j++;
     // }
-    else if (amb_test_non_dd_prns[i] > sdiffs[i].prn) {
+    else if (amb_test_non_ref_prns[i] > sdiffs[i].prn) {
       j++;
     } else { //DEBUG
       //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test->sats
