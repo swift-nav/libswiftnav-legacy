@@ -169,6 +169,13 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
                             corrected_sdiffs, dd_measurements, reciever_ecef);
   }
+  else {
+    reset_kf_except_state(&kf,
+                          PHASE_VAR, CODE_VAR,
+                          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
+                          num_sdiffs, corrected_sdiffs, reciever_ecef, dt);
+  }
+
 }
 
 void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, double b[3])
@@ -191,6 +198,20 @@ void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, do
                         dd_measurements, b, ref_ecef);
 }
 
+void dmtx_printf(double *mtx, u32 m, u32 n)
+{
+  for (u32 i = 0; i < m; i++) {
+    printf(" [% 12lf", mtx[i*n + 0]);
+    for (u32 j = 1; j < n; j++)
+      printf(" % 12lf", mtx[i*n + j]);
+    printf("]\n");
+  }
+}
+
+void dvec_printf(double *v, u32 n)
+{
+    for (u32 i = 0; i < n; i++) printf(", %f", v[i]);
+}
 
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, double b[3])
 {
@@ -223,7 +244,12 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
     reconstruct_udu(kf.state_dim, kf.state_cov_U, kf.state_cov_D, state_cov);
     
     double DE[(num_sats-1) * 3];
-    assign_de_mtx(num_sats, corrected_sdiffs, kf.state_mean, DE);
+    double ref_ecef[3];
+    ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
+    ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
+    ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
+
+    assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
 
     double obs_cov[kf.obs_dim * kf.obs_dim];
     memset(obs_cov, 0, kf.obs_dim * kf.obs_dim * sizeof(double));
@@ -248,7 +274,8 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
       init_ambiguity_test(&ambiguity_test, kf.state_dim, float_prns, corrected_sdiffs, kf.state_mean,
                           state_cov, DE, obs_cov);
     } else {
-      update_ambiguity_test(&ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
+      update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
+                            &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
                             state_cov);
     } 
   }
