@@ -197,7 +197,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
 
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
-  // memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
+  memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
   
 }
 
@@ -1008,20 +1008,21 @@ void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, do
 
 double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_vec)
 {
-  // VEC_PRINTF(r_vec, res_mtxs->res_dim);
+  VEC_PRINTF(r_vec, res_mtxs->res_dim);
   double r[res_mtxs->res_dim];
-  // VEC_PRINTF(r, res_mtxs->res_dim);
   assign_r_mean(res_mtxs, num_dds, hypothesis, r);
+  VEC_PRINTF(r, res_mtxs->res_dim);
   for (u32 i=0; i<res_mtxs->res_dim; i++) {
     r[i] = r_vec[i] - r[i];
   }
+  VEC_PRINTF(r, res_mtxs->res_dim);
   double half_sig_dot_r[res_mtxs->res_dim];
   cblas_dsymv(CblasRowMajor, CblasUpper,
                  res_mtxs->res_dim,
                  1, res_mtxs->half_res_cov_inv, res_mtxs->res_dim,
                  r, 1,
                  0, half_sig_dot_r, 1);
-  // VEC_PRINTF(half_sig_dot_r, res_mtxs->res_dim);
+  VEC_PRINTF(half_sig_dot_r, res_mtxs->res_dim);
   double quad_term = 0;
   for (u32 i=0; i<res_mtxs->res_dim; i++) {
     quad_term -= half_sig_dot_r[i] * r[i];
