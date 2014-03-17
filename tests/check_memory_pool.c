@@ -587,7 +587,7 @@ s8 test_next(void *x_, u32 n)
   test_gen_state_t *x = (test_gen_state_t *)x_;
   x->val = x->i * x->i;
   x->i++;
-  if (x->i > x->n_vals)
+  if (x->i >= x->n_vals)
     return 0;
   return 1;
 }

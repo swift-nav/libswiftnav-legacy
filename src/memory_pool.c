@@ -707,7 +707,7 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, siz
     u8 x_work[x_size];
     memcpy(x_work, x0, x_size);
     u32 x_count = 0;
-    while (next(x_work, x_count)) {
+    do {
       if (x_count > max_xs) {
         /* Exceded maximum number of generator iterations. */
         return -3;
@@ -722,7 +722,7 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, siz
       prod(new, x_work, x_count, p->elem);
       x_count++;
       count++;
-    }
+    } while (next(x_work, x_count));
 
     /* Store pointer to next node to process. */
     node_t *next_p = p->hdr.next;

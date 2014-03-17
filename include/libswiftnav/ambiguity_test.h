@@ -52,12 +52,14 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                            sats_management_t *float_sats, double *float_mean, double *float_cov);
+u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs,
                              sats_management_t *float_sats, double *float_mean, double *float_cov);
 void add_sats(ambiguity_test_t *amb_test, 
+              u8 ref_prn,
               u32 num_added_dds, u8 *added_dd_prns,
               double *float_mean, double *float_cov_diag,
               s32 *Z_inv);
