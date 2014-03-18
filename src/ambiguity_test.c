@@ -127,7 +127,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   double ambiguity_dd_measurements[2*(amb_test->sats.num_sats-1)];
   make_ambiguity_dd_measurements_and_sdiffs(amb_test, num_sdiffs, sdiffs, ambiguity_dd_measurements, ambiguity_sdiffs);
 
-  if (1 == 1 || changed_sats == 1) {
+  if (1 == 1 || changed_sats == 1) { //TODO add logic about when to update DE 
     double DE_mtx[(amb_test->sats.num_sats-1) * 3];
     assign_de_mtx(amb_test->sats.num_sats, ambiguity_sdiffs, ref_ecef, DE_mtx);
     double obs_cov[(amb_test->sats.num_sats-1) * (amb_test->sats.num_sats-1) * 4];
@@ -439,13 +439,6 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   if (float_sats->num_sats == num_dds_in_intersection + 1) {
     return 0;
   }
-  double N_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
-  u32 state_dim = float_sats->num_sats + 5;
-  for (u8 i = 0; i < float_sats->num_sats-1; i++) {
-    memcpy(&N_cov[i*(float_sats->num_sats-1)],
-           &float_cov[(6+i)*state_dim + 6],
-           (float_sats->num_sats - 1) * sizeof(double));
-  }
   u8 float_prns[float_sats->num_sats];
   memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
   double N_mean[float_sats->num_sats-1];
@@ -455,27 +448,17 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
     // memcpy(N_mean, &float_mean[6], (float_sats->num_sats-1) * sizeof(double));
     set_reference_sat_of_prns(amb_test->sats.prns[0], float_sats->num_sats, float_prns);
-    rebase_mean(N_mean, float_sats->num_sats, old_prns, float_prns);
-
-    double rebase_mtx[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
-    assign_state_rebase_mtx(float_sats->num_sats, old_prns, float_prns, rebase_mtx);
-    double intermediate_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
-    //TODO make more efficient via structure of rebase_mtx
-    cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
-              float_sats->num_sats-1, float_sats->num_sats-1, // int M, int N
-              1, N_cov, float_sats->num_sats-1, // double alpha, double *A, int lda
-              rebase_mtx, float_sats->num_sats-1, // double *B, int ldb
-              0, intermediate_cov, float_sats->num_sats-1); // double beta, double *C, int ldc
-    // MAT_PRINTF(intermediate_cov, state_dim, state_dim);
-
-    //TODO make more efficient via the structure of rebase_mtx
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
-              float_sats->num_sats-1, float_sats->num_sats-1, float_sats->num_sats-1, // int M, int N, int K
-              1, intermediate_cov, float_sats->num_sats-1, // double alpha, double *A, int lda
-              rebase_mtx, float_sats->num_sats-1, //double *B, int ldb
-              0, N_cov, float_sats->num_sats-1); //beta, double *C, int ldc
+    rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
+    rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
   }
-  //now float_prns has the correct reference, as does N_cov
+  double N_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
+  u32 state_dim = float_sats->num_sats + 5;
+  for (u8 i = 0; i < float_sats->num_sats-1; i++) {
+    memcpy(&N_cov[i*(float_sats->num_sats-1)],
+           &float_cov[(6+i)*state_dim + 6],
+           (float_sats->num_sats - 1) * sizeof(double));
+  }
+  //now float_prns has the correct reference, as do N_cov and N_mean
 
   //next we add the new sats
   //loop through the new sat sets in decreasing number (for now, in prn order), adding when it suits us

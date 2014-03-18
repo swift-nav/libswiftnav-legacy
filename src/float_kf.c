@@ -616,7 +616,7 @@ s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
 }
 
 
-void rebase_mean(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
@@ -659,13 +659,21 @@ void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *re
   // MAT_PRINTF(rebase_mtx, state_dim, state_dim);
 }
 
-void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
+{
+  u32 state_dim = num_sats + 5;
+  double state_cov[state_dim * state_dim];
+  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
+  rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);
+  udu(state_dim, state_cov, state_cov_U, state_cov_D);//
+}
+
+void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
   u32 state_dim = num_sats + 5;
   double rebase_mtx[state_dim * state_dim];
   assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
-  double state_cov[state_dim * state_dim];
-  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
+
   double intermediate_cov[state_dim * state_dim];
   //TODO make more efficient via structure of rebase_mtx
   cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
@@ -682,14 +690,12 @@ void rebase_covariance(double *state_cov_U, double *state_cov_D, u8 num_sats, u8
               rebase_mtx, state_dim, //double *B, int ldb
               0, state_cov, state_dim); //beta, double *C, int ldc
   // MAT_PRINTF(state_cov, state_dim, state_dim);
-  udu(state_dim, state_cov, state_cov_U, state_cov_D);
-
 }
 
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  rebase_mean(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
-  rebase_covariance(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
+  rebase_mean_N(&(kf->state_mean[6]), num_sats, old_prns, new_prns);
+  rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
 
 void kalman_filter_state_projection(kf_t *kf,
