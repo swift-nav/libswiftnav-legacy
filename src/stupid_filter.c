@@ -127,8 +127,8 @@ void rebase_stupid_filter(stupid_filter_state_t *s, u8 num_sats, u8 *old_prns, u
 }
 
 //assumes both sets are ordered
-u8 intersect_o_tron(u8 num_sats1, u8 num_sats2, u8 *sats1, sdiff_t *sdiffs, double *dd_measurements,
-                  sdiff_t *intersection_sats, double *intersection_dd_measurements,
+u8 intersect_o_tron(u8 num_sats1, u8 num_sats2, u8 *sats1, sdiff_t *sdiffs, double *dd_meas,
+                  sdiff_t *intersection_sats, double *intersection_dd_meas,
                   s32* N, s32 *intersection_N)
 {
   u8 i, j, n = 0;
@@ -141,7 +141,7 @@ u8 intersect_o_tron(u8 num_sats1, u8 num_sats2, u8 *sats1, sdiff_t *sdiffs, doub
       i--;
     else {
       memcpy(&intersection_sats[n], &sdiffs[j], sizeof(sdiff_t));
-      intersection_dd_measurements[n] = dd_measurements[j];
+      intersection_dd_meas[n] = dd_meas[j];
       intersection_N[n] = N[i];
       n++;
     }
@@ -150,15 +150,15 @@ u8 intersect_o_tron(u8 num_sats1, u8 num_sats2, u8 *sats1, sdiff_t *sdiffs, doub
 }
 
 void update_sats_stupid_filter(stupid_filter_state_t *s, u8 num_old, u8 *old_prns, u8 num_new,
-                               sdiff_t *sdiffs, double *dd_measurements, double ref_ecef[3])
+                               sdiff_t *sdiffs, double *dd_meas, double ref_ecef[3])
 {
   // find intersection of old and new
 
-  double intersection_dd_measurements[num_new];
+  double intersection_dd_meas[num_new];
   sdiff_t intersection_sats[num_new];
   memcpy(&intersection_sats[0], &sdiffs[0], sizeof(sdiff_t));
   s32 intersection_N[MAX_CHANNELS];
-  u8 n_intersection = intersect_o_tron(num_old-1, num_new-1, &old_prns[1], &sdiffs[1], dd_measurements, &intersection_sats[1], intersection_dd_measurements, s->N, intersection_N);
+  u8 n_intersection = intersect_o_tron(num_old-1, num_new-1, &old_prns[1], &sdiffs[1], dd_meas, &intersection_sats[1], intersection_dd_meas, s->N, intersection_N);
 
   if ((num_old-1) == (num_new-1) && (num_old-1) == n_intersection) {
     u8 flag = 0;
@@ -177,14 +177,14 @@ void update_sats_stupid_filter(stupid_filter_state_t *s, u8 num_old, u8 *old_prn
   memcpy(&(s->N), intersection_N, n_intersection*sizeof(s32));
   // calc least sq. b from intersection sat using new data
   double b[3];
-  update_stupid_filter(s, n_intersection, intersection_sats, intersection_dd_measurements, b, ref_ecef);
+  update_stupid_filter(s, n_intersection, intersection_sats, intersection_dd_meas, b, ref_ecef);
 
   // call init with the new sat set and b as initial baseline
-  init_stupid_filter(s, num_new, sdiffs, dd_measurements, b, ref_ecef);
+  init_stupid_filter(s, num_new, sdiffs, dd_meas, b, ref_ecef);
 }
 
 void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
-                        double *dd_measurements, double b[3], double ref_ecef[3])
+                        double *dd_meas, double b[3], double ref_ecef[3])
 {
   double DE[(num_sats-1)*3];
 
@@ -192,7 +192,7 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
 
   /* Solve for b via least squares, i.e.
-   * dd_meas = DE . b + N 
+   * dd_meas = DE . b + N
    *  =>  DE . b = (dd_meas - N) * lambda */
 
   /* min | A.x - b | wrt x
@@ -200,37 +200,40 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
    * x <= b
    * b <= (dd_meas - N) * lambda
    */
-   double rhs[MAX(num_sats-1, 3)];
-   for (u8 i=0; i<num_sats-1; i++) {
-     rhs[i] = (dd_measurements[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
-   }
-  VEC_PRINTF(rhs, (u32) num_sats-1);
-   int jpvt[3] = {0, 0, 0};
-   int rank;
-   LAPACKE_dgelsy(LAPACK_ROW_MAJOR, num_sats-1, 3,
-                  1, DE, 3,
-                  rhs, 1, jpvt,
-                  -1, &rank);
-   memcpy(b, rhs, 3*sizeof(double));
+  double rhs[MAX(num_sats-1, 3)];
+  for (u8 i=0; i<num_sats-1; i++) {
+    rhs[i] = (dd_meas[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
+  }
 
-  /* Calculate DE matrix */
+  int jpvt[3] = {0, 0, 0};
+  int rank;
+  /* TODO: This function calls malloc to allocate work area, refoctor to use
+   * LAPACKE_dgelsy_work instead. */
+  LAPACKE_dgelsy(
+    LAPACK_ROW_MAJOR, num_sats-1, 3,
+    1, DE, 3,
+    rhs, 1, jpvt,
+    -1, &rank
+  );
+  memcpy(b, rhs, 3*sizeof(double));
+
+  /* Calculate Least Squares Residuals */
+
   assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
 
-  /* Solve for ambiguity vector, i.e.
-   * N = dd_meas - DE . b / lambda */
   double b_dot_DE[num_sats-1];
-  cblas_dgemv(CblasRowMajor, CblasNoTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE
-            num_sats-1, 3, // int M, int N,
-            1, DE, 3, // double alpha, double *A, int lda
-            rhs, 1, // double *X, int incX
-            0, b_dot_DE, 1); // double beta, double *Y, int incY
-  VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
+  cblas_dgemv(
+    CblasRowMajor, CblasNoTrans, num_sats-1, 3,
+    1, DE, 3, rhs, 1,
+    0, b_dot_DE, 1
+  );
 
+  double resid[num_sats-1];
   for (u8 i=0; i<num_sats-1; i++) {
-    b_dot_DE[i] -= (dd_measurements[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
-    b_dot_DE[i] = 100 * b_dot_DE[i];
+    resid[i] -= (dd_meas[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
+    resid[i] = 100 * redis[i]; /* conver to cm */
   }
-  VEC_PRINTF(b_dot_DE, (u32) num_sats-1);
+  VEC_PRINTF(resid, (u32) num_sats-1);
 }
 
 
