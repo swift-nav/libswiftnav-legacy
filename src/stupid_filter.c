@@ -231,7 +231,7 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
   double resid[num_sats-1];
   for (u8 i=0; i<num_sats-1; i++) {
     resid[i] -= (dd_meas[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
-    resid[i] = 100 * redis[i]; /* conver to cm */
+    resid[i] = 100 * resid[i]; /* convert to cm */
   }
   VEC_PRINTF(resid, (u32) num_sats-1);
 }
