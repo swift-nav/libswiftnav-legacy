@@ -38,7 +38,7 @@
 
 /* \} */
 
-void llhdeg2rad(const double llhDeg[3], double llhRad[3]);
+void llhdeg2rad(const double llh_deg[3], double llh_rad[3]);
 
 void wgsllh2ecef(const double llh[3], double ecef[3]);
 

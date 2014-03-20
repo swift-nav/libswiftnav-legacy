@@ -42,10 +42,10 @@
 *  llhdeg2rad(arr1, arr1);
 */
 
-void llhdeg2rad(const double llhDeg[3], double llhRad[3]) {
-  llhRad[0] = llhDeg[0]*D2R;
-  llhRad[1] = llhDeg[1]*D2R;
-  llhRad[2] = llhDeg[2];
+void llhdeg2rad(const double llg_deg[3], double llh_rad[3]) {
+  llh_rad[0] = llg_deg[0]*D2R;
+  llh_rad[1] = llg_deg[1]*D2R;
+  llh_rad[2] = llg_deg[2];
 }
 
 /** Converts from WGS84 geodetic coordinates (latitude, longitude and height)
