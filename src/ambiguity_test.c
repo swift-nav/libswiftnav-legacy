@@ -37,6 +37,17 @@ void destroy_ambiguity_test(ambiguity_test_t *amb_test)
   memory_pool_destroy(amb_test->pool);
 }
 
+void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+{
+  for (u32 i=0; i < m; i++) {
+    for (u32 j=0; j < n; j++) {
+      printf("%d, ", Z_inv1[i*n + j] - Z_inv2[i*n + j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
@@ -100,13 +111,23 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_pr
    * zero length N vector, i.e. no satellites. When we take the
    * product of this single element with the set of new satellites
    * we will just get a set of elements corresponding to the new sats. */
-  hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool);
+  hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool); // only in init
   /* Start with ll = 0, just for the sake of argument. */
-  empty_element->ll = 0;
-  amb_test->sats.num_sats = 0;
-  add_sats(amb_test, float_prns[0], num_dds, &float_prns[1], decor_float_mean, decor_float_cov_diag, Z_inv);
+  empty_element->ll = 0; // only in init
+  amb_test->sats.num_sats = 0; // only in init
+  s32 Z_inv2[num_dds * num_dds];
+  s32 lower_bounds[num_dds];
+  s32 upper_bounds[num_dds];
+  u8 num_dds_to_add;
+  s8 add_any_sats =  determine_sats_addition(amb_test,
+                                             float_cov_N, num_dds, &float_mean[6],
+                                             lower_bounds, upper_bounds, &num_dds_to_add,
+                                             Z_inv2);
+
+  add_sats(amb_test, float_prns[0], num_dds, &float_prns[1], decor_float_mean, decor_float_cov_diag, lower_bounds, upper_bounds, &num_dds_to_add, Z_inv);
   /* Update the rest of the amb_test state with the new sats. */
-  init_residual_matrices(&amb_test->res_mtxs, num_dds, DE_mtx, obs_cov);
+  init_residual_matrices(&amb_test->res_mtxs, num_dds, DE_mtx, obs_cov); // only in init
+  (void) add_any_sats;
 }
 
 // void add_sats(ambiguity_test_t *amb_test, 
@@ -458,7 +479,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
            &float_cov[(6+i)*state_dim + 6],
            (float_sats->num_sats - 1) * sizeof(double));
   }
-  //now float_prns has the correct reference, as do N_cov and N_mean
+  //by now float_prns has the correct reference, as do N_cov and N_mean
 
   //next we add the new sats
   //loop through the new sat sets in decreasing number (for now, in prn order), adding when it suits us
@@ -537,10 +558,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
       #if DECORRELATED_PHASE_BIAS_VAR != 0
       decor_float_cov_diag[i] += DECORRELATED_PHASE_BIAS_VAR;
       #endif
-      rough_multiplier *= MAX(2, 2 * NUM_SEARCH_STDS * sqrt(decor_float_cov_diag[i]));
+      rough_multiplier *= MAX(2, 2 * NUM_SEARCH_STDS * sqrt(decor_float_cov_diag[i])); // only in update
     }
 
-    if (rough_multiplier < 999999999) { //TODO make this an actual proper test
+    if (rough_multiplier < 999999999) { //TODO make this an actual proper test  // only in update
       //add the sats
       matrix_inverse(num_dds_to_add, Z, Z_inv_);
 
@@ -561,8 +582,17 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
         printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
       }
 
-      add_sats(amb_test, amb_test->sats.prns[0], num_dds_to_add, new_dd_prns, decor_float_mean, decor_float_cov_diag, Z_inv);
+      s32 Z_inv2[num_addible_dds * num_addible_dds];
+      s32 lower_bounds[num_addible_dds];
+      s32 upper_bounds[num_addible_dds];
+      u8 num_dds_to_add2;
+      s8 add_any_sats =  determine_sats_addition(amb_test,
+                                                 addible_float_cov, num_addible_dds, addible_float_mean,
+                                                 lower_bounds, upper_bounds, &num_dds_to_add2,
+                                                 Z_inv2);
 
+      add_sats(amb_test, amb_test->sats.prns[0], num_dds_to_add, new_dd_prns, decor_float_mean, decor_float_cov_diag, lower_bounds, upper_bounds, &num_dds_to_add, Z_inv);
+      (void) add_any_sats;
       break;
     }
     else {
@@ -575,6 +605,109 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   return 1;
 
 }
+
+u32 float_to_decor(ambiguity_test_t *amb_test,
+                   double *addible_float_cov, u8 num_addible_dds,
+                   double *addible_float_mean,
+                   u8 num_dds_to_add,
+                   s32 *lower_bounds, s32 *upper_bounds, double *Z)
+{
+  (void) amb_test;
+  double added_float_cov[num_dds_to_add * num_dds_to_add];
+  for (u8 i=0; i<num_dds_to_add; i++) {
+    for (u8 j=0; j<num_dds_to_add; j++) {
+      added_float_cov[i*num_dds_to_add + j] = addible_float_cov[i*num_addible_dds + j];
+      #if RAW_PHASE_BIAS_VAR != 0
+      if (i == j) {
+        added_float_cov[i*num_dds_to_add + j] += RAW_PHASE_BIAS_VAR;
+      }
+      #endif
+    }
+  }
+
+  // double Z[num_dds_to_add * num_dds_to_add];
+  lambda_reduction(num_dds_to_add, added_float_cov, Z);
+
+  double decor_float_cov_diag[num_dds_to_add];
+
+  memset(decor_float_cov_diag, 0, num_dds_to_add * sizeof(double));
+  
+  for (u8 i=0; i < num_dds_to_add; i++) {
+    for (u8 j=0; j < num_dds_to_add; j++) {
+      for (u8 k=0; k < num_dds_to_add; k++) {
+        decor_float_cov_diag[i] += Z[i*num_dds_to_add + j] * added_float_cov[j * num_dds_to_add + k] * Z[i*num_dds_to_add + k];
+      }
+    }
+    #if DECORRELATED_PHASE_BIAS_VAR != 0
+    decor_float_cov_diag[i] += DECORRELATED_PHASE_BIAS_VAR;
+    #endif
+  }
+
+  double decor_float_mean[num_dds_to_add];
+  memset(decor_float_mean, 0, num_dds_to_add * sizeof(double));
+  for (u8 i=0; i < num_dds_to_add; i++) {
+    for (u8 j=0; j < num_dds_to_add; j++) {
+      decor_float_mean[i] += Z[i*num_dds_to_add + j] * addible_float_mean[j];
+    }
+    printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
+  }
+
+  u32 new_hyp_set_cardinality = 1;
+  // s32 lower_bounds[num_dds_to_add];
+  // s32 upper_bounds[num_dds_to_add];
+  for (u8 i=0; i<num_dds_to_add; i++) {
+    double search_distance = NUM_SEARCH_STDS * sqrt(decor_float_cov_diag[i]);
+    // upper_bounds[i] = MAX(floor(float_mean[i] + search_distance), ceil(float_mean[i]));
+    // lower_bounds[i] = MIN(ceil(float_mean[i] - search_distance), floor(float_mean[i]));
+    upper_bounds[i] = lround(ceil(decor_float_mean[i] + search_distance));
+    lower_bounds[i] = lround(floor(decor_float_mean[i] - search_distance));
+    new_hyp_set_cardinality *= upper_bounds[i] - lower_bounds[i] + 1;
+  }
+  return new_hyp_set_cardinality;
+}
+
+s8 determine_sats_addition(ambiguity_test_t *amb_test,
+                           double *float_N_cov, u8 num_float_dds, double *float_N_mean,
+                           s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
+                           s32 *Z_inv)
+{
+  u8 num_current_dds = MAX(0, amb_test->sats.num_sats-1);
+  u8 min_dds_to_add = MAX(1, 4 - num_current_dds); // num_current_dds + min_dds_to_add = 4 so that we have a nullspace projector
+  
+  u32 max_new_hyps_cardinality;
+  s32 current_num_hyps = memory_pool_n_allocated(amb_test->pool);
+  u32 max_num_hyps = memory_pool_n_elements(amb_test->pool);
+  if (current_num_hyps <= 0) {
+    max_new_hyps_cardinality = max_num_hyps;
+  } else {
+    max_new_hyps_cardinality = max_num_hyps / current_num_hyps;
+  }
+
+  *num_dds_to_add = num_float_dds;
+  double Z[num_float_dds * num_float_dds];
+  while (*num_dds_to_add >= min_dds_to_add) {
+    u32 new_hyp_set_cardinality = float_to_decor(amb_test,
+                                                 float_N_cov, num_float_dds,
+                                                 float_N_mean,
+                                                 *num_dds_to_add,
+                                                 lower_bounds, upper_bounds, Z);
+    if (new_hyp_set_cardinality <= max_new_hyps_cardinality) {
+      double Z_inv_[*num_dds_to_add * *num_dds_to_add];
+      matrix_inverse(*num_dds_to_add, Z, Z_inv_);
+      for (u8 i=0; i < *num_dds_to_add; i++) {
+        for (u8 j=0; j < *num_dds_to_add; j++) {
+          Z_inv[i* *num_dds_to_add + j] = lround(Z_inv_[i* *num_dds_to_add + j]);
+        }
+      }
+      return 1;
+    }
+    else {
+      *num_dds_to_add -= 1;
+    }
+  }
+  return -1;
+}
+
 
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                            sats_management_t *float_sats, double *float_mean, double *float_cov)
@@ -775,19 +908,11 @@ void print_hyp(void *arg, element_t *elem)
   printf("]: %f\n", hyp->ll);
 }
 
-double add_to_truncate_properly(double x) {
-  if (x < 0) {
-    return x-0.5;
-  }
-  else {
-    return x + 0.5;
-  }
-}
-
 void add_sats(ambiguity_test_t *amb_test,
               u8 ref_prn,
               u32 num_added_dds, u8 *added_prns,
               double *float_mean, double *float_cov_diag,
+              s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
               s32 *Z_inv)
 {
   /* Make a generator that iterates over the new hypotheses. */
@@ -796,8 +921,8 @@ void add_sats(ambiguity_test_t *amb_test,
     double search_distance = NUM_SEARCH_STDS * sqrt(float_cov_diag[i]);
     // x0.upper_bounds[i] = MAX(floor(float_mean[i] + search_distance), ceil(float_mean[i]));
     // x0.lower_bounds[i] = MIN(ceil(float_mean[i] - search_distance), floor(float_mean[i]));
-    x0.upper_bounds[i] = add_to_truncate_properly(ceil(float_mean[i] + search_distance));
-    x0.lower_bounds[i] = add_to_truncate_properly(floor(float_mean[i] - search_distance));
+    x0.upper_bounds[i] = lround(ceil(float_mean[i] + search_distance));
+    x0.lower_bounds[i] = lround(floor(float_mean[i] - search_distance));
     x0.counter[i] = x0.lower_bounds[i];
   }
   printf("float_mean = [");
@@ -823,6 +948,10 @@ void add_sats(ambiguity_test_t *amb_test,
 
   x0.num_added_dds = num_added_dds;
   x0.num_old_dds = MAX(0,amb_test->sats.num_sats-1);
+
+  (void) lower_bounds;
+  (void) upper_bounds;
+  (void) num_dds_to_add;
 
   //then construct the mapping from the old prn indices into the new, and from the added prn indices into the new
   u8 i = 0;

@@ -177,6 +177,12 @@ s32 memory_pool_n_allocated(memory_pool_t *pool)
   return count;
 }
 
+/** Basic getter method for memory_pool_t's n_elements field.
+ */
+u32 memory_pool_n_elements(memory_pool_t *pool)
+{
+  return pool->n_elements;
+}
 /** Write all of the elements of a collection to an array.
  * To determine how much space is needed in the destination array you must call
  * memory_pool_n_allocated(). The required space is:
