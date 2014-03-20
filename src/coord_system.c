@@ -12,6 +12,7 @@
 
 #include <math.h>
 
+#include "constants.h"
 #include "linear_algebra.h"
 #include "coord_system.h"
 
@@ -29,6 +30,23 @@
  *      Geodetic system</a>. In Wikipedia, The Free Encyclopedia.
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
+
+/** Converts from an LLH coordinate in decimal degrees 
+* into a LLH coordinate in radians. 
+*
+* Conversion from degrees to radians is done using
+* a simple direct conversion formula:
+* $radians = \frac{degrees * \pi}{180}$ 
+*
+* Safe to pass same pointer as input and output value, eg:
+*  llhdeg2rad(arr1, arr1);
+*/
+
+void llhdeg2rad(const double llg_deg[3], double llh_rad[3]) {
+  llh_rad[0] = llg_deg[0]*D2R;
+  llh_rad[1] = llg_deg[1]*D2R;
+  llh_rad[2] = llg_deg[2];
+}
 
 /** Converts from WGS84 geodetic coordinates (latitude, longitude and height)
  * into WGS84 Earth Centered, Earth Fixed Cartesian (ECEF) coordinates
