@@ -305,6 +305,9 @@ void assign_e_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp, 
 // presumes that the first alm entry is the reference sat
 void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE)
 {
+  if (num_sats == 0)
+    return;
+
   memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
   double e0[3];
   double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
