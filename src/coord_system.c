@@ -31,6 +31,24 @@
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
 
+/** Converts from an LLH coordinate in radians 
+* into a LLH coordinate in decimal degrees
+*
+* Conversion from radians to degrees is done using
+* a simple direct conversion formula:
+* $degrees = \frac{radians *` 180}{\pi}$ 
+*
+* Safe to pass same pointer as input and output value, eg:
+*  llhrad2deg(arr1, arr1);
+*/
+
+void llhrad2deg(const double llh_rad[3], double llh_deg[3]) {
+  llh_deg[0] = llh_rad[0]*R2D;
+  llh_deg[1] = llh_rad[1]*R2D;
+  llh_deg[2] = llh_rad[2];
+}
+
+
 /** Converts from an LLH coordinate in decimal degrees 
 * into a LLH coordinate in radians. 
 *
