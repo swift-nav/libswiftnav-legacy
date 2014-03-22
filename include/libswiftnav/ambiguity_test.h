@@ -18,7 +18,7 @@
 #include "memory_pool.h"
 #include "sats_management.h"
 
-#define MAX_HYPOTHESES 20000
+#define MAX_HYPOTHESES 2000
 
 typedef struct {
   s32 N[MAX_CHANNELS-1];
@@ -47,18 +47,25 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *prns, sd
 void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
+// void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
+//                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
+//                            double *float_mean, double *float_cov);
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
-                           double *float_mean, double *float_cov);
+                           double *float_mean, double *float_cov_U, double *float_cov_D);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
+// u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+//                            sats_management_t *float_sats, double *float_mean, double *float_cov);
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                           sats_management_t *float_sats, double *float_mean, double *float_cov);
+                           sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
 u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
-u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs,
-                             sats_management_t *float_sats, double *float_mean, double *float_cov);
+// u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
+//                              sats_management_t *float_sats, double *float_mean, double *float_cov);
+u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
+                             sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
 u32 float_to_decor(ambiguity_test_t *amb_test,
                    double *addible_float_cov, u8 num_addible_dds,
                    double *addible_float_mean,
@@ -71,8 +78,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 void add_sats(ambiguity_test_t *amb_test,
               u8 ref_prn,
               u32 num_added_dds, u8 *added_prns,
-              double *float_mean, double *float_cov_diag,
-              s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
+              s32 *lower_bounds, s32 *upper_bounds,
               s32 *Z_inv);
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov);
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);

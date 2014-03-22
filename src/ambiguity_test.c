@@ -30,6 +30,7 @@
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   amb_test->pool = memory_pool_new(MAX_HYPOTHESES, sizeof(hypothesis_t));
+  amb_test->sats.num_sats = 0;
 }
 
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
@@ -48,64 +49,48 @@ void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
   printf("\n");
 }
 
+void print_s32_mtx(u32 m, u32 n, s32 *Z_inv)
+{
+  for (u32 i=0; i < m; i++) {
+    for (u32 j=0; j < n; j++) {
+      printf("%d, ", Z_inv[i*n + j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
+{
+  s32 mv[m];
+  memset(mv, 0, m * sizeof(s32));
+  printf("[");
+  for (u32 i=0; i < m; i++) {
+    for (u32 j=0; j < n; j++) {
+      mv[i] += M[i*n + j] * v[j];
+    }
+    if (i+1 == m) {
+      printf("%d ]\n", mv[i]);
+    }
+    else {
+      printf("%d, ", mv[i]);
+    }
+  }
+}
+
 void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
   (void) sdiffs;
   u8 num_dds = state_dim-6;
-  double decor_float_cov_diag[num_dds];
   double float_cov_N[num_dds * num_dds];
-  double Z[num_dds * num_dds];
-  double Z_inv_[num_dds * num_dds];
 
   /* Re-shape float_cov to contain just ambiguity states. */
   for (u8 i=0; i<num_dds; i++) {
     for (u8 j=0; j<num_dds; j++) {
       float_cov_N[i*num_dds + j] = float_cov[(i+6)*state_dim + (j+6)];
-      #if RAW_PHASE_BIAS_VAR != 0
-      if (i == j) {
-        float_cov_N[i*num_dds + j] += RAW_PHASE_BIAS_VAR;
-      }
-      #endif
     }
   }
-
-  lambda_reduction(num_dds, float_cov_N, Z);
-
-  memset(decor_float_cov_diag, 0, num_dds * sizeof(double));
-  for (u8 i=0; i < num_dds; i++) {
-    for (u8 j=0; j < num_dds; j++) {
-      for (u8 k=0; k < num_dds; k++) {
-        decor_float_cov_diag[i] += Z[i*num_dds + j] * float_cov_N[j * num_dds + k] * Z[i*num_dds + k];
-      }
-    }
-    #if DECORRELATED_PHASE_BIAS_VAR != 0
-    decor_float_cov_diag[i] += DECORRELATED_PHASE_BIAS_VAR;
-    #endif
-  }
-
-  matrix_inverse(num_dds, Z, Z_inv_);
-
-  MAT_PRINTF(Z, num_dds, num_dds);
-  MAT_PRINTF(Z_inv_, num_dds, num_dds);
-
-  s32 Z_inv[num_dds * num_dds];
-  for (u8 i=0; i < num_dds; i++) {
-    for (u8 j=0; j < num_dds; j++) {
-      Z_inv[i*num_dds + j] = (s32) lround(Z_inv_[i*num_dds + j]);
-    }
-  }
-
-  double decor_float_mean[num_dds];
-  memset(decor_float_mean, 0, num_dds * sizeof(double));
-  for (u8 i=0; i < num_dds; i++) {
-    for (u8 j=0; j < num_dds; j++) {
-      decor_float_mean[i] += Z[i*num_dds + j] * float_mean[6+j];
-    }
-    // printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
-  }
-
-
 
   /* Initialize pool with single element with num_dds = 0, i.e.
    * zero length N vector, i.e. no satellites. When we take the
@@ -115,20 +100,23 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_pr
   /* Start with ll = 0, just for the sake of argument. */
   empty_element->ll = 0; // only in init
   amb_test->sats.num_sats = 0; // only in init
-  s32 Z_inv2[num_dds * num_dds];
+  s32 Z_inv[num_dds * num_dds];
   s32 lower_bounds[num_dds];
   s32 upper_bounds[num_dds];
   u8 num_dds_to_add;
   s8 add_any_sats =  determine_sats_addition(amb_test,
                                              float_cov_N, num_dds, &float_mean[6],
                                              lower_bounds, upper_bounds, &num_dds_to_add,
-                                             Z_inv2);
+                                             Z_inv);
 
-  add_sats(amb_test, float_prns[0], num_dds, &float_prns[1], decor_float_mean, decor_float_cov_diag, lower_bounds, upper_bounds, &num_dds_to_add, Z_inv);
-  /* Update the rest of the amb_test state with the new sats. */
-  init_residual_matrices(&amb_test->res_mtxs, num_dds, DE_mtx, obs_cov); // only in init
-  (void) add_any_sats;
+  if (add_any_sats == 1) {
+    add_sats(amb_test, float_prns[0], num_dds_to_add, &float_prns[1], lower_bounds, upper_bounds, Z_inv);
+    /* Update the rest of the amb_test state with the new sats. */
+    init_residual_matrices(&amb_test->res_mtxs, num_dds, DE_mtx, obs_cov); // only in init
+  }
+
 }
+
 
 // void add_sats(ambiguity_test_t *amb_test, 
 //               u32 num_added_dds, u8 *added_prns,
@@ -138,11 +126,15 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_pr
 
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
-                           double *float_mean, double *float_cov)
+                           double *float_mean, double *float_cov_U, double *float_cov_D)
 {
   u8 num_sdiffs = state_dim-5;
   u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
-                                          float_sats, float_mean, float_cov);
+                                          float_sats, float_mean, float_cov_U, float_cov_D);
+
+  if (amb_test->sats.num_sats < 2) {
+    return;
+  }
 
   sdiff_t ambiguity_sdiffs[amb_test->sats.num_sats];
   double ambiguity_dd_measurements[2*(amb_test->sats.num_sats-1)];
@@ -426,14 +418,15 @@ void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs)
 {
-  if (amb_test->sats.num_sats == num_dds_in_intersection + 1) {
+  u8 num_dds_before_proj = MAX(0, amb_test->sats.num_sats - 1);
+  if (num_dds_before_proj == num_dds_in_intersection) {
     return 0;
   }
 
   intersection_ndxs_t intersection = {.num_ndxs = num_dds_in_intersection};
   memcpy(intersection.intersection_ndxs, dd_intersection_ndxs, num_dds_in_intersection * sizeof(u8));
 
-  u8 num_dds_before_proj = amb_test->sats.num_sats - 1;
+  
   printf("before proj:\n");
   memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);
   memory_pool_group_by(amb_test->pool, 
@@ -453,18 +446,21 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
 }
 
 
-u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs,
-                             sats_management_t *float_sats, double *float_mean, double *float_cov)
+u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
+                             sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
 {
-  (void) dd_intersection_ndxs;
-  if (float_sats->num_sats == num_dds_in_intersection + 1) {
+  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
     return 0;
   }
+
+  u32 state_dim = float_sats->num_sats+5;
+  double float_cov[state_dim * state_dim];
+  reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
   u8 float_prns[float_sats->num_sats];
   memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
   double N_mean[float_sats->num_sats-1];
   memcpy(N_mean, &float_mean[6], (float_sats->num_sats-1) * sizeof(double));
-  if (amb_test->sats.prns[0] != float_sats->prns[0]) {
+  if (amb_test->sats.num_sats >= 2 && amb_test->sats.prns[0] != float_sats->prns[0]) {
     u8 old_prns[float_sats->num_sats];
     memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
     // memcpy(N_mean, &float_mean[6], (float_sats->num_sats-1) * sizeof(double));
@@ -473,7 +469,6 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
   }
   double N_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
-  u32 state_dim = float_sats->num_sats + 5;
   for (u8 i = 0; i < float_sats->num_sats-1; i++) {
     memcpy(&N_cov[i*(float_sats->num_sats-1)],
            &float_cov[(6+i)*state_dim + 6],
@@ -522,88 +517,22 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     addible_float_mean[i] = N_mean[ndxs_of_new_dds_in_float[i]];
   }
 
-  //now loop through, adding once we can
-  u8 num_dds_to_add = num_addible_dds;
-  double added_float_cov[num_dds_to_add * num_dds_to_add];
-  double decor_float_cov_diag[num_dds_to_add];
-  double Z[num_dds_to_add * num_dds_to_add];
-  double rough_multiplier;
-  double decor_float_mean[num_dds_to_add];
-  double Z_inv_[num_dds_to_add * num_dds_to_add];
-  s32 Z_inv[num_dds_to_add * num_dds_to_add];
-  while (num_dds_to_add > 0) {
-    //TODO just allow stride in lambda_reduction, instead of creating intermediate matrices
+  s32 Z_inv[num_addible_dds * num_addible_dds];
+  s32 lower_bounds[num_addible_dds];
+  s32 upper_bounds[num_addible_dds];
+  u8 num_dds_to_add;
+  s8 add_any_sats =  determine_sats_addition(amb_test,
+                                             addible_float_cov, num_addible_dds, addible_float_mean,
+                                             lower_bounds, upper_bounds, &num_dds_to_add,
+                                             Z_inv);
 
-    for (i=0; i<num_dds_to_add; i++) {
-      for (j=0; j<num_dds_to_add; j++) {
-        added_float_cov[i*num_dds_to_add + j] = addible_float_cov[i*num_addible_dds + j];
-        #if RAW_PHASE_BIAS_VAR != 0
-        if (i == j) {
-          added_float_cov[i*num_dds_to_add + j] += RAW_PHASE_BIAS_VAR;
-        }
-        #endif
-      }
-    }
-
-    lambda_reduction(num_dds_to_add, added_float_cov, Z);
-
-    memset(decor_float_cov_diag, 0, num_dds_to_add * sizeof(double));
-    rough_multiplier = 1;
-    for (i=0; i < num_dds_to_add; i++) {
-      for (j=0; j < num_dds_to_add; j++) {
-        for (u8 k=0; k < num_dds_to_add; k++) {
-          decor_float_cov_diag[i] += Z[i*num_dds_to_add + j] * added_float_cov[j * num_dds_to_add + k] * Z[i*num_dds_to_add + k];
-        }
-      }
-      #if DECORRELATED_PHASE_BIAS_VAR != 0
-      decor_float_cov_diag[i] += DECORRELATED_PHASE_BIAS_VAR;
-      #endif
-      rough_multiplier *= MAX(2, 2 * NUM_SEARCH_STDS * sqrt(decor_float_cov_diag[i])); // only in update
-    }
-
-    if (rough_multiplier < 999999999) { //TODO make this an actual proper test  // only in update
-      //add the sats
-      matrix_inverse(num_dds_to_add, Z, Z_inv_);
-
-      MAT_PRINTF(Z, num_dds_to_add, num_dds_to_add);
-      MAT_PRINTF(Z_inv_, num_dds_to_add, num_dds_to_add);
-
-      for (i=0; i < num_dds_to_add; i++) {
-        for (j=0; j < num_dds_to_add; j++) {
-          Z_inv[i*num_dds_to_add + j] = (s32) lround(Z_inv_[i*num_dds_to_add + j]);
-        }
-      }
-
-      memset(decor_float_mean, 0, num_dds_to_add * sizeof(double));
-      for (i=0; i < num_dds_to_add; i++) {
-        for (j=0; j < num_dds_to_add; j++) {
-          decor_float_mean[i] += Z[i*num_dds_to_add + j] * addible_float_mean[j];
-        }
-        printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
-      }
-
-      s32 Z_inv2[num_addible_dds * num_addible_dds];
-      s32 lower_bounds[num_addible_dds];
-      s32 upper_bounds[num_addible_dds];
-      u8 num_dds_to_add2;
-      s8 add_any_sats =  determine_sats_addition(amb_test,
-                                                 addible_float_cov, num_addible_dds, addible_float_mean,
-                                                 lower_bounds, upper_bounds, &num_dds_to_add2,
-                                                 Z_inv2);
-
-      add_sats(amb_test, amb_test->sats.prns[0], num_dds_to_add, new_dd_prns, decor_float_mean, decor_float_cov_diag, lower_bounds, upper_bounds, &num_dds_to_add, Z_inv);
-      (void) add_any_sats;
-      break;
-    }
-    else {
-      //try to add fewer sats
-      num_dds_to_add -= 1;
-    }
-
-    
+  if (add_any_sats == 1) {
+    add_sats(amb_test, float_prns[0], num_dds_to_add, new_dd_prns, lower_bounds, upper_bounds, Z_inv);
+    return 1;
+  } else {
+    return 0;
   }
-  return 1;
-
+  
 }
 
 u32 float_to_decor(ambiguity_test_t *amb_test,
@@ -710,15 +639,20 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 
 
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                           sats_management_t *float_sats, double *float_mean, double *float_cov)
+                           sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
 {
   //if the sats are the same, we're good
   u8 changed_sats = 0;
   if (!sats_match(amb_test, num_sdiffs, sdiffs)) {
     sdiff_t sdiffs_with_ref_first[num_sdiffs];
-    if (ambiguity_update_reference(amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first)) {
-      changed_sats=1;
+    if (amb_test->sats.num_sats >= 2) {
+      if (ambiguity_update_reference(amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first)) {
+       changed_sats=1;
+      }
+    } else {
+      amb_test->sats.num_sats = 0; //we don't have what we need
     }
+    
     u8 intersection_ndxs[num_sdiffs];
     u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
 
@@ -726,8 +660,8 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
     if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
       changed_sats = 1;
     }
-    if (ambiguity_sat_inclusion(amb_test, num_dds_in_intersection, intersection_ndxs,
-                            float_sats, float_mean, float_cov)) {
+    if (ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
+                                float_sats, float_mean, float_cov_U, float_cov_D)) {
       changed_sats = 1;
     }
     //on exit, ambiguity_sdiffs should match amb_test->sats
@@ -777,7 +711,7 @@ s8 generate_next_hypothesis(void *x_, u32 n)
 {
   (void) n;
   generate_hypothesis_state_t *x = (generate_hypothesis_state_t *)x_;
-  printf("generate_next_hypothesis:\n");
+  // printf("generate_next_hypothesis:\n");
 
   if (memcmp(x->upper_bounds, x->counter, x->num_added_dds * sizeof(s32)) == 0) {
     /* counter has reached upper_bound, terminate iteration. */
@@ -796,11 +730,11 @@ s8 generate_next_hypothesis(void *x_, u32 n)
     }
   }
   
-  printf("[");
-  for (u8 i=0; i<x->num_added_dds; i++) {
-    printf("%d, ", x->counter[i]);
-  }
-  printf("]\n\n");
+  // printf("[");
+  // for (u8 i=0; i<x->num_added_dds; i++) {
+  //   printf("%d, ", x->counter[i]);
+  // }
+  // printf("]\n\n");
 
   return 1;
 }
@@ -818,32 +752,32 @@ void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
   s32 old_N[MAX_CHANNELS-1];
   memcpy(old_N, new->N, x->num_old_dds * sizeof(s32));
 
-  printf("counter: [");
-  for (u8 i=0; i < x->num_added_dds; i++) {
-    printf("%d, ", x->counter[i]);
-  }
-  printf("]\n");
-  printf("old_N:ndx [");
-  for (u8 i=0; i < x->num_old_dds; i++) {
-    printf("%d, ", ndxs_of_old_in_new[i]);
-  }
-  printf("]\n");
-  printf("old_N:    [");
-  for (u8 i=0; i < x->num_old_dds; i++) {
-    printf("%d, ", old_N[i]);
-  }
-  printf("]\n");
+  // printf("counter: [");
+  // for (u8 i=0; i < x->num_added_dds; i++) {
+  //   printf("%d, ", x->counter[i]);
+  // }
+  // printf("]\n");
+  // printf("old_N:ndx [");
+  // for (u8 i=0; i < x->num_old_dds; i++) {
+  //   printf("%d, ", ndxs_of_old_in_new[i]);
+  // }
+  // printf("]\n");
+  // printf("old_N:    [");
+  // for (u8 i=0; i < x->num_old_dds; i++) {
+  //   printf("%d, ", old_N[i]);
+  // }
+  // printf("]\n");
 
-  printf("added_N:ndx [");
-  for (u8 i=0; i < x->num_added_dds; i++) {
-    printf("%d, ", ndxs_of_added_in_new[i]);
-  }
-  printf("]\n");
-  printf("added_N:    [");
-  for (u8 i=0; i < x->num_added_dds; i++) {
-    printf("%d, ", x->counter[i]);
-  }
-  printf("]\n");
+  // printf("added_N:ndx [");
+  // for (u8 i=0; i < x->num_added_dds; i++) {
+  //   printf("%d, ", ndxs_of_added_in_new[i]);
+  // }
+  // printf("]\n");
+  // printf("added_N:    [");
+  // for (u8 i=0; i < x->num_added_dds; i++) {
+  //   printf("%d, ", x->counter[i]);
+  // }
+  // printf("]\n");
 
 
   for (u8 i=0; i < x->num_old_dds; i++) {
@@ -853,18 +787,18 @@ void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
     new->N[ndxs_of_added_in_new[i]] = 0;
     for (u8 j=0; j<x->num_added_dds; j++) {
       new->N[ndxs_of_added_in_new[i]] += x->Z_inv[i*x->num_added_dds + j] * x->counter[j];
-      printf("Z_inv[%u] = %d\n", i*x->num_added_dds + j, x->Z_inv[i*x->num_added_dds + j]);
-      printf("x->counter[[%u] = %d\n", j, x->counter[j]);
+      // printf("Z_inv[%u] = %d\n", i*x->num_added_dds + j, x->Z_inv[i*x->num_added_dds + j]);
+      // printf("x->counter[[%u] = %d\n", j, x->counter[j]);
     }
   }
   // for (u8 i=0; i < x->num_added_dds; i++) {
   //   new->N[ndxs_of_added_in_new[i]] = x->counter[i];
   // }
-  printf("new_N:    [");
-  for (u8 i=0; i < x->num_added_dds + x->num_old_dds; i++) {
-    printf("%d, ", new->N[i]);
-  }
-  printf("]\n\n");
+  // printf("new_N:    [");
+  // for (u8 i=0; i < x->num_added_dds + x->num_old_dds; i++) {
+  //   printf("%d, ", new->N[i]);
+  // }
+  // printf("]\n\n");
 
   /* NOTE: new->ll remains the same as elem->ll as p := exp(ll) is invariant under a
    * constant multiplicative factor common to all hypotheses. TODO: reference^2 document (currently lives in page 3/5.6/2014 of ian's notebook) */
@@ -911,30 +845,14 @@ void print_hyp(void *arg, element_t *elem)
 void add_sats(ambiguity_test_t *amb_test,
               u8 ref_prn,
               u32 num_added_dds, u8 *added_prns,
-              double *float_mean, double *float_cov_diag,
-              s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
+              s32 *lower_bounds, s32 *upper_bounds,
               s32 *Z_inv)
 {
   /* Make a generator that iterates over the new hypotheses. */
   generate_hypothesis_state_t x0;
-  for (u8 i=0; i<num_added_dds; i++) {
-    double search_distance = NUM_SEARCH_STDS * sqrt(float_cov_diag[i]);
-    // x0.upper_bounds[i] = MAX(floor(float_mean[i] + search_distance), ceil(float_mean[i]));
-    // x0.lower_bounds[i] = MIN(ceil(float_mean[i] - search_distance), floor(float_mean[i]));
-    x0.upper_bounds[i] = lround(ceil(float_mean[i] + search_distance));
-    x0.lower_bounds[i] = lround(floor(float_mean[i] - search_distance));
-    x0.counter[i] = x0.lower_bounds[i];
-  }
-  printf("float_mean = [");
-  for (u8 i=0; i<num_added_dds; i++) {
-    printf("%f, ", float_mean[i]);
-  }
-  printf("]\n");
-  printf("float_dist = [");
-  for (u8 i=0; i<num_added_dds; i++) {
-    printf("%f, ", NUM_SEARCH_STDS * sqrt(float_cov_diag[i]));
-  }
-  printf("]\n");
+  memcpy(x0.upper_bounds, upper_bounds, num_added_dds * sizeof(s32));
+  memcpy(x0.lower_bounds, lower_bounds, num_added_dds * sizeof(s32));
+  memcpy(x0.counter, lower_bounds, num_added_dds * sizeof(s32));
   printf("upper = [");
   for (u8 i=0; i<num_added_dds; i++) {
     printf("%d, ", x0.upper_bounds[i]);
@@ -949,10 +867,6 @@ void add_sats(ambiguity_test_t *amb_test,
   x0.num_added_dds = num_added_dds;
   x0.num_old_dds = MAX(0,amb_test->sats.num_sats-1);
 
-  (void) lower_bounds;
-  (void) upper_bounds;
-  (void) num_dds_to_add;
-
   //then construct the mapping from the old prn indices into the new, and from the added prn indices into the new
   u8 i = 0;
   u8 j = 0;
@@ -960,7 +874,7 @@ void add_sats(ambiguity_test_t *amb_test,
   u8 old_prns[x0.num_old_dds];
   memcpy(old_prns, &amb_test->sats.prns[1], x0.num_old_dds * sizeof(u8));
   while (k < x0.num_old_dds + num_added_dds) { //TODO should this be one less, since its just DDs?
-    if (j == x0.num_added_dds || old_prns[i] < added_prns[j]) {
+    if (j == x0.num_added_dds || (old_prns[i] < added_prns[j] && i != x0.num_old_dds)) {
       x0.ndxs_of_old_in_new[i] = k;
       amb_test->sats.prns[k+1] = old_prns[i];
       i++;
@@ -987,6 +901,12 @@ void add_sats(ambiguity_test_t *amb_test,
   }
   amb_test->sats.prns[0] = ref_prn;
   amb_test->sats.num_sats = k+1;
+
+  if (x0.num_old_dds == 0 && memory_pool_n_allocated(amb_test->pool) == 0) {
+    hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool); // only in init
+    /* Start with ll = 0, just for the sake of argument. */
+    empty_element->ll = 0; // only in init
+  }
 
   printf("before inclusion:\n");
   memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
@@ -1165,21 +1085,21 @@ void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, do
 
 double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_vec)
 {
-  VEC_PRINTF(r_vec, res_mtxs->res_dim);
+  // VEC_PRINTF(r_vec, res_mtxs->res_dim);
   double r[res_mtxs->res_dim];
   assign_r_mean(res_mtxs, num_dds, hypothesis, r);
-  VEC_PRINTF(r, res_mtxs->res_dim);
+  // VEC_PRINTF(r, res_mtxs->res_dim);
   for (u32 i=0; i<res_mtxs->res_dim; i++) {
     r[i] = r_vec[i] - r[i];
   }
-  VEC_PRINTF(r, res_mtxs->res_dim);
+  // VEC_PRINTF(r, res_mtxs->res_dim);
   double half_sig_dot_r[res_mtxs->res_dim];
   cblas_dsymv(CblasRowMajor, CblasUpper,
                  res_mtxs->res_dim,
                  1, res_mtxs->half_res_cov_inv, res_mtxs->res_dim,
                  r, 1,
                  0, half_sig_dot_r, 1);
-  VEC_PRINTF(half_sig_dot_r, res_mtxs->res_dim);
+  // VEC_PRINTF(half_sig_dot_r, res_mtxs->res_dim);
   double quad_term = 0;
   for (u32 i=0; i<res_mtxs->res_dim; i++) {
     quad_term -= half_sig_dot_r[i] * r[i];

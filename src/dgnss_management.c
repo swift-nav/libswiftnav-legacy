@@ -223,52 +223,21 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, b);
 
-  tmp_i += 1;
-  printf("tmp_i = %u\n", tmp_i);
-  if (tmp_i >= 307) {
-    u8 float_prns[num_sats];
-    for (u8 i=0; i< num_sats ; i++) {
-      float_prns[i] = corrected_sdiffs[i].prn;
-    }
-    double state_cov[kf.state_dim * kf.state_dim];
-    reconstruct_udu(kf.state_dim, kf.state_cov_U, kf.state_cov_D, state_cov);
-    
-    double DE[(num_sats-1) * 3];
-    double ref_ecef[3];
-    ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
-    ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
-    ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
+  // tmp_i += 1;
+  // printf("tmp_i = %u\n", tmp_i);
+  // if (tmp_i >= 30) {
+  double state_cov[kf.state_dim * kf.state_dim];
+  reconstruct_udu(kf.state_dim, kf.state_cov_U, kf.state_cov_D, state_cov);
+  
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
+  ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
+  ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
 
-    assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
-
-    double obs_cov[kf.obs_dim * kf.obs_dim];
-    memset(obs_cov, 0, kf.obs_dim * kf.obs_dim * sizeof(double));
-    u8 num_dds = num_sats-1;
-    for (u8 i=0; i<num_dds; i++) {
-      for (u8 j=0; j<num_dds; j++) {
-        u8 i_ = i+num_dds;
-        u8 j_ = j+num_dds;
-        if (i==j) {
-          obs_cov[i*kf.obs_dim + j] = PHASE_VAR * 2;
-          obs_cov[i_*kf.obs_dim + j_] = CODE_VAR * 2;
-        }
-        else {
-          obs_cov[i*kf.obs_dim + j] = PHASE_VAR;
-          obs_cov[i_*kf.obs_dim + j_] = CODE_VAR;
-        }
-      }
-    }
-    if (tmp_i == 307) {
-      MAT_PRINTF(DE, num_dds, 3);
-      MAT_PRINTF(obs_cov, kf.obs_dim, kf.obs_dim);
-      init_ambiguity_test(&ambiguity_test, kf.state_dim, float_prns, corrected_sdiffs, kf.state_mean,
-                          state_cov, DE, obs_cov);
-    } else {
-      update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
-                            &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
-                            state_cov);
-    } 
-  }
+  update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
+                        &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
+                        kf.state_cov_U, kf.state_cov_D);
+  // }
 }
 
 kf_t * get_dgnss_kf()

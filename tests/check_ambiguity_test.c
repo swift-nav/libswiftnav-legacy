@@ -33,7 +33,7 @@ START_TEST(test_ambiguity_update_reference)
     hyp->ll = frand(0, 1);
   }
 
-  u8 num_dds = amb_test.sats.num_sats - 1;
+  u8 num_dds = MAX(0,amb_test.sats.num_sats - 1);
   printf("Before rebase:\n");
   memory_pool_map(amb_test.pool, &num_dds, &print_hyp);
 
