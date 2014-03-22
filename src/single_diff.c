@@ -84,7 +84,7 @@ void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff
     sdiffs[i].prn = alms[i].prn;
     if (i==0) {
       sdiffs[i].snr = 1;
-      printf("ref_prn=%d\n", sdiffs[i].prn);
+      // printf("ref_prn=%d\n", sdiffs[i].prn);
     }
     else {
       sdiffs[i].snr = 0;

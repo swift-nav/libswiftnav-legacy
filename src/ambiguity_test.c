@@ -160,8 +160,8 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
         }
       }
     }
-    MAT_PRINTF(DE_mtx, ((u32) amb_test->sats.num_sats-1), 3);
-    MAT_PRINTF(obs_cov, 2*num_dds, 2*num_dds);
+    // MAT_PRINTF(DE_mtx, ((u32) amb_test->sats.num_sats-1), 3);
+    // MAT_PRINTF(obs_cov, 2*num_dds, 2*num_dds);
     init_residual_matrices(&amb_test->res_mtxs, amb_test->sats.num_sats-1, DE_mtx, obs_cov);
   }
 
@@ -204,7 +204,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   update_and_get_max_ll_t x;
   x.num_dds = amb_test->sats.num_sats-1;
   assign_r_vec(&amb_test->res_mtxs, x.num_dds, dd_measurements, x.r_vec);
-  VEC_PRINTF(x.r_vec, amb_test->res_mtxs.res_dim);
+  // VEC_PRINTF(x.r_vec, amb_test->res_mtxs.res_dim);
   x.max_ll = -999999; //TODO get the first element
   x.res_mtxs = &amb_test->res_mtxs;
 
@@ -349,9 +349,9 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
   u8 old_prns[amb_test->sats.num_sats];
   memcpy(old_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
 
-  print_sats_man(&amb_test->sats);
+  // print_sats_man(&amb_test->sats);
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
-  print_sats_man(&amb_test->sats);
+  // print_sats_man(&amb_test->sats);
   if (sats_management_code != OLD_REF) {
     changed_ref = 1;
     u8 new_prns[amb_test->sats.num_sats];
@@ -578,7 +578,7 @@ u32 float_to_decor(ambiguity_test_t *amb_test,
     for (u8 j=0; j < num_dds_to_add; j++) {
       decor_float_mean[i] += Z[i*num_dds_to_add + j] * addible_float_mean[j];
     }
-    printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
+    // printf("decor_float_mean[%u] = %f\n", i, decor_float_mean[i]);
   }
 
   u32 new_hyp_set_cardinality = 1;
@@ -853,16 +853,16 @@ void add_sats(ambiguity_test_t *amb_test,
   memcpy(x0.upper_bounds, upper_bounds, num_added_dds * sizeof(s32));
   memcpy(x0.lower_bounds, lower_bounds, num_added_dds * sizeof(s32));
   memcpy(x0.counter, lower_bounds, num_added_dds * sizeof(s32));
-  printf("upper = [");
-  for (u8 i=0; i<num_added_dds; i++) {
-    printf("%d, ", x0.upper_bounds[i]);
-  }
-  printf("]\n");
-  printf("lower = [");
-  for (u8 i=0; i<num_added_dds; i++) {
-    printf("%d, ", x0.lower_bounds[i]);
-  }
-  printf("]\n");
+  // printf("upper = [");
+  // for (u8 i=0; i<num_added_dds; i++) {
+  //   printf("%d, ", x0.upper_bounds[i]);
+  // }
+  // printf("]\n");
+  // printf("lower = [");
+  // for (u8 i=0; i<num_added_dds; i++) {
+  //   printf("%d, ", x0.lower_bounds[i]);
+  // }
+  // printf("]\n");
 
   x0.num_added_dds = num_added_dds;
   x0.num_old_dds = MAX(0,amb_test->sats.num_sats-1);
@@ -938,8 +938,8 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
   res_mtxs->null_space_dim = num_dds - 3;
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
   assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->half_res_cov_inv);
-  MAT_PRINTF(res_mtxs->null_projector, res_mtxs->null_space_dim, num_dds);
-  MAT_PRINTF(res_mtxs->half_res_cov_inv, res_mtxs->res_dim, res_mtxs->res_dim);
+  // MAT_PRINTF(res_mtxs->null_projector, res_mtxs->null_space_dim, num_dds);
+  // MAT_PRINTF(res_mtxs->half_res_cov_inv, res_mtxs->res_dim, res_mtxs->res_dim);
 }
 
 

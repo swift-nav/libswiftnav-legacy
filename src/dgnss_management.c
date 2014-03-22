@@ -222,12 +222,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
 
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, b);
-
-  // tmp_i += 1;
-  // printf("tmp_i = %u\n", tmp_i);
-  // if (tmp_i >= 30) {
-  double state_cov[kf.state_dim * kf.state_dim];
-  reconstruct_udu(kf.state_dim, kf.state_cov_U, kf.state_cov_D, state_cov);
   
   double ref_ecef[3];
   ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
@@ -237,7 +231,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
                         &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
                         kf.state_cov_U, kf.state_cov_D);
-  // }
 }
 
 kf_t * get_dgnss_kf()
