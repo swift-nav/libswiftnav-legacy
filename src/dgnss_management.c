@@ -77,7 +77,7 @@ u8 dgnss_intersect_sats(u8 num_old_prns, u8 *old_prns,
   return n;
 }
 
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
+void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_init[3], double dt)
 {
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
@@ -93,17 +93,18 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
   /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
   /*double b_init[3] = {-1.4861289 ,  0.84761746, -0.01029364}; // colin's piksi data*/
   /*double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree*/
-  double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched
+  /*double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched*/
   init_stupid_filter(&stupid_state, num_sats, corrected_sdiffs, dd_measurements, b_init, reciever_ecef);
 }
 
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
 {
+  (void)dt; (void)reciever_ecef;
   //all the ref sat stuff
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
     printf("====== START OVER =======\n");
-    dgnss_init(num_sats, sdiffs, reciever_ecef, dt); //TODO use current baseline state
+    /*dgnss_init(num_sats, sdiffs, reciever_ecef, dt); //TODO use current baseline state*/
     return;
   }
   else if (sats_management_code == NEW_REF) {
@@ -166,7 +167,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
   }
 }
 
-void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, double b[3])
+void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, u8 filter_choice, double b[3])
 {
   double ref_ecef[3];
 
@@ -182,12 +183,14 @@ void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, do
   /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
    /*double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched*/
   /*init_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs, dd_measurements, b_init, reciever_ecef);*/
-  update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,
-                        dd_measurements, b, ref_ecef);
+  if (filter_choice == 0) {
+    update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,
+                          dd_measurements, b, ref_ecef);
+  }
 }
 
 
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, double b[3])
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 filter_choice, double b[3])
 {
   sdiff_t corrected_sdiffs[num_sats];
 
@@ -205,7 +208,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   /*MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);*/
 
   // update for observation
-  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, b);
+  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, filter_choice, b);
 }
 
 kf_t * get_dgnss_kf()
