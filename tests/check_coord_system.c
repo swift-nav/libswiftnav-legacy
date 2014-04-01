@@ -102,8 +102,8 @@ START_TEST(test_wgsecef2llh)
   double lat_err = fabs(llh[0] - llhs[_i][0]);
   double lon_err = fabs(llh[1] - llhs[_i][1]);
   double hgt_err = fabs(llh[2] - llhs[_i][2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Conversion from WGS84 ECEF to LLH has >1e-6 {rad, m} error:\n"
     "ECEF: %f, %f, %f\n"
@@ -132,8 +132,8 @@ START_TEST(test_wgsllh2ecef2llh)
   double lat_err = fabs(llh[0] - llhs[_i][0]);
   double lon_err = fabs(llh[1] - llhs[_i][1]);
   double hgt_err = fabs(llh[2] - llhs[_i][2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Converting WGS84 LLH to ECEF and back again does not return the "
     "original values.\n"
@@ -207,8 +207,8 @@ START_TEST(test_random_wgsllh2ecef2llh)
   double lat_err = fabs(llh[0] - llh_init[0]);
   double lon_err = fabs(llh[1] - llh_init[1]);
   double hgt_err = fabs(llh[2] - llh_init[2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Converting random WGS84 LLH to ECEF and back again does not return the "
     "original values.\n"
