@@ -48,7 +48,7 @@ cdef class Almanac:
     Satellite health status.
 
   """
-  cdef almanac_c.almanac_t almanac
+  #cdef almanac_c.almanac_t almanac
 
   def __init__(self, ecc, toa, inc, rora, a, raaw,
                argp, ma, af0, af1, week, prn, healthy):

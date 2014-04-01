@@ -10,7 +10,7 @@
 cimport gpstime_c
 
 cdef class GpsTime:
-  cdef gpstime_c.gps_time_t gps_time
+  #cdef gpstime_c.gps_time_t gps_time
   def __init__(self,
 				       wn,
                tow):
