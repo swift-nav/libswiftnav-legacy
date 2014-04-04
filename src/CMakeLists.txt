@@ -26,6 +26,7 @@ set(libswiftnav_SRCS
   rtcm3.c
   bits.c
   sbp.c
+  sbp_utils.c
   single_diff.c
   memory_pool.c
 )
