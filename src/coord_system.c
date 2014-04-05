@@ -297,9 +297,9 @@ void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
 }
 
 
-/** Converts a vector in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
- * coordinates to the local North, East, Down (NED) frame of a reference point,
- * also given in WGS84 ECEF coordinates.
+/** Converts a vector in local North, East, Down (NED) coordinates relative to
+ * a reference point given in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
+ * coordinates to a vector in WGS84 ECEF coordinates.
  *
  * Note, this function only \e rotates the NED vector into the ECEF frame, as
  * would be appropriate for e.g. a velocity vector. To pass an NED position in
@@ -325,6 +325,7 @@ void wgsned2ecef(const double ned[3], const double ref_ecef[3],
 /** For a point given in the local North, East, Down (NED) frame of a provided
  * ECEF reference point, return the vector to that point in ECEF coordinates.
  *
+ * Intended for calculating a new ECEF position. For converting velocity vectors,
  * \see wgsned2ecef.
  *
  * \param ned       The North, East, Down vector is passed as [N, E, D], all in
