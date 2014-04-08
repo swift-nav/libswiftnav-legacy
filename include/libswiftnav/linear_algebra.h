@@ -41,7 +41,7 @@ void qtmult(const double *qt, u32 n, const double *b, double *x);
 void rsolve(const double *r, u32 rows, u32 cols, const double *b, double *x);
 s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x);
 
-int matrix_inverse(u32 n, const double const *a, double *b);
+int matrix_inverse(u32 n, const double *const a, double *b);
 void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
                      const double *b, double *c);
 void matrix_add_sc(u32 n, u32 m, const double *a,

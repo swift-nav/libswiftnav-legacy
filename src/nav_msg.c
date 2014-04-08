@@ -304,8 +304,6 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       e->toc.wn = e->toe.wn;
 
       e->healthy = !(n->frame_words[0][3-3] >> (30-17) & 1);     // Health flag: Word 3, bit 17
-      if (!e->healthy)
-        printf("UNHEALTHY\n");
 
       onebyte.u8 = n->frame_words[0][7-3] >> (30-24) & 0xFF;  // t_gd: Word 7, bits 17-24
       e->tgd = onebyte.s8 * pow(2,-31);

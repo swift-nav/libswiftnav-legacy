@@ -44,6 +44,29 @@ const double const ecefs[NUM_COORDS][3] = {
   {-(22+EARTH_A), 0, 0},
 };
 
+START_TEST(test_llhdeg2rad) 
+{
+  double rads[3];
+
+  llhdeg2rad(llhs[0], rads);
+  
+  //We expect the zero-point to be the same in degrees and radians
+  for (int n=0; n<3; n++) {
+    fail_unless(rads[n] == 0);
+  }
+
+  //We expect an arbitrary point to convert correctly
+  double swiftHomeLLH[3] = {37.779804,-122.391751, 60.0};
+  llhdeg2rad(swiftHomeLLH, rads);
+                             
+  fail_unless(fabs(rads[0] - 0.659381970558) < MAX_ANGLE_ERROR_RAD);
+  fail_unless(fabs(rads[1] + 2.136139032231) < MAX_ANGLE_ERROR_RAD);
+  fail_unless(rads[2] == swiftHomeLLH[2]);
+
+
+}
+END_TEST
+
 START_TEST(test_wgsllh2ecef)
 {
   double ecef[3];
@@ -79,8 +102,8 @@ START_TEST(test_wgsecef2llh)
   double lat_err = fabs(llh[0] - llhs[_i][0]);
   double lon_err = fabs(llh[1] - llhs[_i][1]);
   double hgt_err = fabs(llh[2] - llhs[_i][2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Conversion from WGS84 ECEF to LLH has >1e-6 {rad, m} error:\n"
     "ECEF: %f, %f, %f\n"
@@ -109,8 +132,8 @@ START_TEST(test_wgsllh2ecef2llh)
   double lat_err = fabs(llh[0] - llhs[_i][0]);
   double lon_err = fabs(llh[1] - llhs[_i][1]);
   double hgt_err = fabs(llh[2] - llhs[_i][2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Converting WGS84 LLH to ECEF and back again does not return the "
     "original values.\n"
@@ -184,8 +207,8 @@ START_TEST(test_random_wgsllh2ecef2llh)
   double lat_err = fabs(llh[0] - llh_init[0]);
   double lon_err = fabs(llh[1] - llh_init[1]);
   double hgt_err = fabs(llh[2] - llh_init[2]);
-  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) ||
-              (lon_err < MAX_ANGLE_ERROR_RAD) ||
+  fail_unless((lat_err < MAX_ANGLE_ERROR_RAD) &&
+              (lon_err < MAX_ANGLE_ERROR_RAD) &&
               (hgt_err < MAX_DIST_ERROR_M),
     "Converting random WGS84 LLH to ECEF and back again does not return the "
     "original values.\n"
@@ -319,6 +342,7 @@ Suite* coord_system_suite(void)
 
   /* Core test case */
   TCase *tc_core = tcase_create("Core");
+  tcase_add_test(tc_core, test_llhdeg2rad);  
   tcase_add_loop_test(tc_core, test_wgsllh2ecef, 0, NUM_COORDS);
   tcase_add_loop_test(tc_core, test_wgsecef2llh, 0, NUM_COORDS);
   tcase_add_loop_test(tc_core, test_wgsllh2ecef2llh, 0, NUM_COORDS);

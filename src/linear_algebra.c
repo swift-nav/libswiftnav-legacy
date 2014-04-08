@@ -525,7 +525,7 @@ static int rref(u32 order, u32 cols, double *m) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-inline int matrix_inverse(u32 n, const double const *a, double *b) {
+inline int matrix_inverse(u32 n, const double *const a, double *b){
   /* This function is currently only used to do a linear least-squares
    * solve for x, y, z and t in the navigation filter.  Gauss-Jordan
    * elimination is not the most efficient way to do this.  In the

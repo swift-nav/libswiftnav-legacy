@@ -91,8 +91,9 @@
  * }
  * ~~~
  *
- * If you're writing C++ code that wants to reference a pointer to an object in the
- * my_read function, you can use the context set by calling sbp_state_set_io_context()
+ * If you're writing C++ code that wants to reference a pointer to
+ * an object in the my_read function, you can use the context set
+ * by calling sbp_state_set_io_context()
  *
  *
  * Sending
@@ -133,7 +134,8 @@
  *
  *   my_awesome_struct payload = { 0x22, 0x33 };
  *
- *   sbp_send_message(&s, SBP_MY_MSG_TYPE, MY_SENDER_ID, sizeof(payload), (u8*)&payload, &my_write);
+ *   sbp_send_message(&s, SBP_MY_MSG_TYPE, MY_SENDER_ID,
+ *                    sizeof(payload), (u8*)&payload, &my_write);
  *
  *   // or
  *
@@ -249,7 +251,7 @@ sbp_msg_callbacks_node_t* sbp_find_callback(sbp_state_t *s, u16 msg_type)
 void sbp_state_init(sbp_state_t *s)
 {
   s->state = WAITING;
-  
+
   /* Set the IO context pointer, passed to read and write functions, to NULL. */
   s->io_context = 0;
 
@@ -262,9 +264,9 @@ void sbp_state_init(sbp_state_t *s)
  * This helper function sets a void* context pointer in sbp_state.
  * Whenever `sbp_process` calls the `read` function pointer, it passes this context.
  * Whenever `sbp_send_message` calls the `write` function pointer, it passes this context.
- * This allows C++ code to get a pointer to an object inside these functions. 
+ * This allows C++ code to get a pointer to an object inside these functions.
  */
-void sbp_state_set_io_context(sbp_state_t *s, void *context) 
+void sbp_state_set_io_context(sbp_state_t *s, void *context)
 {
   s->io_context = context;
 }
@@ -278,8 +280,8 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * callback is found then it is called with the ID of the sender, the message
  * length and the message payload data buffer as arguments.
  *
- * INVARIANT: sbp_process will always call `read` with n > 0 
- *            (aka it will attempt to always read something)
+ * \note sbp_process will always call `read` with n > 0
+ *       (aka it will attempt to always read something)
  *
  * The supplied `read` function must have the prototype:
  *
@@ -288,7 +290,7 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * ~~~
  *
  * where `n` is the number of bytes requested and `buff` is the buffer into
- * which to write the received data, and `context` is the arbitrary pointer 
+ * which to write the received data, and `context` is the arbitrary pointer
  * set by `sbp_state_set_io_context`.
  * The function should return the number of
  * bytes successfully written into `buff` which may be between 0 and `n`
@@ -302,10 +304,10 @@ void sbp_state_set_io_context(sbp_state_t *s, void *context)
  * \param read Function pointer to a function that reads `n` bytes from the
  *             input source into `buff` and returns the number of bytes
  *             successfully read.
- * \return `SBP_OK` (0) if successful but no complete message yet, 
+ * \return `SBP_OK` (0) if successful but no complete message yet,
  *         `SBP_OK_CALLBACK_EXECUTED` (1) if message decoded and callback executed,
- *         `SBP_OK_CALLBACK_UNDEFINED` (2) if message decoded with no associated callback,  
- *         and `SBP_CRC_ERROR` (-2) if a CRC error
+ *         `SBP_OK_CALLBACK_UNDEFINED` (2) if message decoded with no associated
+ *         callback, and `SBP_CRC_ERROR` (-2) if a CRC error
  *         has occurred. Thus can check for >0 to ensure good processing.
  */
 s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
@@ -323,7 +325,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_TYPE:
-    s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read, 2-s->n_read, s->io_context);
+    s->n_read += (*read)((u8*)&(s->msg_type) + s->n_read,
+                         2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->n_read = 0;
@@ -332,7 +335,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_SENDER:
-    s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read, 2-s->n_read, s->io_context);
+    s->n_read += (*read)((u8*)&(s->sender_id) + s->n_read,
+                         2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       /* Swap bytes to little endian. */
       s->state = GET_LEN;
@@ -360,7 +364,8 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
     break;
 
   case GET_CRC:
-    s->n_read += (*read)((u8*)&(s->crc) + s->n_read, 2-s->n_read, s->io_context);
+    s->n_read += (*read)((u8*)&(s->crc) + s->n_read,
+                         2-s->n_read, s->io_context);
     if (s->n_read >= 2) {
       s->state = WAITING;
 
@@ -404,7 +409,7 @@ s8 sbp_process(sbp_state_t *s, u32 (*read)(u8 *buff, u32 n, void *context))
  * ~~~
  *
  * where `n` is the number of bytes to be written and `buff` is the buffer from
- * which to read the data to be written, and `context` is the arbitrary pointer 
+ * which to read the data to be written, and `context` is the arbitrary pointer
  * set by `sbp_state_set_io_context`. The function should return the number
  * of bytes successfully written which may be between 0 and `n`. Currently, if
  * the number of bytes written is different from `n` then `sbp_send_message`

@@ -29,6 +29,7 @@ set(libswiftnav_SRCS
   lambda.c
   float_kf.c
   stupid_filter.c
+  sbp_utils.c
   single_diff.c
   memory_pool.c
   dgnss_management.c
