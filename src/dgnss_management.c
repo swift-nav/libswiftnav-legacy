@@ -17,6 +17,7 @@
 #include "single_diff.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"
+#include "ambiguity_test.h"
 
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -25,6 +26,8 @@
 kf_t kf;
 stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
+ambiguity_test_t ambiguity_test;
+u32 tmp_i;
 
 void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
@@ -95,16 +98,18 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_
   /*double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree*/
   /*double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched*/
   init_stupid_filter(&stupid_state, num_sats, corrected_sdiffs, dd_measurements, b_init, reciever_ecef);
+  create_ambiguity_test(&ambiguity_test);
+  tmp_i = 0;
 }
 
-void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
+void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
 {
   (void)dt; (void)reciever_ecef;
   //all the ref sat stuff
-  s8 sats_management_code = rebase_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
+  s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
     printf("====== START OVER =======\n");
-    /*dgnss_init(num_sats, sdiffs, reciever_ecef, dt); //TODO use current baseline state*/
+    dgnss_init(num_sdiffs, sdiffs, reciever_ecef, dt); //TODO use current baseline state
     return;
   }
   else if (sats_management_code == NEW_REF) {
@@ -165,6 +170,13 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
                             corrected_sdiffs, dd_measurements, reciever_ecef);
   }
+  else {
+    reset_kf_except_state(&kf,
+                          PHASE_VAR, CODE_VAR,
+                          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
+                          num_sdiffs, corrected_sdiffs, reciever_ecef, dt);
+  }
+
 }
 
 void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, u8 filter_choice, double b[3])
@@ -189,6 +201,10 @@ void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, do
   }
 }
 
+void dvec_printf(double *v, u32 n)
+{
+    for (u32 i = 0; i < n; i++) printf(", %f", v[i]);
+}
 
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 filter_choice, double b[3])
 {
@@ -209,6 +225,15 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
 
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, filter_choice, b);
+
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
+  ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
+  ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
+
+  update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
+                        &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
+                        kf.state_cov_U, kf.state_cov_D);
 }
 
 kf_t * get_dgnss_kf()
@@ -225,7 +250,5 @@ sats_management_t * get_sats_management()
 {
   return &sats_management;
 }
-
-
 
 

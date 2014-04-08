@@ -34,6 +34,7 @@
     printf(">\n");                                 \
   }
 
+void dmtx_printf(double *mtx, u32 m, u32 n);
 s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r);
 s32 qrdecomp(const double *a, u32 rows, u32 cols, double *qt, double *r);
 void qtmult(const double *qt, u32 n, const double *b, double *x);

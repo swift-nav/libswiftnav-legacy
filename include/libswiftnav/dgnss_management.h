@@ -14,8 +14,8 @@
 #include "float_kf.h"
 #include "sats_management.h"
 
-#define PHASE_VAR 9e-4
-#define CODE_VAR 100
+#define PHASE_VAR 9e-4 * 9
+#define CODE_VAR 100 * 16
 #define POS_TRANS_VAR 1e-1
 #define VEL_TRANS_VAR 1e-5
 #define INT_TRANS_VAR 1e-8
