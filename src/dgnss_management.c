@@ -109,7 +109,7 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], d
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
     printf("====== START OVER =======\n");
-    dgnss_init(num_sdiffs, sdiffs, reciever_ecef, dt); //TODO use current baseline state
+    /*dgnss_init(num_sdiffs, sdiffs, reciever_ecef, dt); //TODO use current baseline state*/
     return;
   }
   else if (sats_management_code == NEW_REF) {
