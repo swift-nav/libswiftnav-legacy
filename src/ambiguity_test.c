@@ -30,6 +30,9 @@
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   amb_test->pool = memory_pool_new(MAX_HYPOTHESES, sizeof(hypothesis_t));
+  if (!amb_test->pool) {
+    printf("ambiguity test tried to allocate too much memory!\n");
+  }
   amb_test->sats.num_sats = 0;
 }
 
