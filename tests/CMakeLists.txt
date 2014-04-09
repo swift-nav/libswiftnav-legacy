@@ -12,7 +12,7 @@ else (CMAKE_CROSSCOMPILING)
     include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
 
     include_directories(${CHECK_INCLUDE_DIRS})
-    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav lapacke cblas m)
+    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapacke cblas m)
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
