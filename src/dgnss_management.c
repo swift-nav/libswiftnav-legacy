@@ -19,10 +19,6 @@
 #include "linear_algebra.h"
 #include "ambiguity_test.h"
 
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-
 kf_t kf;
 stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
