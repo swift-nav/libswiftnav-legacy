@@ -7,8 +7,8 @@
 #ifndef F2C_INCLUDE
 #define F2C_INCLUDE
 
-typedef long int integer;
-typedef unsigned long int uinteger;
+typedef int integer;
+typedef unsigned int uinteger;
 typedef char *address;
 typedef short int shortint;
 typedef float real;

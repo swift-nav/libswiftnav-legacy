@@ -45,7 +45,7 @@ void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
 {
   for (u32 i=0; i < m; i++) {
     for (u32 j=0; j < n; j++) {
-      printf("%ld, ", Z_inv1[i*n + j] - Z_inv2[i*n + j]);
+      printf("%"PRId32", ", Z_inv1[i*n + j] - Z_inv2[i*n + j]);
     }
     printf("\n");
   }
@@ -56,7 +56,7 @@ void print_s32_mtx(u32 m, u32 n, s32 *Z_inv)
 {
   for (u32 i=0; i < m; i++) {
     for (u32 j=0; j < n; j++) {
-      printf("%ld, ", Z_inv[i*n + j]);
+      printf("%"PRId32", ", Z_inv[i*n + j]);
     }
     printf("\n");
   }
@@ -73,10 +73,10 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
       mv[i] += M[i*n + j] * v[j];
     }
     if (i+1 == m) {
-      printf("%ld ]\n", mv[i]);
+      printf("%"PRId32" ]\n", mv[i]);
     }
     else {
-      printf("%ld, ", mv[i]);
+      printf("%"PRId32", ", mv[i]);
     }
   }
 }
@@ -840,7 +840,7 @@ void print_hyp(void *arg, element_t *elem)
   hypothesis_t *hyp = (hypothesis_t *)elem;
   printf("[");
   for (u8 i=0; i< num_dds; i++) {
-    printf("%ld, ", hyp->N[i]);
+    printf("%"PRId32", ", hyp->N[i]);
   }
   printf("]: %f\n", hyp->ll);
 }

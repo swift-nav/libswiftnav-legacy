@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 /** \defgroup common_inttypes Integer types
  * Specified-width integer type definitions for shorter and nicer code.

@@ -18,7 +18,7 @@
 #include "memory_pool.h"
 #include "sats_management.h"
 
-#define MAX_HYPOTHESES 2000
+#define MAX_HYPOTHESES 500
 
 typedef struct {
   s32 N[MAX_CHANNELS-1];
