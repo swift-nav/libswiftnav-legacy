@@ -32,6 +32,7 @@ set(libswiftnav_SRCS
   single_diff.c
   dgnss_management.c
   sats_management.c
+  memory_pool.c
 )
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS})

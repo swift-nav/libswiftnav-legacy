@@ -7,14 +7,12 @@ else (CMAKE_CROSSCOMPILING)
     message(STATUS "Skipping unit tests, Check library not found!")
   else (NOT CHECK_FOUND)
 
-    find_package(LAPACK REQUIRED) # LAPACK also finds BLAS
-    find_path(BLAS_INCLUDE cblas.h)
-    include_directories(${BLAS_INCLUDE})
-    find_path(LAPACK_INCLUDE clapack.h)
-    include_directories(${LAPACK_INCLUDE})
+    include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
+    include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
+    include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
 
     include_directories(${CHECK_INCLUDE_DIRS})
-    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav m)
+    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} swiftnav lapacke cblas m)
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
@@ -25,6 +23,7 @@ else (CMAKE_CROSSCOMPILING)
       check_float_kf.c
       check_edc.c
       check_bits.c
+      check_memory_pool.c
       check_sbp.c
       check_rtcm3.c
       check_coord_system.c

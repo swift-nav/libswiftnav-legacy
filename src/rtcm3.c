@@ -23,6 +23,9 @@
 #define FREQ1   1.57542e9           /* L1/E1  frequency (Hz) */
 #define LAMBDA1 (CLIGHT / FREQ1)
 
+/** \addtogroup io Input / Output
+ * \{ */
+
 /** \defgroup rtcm3 RTCM v3
  * RTCM v3.1 Format message encoding and decoding.
  *
@@ -379,4 +382,6 @@ s8 rtcm3_decode_1002(u8 *buff, u16 *id, double *tow, u8 *n_sat,
 
 
 /** \} */
+/** \} */
+
 

@@ -57,7 +57,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   include(cmake/OptimizeForArchitecture.cmake)
   OptimizeForArchitecture()
   message(STATUS "Adding architecture flags: ${Vc_ARCHITECTURE_FLAGS}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS} -framework Accelerate")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
 endif ()
 
 add_subdirectory(clapack-3.2.1-CMAKE)
