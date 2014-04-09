@@ -10,14 +10,75 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "linear_algebra.h"
 #include "single_diff.h"
+#include "constants.h"
 
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
  * \{ */
+
+#define GPS_L1_LAMBDA (GPS_C / GPS_L1_HZ)
+
+u8 propagate(u8 n, double ref_ecef[3],
+             navigation_measurement_t *m_in_base, gps_time_t *t_base,
+             navigation_measurement_t *m_in_rover, gps_time_t *t_rover,
+             navigation_measurement_t *m_out_base)
+{
+  double dt = gpsdifftime(*t_rover, *t_base);
+  (void)dt;
+
+  double dr_[n];
+
+  for (u8 i=0; i<n; i++) {
+    m_out_base[i].prn = m_in_base[i].prn;
+    m_out_base[i].snr = m_in_base[i].snr;
+    m_out_base[i].lock_time = m_in_base[i].lock_time;
+
+    /* Calculate delta range. */
+    double dr[3];
+    vector_subtract(3, m_in_rover[i].sat_pos, m_in_base[i].sat_pos, dr);
+
+    /* Subtract linear term (initial satellite velocity * dt),
+     * we are going to add back in the linear term derived from the Doppler
+     * instead. */
+    /*vector_add_sc(3, dr, m_in_base[i].sat_vel, -dt, dr);*/
+
+    /* Make unit vector to satellite, e. */
+    double e[3];
+    vector_subtract(3, m_in_rover[i].sat_pos, ref_ecef, e);
+    vector_normalize(3, e);
+
+    /* Project onto the line of sight vector. */
+    dr_[i] = vector_dot(3, dr, e);
+
+    /*printf("# ddr_ = %f\n", dr_[i]);*/
+
+    /* Add back in linear term now using Doppler. */
+    /*dr_[i] -= m_in_base[i].raw_doppler * dt * GPS_L1_LAMBDA;*/
+
+    /*printf("# dr_dopp = %f\n", -m_in_base[i].raw_doppler * dt * GPS_L1_LAMBDA);*/
+
+    /*printf("# raw dopp = %f\n", m_in_rover[i].raw_doppler);*/
+    /*printf("# my dopp = %f\n", -vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
+    /*printf("# ddopp = %f\n", m_in_rover[i].raw_doppler - vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
+    /*printf("[%f, %f],", m_in_base[i].raw_doppler, vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
+
+    /*printf("# dr_ = %f\n", dr_[i]);*/
+
+    m_out_base[i].raw_pseudorange = m_in_base[i].raw_pseudorange + dr_[i];
+    m_out_base[i].pseudorange = m_in_base[i].pseudorange;
+    m_out_base[i].carrier_phase = m_in_base[i].carrier_phase - dr_[i] / GPS_L1_LAMBDA;
+    m_out_base[i].raw_doppler = m_in_base[i].raw_doppler;
+    m_out_base[i].doppler = m_in_base[i].doppler;
+    /*m_in_base[i].carrier_phase -= dr_[i] / GPS_L1_LAMBDA;*/
+  }
+  return 0;
+}
 
 /** Calculate single difference observations.
  * Undifferenced input observations are assumed to be both taken at the
@@ -93,7 +154,20 @@ void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff
     //   sdiffs[i].snr = 2;
     // }
   }
+}
 
+void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx)
+{
+  for (u8 i=0; i<n; i++) {
+    dds[i].prn = sds[i].prn;
+    dds[i].pseudorange = sds[i].pseudorange - sds[ref_idx].pseudorange;
+    dds[i].carrier_phase = sds[i].carrier_phase - sds[ref_idx].carrier_phase;
+    dds[i].doppler = sds[i].doppler - sds[ref_idx].doppler;
+    dds[i].snr = MIN(sds[i].snr, sds[ref_idx].snr);
+
+    memcpy(&(dds[i].sat_pos), &(sds[i].sat_pos), 3*sizeof(double));
+    memcpy(&(dds[i].sat_vel), &(sds[i].sat_vel), 3*sizeof(double));
+  }
 }
 
 /** \} */
