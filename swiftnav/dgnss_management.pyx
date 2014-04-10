@@ -24,7 +24,7 @@ from sats_management_c cimport *
 
 def dgnss_init(alms, GpsTime timestamp,
                numpy_measurements,
-               reciever_ecef, dt):
+               reciever_ecef, dt, b=None):
   n = len(alms)
   state_dim = n + 5
   obs_dim = 2 * (n-1)
@@ -41,6 +41,12 @@ def dgnss_init(alms, GpsTime timestamp,
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(reciever_ecef, dtype=np.double)
 
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b_
+  if (b == None):
+    b_ = np.empty(3, dtype=np.double)
+  else:
+    b_ = np.array(b, dtype=np.double)
+
   cdef gps_time_t timestamp_ = timestamp.gps_time
 
   cdef sdiff_t sdiffs[32]
@@ -50,7 +56,7 @@ def dgnss_init(alms, GpsTime timestamp,
     sdiffs[i].pseudorange = c
     sdiffs[i].carrier_phase = l
 
-  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], dt)
+  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], &b_[0], dt)
 
 def dgnss_update(alms, GpsTime timestamp,
                numpy_measurements,
@@ -81,7 +87,7 @@ def dgnss_update(alms, GpsTime timestamp,
     sdiffs[i].carrier_phase = l
 
   cdef double b_[3]
-  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt, b_)
+  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt, 1, b_)
   
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
