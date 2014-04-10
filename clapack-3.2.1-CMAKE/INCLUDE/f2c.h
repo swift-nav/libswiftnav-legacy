@@ -6,22 +6,25 @@
 
 #ifndef F2C_INCLUDE
 #define F2C_INCLUDE
+#define _LARGE_FILE_SOURCE
+#define _LARGEFILE64_SOURCE
+#include <stdint.h>
 
-typedef int integer;
-typedef unsigned int uinteger;
+typedef int32_t integer;
+typedef uint32_t uinteger;
 typedef char *address;
-typedef short int shortint;
+typedef int16_t shortint;
 typedef float real;
 typedef double doublereal;
 typedef struct { real r, i; } complex;
 typedef struct { doublereal r, i; } doublecomplex;
-typedef long int logical;
-typedef short int shortlogical;
+typedef int32_t logical;
+typedef int16_t shortlogical;
 typedef char logical1;
 typedef char integer1;
 #ifdef INTEGER_STAR_8	/* Adjust for integer*8. */
-typedef long long longint;		/* system-dependent */
-typedef unsigned long long ulongint;	/* system-dependent */
+typedef int64_t longint;		/* system-dependent */
+typedef uint64_t ulongint;	/* system-dependent */
 #define qbit_clear(a,b)	((a) & ~((ulongint)1 << (b)))
 #define qbit_set(a,b)	((a) |  ((ulongint)1 << (b)))
 #endif
@@ -38,13 +41,13 @@ typedef unsigned long long ulongint;	/* system-dependent */
 
 #ifdef f2c_i2
 /* for -i2 */
-typedef short flag;
-typedef short ftnlen;
-typedef short ftnint;
+typedef int16_t flag;
+typedef int16_t ftnlen;
+typedef int16_t ftnint;
 #else
-typedef long int flag;
-typedef long int ftnlen;
-typedef long int ftnint;
+typedef int32_t flag;
+typedef int32_t ftnlen;
+typedef int32_t ftnint;
 #endif
 
 /*external read, write*/
@@ -137,20 +140,20 @@ union Multitype {	/* for multiple entry points */
 
 typedef union Multitype Multitype;
 
-/*typedef long int Long;*/	/* No longer used; formerly in Namelist */
+/*typedef long int32_t Long;*/	/* No longer used; formerly in Namelist */
 
 struct Vardesc {	/* for Namelist */
 	char *name;
 	char *addr;
 	ftnlen *dims;
-	int  type;
+	int32_t  type;
 	};
 typedef struct Vardesc Vardesc;
 
 struct Namelist {
 	char *name;
 	Vardesc **vars;
-	int nvars;
+	int32_t nvars;
 	};
 typedef struct Namelist Namelist;
 
