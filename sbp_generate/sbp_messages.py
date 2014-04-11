@@ -5,6 +5,63 @@ import struct
 
 
 
+SBP_STARTUP = 0xFF00
+class Startup:
+  """
+  SBP class for message STARTUP (0xFF00)
+
+  The system start-up message is sent once on system start-up. It is
+intended to be used to notify the host or other attached devices that
+the system has started and is now ready to respond to commands or
+configuration requests.
+
+  """
+
+  def __init__(self, d):
+    self.from_binary(d)
+
+  def from_binary(self, d):
+    (
+      self.reserved,
+    ) = struct.unpack('<I', d)
+
+  def to_binary(self, d):
+    return struct.pack('<I', (
+      self.reserved,
+    ))
+
+
+SBP_HEARTBEAT = 0xFFFF
+class Heartbeat:
+  """
+  SBP class for message HEARTBEAT (0xFFFF)
+
+  The heartbeat message is sent periodically to inform the host or
+other attached devices that the system is running. It is intended to
+be used to monitor for system malfunctions and also contains
+status flags that indicate to the host the status of the system and
+if it is operating correctly.
+
+The system error flag is used to indicate that an error has occurred in
+the system. To determine the source of the error the remaining error
+flags should be inspected.
+
+  """
+
+  def __init__(self, d):
+    self.from_binary(d)
+
+  def from_binary(self, d):
+    (
+      self.flags,
+    ) = struct.unpack('<I', d)
+
+  def to_binary(self, d):
+    return struct.pack('<I', (
+      self.flags,
+    ))
+
+
 SBP_GPS_TIME = 0x0100
 class GPSTime:
   """
@@ -285,6 +342,8 @@ class VelNED:
 
 
 msg_classses = {
+  0xFF00: Startup,
+  0xFFFF: Heartbeat,
   0x0100: GPSTime,
   0x0206: Dops,
   0x0200: PosECEF,

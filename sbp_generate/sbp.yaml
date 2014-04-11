@@ -1,3 +1,51 @@
+ - STARTUP:
+    id: 0xFF00
+    short_desc: System start-up message
+    desc: |
+        The system start-up message is sent once on system start-up. It is
+        intended to be used to notify the host or other attached devices that
+        the system has started and is now ready to respond to commands or
+        configuration requests.
+    fields:
+        - reserved:
+            type: u32
+            desc: Reserved
+
+ - HEARTBEAT:
+    id: 0xFFFF
+    short_desc: System heartbeat message
+    desc: |
+        The heartbeat message is sent periodically to inform the host or
+        other attached devices that the system is running. It is intended to
+        be used to monitor for system malfunctions and also contains
+        status flags that indicate to the host the status of the system and
+        if it is operating correctly.
+
+        The system error flag is used to indicate that an error has occurred in
+        the system. To determine the source of the error the remaining error
+        flags should be inspected.
+    fields:
+        - flags:
+            type: u32
+            desc: Status flags
+            fields:
+              - 31:
+                  desc: External antenna present
+                  values:
+                      - 0: No external antenna detected
+                      - 1: External antenna is present
+              - 3-30:
+                  desc: Reserved
+              - 2:
+                  desc: SwiftNAP Error
+              - 1:
+                  desc: IO Error
+              - 0:
+                  desc: System Error Flag
+                  values:
+                      - 0: System Healthy
+                      - 1: An error has occurred
+
  - GPS_TIME:
     id: 0x0100
     short_desc: GPS Time
