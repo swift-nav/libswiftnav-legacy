@@ -112,6 +112,8 @@ msgs = [[dict({'name': k}, **v) for k, v in d.iteritems()][0] for d in ds]
 for m in msgs:
     fields = []
     offset = 0
+    max_type_len = 0
+    max_name_len = 0
     for f in m['fields']:
         name, info = f.iteritems().next()
         if not 'units' in info:
@@ -125,6 +127,10 @@ for m in msgs:
             'size': sizes[info['type']],
         }))
         offset += sizes[info['type']]
+        max_type_len = max(max_type_len, len(info['type']))
+        max_name_len = max(max_name_len, len(name))
+    m['max_type_len'] = max_type_len
+    m['max_name_len'] = max_name_len
     m['fields'] = fields
     m['size'] = offset
 

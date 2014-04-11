@@ -27,7 +27,7 @@
 
 typedef struct __attribute__((packed)) {
 ((*- for f in m.fields *))
-  (((f.type))) (((f.name))); /**< (((f.desc))) */
+  (((f.type.ljust(m.max_type_len)))) ((((f.name+';').ljust(m.max_name_len+1)))) /**< (((f.desc))) ((* if f.units *))[(((f.units)))] ((* endif *))*/
 ((*- endfor *))
 } sbp_(((m.name|lower)))_t;
 
