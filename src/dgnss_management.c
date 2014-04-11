@@ -23,7 +23,6 @@ kf_t kf;
 stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
 ambiguity_test_t ambiguity_test;
-u32 tmp_i;
 
 void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
@@ -78,6 +77,8 @@ u8 dgnss_intersect_sats(u8 num_old_prns, u8 *old_prns,
 
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_init[3], double dt)
 {
+  (void)b_init;
+
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
 
@@ -88,14 +89,6 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_
          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
          POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
          num_sats, corrected_sdiffs, dd_measurements, reciever_ecef, dt);
-
-  /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
-  /*double b_init[3] = {-1.4861289 ,  0.84761746, -0.01029364}; // colin's piksi data*/
-  /*double b_init[3] = {1.02571973, -0.15447333, 0.81029273}; // The antenna tree*/
-  /*double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched*/
-  init_stupid_filter(&stupid_state, num_sats, corrected_sdiffs, dd_measurements, b_init, reciever_ecef);
-  create_ambiguity_test(&ambiguity_test);
-  tmp_i = 0;
 }
 
 void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
@@ -110,7 +103,6 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], d
   }
   else if (sats_management_code == NEW_REF) {
     // do everything related to changing the reference sat here
-    rebase_stupid_filter(&stupid_state, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);
     rebase_kf(&kf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);
   }
 }
@@ -162,9 +154,6 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
     /*print_sats_management(&sats_management);*/
 
-    (void)dd_measurements;
-    update_sats_stupid_filter(&stupid_state, sats_management.num_sats, old_prns, num_sdiffs,
-                            corrected_sdiffs, dd_measurements, reciever_ecef);
   }
   else {
     reset_kf_except_state(&kf,
@@ -188,13 +177,6 @@ void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, do
   memcpy(b, kf.state_mean, 3 * sizeof(double));
 
   (void) dt;
-  /*double b_init[3] = {0, 0, 0}; // Zero baseline*/
-   /*double b_init[3] = {-1.02571973, 0.15447333, -0.81029273}; // The antenna tree, switched*/
-  /*init_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs, dd_measurements, b_init, reciever_ecef);*/
-  if (filter_choice == 0) {
-    update_stupid_filter(&stupid_state, sats_management.num_sats, sdiffs,
-                          dd_measurements, b, ref_ecef);
-  }
 }
 
 void dvec_printf(double *v, u32 n)
@@ -222,14 +204,14 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   // update for observation
   dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, filter_choice, b);
 
-  double ref_ecef[3];
-  ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
-  ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
-  ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
+  /*double ref_ecef[3];*/
+  /*ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];*/
+  /*ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];*/
+  /*ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];*/
 
-  update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,
-                        &ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,
-                        kf.state_cov_U, kf.state_cov_D);
+  /*update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,*/
+                        /*&ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,*/
+                        /*kf.state_cov_U, kf.state_cov_D);*/
 }
 
 kf_t * get_dgnss_kf()
