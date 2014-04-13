@@ -15,7 +15,7 @@ extern "C" {
 #define SYLMX 300
 #endif
 #ifndef SYLMX
-#define SYLMX 300
+#define SYLMX 5
 #endif
 #define GLITCH '\2'
 	/* special quote character for stu */

@@ -120,7 +120,7 @@ extern unit f__units[];
 #define errfl(f,m,s) return err__fl((int)f,m,s)
 
 /*Table sizes*/
-#define MXUNIT 100
+#define MXUNIT 1
 
 extern int f__recpos;	/*position in current record*/
 extern OFF_T f__cursor;	/* offset to move to */
