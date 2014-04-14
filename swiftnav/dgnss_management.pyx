@@ -10,9 +10,9 @@
 import numpy as np
 cimport numpy as np
 cimport dgnss_management_c
-from float_kf import KalmanFilter
-from float_kf cimport *
-from float_kf_c cimport *
+from amb_kf import KalmanFilter
+from amb_kf cimport *
+from amb_kf_c cimport *
 from single_diff_c cimport *
 from almanac cimport *
 from almanac_c cimport *
@@ -56,7 +56,7 @@ def dgnss_init(alms, GpsTime timestamp,
     sdiffs[i].pseudorange = c
     sdiffs[i].carrier_phase = l
 
-  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], &b_[0], dt)
+  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], &b_[0])
 
 def dgnss_update(alms, GpsTime timestamp,
                numpy_measurements,
@@ -96,9 +96,9 @@ def dgnss_update(alms, GpsTime timestamp,
   
 
 def get_dgnss_kf():
-  cdef kf_t *kf = dgnss_management_c.get_dgnss_kf()
+  cdef nkf_t *kf = dgnss_management_c.get_dgnss_kf()
   cdef KalmanFilter pykf = KalmanFilter()
-  memcpy(&(pykf.kf), kf, sizeof(float_kf_c.kf_t))
+  memcpy(&(pykf.kf), kf, sizeof(amb_kf_c.nkf_t))
   return pykf
 
 
