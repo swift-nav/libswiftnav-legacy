@@ -19,7 +19,7 @@
  * Useful constants.
  * \{ */
 
-#define MAX_CHANNELS 15 /**< Maximum sats we can track */
+#define MAX_CHANNELS 11 /**< Maximum sats we can track */
 #define MAX_SATS 32 /**< Maximum sats in the universe */
 
 #define R2D (180.0 / M_PI) /**< Conversion factor from radians to degrees. */
