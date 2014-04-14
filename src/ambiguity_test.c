@@ -180,7 +180,7 @@ s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
 
 typedef struct {
   u8 num_dds;
-  double r_vec[MAX_CHANNELS-4];
+  double r_vec[2*MAX_CHANNELS-5];
   double max_ll;
   residual_mtxs_t *res_mtxs;
 } update_and_get_max_ll_t;
