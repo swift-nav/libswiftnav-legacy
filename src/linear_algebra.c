@@ -377,7 +377,7 @@ s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x) {
  */
 static inline int inv2(const double *a, double *b) {
   double det = a[0]*a[3] - a[1]*a[2];
-  if (det < MATRIX_EPSILON)
+  if (fabs(det) < MATRIX_EPSILON)
     return -1;
   b[0] = a[3]/det;
   b[1] = -a[1]/det;
@@ -399,7 +399,7 @@ static inline int inv3(const double *a, double *b) {
                  +a[3*1 + 1]*(a[3*0 + 0]*a[3*2 + 2]-a[3*0 + 2]*a[3*2 + 0]))
                 +a[3*1 + 2]*-(a[3*0 + 0]*a[3*2 + 1]-a[3*0 + 1]*a[3*2 + 0]));
 
-  if (det < MATRIX_EPSILON)
+  if (fabs(det) < MATRIX_EPSILON)
     return -1;
 
   b[3*0 + 0] = (a[3*1 + 1]*a[3*2 + 2]-a[3*1 + 2]*a[3*2 + 1])/det;
@@ -428,7 +428,7 @@ static inline int inv3(const double *a, double *b) {
 static inline int inv4(const double *a, double *b) {
   double det = (((a[4*1 + 0]*-((a[4*2 + 1]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1]))+a[4*2 + 3]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1]))+a[4*1 + 1]*((a[4*2 + 0]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0])))+a[4*1 + 2]*-((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0])))+a[4*1 + 3]*((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))+a[4*2 + 2]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0])));
 
-  if (det < MATRIX_EPSILON)
+  if (fabs(det) < MATRIX_EPSILON)
     return -1;
 
   b[4*0 + 0] = ((a[4*2 + 1]*-(a[4*1 + 2]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*1 + 1]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 1]))+a[4*2 + 3]*-(a[4*1 + 1]*a[4*3 + 2]-a[4*1 + 2]*a[4*3 + 1]))/det;
