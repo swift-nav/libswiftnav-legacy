@@ -29,10 +29,10 @@
 
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
-  amb_test->pool = memory_pool_new(MAX_HYPOTHESES, sizeof(hypothesis_t));
-  if (!amb_test->pool) {
-    printf("ambiguity test tried to allocate too much memory!\n");
-  }
+  static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
+  static memory_pool_t pool;
+  amb_test->pool = &pool;
+  memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
   amb_test->sats.num_sats = 0;
 }
 
@@ -127,7 +127,7 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_pr
 //               s32 *Z_inv, double *new_DE_mtx, double *new_obs_cov)
 
 
-void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
+s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D)
 {
@@ -169,6 +169,13 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   }
 
   test_ambiguities(amb_test, ambiguity_dd_measurements);
+
+  u32 n_hyps = memory_pool_n_allocated(amb_test->pool);
+  printf("num hyps: %lu\n", n_hyps);
+
+  /*if (n_hyps < 5) {*/
+    /*memory_pool_map(amb_test->pool, MAX(0, amb_test->sats.num_sats - 1), &print_hyp);*/
+  /*}*/
 }
 
 typedef struct {
@@ -213,7 +220,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
 
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
-  memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
+  /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
 
 }
 
@@ -430,14 +437,14 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
   memcpy(intersection.intersection_ndxs, dd_intersection_ndxs, num_dds_in_intersection * sizeof(u8));
 
 
-  printf("before proj:\n");
-  memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);
+  printf("before proj: %d\n", memory_pool_n_allocated(amb_test->pool));
+  /*memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);*/
   memory_pool_group_by(amb_test->pool,
                        &intersection, &projection_comparator,
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
-  printf("updates to:\n");
-  memory_pool_map(amb_test->pool, &num_dds_in_intersection, &print_hyp);
+  printf("updates to: %d\n", memory_pool_n_allocated(amb_test->pool));
+  /*memory_pool_map(amb_test->pool, &num_dds_in_intersection, &print_hyp);*/
   printf("\n");
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
@@ -624,8 +631,11 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                                                  *num_dds_to_add,
                                                  lower_bounds, upper_bounds, Z);
     if (new_hyp_set_cardinality <= max_new_hyps_cardinality) {
+      print_s32_mtx(1, *num_dds_to_add, lower_bounds);
+      print_s32_mtx(1, *num_dds_to_add, upper_bounds);
       double Z_inv_[*num_dds_to_add * *num_dds_to_add];
-      matrix_inverse(*num_dds_to_add, Z, Z_inv_);
+      s8 ret = matrix_inverse(*num_dds_to_add, Z, Z_inv_);
+      printf("inv ret: %d\n", ret);
       for (u8 i=0; i < *num_dds_to_add; i++) {
         for (u8 j=0; j < *num_dds_to_add; j++) {
           Z_inv[i* *num_dds_to_add + j] = lround(Z_inv_[i* *num_dds_to_add + j]);
@@ -911,14 +921,14 @@ void add_sats(ambiguity_test_t *amb_test,
     empty_element->ll = 0; // only in init
   }
 
-  printf("before inclusion:\n");
-  memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
+  printf("before inclusion: %d\n", memory_pool_n_allocated(amb_test->pool));
+  /*memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);*/
   memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &generate_next_hypothesis, &hypothesis_prod);
-  printf("updates to:\n");
-  memory_pool_map(amb_test->pool, &k, &print_hyp);
+  printf("updates to: %d\n", memory_pool_n_allocated(amb_test->pool));
+  /*memory_pool_map(amb_test->pool, &k, &print_hyp);*/
   printf("\n");
 
 

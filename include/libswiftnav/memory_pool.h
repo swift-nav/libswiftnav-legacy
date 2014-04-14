@@ -24,7 +24,31 @@ typedef u8 element_t;
 
 typedef struct _memory_pool memory_pool_t;
 
+struct node;
+
+typedef struct {
+  struct node *next;
+} memory_pool_node_hdr_t;
+
+typedef struct node {
+  memory_pool_node_hdr_t hdr;
+  /* C99 "flexible member array" (see C99 std. ch. 6.7.2.1),
+   * Allows us to get a pointer to the top of the unknown size element. */
+  element_t elem[];
+} node_t;
+
+struct _memory_pool {
+  u32 n_elements;
+  size_t element_size;
+  node_t *pool;
+  node_t *free_nodes_head;
+  node_t *allocated_nodes_head;
+};
+
+
 memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size);
+s8 memory_pool_init(memory_pool_t *new_pool, u32 n_elements,
+                    size_t element_size, void *buff);
 void memory_pool_destroy(memory_pool_t *pool);
 s32 memory_pool_n_free(memory_pool_t *pool);
 s32 memory_pool_n_allocated(memory_pool_t *pool);
@@ -33,8 +57,10 @@ u32 memory_pool_n_elements(memory_pool_t *pool);
 element_t *memory_pool_add(memory_pool_t *pool);
 s32 memory_pool_to_array(memory_pool_t *pool, void *array);
 
-s32 memory_pool_map(memory_pool_t *pool, void *arg, void (*f)(void *arg, element_t *elem));
-s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem));
+s32 memory_pool_map(memory_pool_t *pool, void *arg,
+                    void (*f)(void *arg, element_t *elem));
+s32 memory_pool_filter(memory_pool_t *pool, void *arg,
+                       s8 (*f)(void *arg, element_t *elem));
 s32 memory_pool_fold(memory_pool_t *pool, void *x0,
                      void (*f)(void *x, element_t *elem));
 double memory_pool_dfold(memory_pool_t *pool, double x0,

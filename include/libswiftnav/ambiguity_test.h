@@ -18,7 +18,7 @@
 #include "memory_pool.h"
 #include "sats_management.h"
 
-#define MAX_HYPOTHESES 500
+#define MAX_HYPOTHESES 1000
 
 typedef struct {
   s32 N[MAX_CHANNELS-1];
@@ -50,7 +50,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 // void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
 //                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
 //                            double *float_mean, double *float_cov);
-void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
+s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);

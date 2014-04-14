@@ -15,27 +15,6 @@
 
 #include "memory_pool.h"
 
-struct node;
-
-typedef struct {
-  struct node *next;
-} memory_pool_node_hdr_t;
-
-typedef struct node {
-  memory_pool_node_hdr_t hdr;
-  /* C99 "flexible member array" (see C99 std. ch. 6.7.2.1),
-   * Allows us to get a pointer to the top of the unknown size element. */
-  element_t elem[];
-} node_t;
-
-struct _memory_pool {
-  u32 n_elements;
-  size_t element_size;
-  node_t *pool;
-  node_t *free_nodes_head;
-  node_t *allocated_nodes_head;
-};
-
 inline static size_t calc_node_size(size_t element_size)
 {
   return element_size + sizeof(memory_pool_node_hdr_t);
@@ -87,15 +66,54 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
     return NULL;
   }
 
+  /* Allocate memory pool */
+  size_t node_size = calc_node_size(element_size);
+  node_t *buff = (node_t *)malloc(node_size * n_elements);
+  if (!buff) {
+    free(new_pool);
+    return NULL;
+  }
+
+  memory_pool_init(new_pool, n_elements, element_size, buff);
+
+  return new_pool;
+}
+
+/** Initialise a new memory pool.
+ * Initialises a new memory pool containing a maximum of `n_elements` elements
+ * of size `element_size`. This function does not allocate memory and must be
+ * passed a buffer of a suitable size to hold the memory pool elements. Each
+ * element stored in the memory pool has an overhead of one pointer size so the
+ * total space used for the pool will be:
+ *
+ * ~~~
+ * n_elements * (element_size + sizeof(void *))
+ * ~~~
+ *
+ * Remember to free the pool with memory_pool_destroy(), and for embedded
+ * systems it is recommended that all pools be initialized once at start-up to
+ * prevent all the usual caveats associated with dynamic memory allocation.
+ *
+ * \param pool Pointer to a memory pool to initialise
+ * \param n_elements Number of elements that the pool can hold
+ * \param element_size Size in bytes of the user payload elements
+ * \param buff Pointer to a buffer to use as the memory pool working area
+ * \returns `0` on success, `<0` on failure.
+ */
+s8 memory_pool_init(memory_pool_t *new_pool, u32 n_elements,
+                    size_t element_size, void *buff)
+{
+  if (!new_pool) {
+    return -1;
+  }
+
   new_pool->n_elements = n_elements;
   new_pool->element_size = element_size;
 
-  /* Allocate memory pool */
-  size_t node_size = calc_node_size(element_size);
-  new_pool->pool = (node_t *)malloc(node_size * n_elements);
+  /* Setup memory pool buffer area */
+  new_pool->pool = (node_t *)buff;
   if (!new_pool->pool) {
-    free(new_pool);
-    return NULL;
+    return -2;
   }
 
   /* Create linked list out of all the nodes in the pool, adding them to the
@@ -114,11 +132,12 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
   /* No nodes currently allocated. */
   new_pool->allocated_nodes_head = NULL;
 
-  return new_pool;
+  return 0;
 }
 
 /** Destroy a memory pool.
- * Cleans up and frees the memory associated with the pool.
+ * Cleans up and frees the memory associated with the pool. This must only be
+ * called on memory pools allocated with memory_pool_new().
  *
  * \param pool Pointer to the memory pool to destroy.
  */

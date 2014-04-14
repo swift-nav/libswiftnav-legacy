@@ -75,10 +75,8 @@ u8 dgnss_intersect_sats(u8 num_old_prns, u8 *old_prns,
   return n;
 }
 
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_init[3], double dt)
+void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
-  (void)b_init;
-
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
 
@@ -89,6 +87,8 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double b_
          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
          POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
          num_sats, corrected_sdiffs, dd_measurements, reciever_ecef, dt);
+
+  create_ambiguity_test(&ambiguity_test);
 }
 
 void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
@@ -164,27 +164,28 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
 
 }
 
-void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements, double *reciever_ecef, double dt, u8 filter_choice, double b[3])
+void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
+                                   double *reciever_ecef, double dt)
 {
-  double ref_ecef[3];
+  (void) dt;
 
+  double ref_ecef[3];
   ref_ecef[0] = reciever_ecef[0] + kf.state_mean[0]*0.5;
   ref_ecef[1] = reciever_ecef[1] + kf.state_mean[1]*0.5;
   ref_ecef[2] = reciever_ecef[2] + kf.state_mean[2]*0.5;
-  assign_decor_obs_mtx(sats_management.num_sats, sdiffs, ref_ecef, kf.decor_mtx, kf.decor_obs_mtx); //TODO make a common DE and use it instead
+  /* TODO: make a common DE and use it instead. */
+  assign_decor_obs_mtx(sats_management.num_sats, sdiffs, ref_ecef,
+                       kf.decor_mtx, kf.decor_obs_mtx);
   kalman_filter_update(&kf, dd_measurements);
-
-  memcpy(b, kf.state_mean, 3 * sizeof(double));
-
-  (void) dt;
 }
 
 void dvec_printf(double *v, u32 n)
 {
-    for (u32 i = 0; i < n; i++) printf(", %f", v[i]);
+  for (u32 i = 0; i < n; i++)
+    printf(", %f", v[i]);
 }
 
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 filter_choice, double b[3])
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
   sdiff_t corrected_sdiffs[num_sats];
 
@@ -202,16 +203,27 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   /*MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);*/
 
   // update for observation
-  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt, filter_choice, b);
+  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt);
 
-  /*double ref_ecef[3];*/
-  /*ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];*/
-  /*ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];*/
-  /*ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];*/
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0] + 0.5 * kf.state_mean[0];
+  ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
+  ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
 
-  /*update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR,*/
-                        /*&ambiguity_test, kf.state_dim, &sats_management, sdiffs, kf.state_mean,*/
-                        /*kf.state_cov_U, kf.state_cov_D);*/
+  update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR, &ambiguity_test,
+                        kf.state_dim, &sats_management, sdiffs,
+                        kf.state_mean, kf.state_cov_U, kf.state_cov_D);
+}
+
+void dgnss_float_baseline(u8 *num_used, double b[3])
+{
+  memcpy(b, kf.state_mean, 3 * sizeof(double));
+  *num_used = sats_management.num_sats;
+}
+
+s8 dgnss_iar_resolved()
+{
+  return 0;
 }
 
 kf_t * get_dgnss_kf()
