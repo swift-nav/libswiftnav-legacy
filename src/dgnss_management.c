@@ -246,6 +246,11 @@ void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
   }
 }
 
+void dgnss_reset_iar()
+{
+  create_ambiguity_test(&ambiguity_test);
+}
+
 s8 dgnss_iar_resolved()
 {
   return ambiguity_test_n_hypotheses(&ambiguity_test) == 1;
