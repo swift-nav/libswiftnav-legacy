@@ -169,13 +169,11 @@ s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
   }
 
   test_ambiguities(amb_test, ambiguity_dd_measurements);
+}
 
-  u32 n_hyps = memory_pool_n_allocated(amb_test->pool);
-  printf("num hyps: %lu\n", n_hyps);
-
-  /*if (n_hyps < 5) {*/
-    /*memory_pool_map(amb_test->pool, MAX(0, amb_test->sats.num_sats - 1), &print_hyp);*/
-  /*}*/
+u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test)
+{
+  return memory_pool_n_allocated(amb_test->pool);
 }
 
 typedef struct {
@@ -271,15 +269,15 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
   }
   if (found_ref == 0) { //DEBUG
     //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test->sats
-    printf("amb_test->sats's reference wasn't foung in the sdiffs, but it should have already been rebased.\n");
+    printf("amb_test->sats's reference wasn't found in the sdiffs, but it should have already been rebased.\n");
     printf("amb_test->sats.prns = [");
     for (u8 j=0; j < amb_test->sats.num_sats; j++) {
-      printf("%d, ", amb_test->sats.prns[i]);
+      printf("%d, ", amb_test->sats.prns[j]);
     }
     printf("]\n");
     printf("sdiffs.prns = [");
     for (u8 j=0; j < num_sdiffs; j++) {
-      printf("%d, ", sdiffs[i].prn);
+      printf("%d, ", sdiffs[j].prn);
     }
     printf("]\n");
   }

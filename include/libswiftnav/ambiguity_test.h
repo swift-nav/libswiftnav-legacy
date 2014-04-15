@@ -53,6 +53,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D);
+u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
 // u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
 //                            sats_management_t *float_sats, double *float_mean, double *float_cov);
