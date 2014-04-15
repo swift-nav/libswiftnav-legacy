@@ -267,6 +267,18 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
       printf("]\n");
     }
   }
+  /* This awkward case deals with the situation when sdiffs and sats have the
+   * same satellites only the ref of amb_test.sats is the last PRN in sdiffs.
+   * This case is never checked for j = num_dds as i only runs to num_dds-1. */
+  /* TODO: This function could be refactored to be a lot clearer. */
+  if (ref_prn == sdiffs[j].prn) {
+    memcpy(&amb_sdiffs[0], &sdiffs[j], sizeof(sdiff_t));
+    ref_phase =  sdiffs[j].carrier_phase;
+    ref_pseudorange = sdiffs[j].pseudorange;
+    j++;
+    found_ref = 1; //DEBUG
+  }
+
   if (found_ref == 0) { //DEBUG
     //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test->sats
     printf("amb_test->sats's reference wasn't found in the sdiffs, but it should have already been rebased.\n");
