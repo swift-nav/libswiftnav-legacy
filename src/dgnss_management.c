@@ -213,6 +213,11 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR, &ambiguity_test,
                         kf.state_dim, &sats_management, sdiffs,
                         kf.state_mean, kf.state_cov_U, kf.state_cov_D);
+
+  u32 n_hyps = ambiguity_test_n_hypotheses(&ambiguity_test);
+  if (n_hyps > 0) {
+    printf("Num hyps: %d\n", n_hyps);
+  }
 }
 
 void dgnss_float_baseline(u8 *num_used, double b[3])
@@ -221,9 +226,29 @@ void dgnss_float_baseline(u8 *num_used, double b[3])
   *num_used = sats_management.num_sats;
 }
 
+void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
+                          u8 *num_used, double b[3])
+{
+  if (dgnss_iar_resolved()) {
+    sdiff_t ambiguity_sdiffs[ambiguity_test.sats.num_sats];
+    double dd_meas[2*(ambiguity_test.sats.num_sats-1)];
+    make_ambiguity_dd_measurements_and_sdiffs(&ambiguity_test, n, sdiffs,
+        dd_meas, ambiguity_sdiffs);
+    double DE[(ambiguity_test.sats.num_sats-1) * 3];
+    assign_de_mtx(ambiguity_test.sats.num_sats, ambiguity_sdiffs, ref_ecef, DE);
+    hypothesis_t *hyp = (hypothesis_t*)ambiguity_test.pool->allocated_nodes_head->elem;
+    print_hyp(ambiguity_test.sats.num_sats-1, hyp);
+    *num_used = ambiguity_test.sats.num_sats;
+    lesq_solution(n, dd_meas, hyp->N, DE, b, 0);
+  } else {
+    memcpy(b, kf.state_mean, 3 * sizeof(double));
+    *num_used = sats_management.num_sats;
+  }
+}
+
 s8 dgnss_iar_resolved()
 {
-  return 0;
+  return ambiguity_test_n_hypotheses(&ambiguity_test) == 1;
 }
 
 kf_t * get_dgnss_kf()

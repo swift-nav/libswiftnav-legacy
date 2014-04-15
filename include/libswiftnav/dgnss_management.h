@@ -34,4 +34,6 @@ sats_management_t * get_sats_management(void);
 
 s8 dgnss_iar_resolved(void);
 void dgnss_float_baseline(u8 *num_used, double b[3]);
+void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
+                          u8 *num_used, double b[3]);
 
