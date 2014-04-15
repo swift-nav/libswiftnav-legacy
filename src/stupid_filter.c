@@ -172,13 +172,10 @@ void update_sats_stupid_filter(stupid_filter_state_t *s, u8 num_old, u8 *old_prn
   init_stupid_filter(s, num_new, sdiffs, dd_meas, b, ref_ecef);
 }
 
-void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
-                        double *dd_meas, double b[3], double ref_ecef[3])
+void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE, double b[3], double *resid)
 {
-  double DE[(num_sats-1)*3];
-
-  /* Calculate DE matrix */
-  assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
+  double DE_work[num_dds*3];
+  memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
 
   /* Solve for b via least squares, i.e.
    * dd_meas = DE . b + N
@@ -189,40 +186,55 @@ void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs
    * x <= b
    * b <= (dd_meas - N) * lambda
    */
-  double rhs[MAX(num_sats-1, 3)];
-  for (u8 i=0; i<num_sats-1; i++) {
-    rhs[i] = (dd_meas[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
+  double rhs[MAX(num_dds, 3)];
+  for (u8 i=0; i<num_dds; i++) {
+    rhs[i] = (dd_meas[i] - N[i]) * GPS_L1_LAMBDA_NO_VAC;
   }
 
   int jpvt[3] = {0, 0, 0};
   int rank;
-  /* TODO: This function calls malloc to allocate work area, refoctor to use
+  /* TODO: This function calls malloc to allocate work area, refactor to use
    * LAPACKE_dgelsy_work instead. */
   LAPACKE_dgelsy(
-    LAPACK_ROW_MAJOR, num_sats-1, 3,
-    1, DE, 3,
+    LAPACK_ROW_MAJOR, num_dds, 3,
+    1, DE_work, 3,
     rhs, 1, jpvt,
     -1, &rank
   );
   memcpy(b, rhs, 3*sizeof(double));
 
-  /* Calculate Least Squares Residuals */
+  if (resid) {
+    /* Calculate Least Squares Residuals */
 
-  assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
+    memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
 
-  double b_dot_DE[num_sats-1];
-  cblas_dgemv(
-    CblasRowMajor, CblasNoTrans, num_sats-1, 3,
-    1, DE, 3, rhs, 1,
-    0, b_dot_DE, 1
-  );
-
-  double resid[num_sats-1];
-  for (u8 i=0; i<num_sats-1; i++) {
-    resid[i] -= (dd_meas[i] - s->N[i]) * GPS_L1_LAMBDA_NO_VAC;
-    resid[i] = 100 * resid[i]; /* convert to cm */
+    /* resid <= dd_meas - N
+     * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
+     * beta <= 1.0
+     * resid <= beta * resid + alpha * (DE . b)
+     */
+    for (u8 i=0; i<num_dds; i++) {
+      resid[i] = dd_meas[i] - N[i];
+    }
+    cblas_dgemv(
+      CblasRowMajor, CblasNoTrans, num_dds, 3,
+      -1.0 / GPS_L1_LAMBDA_NO_VAC, DE_work, 3, b, 1,
+      1.0, resid, 1
+    );
   }
-  /*VEC_PRINTF(resid, (u32) num_sats-1);*/
+}
+
+
+
+void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
+                        double *dd_meas, double b[3], double ref_ecef[3])
+{
+  double DE[(num_sats-1)*3];
+
+  /* Calculate DE matrix */
+  assign_de_mtx(num_sats, sdiffs, ref_ecef, DE);
+  lesq_solution(num_sats-1, dd_meas, s->N, DE, b, 0);
+
 }
 
 

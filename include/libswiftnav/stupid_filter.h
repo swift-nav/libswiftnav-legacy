@@ -26,6 +26,7 @@ void rebase_stupid_filter(stupid_filter_state_t *s, u8 num_sats, u8 *old_prns, u
 void update_sats_stupid_filter(stupid_filter_state_t *s, u8 num_old, u8 *old_prns, u8 num_new, sdiff_t *sdiffs, double *dd_measurements, double ref_ecef[3]);
 void update_stupid_filter(stupid_filter_state_t *s, u8 num_sats, sdiff_t *sdiffs,
                         double *dd_measurements, double b[3], double ref_ecef[3]);
+void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE, double b[3], double *resid);
 
 #endif /* LIBSWIFTNAV_STUPID_FILTER_H */
 
