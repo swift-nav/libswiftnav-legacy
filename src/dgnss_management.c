@@ -24,6 +24,20 @@ stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
 ambiguity_test_t ambiguity_test;
 
+dgnss_settings_t dgnss_settings = {
+  .phase_var_test = DEFAULT_PHASE_VAR_TEST,
+  .code_var_test = DEFAULT_CODE_VAR_TEST,
+  .phase_var_kf = DEFAULT_PHASE_VAR_KF,
+  .code_var_kf = DEFAULT_CODE_VAR_KF,
+  .pos_trans_var = DEFAULT_POS_TRANS_VAR,
+  .vel_trans_var = DEFAULT_VEL_TRANS_VAR,
+  .int_trans_var = DEFAULT_INT_TRANS_VAR,
+  .pos_init_var = DEFAULT_POS_INIT_VAR,
+  .vel_init_var = DEFAULT_VEL_INIT_VAR,
+  .int_init_var = DEFAULT_INT_INIT_VAR,
+  .new_int_var = DEFAULT_NEW_INT_VAR,
+};
+
 void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   double phase0 = sdiffs[0].carrier_phase;
@@ -83,17 +97,23 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
-  get_kf(&kf, PHASE_VAR, CODE_VAR,
-         POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
-         POS_INIT_VAR,  VEL_INIT_VAR,  INT_INIT_VAR,
-         num_sats, corrected_sdiffs, dd_measurements, reciever_ecef, dt);
+  get_kf(
+    &kf,
+    dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
+    dgnss_settings.pos_trans_var, dgnss_settings.vel_trans_var,
+    dgnss_settings.int_trans_var,
+    dgnss_settings.pos_init_var, dgnss_settings.vel_init_var,
+    dgnss_settings.int_init_var,
+    num_sats, corrected_sdiffs, dd_measurements, reciever_ecef,
+    dt
+  );
 
   create_ambiguity_test(&ambiguity_test);
 }
 
-void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], double dt, u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
+void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
 {
-  (void)dt; (void)reciever_ecef;
+  (void)reciever_ecef;
   //all the ref sat stuff
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
@@ -132,10 +152,14 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
                                                     num_sdiffs-1, &corrected_sdiffs[1],
                                                     &ndx_of_intersection_in_old[1],
                                                     &ndx_of_intersection_in_new[1]) + 1;
-    reset_kf_except_state(&kf,
-                          PHASE_VAR, CODE_VAR,
-                          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
-                          num_sdiffs, corrected_sdiffs, reciever_ecef, dt);
+    reset_kf_except_state(
+      &kf,
+      dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
+      dgnss_settings.pos_trans_var, dgnss_settings.vel_trans_var,
+      dgnss_settings.int_trans_var,
+      num_sdiffs, corrected_sdiffs, reciever_ecef, dt
+    );
+
     if (num_intersection_sats < sats_management.num_sats) { //lost sats
       kalman_filter_state_projection(&kf,
                                      sats_management.num_sats-1,
@@ -147,7 +171,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
                                     num_intersection_sats-1,
                                     num_sdiffs-1,
                                     &ndx_of_intersection_in_new[1],
-                                    NEW_INT_VAR);
+                                    dgnss_settings.new_int_var);
     }
 
     /*print_sats_management(&sats_management);*/
@@ -156,10 +180,13 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
 
   }
   else {
-    reset_kf_except_state(&kf,
-                          PHASE_VAR, CODE_VAR,
-                          POS_TRANS_VAR, VEL_TRANS_VAR, INT_TRANS_VAR,
-                          num_sdiffs, corrected_sdiffs, reciever_ecef, dt);
+    reset_kf_except_state(
+      &kf,
+      dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
+      dgnss_settings.pos_trans_var, dgnss_settings.vel_trans_var,
+      dgnss_settings.int_trans_var,
+      num_sdiffs, corrected_sdiffs, reciever_ecef, dt
+    );
   }
 
 }
@@ -192,7 +219,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
   //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
-  dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, dt, old_prns, corrected_sdiffs);
+  dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, old_prns, corrected_sdiffs);
 
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
@@ -210,7 +237,10 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   ref_ecef[1] = reciever_ecef[1] + 0.5 * kf.state_mean[1];
   ref_ecef[2] = reciever_ecef[2] + 0.5 * kf.state_mean[2];
 
-  update_ambiguity_test(ref_ecef, PHASE_VAR, CODE_VAR, &ambiguity_test,
+  update_ambiguity_test(ref_ecef,
+                        dgnss_settings.phase_var_test,
+                        dgnss_settings.code_var_test,
+                        &ambiguity_test,
                         kf.state_dim, &sats_management, sdiffs,
                         kf.state_mean, kf.state_cov_U, kf.state_cov_D);
 
@@ -237,7 +267,6 @@ void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
     double DE[(ambiguity_test.sats.num_sats-1) * 3];
     assign_de_mtx(ambiguity_test.sats.num_sats, ambiguity_sdiffs, ref_ecef, DE);
     hypothesis_t *hyp = (hypothesis_t*)ambiguity_test.pool->allocated_nodes_head->elem;
-    print_hyp(ambiguity_test.sats.num_sats-1, hyp);
     *num_used = ambiguity_test.sats.num_sats;
     lesq_solution(n, dd_meas, hyp->N, DE, b, 0);
   } else {
@@ -249,6 +278,114 @@ void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
 void dgnss_reset_iar()
 {
   create_ambiguity_test(&ambiguity_test);
+}
+
+void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3])
+{
+  double ref_ecef[3];
+  ref_ecef[0] = receiver_ecef[0] + 0.5 * b[0];
+  ref_ecef[1] = receiver_ecef[1] + 0.5 * b[1];
+  ref_ecef[2] = receiver_ecef[2] + 0.5 * b[2];
+
+  sdiff_t corrected_sdiffs[num_sats];
+
+  u8 old_prns[MAX_CHANNELS];
+  memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
+  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
+  dgnss_rebase_ref(num_sats, sdiffs, ref_ecef, old_prns, corrected_sdiffs);
+
+  double dds[2*(num_sats-1)];
+  make_measurements(num_sats-1, corrected_sdiffs, dds);
+
+  double DE[(num_sats-1)*3];
+  assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
+
+  dgnss_reset_iar();
+
+  memcpy(&ambiguity_test.sats, &sats_management, sizeof(sats_management));
+  hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(ambiguity_test.pool);
+  hyp->ll = 0;
+  amb_from_baseline(num_sats, DE, dds, b, hyp->N);
+
+  double obs_cov[(num_sats-1) * (num_sats-1) * 4];
+  memset(obs_cov, 0, (num_sats-1) * (num_sats-1) * 4 * sizeof(double));
+  u8 num_dds = num_sats-1;
+  for (u8 i=0; i<num_dds; i++) {
+    for (u8 j=0; j<num_dds; j++) {
+      u8 i_ = i+num_dds;
+      u8 j_ = j+num_dds;
+      if (i==j) {
+        obs_cov[i*2*num_dds + j] = dgnss_settings.phase_var_test * 2;
+        obs_cov[i_*2*num_dds + j_] = dgnss_settings.code_var_test * 2;
+      }
+      else {
+        obs_cov[i*2*num_dds + j] = dgnss_settings.phase_var_test;
+        obs_cov[i_*2*num_dds + j_] = dgnss_settings.code_var_test;
+      }
+    }
+  }
+
+  init_residual_matrices(&ambiguity_test.res_mtxs, num_sats-1, DE, obs_cov);
+
+  printf("Known Base: [");
+  for (u8 i=0; i<num_sats-1; i++)
+    printf("%d, ", hyp->N[i]);
+  printf("]\n");
+}
+
+void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3])
+{
+  double ref_ecef[3];
+  ref_ecef[0] = receiver_ecef[0] + 0.5 * b[0];
+  ref_ecef[1] = receiver_ecef[1] + 0.5 * b[1];
+  ref_ecef[2] = receiver_ecef[2] + 0.5 * b[2];
+
+  sdiff_t corrected_sdiffs[num_sats];
+
+  u8 old_prns[MAX_CHANNELS];
+  memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
+  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
+  dgnss_rebase_ref(num_sats, sdiffs, ref_ecef, old_prns, corrected_sdiffs);
+
+  double dds[2*(num_sats-1)];
+  make_measurements(num_sats-1, corrected_sdiffs, dds);
+
+  double DE[(num_sats-1)*3];
+  s32 N[num_sats-1];
+  assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
+  amb_from_baseline(num_sats, DE, dds, b, N);
+
+  printf("Known Base: [");
+  for (u8 i=0; i<num_sats-1; i++)
+    printf("%d, ", N[i]);
+  printf("]\n");
+
+  /* Construct fake state means. */
+  double state_mean[num_sats-1+6];
+  memcpy(&state_mean[0], b, 3 * sizeof(double));
+  memset(&state_mean[3], 0, 3 * sizeof(double));
+  for (u8 i=0; i<num_sats-1; i++) {
+    state_mean[i+6] = N[i];
+  }
+
+  /* Construct fake covariance U factor (just identity). */
+  double state_cov_U[(num_sats-1+6)*(num_sats-1+6)];
+  eye(num_sats-1+6, state_cov_U);
+
+  double state_cov_D[num_sats-1+6];
+  memset(state_cov_D, 0, 6 * sizeof(double));
+  for (u32 i=0; i<num_sats-1; i++) {
+    state_cov_D[i+6] = 1.0 / 64.0;
+  }
+
+  dgnss_reset_iar();
+
+  update_ambiguity_test(ref_ecef,
+                        dgnss_settings.phase_var_test,
+                        dgnss_settings.code_var_test,
+                        &ambiguity_test,
+                        num_sats-1+6, &sats_management, corrected_sdiffs,
+                        state_mean, state_cov_U, state_cov_D);
 }
 
 s8 dgnss_iar_resolved()
