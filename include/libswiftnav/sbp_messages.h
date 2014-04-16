@@ -124,7 +124,7 @@ typedef struct __attribute__((packed)) {
   s32 z;        /**< Baseline ECEF Z coordinate [mm] */
   u16 accuracy; /**< Position accuracy estimate [mm] */
   u8  n_sats;   /**< Number of satellites used in solution */
-  u8  flags;    /**< Status flags (reserved) */
+  u8  flags;    /**< Status flags */
 } sbp_baseline_ecef_t;
 
 
@@ -141,7 +141,7 @@ typedef struct __attribute__((packed)) {
   u16 h_accuracy; /**< Horizontal position accuracy estimate [mm] */
   u16 v_accuracy; /**< Vertical position accuracy estimate [mm] */
   u8  n_sats;     /**< Number of satellites used in solution */
-  u8  flags;      /**< Status flags (reserved) */
+  u8  flags;      /**< Status flags */
 } sbp_baseline_ned_t;
 
 

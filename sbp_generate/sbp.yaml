@@ -222,7 +222,15 @@
               desc: Number of satellites used in solution
           - flags:
               type: u8
-              desc: Status flags (reserved)
+              desc: Status flags
+              fields:
+                - 3-7:
+                    desc: Reserved
+                - 0-2:
+                    desc: Fix mode
+                    values:
+                        - 0: Float
+                        - 1: Fixed RTK
 
  - BASELINE_NED:
     id: 0x0203
@@ -259,7 +267,15 @@
               desc: Number of satellites used in solution
           - flags:
               type: u8
-              desc: Status flags (reserved)
+              desc: Status flags
+              fields:
+                - 3-7:
+                    desc: Reserved
+                - 0-2:
+                    desc: Fix mode
+                    values:
+                        - 0: Float
+                        - 1: Fixed RTK
 
  - VEL_ECEF:
     id: 0x0204
