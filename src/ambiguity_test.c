@@ -156,8 +156,6 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
                                           float_sats, float_mean, float_cov_U, float_cov_D);
 
-  /* TODO : observed crash here when num_sats == 2 and 3, ask Ian to verify
-   * that increasing this bound is the correct fix. */
   if (amb_test->sats.num_sats < 5) {
     return;
   }
@@ -709,7 +707,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
        changed_sats=1;
       }
     } else {
-      amb_test->sats.num_sats = 0; //we don't have what we need
+      create_ambiguity_test(amb_test);//we don't have what we need
     }
 
     u8 intersection_ndxs[num_sdiffs];
