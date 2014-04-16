@@ -17,7 +17,7 @@
 
 #include "constants.h"
 #include "stupid_filter.h"
-#include "float_kf.h"
+#include "amb_kf.h"
 #include "linear_algebra.h"
 
 #include <lapacke.h>

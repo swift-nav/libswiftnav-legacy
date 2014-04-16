@@ -19,38 +19,36 @@
 #include "single_diff.h"
 #include "constants.h"
 
-#define MAX_STATE_DIM (MAX_CHANNELS + 6)
-#define MAX_OBS_DIM (2 * MAX_CHANNELS)
+#define MAX_STATE_DIM_KF (MAX_CHANNELS + 6)
+#define MAX_OBS_DIM_KF (2 * MAX_CHANNELS)
 
 s8 udu(u32 n, double *M, double *U, double *D);
 void triu(u32 n, double *M);
 
 void eye(u32 n, double *M);
 
-void reconstruct_udu(u32 n, double *U, double *D, double *M);
 
 typedef struct {
   u32 state_dim;
   u32 obs_dim;
-  double transition_mtx[MAX_STATE_DIM * MAX_STATE_DIM];
-  double transition_cov[MAX_STATE_DIM * MAX_STATE_DIM];
-  double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
-  double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
-  double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
-  double state_mean[MAX_STATE_DIM];
-  double state_cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
-  double state_cov_D[MAX_STATE_DIM];
+  double transition_mtx[MAX_STATE_DIM_KF * MAX_STATE_DIM_KF];
+  double transition_cov[MAX_STATE_DIM_KF * MAX_STATE_DIM_KF];
+  double decor_mtx[MAX_OBS_DIM_KF * MAX_OBS_DIM_KF]; //the decorrelation matrix. takes raw measurements and decorrelates them
+  double decor_obs_mtx[MAX_STATE_DIM_KF * MAX_OBS_DIM_KF]; //the observation matrix for decorrelated measurements
+  double decor_obs_cov[MAX_OBS_DIM_KF]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
+  double state_mean[MAX_STATE_DIM_KF];
+  double state_cov_U[MAX_STATE_DIM_KF * MAX_STATE_DIM_KF];
+  double state_cov_D[MAX_STATE_DIM_KF];
 } kf_t;
 
 
 
 void predict_forward(kf_t *kf);
 
-void incorporate_obs(kf_t *kf, double *decor_obs);
+//void incorporate_obs(kf_t *kf, double *decor_obs);
 
 void update_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k);
-void decorrelate(kf_t *kf, double *measurements, double *decor_measurements);
 void kalman_filter_update(kf_t *kf, double *measurements);
 
 void assign_transition_mtx(u32 state_dim, double dt, double *transition_mtx);
@@ -84,7 +82,6 @@ kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double 
 s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list);
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 
-void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state);
 void kalman_filter_state_projection(kf_t *kf,
                                     u8 num_old_non_ref_sats,
                                     u8 num_new_non_ref_sats,
@@ -97,8 +94,6 @@ void kalman_filter_state_inclusion(kf_t *kf,
 
 void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx);
 void rebase_kf(kf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns);
+
 #endif /* LIBSWIFTNAV_FLOAT_KF_H */
 

@@ -19,12 +19,12 @@
 #include "constants.h"
 #include "linear_algebra.h"
 #include "single_diff.h"
-#include "float_kf.h"
+#include "amb_kf.h"
 #include "lambda.h"
 
 #define RAW_PHASE_BIAS_VAR 0
 #define DECORRELATED_PHASE_BIAS_VAR 0
-#define NUM_SEARCH_STDS 8
+#define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
 
 void create_ambiguity_test(ambiguity_test_t *amb_test)
@@ -39,6 +39,24 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
 {
   memory_pool_destroy(amb_test->pool);
+}
+
+void print_double_mtx(double *m, u32 _r, u32 _c) {                    \
+    for (u32 _i = 0; _i < (_r); _i++) {              \
+      printf(" [% 12lf", (m)[_i*(_c) + 0]);                \
+      for (u32 _j = 1; _j < (_c); _j++)              \
+        printf(" % 12lf", (m)[_i*(_c) + _j]);               \
+      printf("]\n");                                 \
+    }                                              \
+}
+
+void print_pearson_mtx(double *m, u32 dim) {                    \
+    for (u32 _i = 0; _i < dim; _i++) {              \
+      printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));                \
+      for (u32 _j = 1; _j < dim; _j++)              \
+        printf(" % 12lf", m[_i*dim + _j] / sqrt(m[_i*dim + _i]) / sqrt(m[_j * dim + _j]));               \
+      printf("]\n");                                 \
+    }                                              \
 }
 
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
@@ -81,19 +99,22 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
   }
 }
 
-void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
+void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
   (void) sdiffs;
-  u8 num_dds = state_dim-6;
+  u8 num_dds = state_dim;
   double float_cov_N[num_dds * num_dds];
 
   /* Re-shape float_cov to contain just ambiguity states. */
   for (u8 i=0; i<num_dds; i++) {
     for (u8 j=0; j<num_dds; j++) {
-      float_cov_N[i*num_dds + j] = float_cov[(i+6)*state_dim + (j+6)];
+      float_cov_N[i*num_dds + j] = float_cov[i*state_dim + j]; //TODO this is just a memcpy
     }
   }
+
+  // MAT_PRINTF(float_cov, state_dim, state_dim);
+  // MAT_PRINTF(float_cov_N, num_dds, num_dds);
 
   /* Initialize pool with single element with num_dds = 0, i.e.
    * zero length N vector, i.e. no satellites. When we take the
@@ -127,15 +148,17 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *float_pr
 //               s32 *Z_inv, double *new_DE_mtx, double *new_obs_cov)
 
 
-s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
+void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
+                           ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D)
 {
-  u8 num_sdiffs = state_dim-5;
+  u8 num_sdiffs = state_dim + 1;
   u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
                                           float_sats, float_mean, float_cov_U, float_cov_D);
 
-  if (amb_test->sats.num_sats < 2) {
+  /* TODO : observed crash here when num_sats == 2, ask Ian to verify that
+   * increasing this bound is the correct fix. */
+  if (amb_test->sats.num_sats < 3) {
     return;
   }
 
@@ -473,13 +496,13 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     return 0;
   }
 
-  u32 state_dim = float_sats->num_sats+5;
+  u32 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
   reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
   u8 float_prns[float_sats->num_sats];
   memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
   double N_mean[float_sats->num_sats-1];
-  memcpy(N_mean, &float_mean[6], (float_sats->num_sats-1) * sizeof(double));
+  memcpy(N_mean, float_mean, (float_sats->num_sats-1) * sizeof(double));
   if (amb_test->sats.num_sats >= 2 && amb_test->sats.prns[0] != float_sats->prns[0]) {
     u8 old_prns[float_sats->num_sats];
     memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
@@ -489,12 +512,19 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
   }
   double N_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
-  for (u8 i = 0; i < float_sats->num_sats-1; i++) {
-    memcpy(&N_cov[i*(float_sats->num_sats-1)],
-           &float_cov[(6+i)*state_dim + 6],
-           (float_sats->num_sats - 1) * sizeof(double));
-  }
+  memcpy(N_cov, float_cov, state_dim * state_dim * sizeof(double)); //TODO we can just use N_cov throughout
   //by now float_prns has the correct reference, as do N_cov and N_mean
+
+  // MAT_PRINTF(float_cov, state_dim, state_dim);
+  // MAT_PRINTF(N_cov, (u8)(float_sats->num_sats-1), (u8)(float_sats->num_sats-1));
+
+  // printf("pearson mtx of float cov\n");
+  // print_pearson_mtx(float_cov, state_dim);
+  // printf("\n");
+
+  // printf("pearson mtx of N cov\n");
+  // print_pearson_mtx(N_cov, float_sats->num_sats-1);
+  // printf("\n");
 
   //next we add the new sats
   //loop through the new sat sets in decreasing number (for now, in prn order), adding when it suits us
@@ -536,6 +566,8 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     }
     addible_float_mean[i] = N_mean[ndxs_of_new_dds_in_float[i]];
   }
+  // MAT_PRINTF(addible_float_cov, num_addible_dds, num_addible_dds);
+  /*VEC_PRINTF(addible_float_mean, num_addible_dds);*/
 
   s32 Z_inv[num_addible_dds * num_addible_dds];
   s32 lower_bounds[num_addible_dds];
@@ -631,6 +663,10 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
   } else {
     max_new_hyps_cardinality = max_num_hyps / current_num_hyps;
   }
+
+  // printf("pearson mtx of float N cov\n");
+  // print_pearson_mtx(float_N_cov, num_float_dds);
+  // printf("\n");
 
   *num_dds_to_add = num_float_dds;
   double Z[num_float_dds * num_float_dds];
@@ -966,67 +1002,67 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
 }
 
 
-void QR_part1(integer m, integer n, double *A, double *tau)
-{
-  double w[1];
-  integer lwork = -1;
-  integer info;
-  integer jpvt[3];
-  memset(jpvt, 0, 3 * sizeof(integer));
-  dgeqp3_(&m, &n,
-          A, &m,
-          jpvt,
-          tau,
-          w, &lwork, &info);
-  lwork = round(w[0]);
-  double work[lwork];
-  dgeqp3_(&m, &n,
-          A, &m,
-          jpvt,
-          tau,
-          work, &lwork, &info); //set A = QR(A)
-}
+// void QR_part1(integer m, integer n, double *A, double *tau)
+// {
+//   double w[1];
+//   integer lwork = -1;
+//   integer info;
+//   integer jpvt[3];
+//   memset(jpvt, 0, 3 * sizeof(integer));
+//   dgeqp3_(&m, &n,
+//           A, &m,
+//           jpvt,
+//           tau,
+//           w, &lwork, &info);
+//   lwork = round(w[0]);
+//   double work[lwork];
+//   dgeqp3_(&m, &n,
+//           A, &m,
+//           jpvt,
+//           tau,
+//           work, &lwork, &info); //set A = QR(A)
+// }
 
-void QR_part2(integer m, integer n, double *A, double *tau)
-{
-  double w[1];
-  integer lwork = -1;
-  integer info;
-  dorgqr_(&m, &m, &n,
-          A, &m,
-          tau,
-          w, &lwork, &info);
-  lwork = round(w[0]);
-  double work[lwork];
-  dorgqr_(&m, &m, &n,
-          A, &m,
-          tau,
-          work, &lwork, &info);
-}
+// void QR_part2(integer m, integer n, double *A, double *tau)
+// {
+//   double w[1];
+//   integer lwork = -1;
+//   integer info;
+//   dorgqr_(&m, &m, &n,
+//           A, &m,
+//           tau,
+//           w, &lwork, &info);
+//   lwork = round(w[0]);
+//   double work[lwork];
+//   dorgqr_(&m, &m, &n,
+//           A, &m,
+//           tau,
+//           work, &lwork, &info);
+// }
 
-void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
-{
-  // use either GEQRF or GEQP3. GEQP3 is the version with pivoting
-  // int dgeqrf_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-  //       lda, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork, __CLPK_integer *info)
-  // int dgeqp3_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-  //       lda, __CLPK_integer *jpvt, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork,
-  //        __CLPK_integer *info)
+// void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
+// {
+//   // use either GEQRF or GEQP3. GEQP3 is the version with pivoting
+//   // int dgeqrf_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
+//   //       lda, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork, __CLPK_integer *info)
+//   // int dgeqp3_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
+//   //       lda, __CLPK_integer *jpvt, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork,
+//   //        __CLPK_integer *info)
 
-  //DE is num_sats-1 by 3, need to transpose it to column major
-  double A[num_dds * num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    for (u8 j=0; j<3; j++) {
-      A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
-    }
-  }
-  integer m = num_dds;
-  integer n = 3;
-  double tau[3];
-  QR_part1(m, n, A, tau);
-  QR_part2(m, n, A, tau);
-  memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
-}
+//   //DE is num_sats-1 by 3, need to transpose it to column major
+//   double A[num_dds * num_dds];
+//   for (u8 i=0; i<num_dds; i++) {
+//     for (u8 j=0; j<3; j++) {
+//       A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
+//     }
+//   }
+//   integer m = num_dds;
+//   integer n = 3;
+//   double tau[3];
+//   QR_part1(m, n, A, tau);
+//   QR_part2(m, n, A, tau);
+//   memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
+// }
 
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {

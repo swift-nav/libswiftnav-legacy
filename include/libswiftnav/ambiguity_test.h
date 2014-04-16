@@ -42,7 +42,7 @@ typedef struct {
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
-void init_ambiguity_test(ambiguity_test_t *amb_test, u32 state_dim, u8 *prns, sdiff_t *sdiffs, 
+void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns, sdiff_t *sdiffs, 
                          double *float_mean, double *float_cov, double *DE_mtx, double *obs_cov);
 void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
@@ -50,8 +50,8 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 // void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
 //                            ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
 //                            double *float_mean, double *float_cov);
-s8 update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u32 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
+void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
+                           ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D);
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
@@ -82,7 +82,7 @@ void add_sats(ambiguity_test_t *amb_test,
               s32 *lower_bounds, s32 *upper_bounds,
               s32 *Z_inv);
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov);
-void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
+// void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv);
 void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements, double *r_vec);
 void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_mean);

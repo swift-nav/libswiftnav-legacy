@@ -12,18 +12,19 @@
 
 
 #include "float_kf.h"
+#include "amb_kf.h"
 #include "sats_management.h"
 
-#define DEFAULT_PHASE_VAR_TEST  (9e-4 * 9)
-#define DEFAULT_CODE_VAR_TEST   (100 * 16)
-#define DEFAULT_PHASE_VAR_KF    (9e-4 * 1)
-#define DEFAULT_CODE_VAR_KF     (100 * 1)
+#define DEFAULT_PHASE_VAR_TEST  (9e-4 * 16)
+#define DEFAULT_CODE_VAR_TEST   (100 * 400)
+#define DEFAULT_PHASE_VAR_KF    (9e-4 * 16)
+#define DEFAULT_CODE_VAR_KF     (100 * 400)
 #define DEFAULT_POS_TRANS_VAR   1e-1
 #define DEFAULT_VEL_TRANS_VAR   1e-5
-#define DEFAULT_INT_TRANS_VAR   1e-10
+#define DEFAULT_INT_TRANS_VAR   1e-8
 #define DEFAULT_POS_INIT_VAR    1e2
 #define DEFAULT_VEL_INIT_VAR    4e2
-#define DEFAULT_INT_INIT_VAR    1e4
+#define DEFAULT_AMB_INIT_VAR    1e8
 #define DEFAULT_NEW_INT_VAR     1e10
 
 typedef struct {
@@ -36,7 +37,7 @@ typedef struct {
   double int_trans_var;
   double pos_init_var;
   double vel_init_var;
-  double int_init_var;
+  double amb_init_var;
   double new_int_var;
 } dgnss_settings_t;
 
@@ -47,13 +48,16 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 kf_t * get_dgnss_kf(void);
+nkf_t * get_dgnss_nkf(void);
 s32 * get_stupid_filter_ints(void);
 sats_management_t * get_sats_management(void);
 
 s8 dgnss_iar_resolved(void);
+u32 dgnss_iar_num_hyps(void);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_float_baseline(u8 *num_used, double b[3]);
+void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3]);
 void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
                           u8 *num_used, double b[3]);
 
