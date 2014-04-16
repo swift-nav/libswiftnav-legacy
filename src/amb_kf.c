@@ -169,21 +169,6 @@ static void incorporate_obs(nkf_t *kf, double *decor_obs)
   }
 }
 
-
-
-static void decorrelate(nkf_t *kf, double *measurements, double *decor_measurements)
-{
-  u8 num_diffs = kf->state_dim;
-  memcpy(decor_measurements, measurements, kf->obs_dim * sizeof(double));
-  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              num_diffs, kf->decor_mtx,
-              num_diffs, decor_measurements, 1); // replaces raw phase measurements by their decorrelated version
-  cblas_dtrmv(CblasRowMajor, CblasLower, CblasNoTrans, CblasUnit,
-              num_diffs, kf->decor_mtx,
-              num_diffs, &decor_measurements[num_diffs], 1); // replaces raw measurements by their decorrelated version
-}
-
-
 // turns (phi, rho) into Q_tilde * (phi, rho)
 void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
 {

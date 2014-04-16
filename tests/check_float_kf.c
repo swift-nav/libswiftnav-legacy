@@ -2,6 +2,7 @@
 #include <check.h>
 #include <stdio.h>
 #include <float_kf.h>
+#include <amb_kf.h>
 #include <linear_algebra.h>
 #include <cblas.h>
 
