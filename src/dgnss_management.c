@@ -268,7 +268,7 @@ void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
     assign_de_mtx(ambiguity_test.sats.num_sats, ambiguity_sdiffs, ref_ecef, DE);
     hypothesis_t *hyp = (hypothesis_t*)ambiguity_test.pool->allocated_nodes_head->elem;
     *num_used = ambiguity_test.sats.num_sats;
-    lesq_solution(n, dd_meas, hyp->N, DE, b, 0);
+    lesq_solution(ambiguity_test.sats.num_sats-1, dd_meas, hyp->N, DE, b, 0);
   } else {
     memcpy(b, kf.state_mean, 3 * sizeof(double));
     *num_used = sats_management.num_sats;
