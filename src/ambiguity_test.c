@@ -156,8 +156,6 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
                                           float_sats, float_mean, float_cov_U, float_cov_D);
 
-  /* TODO : observed crash here when num_sats == 2 and 3, ask Ian to verify
-   * that increasing this bound is the correct fix. */
   if (amb_test->sats.num_sats < 5) {
     return;
   }
@@ -696,10 +694,20 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
   return -1;
 }
 
-
+// input/output: amb_test
+// input:        num_sdiffs
+// input:        sdiffs
+// input:        float_sats
+// input:        float_mean
+// input:        float_cov_U
+// input:        float_cov_D
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                            sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
 {
+  if (num_sdiffs < 2) {
+    create_ambiguity_test(amb_test);
+    return 0; // I chose 0 because it doesn't lead to anything dynamic
+  }
   //if the sats are the same, we're good
   u8 changed_sats = 0;
   if (!sats_match(amb_test, num_sdiffs, sdiffs)) {
@@ -709,7 +717,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
        changed_sats=1;
       }
     } else {
-      amb_test->sats.num_sats = 0; //we don't have what we need
+      create_ambiguity_test(amb_test);//we don't have what we need
     }
 
     u8 intersection_ndxs[num_sdiffs];
@@ -723,14 +731,9 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
                                 float_sats, float_mean, float_cov_U, float_cov_D)) {
       changed_sats = 1;
     }
-    //on exit, ambiguity_sdiffs should match amb_test->sats
   }
   return changed_sats;
   /* TODO: Should we order by 'goodness'? Perhaps by volume of hyps? */
-
-  /* Find out which sats have been added and construct float_mean and float_cov
-   * for just the added ones. Rebase float_mean to use our reference (KF may be different!)*/
-
 }
 
 u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)

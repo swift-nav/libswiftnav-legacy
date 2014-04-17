@@ -22,7 +22,7 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
-  for (u8 i=1; i<num_sats-1; i++) {
+  for (u8 i=1; i<num_sats; i++) {
     if (sats[i].snr > best_snr) {
       best_snr = sats[i].snr;
       best_prn = sats[i].prn;
