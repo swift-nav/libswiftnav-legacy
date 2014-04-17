@@ -34,6 +34,7 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->pool = &pool;
   memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
   amb_test->sats.num_sats = 0;
+  printf("Integer Ambiguity Resolution starting\n");
 }
 
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
@@ -468,15 +469,14 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
   memcpy(intersection.intersection_ndxs, dd_intersection_ndxs, num_dds_in_intersection * sizeof(u8));
 
 
-  printf("before proj: %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: %d hypotheses before projection\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);*/
   memory_pool_group_by(amb_test->pool,
                        &intersection, &projection_comparator,
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
-  printf("updates to: %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &num_dds_in_intersection, &print_hyp);*/
-  printf("\n");
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
@@ -675,11 +675,8 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                                                  *num_dds_to_add,
                                                  lower_bounds, upper_bounds, Z);
     if (new_hyp_set_cardinality <= max_new_hyps_cardinality) {
-      print_s32_mtx(1, *num_dds_to_add, lower_bounds);
-      print_s32_mtx(1, *num_dds_to_add, upper_bounds);
       double Z_inv_[*num_dds_to_add * *num_dds_to_add];
       s8 ret = matrix_inverse(*num_dds_to_add, Z, Z_inv_);
-      printf("inv ret: %d\n", ret);
       for (u8 i=0; i < *num_dds_to_add; i++) {
         for (u8 j=0; j < *num_dds_to_add; j++) {
           Z_inv[i* *num_dds_to_add + j] = lround(Z_inv_[i* *num_dds_to_add + j]);
@@ -970,16 +967,14 @@ void add_sats(ambiguity_test_t *amb_test,
     empty_element->ll = 0; // only in init
   }
 
-  printf("before inclusion: %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: %d hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);*/
   memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &generate_next_hypothesis, &hypothesis_prod);
-  printf("updates to: %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &k, &print_hyp);*/
-  printf("\n");
-
 
 
   // /* Recorrelate the new ambiguities we just added. */
