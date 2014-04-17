@@ -63,7 +63,7 @@ int calc_sat_pos(double pos[3], double vel[3],
   // If tdiff is too large our ephemeris isn't valid, maybe we want to wait until we get a
   // new one? At least let's warn the user.
   // TODO: this doesn't exclude ephemerides older than a week so could be made better.
-  if (abs(tdiff) > 4*3600)
+  if (fabs(tdiff) > 4*3600)
     printf(" WARNING: using ephemeris older (or newer!) than 4 hours.\n");
 
   // Calculate position per IS-GPS-200D p 97 Table 20-IV
