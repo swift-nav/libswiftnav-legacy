@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 2.8.9)
 project(libswiftnav)
 
 # Setup flags for Code Coverage build mode
