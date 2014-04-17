@@ -279,7 +279,7 @@ u8 filter_solution(gnss_solution* soln, dops_t* dops)
   return 0;
 }
 
-u8 calc_PVT(const u8 n_used,
+s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t const nav_meas[n_used],
             gnss_solution *soln,
             dops_t *dops)
@@ -328,12 +328,11 @@ u8 calc_PVT(const u8 n_used,
   soln->err_cov[5] = H[2][2];
 
   if (iters >= PVT_MAX_ITERATIONS) {
-    printf("Position solution not available after %d iterations, giving up.\n", iters);
     /* Reset state if solution fails */
     rx_state[0] = 0;
     rx_state[1] = 0;
     rx_state[2] = 0;
-    return -1;
+    return -4;
   }
 
   /* Save as x, y, z. */
@@ -361,13 +360,11 @@ u8 calc_PVT(const u8 n_used,
   u8 ret;
   if ((ret = filter_solution(soln, dops))) {
     memset(soln, 0, sizeof(*soln));
-    memset(dops, 0, sizeof(*dops));
     /* Reset state if solution fails */
     rx_state[0] = 0;
     rx_state[1] = 0;
     rx_state[2] = 0;
-    printf("Solution filtered: %d\n", ret);
-    return -1;
+    return -ret;
   }
 
   soln->valid = 1;
