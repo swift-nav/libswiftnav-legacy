@@ -273,8 +273,10 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
   /*printf("done updating sats\n");*/
   /*MAT_PRINTF(kf.decor_obs_mtx, kf.obs_dim, kf.state_dim);*/
 
-  // update for observation
-  dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt);
+  if (num_sats >= 5) {
+    // update for observation
+    dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef, dt);
+  }
 
   double b2[3];
   least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, reciever_ecef, b2);

@@ -539,7 +539,8 @@ void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
   u32 state_dim = num_sdiffs - 1;
   u32 num_diffs = num_sdiffs - 1;
   kf->state_dim = state_dim;
-  kf->obs_dim = 2*num_diffs - 3;
+  u32 constraint_dim = MAX(0, num_sdiffs - 3);
+  kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
                   ref_ecef,
@@ -558,7 +559,8 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
   u32 state_dim = num_sdiffs - 1;
   u32 num_diffs = num_sdiffs - 1;
   kf->state_dim = state_dim;
-  kf->obs_dim = 2*num_diffs - 3;
+  u32 constraint_dim = MAX(0, num_diffs - 3);
+  kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
                   ref_ecef,
