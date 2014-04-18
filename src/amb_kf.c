@@ -213,7 +213,7 @@ void nkf_update(nkf_t *kf, double *measurements)
 // presumes that the first alm entry is the reference sat
 void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE)
 {
-  if (num_sats == 0)
+  if (num_sats <= 1)
     return;
 
   memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
