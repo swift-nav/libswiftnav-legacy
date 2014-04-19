@@ -65,6 +65,29 @@ void sbp_make_dops(sbp_dops_t *dops_out, dops_t *dops_in)
   dops_out->vdop = round(dops_in->vdop * 100);
 }
 
+void sbp_make_baseline_ecef(sbp_baseline_ecef_t *baseline_ecef, gps_time_t *t,
+                            u8 n_sats, double b_ecef[3], u8 flags) {
+  baseline_ecef->tow = round(t->tow * 1e3);
+  baseline_ecef->x = round(1e3 * b_ecef[0]);
+  baseline_ecef->y = round(1e3 * b_ecef[1]);
+  baseline_ecef->z = round(1e3 * b_ecef[2]);
+  baseline_ecef->accuracy = 0;
+  baseline_ecef->n_sats = n_sats;
+  baseline_ecef->flags = flags;
+}
+
+void sbp_make_baseline_ned(sbp_baseline_ned_t *baseline_ned, gps_time_t *t,
+                           u8 n_sats, double b_ned[3], u8 flags) {
+  baseline_ned->tow = round(t->tow * 1e3);
+  baseline_ned->n = round(1e3 * b_ned[0]);
+  baseline_ned->e = round(1e3 * b_ned[1]);
+  baseline_ned->d = round(1e3 * b_ned[2]);
+  baseline_ned->h_accuracy = 0;
+  baseline_ned->v_accuracy = 0;
+  baseline_ned->n_sats = n_sats;
+  baseline_ned->flags = flags;
+}
+
 /** \} */
 /** \} */
 
