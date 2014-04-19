@@ -34,7 +34,6 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->pool = &pool;
   memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
   amb_test->sats.num_sats = 0;
-  printf("Integer Ambiguity Resolution starting\n");
 }
 
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
