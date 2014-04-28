@@ -12,6 +12,7 @@
 
 #include <clapack.h>
 #include <cblas.h>
+#include <f2c.h>
 #include <stdio.h>
 #include <string.h>
 #include "ambiguity_test.h"
