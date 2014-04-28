@@ -40,13 +40,13 @@ set(libswiftnav_SRCS
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS})
 target_link_libraries(swiftnav-static cblas)
-target_link_libraries(swiftnav-static lapacke)
+target_link_libraries(swiftnav-static lapacke lapack)
 install(TARGETS swiftnav-static DESTINATION lib${LIB_SUFFIX})
 
 if(BUILD_SHARED_LIBS)
   add_library(swiftnav SHARED ${libswiftnav_SRCS})
   target_link_libraries(swiftnav cblas)
-  target_link_libraries(swiftnav lapacke)
+  target_link_libraries(swiftnav lapacke lapack)
   install(TARGETS swiftnav DESTINATION lib${LIB_SUFFIX})
 else(BUILD_SHARED_LIBS)
   message(STATUS "Not building shared libraries")
