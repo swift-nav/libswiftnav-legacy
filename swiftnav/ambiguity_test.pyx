@@ -18,7 +18,7 @@ def get_phase_obs_null_basis(DE):
     np.array(DE, dtype=np.double)
 
   cdef np.ndarray[np.double_t, ndim=2, mode="c"] q_ = \
-    np.empty((num_dds-3,num_dds), dtype=np.double)
+    np.empty((max(num_dds-3,0),num_dds), dtype=np.double)
 
   ambiguity_test_c.assign_phase_obs_null_basis(DE.shape[0], &DE_[0,0], &q_[0,0])
   return q_
