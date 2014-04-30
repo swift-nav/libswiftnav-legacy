@@ -54,10 +54,24 @@ sats_management_t * get_sats_management(void);
 
 s8 dgnss_iar_resolved(void);
 u32 dgnss_iar_num_hyps(void);
+u32 dgnss_iar_num_sats(void);
+s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_float_baseline(u8 *num_used, double b[3]);
 void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3]);
 void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
                           u8 *num_used, double b[3]);
-
+void measure_amb_kf_b(double reciever_ecef[3], 
+                      u8 num_sdiffs, sdiff_t *sdiffs,
+                      double *b);
+void measure_b_with_external_ambs(double reciever_ecef[3],
+                                  u8 num_sdiffs, sdiff_t *sdiffs,
+                                  double *ambs,
+                                  double *b);
+u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+                           double ref_ecef[3],
+                           double *de, double *phase);
+u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+                        double ref_ecef[3],
+                        double *de, double *phase);

@@ -22,6 +22,9 @@
 
 #define INTERSECTION_SATS_THRESHOLD_SIZE 2
 
+/* The usage of this struct is to have the reference sat's prn first,
+ *	then the rest of them in increasing numeric order.
+ */
 typedef struct {
   u8 num_sats;
   u8 prns[MAX_CHANNELS];

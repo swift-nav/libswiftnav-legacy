@@ -42,5 +42,6 @@ int sdiff_search_prn(const void *a, const void *b);
 
 void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs);
 
+s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
 

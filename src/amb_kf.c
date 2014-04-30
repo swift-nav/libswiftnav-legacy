@@ -238,6 +238,9 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
 }
 
 // presumes that the first alm entry is the reference sat
+/*TODO use the state covariance matrix for a better estimate:
+ *  That is, decorrelate and scale the LHS of y = A * x before solving for x
+ */
 void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
 {
   integer num_dds = kf->state_dim;
@@ -258,7 +261,7 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
   // lesq_solution_b(kf->state_dim, dd_measurements, kf->state_mean, DE, b, resid);
   // lesq_solution_b(kf->state_dim, dd_measurements, fake_ints, DE, b, resid);
 
-  double phase_ranges[num_dds];
+  double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
     phase_ranges[i] = dd_measurements[i] - kf->state_mean[i];
     // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
@@ -266,7 +269,72 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
 
   //TODO could use plain old DGELS here
 
-  s32 ldb = (s32) num_dds;
+  s32 ldb = (s32) MAX(num_dds,3);
+  double s[3];
+  double rcond = 1e-12;
+  s32 rank;
+  double w[1]; //try 25 + 10*num_sats
+  s32 lwork = -1;
+  s32 info;
+  s32 three = 3;
+  s32 one = 1;
+  dgelss_(&num_dds, &three, &one, //M, N, NRHS
+          DET, &num_dds, //A, LDA
+          phase_ranges, &ldb, //B, LDB
+          s, &rcond, // S, RCOND
+          &rank, //RANK
+          w, &lwork, // WORK, LWORK
+          &info); //INFO
+  lwork = round(w[0]);
+
+  double work[lwork];
+  dgelss_(&num_dds, &three, &one, //M, N, NRHS
+          DET, &num_dds, //A, LDA
+          phase_ranges, &ldb, //B, LDB
+          s, &rcond, // S, RCOND
+          &rank, //RANK
+          work, &lwork, // WORK, LWORK
+          &info); //INFO
+
+  b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
+  b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
+  b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
+}
+
+// presumes that the first alm entry is the reference sat
+/*TODO use the state covariance matrix for a better estimate:
+ *  That is, decorrelate and scale the LHS of y = A * x before solving for x
+ *TODO consolidate this with the one using the float solution
+ */
+void least_squares_solve_b_external_ambs(nkf_t *kf, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
+{
+  integer num_dds = kf->state_dim;
+  double DE[num_dds * 3];
+  assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
+  double DET[num_dds * 3];
+  for (u8 i=0; i<num_dds; i++) { //TODO this transposition is stupid and unnecessary
+    DET[              i] = DE[i*3 + 0];
+    DET[    num_dds + i] = DE[i*3 + 1];
+    DET[2 * num_dds + i] = DE[i*3 + 2];
+  }
+
+  // double fake_ints[num_dds];
+  // for (u8 i=0; i< num_dds; i++) {
+  //   fake_ints[i] = (i+1)*10; //TODO REMOVE THIS version
+  // }
+  // double resid[num_dds];
+  // lesq_solution_b(kf->state_dim, dd_measurements, kf->state_mean, DE, b, resid);
+  // lesq_solution_b(kf->state_dim, dd_measurements, fake_ints, DE, b, resid);
+
+  double phase_ranges[MAX(num_dds,3)];
+  for (u8 i=0; i< num_dds; i++) {
+    phase_ranges[i] = dd_measurements[i] - ambs[i];
+    // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
+  }
+
+  //TODO could use plain old DGELS here
+
+  s32 ldb = (s32) MAX(num_dds,3);
   double s[3];
   double rcond = 1e-12;
   s32 rank;
