@@ -307,6 +307,22 @@ u32 dgnss_iar_num_hyps(void)
   return ambiguity_test_n_hypotheses(&ambiguity_test);
 }
 
+u32 dgnss_iar_num_sats(void)
+{
+  return ambiguity_test.sats.num_sats;
+}
+
+s8 dgnss_iar_get_single_hyp(double *dhyp)
+{
+  u8 num_dds = ambiguity_test.sats.num_sats;
+  s32 hyp[num_dds];
+  s8 ret = get_single_hypothesis(&ambiguity_test, hyp);
+  for (u8 i=0; i<num_dds; i++) {
+    dhyp[i] = hyp[i];
+  }
+  return ret;
+}
+
 
 void dgnss_float_baseline(u8 *num_used, double b[3])
 {
@@ -459,6 +475,144 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
                         &ambiguity_test,
                         num_sats-1+6, &sats_management, corrected_sdiffs,
                         state_mean, state_cov_U, state_cov_D);
+}
+
+double l2_dist(double x1[3], double x2[3])
+{
+  double d0 = x2[0] - x1[0];
+  double d1 = x2[1] - x1[1];
+  double d2 = x2[2] - x1[2];
+  return sqrt(d0 * d0 +
+              d1 * d1 +
+              d2 * d2);
+}
+
+void normalize(double x[3])
+{
+  double l2_norm = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+  x[0] = x[0] / l2_norm;
+  x[1] = x[1] / l2_norm;
+  x[2] = x[2] / l2_norm;
+}
+
+void measure_amb_kf_b(double reciever_ecef[3], 
+                      u8 num_sdiffs, sdiff_t *sdiffs,
+                      double *b)
+{
+  sdiff_t sdiffs_with_ref_first[num_sdiffs];
+  u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
+  copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+  double dd_measurements[2*(num_sdiffs-1)];
+  make_measurements(num_sdiffs - 1, sdiffs_with_ref_first, dd_measurements);
+  double b_old[3] = {0, 0, 0};
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0];
+  ref_ecef[1] = reciever_ecef[1];
+  ref_ecef[2] = reciever_ecef[2];
+
+  least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+
+  while (l2_dist(b_old, b) > 1e-4) {
+    memcpy(b_old, b, sizeof(double)*3);
+    ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
+    ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
+    ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
+    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  }
+}
+
+/*TODO consolidate this with the similar one above*/
+void measure_b_with_external_ambs(double reciever_ecef[3],
+                                  u8 num_sdiffs, sdiff_t *sdiffs,
+                                  double *ambs,
+                                  double *b)
+{
+  sdiff_t sdiffs_with_ref_first[num_sdiffs];
+  u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
+  copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+  double dd_measurements[2*(num_sdiffs-1)];
+  make_measurements(num_sdiffs - 1, sdiffs_with_ref_first, dd_measurements);
+  double b_old[3] = {0, 0, 0};
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0];
+  ref_ecef[1] = reciever_ecef[1];
+  ref_ecef[2] = reciever_ecef[2];
+  least_squares_solve_b_external_ambs(&nkf, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+
+  while (l2_dist(b_old, b) > 1e-4) {
+    memcpy(b_old, b, sizeof(double)*3);
+    ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
+    ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
+    ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
+    least_squares_solve_b_external_ambs(&nkf, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  }
+}
+
+u8 get_de_and_phase(sats_management_t *sats_man,
+                    u8 num_sdiffs, sdiff_t *sdiffs,
+                    double ref_ecef[3],
+                    double *de, double *phase)
+{
+  u8 ref_prn = sats_man->prns[0];
+  u8 num_sats = sats_man->num_sats;
+  sdiff_t ref_sdiff;
+  double e0[3];
+  double phi0;
+  u8 i;
+  for (i=0; i<num_sdiffs; i++) {
+    if (sdiffs[i].prn == ref_prn) {
+      e0[0] = sdiffs[i].sat_pos[0] - ref_ecef[0];
+      e0[1] = sdiffs[i].sat_pos[1] - ref_ecef[1];
+      e0[2] = sdiffs[i].sat_pos[2] - ref_ecef[2];
+      normalize(e0);
+      phi0 = sdiffs[i].carrier_phase;
+      break;
+    }
+  }
+  i=1;
+  u8 j = 0;
+  while (i < num_sats) {
+    if (sdiffs[j].prn < sats_man->prns[i]) {
+      j++;
+    }
+    else if (sdiffs[j].prn > sats_man->prns[i]) {
+      i++;
+      printf("probable error. sdiffs should be a super set of sats_man prns");
+    }
+    else {  // else they match
+      double e[3];
+      e[0] = sdiffs[j].sat_pos[0] - ref_ecef[0];
+      e[1] = sdiffs[j].sat_pos[1] - ref_ecef[1];
+      e[2] = sdiffs[j].sat_pos[2] - ref_ecef[2];
+      normalize(e);
+      de[(i-1)*3    ] = e[0] - e0[0];
+      de[(i-1)*3 + 1] = e[1] - e0[1];
+      de[(i-1)*3 + 2] = e[2] - e0[2];
+      phase[i-1] = sdiffs[j].carrier_phase - phi0;
+      i++;
+      j++;
+    }
+  }
+  return num_sats;
+}
+
+u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+                           double ref_ecef[3],
+                           double *de, double *phase)
+{
+  return get_de_and_phase(&sats_management,
+                          num_sdiffs, sdiffs,
+                          ref_ecef,
+                          de, phase);
+}
+u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+                        double ref_ecef[3],
+                        double *de, double *phase)
+{
+  return get_de_and_phase(&ambiguity_test.sats,
+                          num_sdiffs, sdiffs,
+                          ref_ecef,
+                          de, phase); 
 }
 
 s8 dgnss_iar_resolved()

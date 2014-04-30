@@ -170,5 +170,26 @@ void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx)
   }
 }
 
+s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  s8 not_found = -1;
+  u8 j = 1;
+  for (u8 i=0; i<num_sdiffs; i++) {
+    if (sdiffs[i].prn == ref_prn) {
+      memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
+      not_found = 0;
+    }
+    else {
+      if (j == num_sdiffs) {
+        return not_found; //note: not_found should always be -1 if it reaches this point. if anyone thinks "return -1" is more clear, go ahead and change it.
+      }
+      memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
+      j++;
+    }
+  }
+  return not_found;
+}
+
+
 /** \} */
 

@@ -17,5 +17,7 @@
 #include "common.h"
 
 int lambda_reduction(int n, const double *Q, double *Z);
+int lambda_solution(int n, int m, const double *a, const double *Q, double *F, 
+                      double *s); 
 
 #endif /* LIBSWIFTNAV_LAMBDA_H */

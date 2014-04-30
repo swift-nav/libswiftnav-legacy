@@ -17,8 +17,12 @@
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
+#include <cblas.h>
+#include <clapack.h>
 
 /* constants/macros ----------------------------------------------------------*/
+
+#define LOOPMAX     10000           /* maximum count of search loop */
 
 #define SGN(x)      ((x)<=0.0?-1.0:1.0)
 #define ROUND(x)    (floor((x)+0.5))
@@ -90,6 +94,72 @@ void reduction(int n, double *L, double *D, double *Z)
         else j--;
     }
 }
+/* modified lambda (mlambda) search (ref. [2]) -------------------------------*/
+static int search(int n, int m, const double *L, const double *D,
+                  const double *zs, double *zn, double *s)
+{
+    int i,j,k,c,nn=0,imax=0;
+    double newdist,maxdist=1E99,y;
+    double S[n*n];
+    double dist[n];
+    double zb[n];
+    double z[n];
+    double step[n];
+    memset(S, 0, sizeof(double)*n*n);
+
+    k=n-1; dist[k]=0.0;
+    zb[k]=zs[k];
+    z[k]=ROUND(zb[k]); y=zb[k]-z[k]; step[k]=SGN(y);
+    for (c=0;c<LOOPMAX;c++) {
+        newdist=dist[k]+y*y/D[k];
+        if (newdist<maxdist) {
+            if (k!=0) {
+                dist[--k]=newdist;
+                for (i=0;i<=k;i++)
+                    S[k+i*n]=S[k+1+i*n]+(z[k+1]-zb[k+1])*L[k+1+i*n];
+                zb[k]=zs[k]+S[k+k*n];
+                z[k]=ROUND(zb[k]); y=zb[k]-z[k]; step[k]=SGN(y);
+            }
+            else {
+                if (nn<m) {
+                    if (nn==0||newdist>s[imax]) imax=nn;
+                    for (i=0;i<n;i++) zn[i+nn*n]=z[i];
+                    s[nn++]=newdist;
+                }
+                else {
+                    if (newdist<s[imax]) {
+                        for (i=0;i<n;i++) zn[i+imax*n]=z[i];
+                        s[imax]=newdist;
+                        for (i=imax=0;i<m;i++) if (s[imax]<s[i]) imax=i;
+                    }
+                    maxdist=s[imax];
+                }
+                z[0]+=step[0]; y=zb[0]-z[0]; step[0]=-step[0]-SGN(step[0]);
+            }
+        }
+        else {
+            if (k==n-1) break;
+            else {
+                k++;
+                z[k]+=step[k]; y=zb[k]-z[k]; step[k]=-step[k]-SGN(step[k]);
+            }
+        }
+    }
+    for (i=0;i<m-1;i++) { /* sort by s */
+        for (j=i+1;j<m;j++) {
+            if (s[i]<s[j]) continue;
+            SWAP(s[i],s[j]);
+            for (k=0;k<n;k++) SWAP(zn[k+i*n],zn[k+j*n]);
+        }
+    }
+
+    if (c>=LOOPMAX) {
+        fprintf(stderr,"%s : search loop count overflow\n",__FILE__);
+        return -1;
+    }
+    return 0;
+}
+
 /* lambda reduction transformation ------------------------------
 * integer least-square estimation. reduction is performed by lambda (ref.[1]),
 * and search by mlambda (ref.[2]).
@@ -108,6 +178,9 @@ int lambda_reduction(int n, const double *Q, double *Z)
     double L[n*n];
     double D[n];
 
+    /* L = zeros(n,n) */
+    memset(L, 0, sizeof(double)*n*n);
+
     /* Z = eye(n) */
     memset(Z, 0, sizeof(double)*n*n);
     for (int i=0; i<n; i++)
@@ -119,5 +192,98 @@ int lambda_reduction(int n, const double *Q, double *Z)
         reduction(n,L,D,Z);
     }
 
+    return info;
+}
+
+/* multiply matrix (wrapper of blas dgemm) -------------------------------------
+* multiply matrix by matrix (C=alpha*A*B+beta*C)
+* args   : char   *tr       I  transpose flags ("N":normal,"T":transpose)
+*          int    n,k,m     I  size of (transposed) matrix A,B
+*          double alpha     I  alpha
+*          double *A,*B     I  (transposed) matrix A (n x m), B (m x k)
+*          double beta      I  beta
+*          double *C        IO matrix C (n x k)
+* return : none
+*-----------------------------------------------------------------------------*/
+void matmul(const char *tr, int n, int k, int m, double alpha,
+                   const double *A, const double *B, double beta, double *C)
+{
+    int lda=tr[0]=='T'?m:n,ldb=tr[1]=='T'?k:m;
+    
+    dgemm_((char *)tr,(char *)tr+1,&n,&k,&m,&alpha,(double *)A,&lda,(double *)B, 
+           &ldb,&beta,C,&n);
+}
+
+/* solve linear equation -------------------------------------------------------
+* solve linear equation (X=A\Y or X=A'\Y)
+* args   : char   *tr       I   transpose flag ("N":normal,"T":transpose)
+*          double *A        I   input matrix A (n x n)
+*          double *Y        I   input matrix Y (n x m)
+*          int    n,m       I   size of matrix A,Y
+*          double *X        O   X=A\Y or X=A'\Y (n x m)
+* return : status (0:ok,0>:error)
+* notes  : matirix stored by column-major order (fortran convention)
+*          X can be same as Y
+*-----------------------------------------------------------------------------*/
+int solve(const char *tr, const double *A, const double *Y, int n,
+                 int m, double *X)
+{
+    double B[n*n];
+    int info;
+    int ipiv[n];
+    
+    memcpy(B, A, sizeof(double)*n*n);
+    memcpy(X, Y, sizeof(double)*n*m);
+    dgetrf_(&n,&n,B,&n,ipiv,&info);
+    if (!info) dgetrs_((char *)tr,&n,&m,B,&n,ipiv,X,&n,&info);
+    return info;
+}
+
+
+/* lambda/mlambda integer least-square estimation ------------------------------
+* integer least-square estimation. reduction is performed by lambda (ref.[1]),
+* and search by mlambda (ref.[2]).
+* args : int n I number of float parameters
+* int m I number of fixed solutions
+* double *a I float parameters (n x 1)
+* double *Q I covariance matrix of float parameters (n x n)
+* double *F O fixed solutions (n x m)
+* double *s O sum of squared residulas of fixed solutions (1 x m)
+* return : status (0:ok,other:error)
+* notes : matrix stored by column-major order (fortran convension)
+*-----------------------------------------------------------------------------*/
+int lambda_solution(int n, int m, const double *a, const double *Q, double *F,
+                  double *s)
+{
+    int info;
+    
+    if (n<=0||m<=0) return -1;
+    double L[n*n];
+    double D[n];
+    double Z[n*n];
+    double z[n];
+    double E[n*m];
+    
+    /* L = zeros(n,n) */
+    memset(L, 0, sizeof(double)*n*n);
+
+    /* Z = eye(n) */
+    memset(Z, 0, sizeof(double)*n*n);
+    for (int i=0; i<n; i++)
+      Z[i+n*i] = 1;
+
+    /* LD factorization */
+    if (!(info=LD(n,Q,L,D))) {
+        
+        /* lambda reduction */
+        reduction(n,L,D,Z);
+        matmul("TN",n,1,n,1.0,Z,a,0.0,z); /* z=Z'*a */
+        
+        /* mlambda search */
+        if (!(info=search(n,m,L,D,z,E,s))) {
+            
+            info=solve("T",Z,E,n,m,F); /* F=Z'\E */
+        }
+    }
     return info;
 }

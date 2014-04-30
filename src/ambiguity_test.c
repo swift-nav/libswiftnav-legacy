@@ -100,6 +100,17 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
   }
 }
 
+s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
+{ 
+  if (memory_pool_n_allocated(amb_test->pool) == 1) {
+    hypothesis_t hyp;
+    memory_pool_to_array(amb_test->pool, &hyp);
+    memcpy(hyp_N, hyp.N, (amb_test->sats.num_sats-1) * sizeof(s32));
+    return 0;
+  }
+  return -1;
+}
+
 void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
