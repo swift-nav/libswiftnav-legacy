@@ -200,6 +200,44 @@ def measure_b_with_external_ambs(alms, GpsTime timestamp,
                                                   &b[0])
   return b
 
+def measure_iar_b_with_external_ambs(alms, GpsTime timestamp,
+                                     numpy_measurements,
+                                     ambs,
+                                     reciever_ecef): #TODO eventually, want to get reciever_ecef from data
+  n = len(alms)
+  cdef almanac_t al[32]
+  cdef almanac_t a_
+  cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
+        np.empty(n, dtype=np.uint8)
+  for i, a in enumerate(alms):
+    a_ = (<Almanac> a).almanac
+    memcpy(&al[i], &a_, sizeof(almanac_t))
+    prns[i] = (<Almanac> a).prn
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(reciever_ecef, dtype=np.double)
+
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs_ = \
+    np.array(ambs, dtype=np.double)
+
+  cdef gps_time_t timestamp_ = timestamp.gps_time
+
+  cdef sdiff_t sdiffs[32]
+  almanacs_to_single_diffs(len(alms), &al[0], timestamp_, sdiffs)
+
+  for i, (l,c) in enumerate(numpy_measurements):
+    sdiffs[i].pseudorange = c
+    sdiffs[i].carrier_phase = l
+  
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+
+  dgnss_management_c.measure_iar_b_with_external_ambs(&ref_ecef_[0],
+                                                      n, &sdiffs[0],
+                                                      &ambs_[0],
+                                                      &b[0])
+  return b
+
 def get_float_de_and_phase(alms, GpsTime timestamp,
                            numpy_measurements,
                            ref_ecef):
@@ -273,3 +311,32 @@ def get_iar_de_and_phase(alms, GpsTime timestamp,
                                               &de[0,0], &phase[0])
 
   return de[:m-1], phase[:m-1]
+
+def dgnss_iar_pool_contains(ambs):
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs_ = \
+    np.array(ambs, dtype=np.double)
+  return dgnss_management_c.dgnss_iar_pool_contains(&ambs_[0])
+
+def get_amb_kf_mean():
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs = \
+    np.empty(32, dtype=np.double)
+  num_dds = dgnss_management_c.get_amb_kf_mean(&ambs[0])
+  return ambs[:num_dds]
+
+def get_amb_kf_prns():
+  cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
+    np.empty(32, dtype=np.uint8)
+  num_sats = dgnss_management_c.get_amb_kf_prns(&prns[0])
+  return prns[:num_sats]
+
+def get_amb_test_prns():
+  cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
+    np.empty(32, dtype=np.uint8)
+  num_sats = dgnss_management_c.get_amb_test_prns(&prns[0])
+  return prns[:num_sats]
+
+def dgnss_iar_MLE_ambs():
+  cdef np.ndarray[np.int32_t, ndim=1, mode="c"] ambs = \
+    np.empty(32, dtype=np.int32)
+  num_dds = dgnss_management_c.dgnss_iar_MLE_ambs(&ambs[0])
+  return ambs[:num_dds]
