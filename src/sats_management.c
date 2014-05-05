@@ -246,7 +246,25 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 
 
 
-
+s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, 
+                            sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  u8 j = 1;
+  u8 ref_prn = sats->prns[0];
+  for (u8 i=0; i<num_sdiffs && j<sats->num_sats; i++) {
+    if (sdiffs[i].prn == ref_prn) {
+      memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
+    }
+    else if (sdiffs[i].prn == sats->prns[j]) {
+      memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
+      j++;
+    }
+    else if (sdiffs[i].prn > sats->prns[j]) {
+      return -1;
+    }
+  }
+  return 0;
+}
 
 
 

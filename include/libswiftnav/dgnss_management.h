@@ -69,9 +69,18 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
                                   u8 num_sdiffs, sdiff_t *sdiffs,
                                   double *ambs,
                                   double *b);
+void measure_iar_b_with_external_ambs(double reciever_ecef[3],
+                                      u8 num_sdiffs, sdiff_t *sdiffs,
+                                      double *ambs,
+                                      double *b);
 u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                            double ref_ecef[3],
                            double *de, double *phase);
 u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                         double ref_ecef[3],
                         double *de, double *phase);
+u8 dgnss_iar_pool_contains(double *ambs);
+u8 get_amb_kf_mean(double *ambs);
+u8 get_amb_kf_prns(u8 *prns);
+u8 get_amb_test_prns(u8 *prns);
+u8 dgnss_iar_MLE_ambs(s32 *ambs);

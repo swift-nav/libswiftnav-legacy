@@ -172,7 +172,7 @@ static void incorporate_obs(nkf_t *kf, double *decor_obs)
 // turns (phi, rho) into Q_tilde * (phi, rho)
 void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
 {
-  u8 constraint_dim = MAX(kf->state_dim - 3, 0);
+  u8 constraint_dim = MAX(kf->state_dim, 3) - 3;
   cblas_dgemv (CblasRowMajor, CblasNoTrans, //Order, TransA
                constraint_dim, kf->state_dim, // M, N
                1, kf->null_basis_Q, kf->state_dim, // alpha A, lda
@@ -306,9 +306,9 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
  *  That is, decorrelate and scale the LHS of y = A * x before solving for x
  *TODO consolidate this with the one using the float solution
  */
-void least_squares_solve_b_external_ambs(nkf_t *kf, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
+void least_squares_solve_b_external_ambs(u8 num_dds_u8, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
 {
-  integer num_dds = kf->state_dim;
+  integer num_dds = num_dds_u8;
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
   double DET[num_dds * 3];
@@ -466,7 +466,7 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
 {
   double dd_obs_cov[4 * num_dds * num_dds];
   assign_dd_obs_cov(num_dds, phase_var, code_var, dd_obs_cov);
-  integer nullspace_dim = MAX(num_dds-3, 0);
+  integer nullspace_dim = MAX(num_dds, 3) - 3;;
   integer dd_dim = 2*num_dds;
   integer res_dim = num_dds + nullspace_dim;
   double q_tilde[res_dim * dd_dim];
@@ -570,7 +570,7 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double *H_prime)
 {
   u8 num_dds = num_sdiffs - 1;
-  u8 constraint_dim = MAX(num_dds - 3, 0);
+  u8 constraint_dim = MAX(num_dds, 3) - 3;;
   u8 res_dim = num_dds + constraint_dim;
 
   double Sig[res_dim * res_dim];
@@ -607,7 +607,7 @@ void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
   u32 state_dim = num_sdiffs - 1;
   u32 num_diffs = num_sdiffs - 1;
   kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(0, num_sdiffs - 3);
+  u32 constraint_dim = MAX(3, num_sdiffs) - 3;
   kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
@@ -627,7 +627,7 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
   u32 state_dim = num_sdiffs - 1;
   u32 num_diffs = num_sdiffs - 1;
   kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(0, num_diffs - 3);
+  u32 constraint_dim = MAX(3, num_diffs) - 3;
   kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
