@@ -537,14 +537,40 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
   ref_ecef[0] = reciever_ecef[0];
   ref_ecef[1] = reciever_ecef[1];
   ref_ecef[2] = reciever_ecef[2];
-  least_squares_solve_b_external_ambs(&nkf, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  least_squares_solve_b_external_ambs(nkf.state_dim, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
 
   while (l2_dist(b_old, b) > 1e-4) {
     memcpy(b_old, b, sizeof(double)*3);
     ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
-    least_squares_solve_b_external_ambs(&nkf, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+    least_squares_solve_b_external_ambs(nkf.state_dim, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  }
+}
+
+/*TODO consolidate this with the similar ones above*/
+void measure_iar_b_with_external_ambs(double reciever_ecef[3],
+                                      u8 num_sdiffs, sdiff_t *sdiffs,
+                                      double *ambs,
+                                      double *b)
+{
+  sdiff_t sdiffs_with_ref_first[num_sdiffs];
+  match_sdiffs_to_sats_man(&ambiguity_test.sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+  double dd_measurements[2*(num_sdiffs-1)];
+  make_measurements(num_sdiffs - 1, sdiffs_with_ref_first, dd_measurements);
+  double b_old[3] = {0, 0, 0};
+  double ref_ecef[3];
+  ref_ecef[0] = reciever_ecef[0];
+  ref_ecef[1] = reciever_ecef[1];
+  ref_ecef[2] = reciever_ecef[2];
+  least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+
+  while (l2_dist(b_old, b) > 1e-4) {
+    memcpy(b_old, b, sizeof(double)*3);
+    ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
+    ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
+    ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
+    least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
 }
 
@@ -605,6 +631,7 @@ u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                           ref_ecef,
                           de, phase);
 }
+
 u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                         double ref_ecef[3],
                         double *de, double *phase)
@@ -615,9 +642,39 @@ u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                           de, phase); 
 }
 
+u8 get_amb_kf_mean(double *ambs)
+{
+  u8 num_dds = MAX(1, sats_management.num_sats) - 1;
+  memcpy(ambs, nkf.state_mean, num_dds * sizeof(double));
+  return num_dds;
+}
+
+u8 get_amb_kf_prns(u8 *prns)
+{
+  memcpy(prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
+  return sats_management.num_sats;
+}
+
+u8 get_amb_test_prns(u8 *prns)
+{
+  memcpy(prns, ambiguity_test.sats.prns, ambiguity_test.sats.num_sats * sizeof(u8));
+  return ambiguity_test.sats.num_sats;
+}
+
 s8 dgnss_iar_resolved()
 {
   return ambiguity_test_n_hypotheses(&ambiguity_test) == 1;
+}
+
+u8 dgnss_iar_pool_contains(double *ambs)
+{
+  return ambiguity_test_pool_contains(&ambiguity_test, ambs);
+}
+
+u8 dgnss_iar_MLE_ambs(s32 *ambs)
+{
+  ambiguity_test_MLE_ambs(&ambiguity_test, ambs);
+  return MAX(1, ambiguity_test.sats.num_sats) - 1;
 }
 
 kf_t * get_dgnss_kf()

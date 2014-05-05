@@ -110,6 +110,64 @@ s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
   return -1;
 }
 
+typedef struct {
+  u8 num_dds;
+  s32 N[MAX_CHANNELS-1];
+  u8 found;
+} fold_contains_t;
+
+void fold_contains(void *x, element_t *elem)
+{
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+  fold_contains_t *acc = (fold_contains_t *) x;
+  for (u8 i=0; i<acc->num_dds; i++) {
+    if (hyp->N[i] != acc->N[i]) {
+      return;
+    }
+  }
+  acc->found = 1;
+}
+
+u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
+{
+  fold_contains_t acc;
+  acc.num_dds = amb_test->sats.num_sats-1;
+  for (u8 i=0; i<acc.num_dds; i++) {
+    acc.N[i] = lround(ambs[i]);
+  }
+  acc.found = 0;
+  memory_pool_fold(amb_test->pool, (void *) &acc, &fold_contains);
+  return acc.found;
+}
+
+typedef struct {
+  u8 started;
+  double max_ll;
+  u8 num_dds;  
+  s32 N[MAX_CHANNELS-1];
+  
+} fold_mle_t; // fold omelette
+
+void fold_mle(void *x, element_t *elem)
+{
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+  fold_mle_t *mle = (fold_mle_t *) x;
+  if (mle->started == 0 || hyp->ll > mle->max_ll) {
+    mle->started = 1;
+    mle->max_ll = hyp->ll;
+    memcpy(mle->N, hyp->N, mle->num_dds * sizeof(s32));
+  }
+}
+
+void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
+{
+  fold_mle_t mle;
+  mle.started = 0;
+  mle.num_dds = MAX(1,amb_test->sats.num_sats)-1;
+  memory_pool_fold(amb_test->pool, (void *) &mle, &fold_mle);
+  memcpy(ambs, mle.N, mle.num_dds * sizeof(s32));
+}
+
 void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
@@ -470,7 +528,7 @@ void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs)
 {
-  u8 num_dds_before_proj = MAX(0, amb_test->sats.num_sats - 1);
+  u8 num_dds_before_proj = MAX(1, amb_test->sats.num_sats) - 1;
   if (num_dds_before_proj == num_dds_in_intersection) {
     return 0;
   }
@@ -660,7 +718,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                            s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
                            s32 *Z_inv)
 {
-  u8 num_current_dds = MAX(0, amb_test->sats.num_sats-1);
+  u8 num_current_dds = MAX(1, amb_test->sats.num_sats) - 1;
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds); // num_current_dds + min_dds_to_add = 4 so that we have a nullspace projector
 
   u32 max_new_hyps_cardinality;
@@ -934,7 +992,7 @@ void add_sats(ambiguity_test_t *amb_test,
   // printf("]\n");
 
   x0.num_added_dds = num_added_dds;
-  x0.num_old_dds = MAX(0,amb_test->sats.num_sats-1);
+  x0.num_old_dds = MAX(1,amb_test->sats.num_sats)-1;
 
   //then construct the mapping from the old prn indices into the new, and from the added prn indices into the new
   u8 i = 0;
@@ -990,7 +1048,7 @@ void add_sats(ambiguity_test_t *amb_test,
   // /* Recorrelate the new ambiguities we just added. */
   // recorrelation_params_t params;
   // params.num_added_dds = num_added_dds;
-  // params.num_old_dds = MAX(0,amb_test->sats.num_sats-1);
+  // params.num_old_dds = MAX(1,amb_test->sats.num_sats) - 1;
   // memcpy(params.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
   // memory_pool_map(amb_test->pool, &params, &recorrelate_added_sats);
 

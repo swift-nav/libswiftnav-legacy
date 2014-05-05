@@ -17,6 +17,7 @@
 #include "linear_algebra.h"
 #include "single_diff.h"
 #include "constants.h"
+ #include "sats_management.h"
 
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
@@ -189,7 +190,6 @@ s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t
   }
   return not_found;
 }
-
 
 /** \} */
 
