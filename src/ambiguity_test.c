@@ -289,6 +289,7 @@ void update_and_get_max_ll(void *x_, element_t *elem) {
 s8 filter_and_renormalize(void *arg, element_t *elem) {
   hypothesis_t *hyp = (hypothesis_t *) elem;
   hyp->ll -= ((update_and_get_max_ll_t *) arg)->max_ll;
+
   return (hyp->ll > LOG_PROB_RAT_THRESHOLD);
 }
 
@@ -303,10 +304,11 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   x.num_dds = amb_test->sats.num_sats-1;
   assign_r_vec(&amb_test->res_mtxs, x.num_dds, dd_measurements, x.r_vec);
   // VEC_PRINTF(x.r_vec, amb_test->res_mtxs.res_dim);
-  x.max_ll = -999999; //TODO get the first element
+  x.max_ll = -1e20; //TODO get the first element, or use this as threshold to restart test
   x.res_mtxs = &amb_test->res_mtxs;
 
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
+  /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
 
