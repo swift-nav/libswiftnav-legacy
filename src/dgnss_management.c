@@ -34,6 +34,7 @@ dgnss_settings_t dgnss_settings = {
   .pos_trans_var = DEFAULT_POS_TRANS_VAR,
   .vel_trans_var = DEFAULT_VEL_TRANS_VAR,
   .int_trans_var = DEFAULT_INT_TRANS_VAR,
+  .amb_drift_var = DEFAULT_AMB_DRIFT_VAR,
   .pos_init_var = DEFAULT_POS_INIT_VAR,
   .vel_init_var = DEFAULT_VEL_INIT_VAR,
   .amb_init_var = DEFAULT_AMB_INIT_VAR,
@@ -43,6 +44,7 @@ dgnss_settings_t dgnss_settings = {
 void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
                         double pos_trans_var, double vel_trans_var, double int_trans_var,
+                        double amb_drift_var,
                         double pos_init_var, double vel_init_var, double amb_init_var,
                         double new_int_var)
 {
@@ -53,6 +55,7 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
   dgnss_settings.pos_trans_var  = pos_trans_var;
   dgnss_settings.vel_trans_var  = vel_trans_var;
   dgnss_settings.int_trans_var  = int_trans_var;
+  dgnss_settings.amb_drift_var  = amb_drift_var;
   dgnss_settings.pos_init_var   = pos_init_var;
   dgnss_settings.vel_init_var   = vel_init_var;
   dgnss_settings.amb_init_var   = amb_init_var;
@@ -131,6 +134,7 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
 
   set_nkf(
     &nkf,
+    dgnss_settings.amb_drift_var,
     dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
     dgnss_settings.amb_init_var,
     num_sats, corrected_sdiffs, dd_measurements, reciever_ecef
@@ -664,6 +668,13 @@ u8 get_amb_kf_mean(double *ambs)
 {
   u8 num_dds = MAX(1, sats_management.num_sats) - 1;
   memcpy(ambs, nkf.state_mean, num_dds * sizeof(double));
+  return num_dds;
+}
+
+u8 get_amb_kf_cov(double *cov)
+{
+  u8 num_dds = MAX(1, sats_management.num_sats) - 1;
+  reconstruct_udu(num_dds, nkf.state_cov_U, nkf.state_cov_D, cov);
   return num_dds;
 }
 

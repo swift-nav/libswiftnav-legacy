@@ -21,11 +21,11 @@
 
 #define MAX_STATE_DIM (MAX_CHANNELS - 1)
 #define MAX_OBS_DIM (2 * MAX_CHANNELS - 5)
-#define AMB_DRIFT_PARAM 1e-8
 
 typedef struct {
   u32 state_dim;
   u32 obs_dim;
+  double amb_drift_var;
   double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
   double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
   double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
@@ -43,7 +43,7 @@ void nkf_update(nkf_t *kf, double *measurements);
 void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
-void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
+void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3]);
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3]);
