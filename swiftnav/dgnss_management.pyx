@@ -22,6 +22,18 @@ from libc.string cimport memcpy
 from libc.stdio cimport printf
 from sats_management_c cimport *
 
+def set_settings(phase_var_test, code_var_test,
+                 phase_var_kf, code_var_kf,
+                 pos_trans_var, vel_trans_var, int_trans_var,
+                 pos_init_var, vel_init_var, amb_init_var,
+                 new_int_var):
+  dgnss_management_c.dgnss_set_settings(phase_var_test, code_var_test,
+                                        phase_var_kf, code_var_kf,
+                                        pos_trans_var, vel_trans_var, int_trans_var,
+                                        pos_init_var, vel_init_var, amb_init_var,
+                                        new_int_var)
+  
+
 def dgnss_init(alms, GpsTime timestamp,
                numpy_measurements,
                reciever_ecef, dt, b=None):
