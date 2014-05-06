@@ -186,7 +186,7 @@ void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_m
 void diffuse_state(nkf_t *kf)
 {
   for (u8 i=0; i< kf->state_dim; i++) {
-    kf->state_cov_D[i] += AMB_DRIFT_PARAM; //TODO make this a tunable parameter defined at the right time
+    kf->state_cov_D[i] += kf->amb_drift_var; //TODO make this a tunable parameter defined at the right time
   }
 }
 
@@ -601,7 +601,7 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 }
 
 
-void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
+void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
   u32 state_dim = num_sdiffs - 1;
@@ -609,6 +609,7 @@ void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
   kf->state_dim = state_dim;
   u32 constraint_dim = MAX(3, num_sdiffs) - 3;
   kf->obs_dim = num_diffs + constraint_dim;
+  kf->amb_drift_var = amb_drift_var;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
                   ref_ecef,

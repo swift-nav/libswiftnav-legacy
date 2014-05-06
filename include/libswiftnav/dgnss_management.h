@@ -22,6 +22,7 @@
 #define DEFAULT_POS_TRANS_VAR   1e-1
 #define DEFAULT_VEL_TRANS_VAR   1e-5
 #define DEFAULT_INT_TRANS_VAR   1e-8
+#define DEFAULT_AMB_DRIFT_VAR   1e-8
 #define DEFAULT_POS_INIT_VAR    1e2
 #define DEFAULT_VEL_INIT_VAR    4e2
 #define DEFAULT_AMB_INIT_VAR    1e8
@@ -35,6 +36,7 @@ typedef struct {
   double pos_trans_var;
   double vel_trans_var;
   double int_trans_var;
+  double amb_drift_var;
   double pos_init_var;
   double vel_init_var;
   double amb_init_var;
@@ -46,6 +48,7 @@ extern dgnss_settings_t dgnss_settings;
 void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
                         double pos_trans_var, double vel_trans_var, double int_trans_var,
+                        double amb_drift_var,
                         double pos_init_var, double vel_init_var, double amb_init_var,
                         double new_int_var);
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
@@ -86,6 +89,7 @@ u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                         double *de, double *phase);
 u8 dgnss_iar_pool_contains(double *ambs);
 u8 get_amb_kf_mean(double *ambs);
+u8 get_amb_kf_cov(double *cov);
 u8 get_amb_kf_prns(u8 *prns);
 u8 get_amb_test_prns(u8 *prns);
 u8 dgnss_iar_MLE_ambs(s32 *ambs);
