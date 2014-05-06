@@ -16,6 +16,7 @@ cdef extern from "libswiftnav/dgnss_management.h":
   void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
                         double pos_trans_var, double vel_trans_var, double int_trans_var,
+                        double amb_drift_var,
                         double pos_init_var, double vel_init_var, double amb_init_var,
                         double new_int_var)
   void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
@@ -49,6 +50,7 @@ cdef extern from "libswiftnav/dgnss_management.h":
                           double *de, double *phase)
   u8 dgnss_iar_pool_contains(double *ambs)
   u8 get_amb_kf_mean(double *ambs)
+  u8 get_amb_kf_cov(double *cov)
   u8 get_amb_kf_prns(u8 *prns)
   u8 get_amb_test_prns(u8 *prns)
   u8 dgnss_iar_MLE_ambs(s32 *ambs)

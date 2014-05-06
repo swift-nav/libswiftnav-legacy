@@ -25,11 +25,13 @@ from sats_management_c cimport *
 def set_settings(phase_var_test, code_var_test,
                  phase_var_kf, code_var_kf,
                  pos_trans_var, vel_trans_var, int_trans_var,
+                 amb_drift_var,
                  pos_init_var, vel_init_var, amb_init_var,
                  new_int_var):
   dgnss_management_c.dgnss_set_settings(phase_var_test, code_var_test,
                                         phase_var_kf, code_var_kf,
                                         pos_trans_var, vel_trans_var, int_trans_var,
+                                        amb_drift_var,
                                         pos_init_var, vel_init_var, amb_init_var,
                                         new_int_var)
   
@@ -334,6 +336,16 @@ def get_amb_kf_mean():
     np.empty(32, dtype=np.double)
   num_dds = dgnss_management_c.get_amb_kf_mean(&ambs[0])
   return ambs[:num_dds]
+
+def get_amb_kf_cov(num_dds):
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] cov = \
+    np.empty((num_dds, num_dds), dtype=np.double)
+  num_dds2 = dgnss_management_c.get_amb_kf_cov(&cov[0,0])
+  if num_dds == num_dds2:
+    return cov
+  else:
+    raise ValueError("Was given the wrong num_dds.")
+
 
 def get_amb_kf_prns():
   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \

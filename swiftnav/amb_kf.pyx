@@ -90,6 +90,7 @@ class UDU_decomposition:
 
 cdef class KalmanFilter:
   def __init__(self,
+               amb_drift_var,
                np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx, 
                np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx, 
                np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov,
@@ -101,6 +102,7 @@ cdef class KalmanFilter:
     memset(&self.kf, 0, sizeof(amb_kf_c.nkf_t))
     self.state_dim = decor_mtx.shape[0]
     self.obs_dim = decor_mtx.shape[0] + max(0, decor_mtx.shape[0] - 3)
+    self.amb_drift_var = amb_drift_var
     # self.num_sats = len(prns_with_ref_first)
     # self.prns_with_ref_first = prns_with_ref_first
     self.decor_mtx = decor_mtx
@@ -124,6 +126,8 @@ cdef class KalmanFilter:
     print 1
     obs_dim_eq = self.obs_dim == other.obs_dim
     print 2
+    amb_drift_vareq = self.amb_drift_var == other.amb_drift_var
+    print 22
     decor_mtx_eq = bool(np.all(self.decor_mtx == other.decor_mtx))
     print 3
     decor_obs_mtx_eq = bool(np.all(self.decor_obs_mtx == other.decor_obs_mtx))
@@ -140,6 +144,7 @@ cdef class KalmanFilter:
     print 9
     eq_dict = {'state_dim'      : state_dim_eq,
                'obs_dim'        : obs_dim_eq,
+               'amb_drift_var'  : amb_drift_vareq,
                'decor_mtx'      : decor_mtx_eq,
                'decor_obs_mtx'  : decor_obs_mtx_eq,
                'decor_obs_cov'  : decor_obs_cov_eq,
@@ -173,6 +178,12 @@ cdef class KalmanFilter:
       return self.kf.obs_dim
     def __set__(self, obs_dim):
       self.kf.obs_dim = obs_dim
+
+  property amb_drift_var:
+    def __get__(self):
+      return self.kf.amb_drift_var
+    def __set__(self, amb_drift_var):
+      self.kf.amb_drift_var = amb_drift_var
 
   # property num_sats:
   #   def __get__(self):
@@ -452,6 +463,7 @@ def get_de_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
 
 def get_kf_from_alms_using_sdiffs(phase_var, code_var,
                                   pos_trans_var, vel_trans_var, int_trans_var,
+                                  amb_drift_var,
                                   pos_init_var, vel_init_var, int_init_var,
                                   alms, GpsTime timestamp,
                                   dd_measurements,
@@ -481,7 +493,7 @@ def get_kf_from_alms_using_sdiffs(phase_var, code_var,
     np.array(dd_measurements, dtype=np.double)
 
   cdef amb_kf_c.nkf_t kf
-  amb_kf_c.set_nkf(&kf, phase_var, code_var, int_init_var,
+  amb_kf_c.set_nkf(&kf, amb_drift_var, phase_var, code_var, int_init_var,
                   n, &sdiffs[0], &dd_measurements_[0], &ref_ecef_[0])
   cdef KalmanFilter pykf = KalmanFilter()
   memcpy(&(pykf.kf), &kf, sizeof(amb_kf_c.nkf_t))

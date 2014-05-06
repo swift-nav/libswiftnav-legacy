@@ -16,6 +16,7 @@ cdef extern from "libswiftnav/amb_kf.h":
   ctypedef struct nkf_t:
     u32 state_dim
     u32 obs_dim
+    double amb_drift_var
     double *decor_mtx
     double *decor_obs_mtx
     double *decor_obs_cov
@@ -47,5 +48,5 @@ cdef extern from "libswiftnav/amb_kf.h":
   void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
-  void set_nkf(nkf_t *kf, double phase_var, double code_var, double amb_init_var,
+  void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
                u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
