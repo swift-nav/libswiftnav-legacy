@@ -40,6 +40,25 @@ dgnss_settings_t dgnss_settings = {
   .new_int_var = DEFAULT_NEW_INT_VAR,
 };
 
+void dgnss_set_settings(double phase_var_test, double code_var_test,
+                        double phase_var_kf, double code_var_kf,
+                        double pos_trans_var, double vel_trans_var, double int_trans_var,
+                        double pos_init_var, double vel_init_var, double amb_init_var,
+                        double new_int_var)
+{
+  dgnss_settings.phase_var_test = phase_var_test;
+  dgnss_settings.code_var_test  = code_var_test;
+  dgnss_settings.phase_var_kf   = phase_var_kf;
+  dgnss_settings.code_var_kf    = code_var_kf;
+  dgnss_settings.pos_trans_var  = pos_trans_var;
+  dgnss_settings.vel_trans_var  = vel_trans_var;
+  dgnss_settings.int_trans_var  = int_trans_var;
+  dgnss_settings.pos_init_var   = pos_init_var;
+  dgnss_settings.vel_init_var   = vel_init_var;
+  dgnss_settings.amb_init_var   = amb_init_var;
+  dgnss_settings.new_int_var    = new_int_var;
+}
+
 void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   double phase0 = sdiffs[0].carrier_phase;
@@ -564,7 +583,6 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
   ref_ecef[1] = reciever_ecef[1];
   ref_ecef[2] = reciever_ecef[2];
   least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
-
   while (l2_dist(b_old, b) > 1e-4) {
     memcpy(b_old, b, sizeof(double)*3);
     ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
