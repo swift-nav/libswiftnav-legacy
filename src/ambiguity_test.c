@@ -27,6 +27,8 @@
 #define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
 
+#define DEBUG_AMBIGUITY_TEST 1
+
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
@@ -36,10 +38,31 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->sats.num_sats = 0;
 }
 
+
+s8 filter_all(void *arg, element_t *elem) {
+  return (0 == 1);
+}
+
+
+void reset_ambiguity_test(ambiguity_test_t *amb_test)
+{
+  if (DEBUG_AMBIGUITY_TEST) {
+      printf("<RESET_AMBIGUITY_TEST>\n");
+  }
+  u8 x = 0;
+  memory_pool_filter(amb_test->pool, (void *) &x, &filter_all);
+  amb_test->sats.num_sats = 0;
+  if (DEBUG_AMBIGUITY_TEST) {
+      printf("</RESET_AMBIGUITY_TEST>\n");
+  }
+}
+
+
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
 {
   memory_pool_destroy(amb_test->pool);
 }
+
 
 void print_double_mtx(double *m, u32 _r, u32 _c) {                    \
     for (u32 _i = 0; _i < (_r); _i++) {              \
@@ -50,6 +73,7 @@ void print_double_mtx(double *m, u32 _r, u32 _c) {                    \
     }                                              \
 }
 
+
 void print_pearson_mtx(double *m, u32 dim) {                    \
     for (u32 _i = 0; _i < dim; _i++) {              \
       printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));                \
@@ -58,6 +82,7 @@ void print_pearson_mtx(double *m, u32 dim) {                    \
       printf("]\n");                                 \
     }                                              \
 }
+
 
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
 {
@@ -69,6 +94,7 @@ void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
   }
   printf("\n");
 }
+
 
 void print_s32_mtx(u32 m, u32 n, s32 *Z_inv)
 {
@@ -221,11 +247,17 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
                            ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D)
 {
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("<UPDATE_AMBIGUITY_TEST>\n");
+  }
   u8 num_sdiffs = state_dim + 1;
   u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
                                           float_sats, float_mean, float_cov_U, float_cov_D);
 
   if (amb_test->sats.num_sats < 5) {
+    if (DEBUG_AMBIGUITY_TEST) {
+      printf("</UPDATE_AMBIGUITY_TEST>\n");
+    }
     return;
   }
 
@@ -259,6 +291,9 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   }
 
   test_ambiguities(amb_test, ambiguity_dd_measurements);
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("</UPDATE_AMBIGUITY_TEST>\n");
+  }
 }
 
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test)
@@ -293,13 +328,13 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
   return (hyp->ll > LOG_PROB_RAT_THRESHOLD);
 }
 
-
 s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem));
 
-s32 memory_pool_fold(memory_pool_t *pool, void *x0,
-                     void (*f)(void *x, element_t *elem));
 
 void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("<TEST_AMBIGUITIES>\n");
+  }
   update_and_get_max_ll_t x;
   x.num_dds = amb_test->sats.num_sats-1;
   assign_r_vec(&amb_test->res_mtxs, x.num_dds, dd_measurements, x.r_vec);
@@ -311,7 +346,9 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
-
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("</TEST_AMBIGUITIES>\n");
+  }
 }
 
 void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
