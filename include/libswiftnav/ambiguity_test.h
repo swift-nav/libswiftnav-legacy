@@ -42,6 +42,7 @@ typedef struct {
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
 s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
+void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
 void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns, sdiff_t *sdiffs, 
                          double *float_mean, double *float_cov, double *DE_mtx, double *obs_cov);
