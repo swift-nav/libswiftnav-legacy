@@ -23,6 +23,8 @@
 #include "gpstime.h"
 #include "amb_kf.h"
 
+#define DEBUG_AMB_KF 0
+
 static void triu(u32 n, double *M)
 {
   for (u32 i=1; i<n; i++) {
@@ -604,6 +606,9 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
+  if (DEBUG_AMB_KF) {
+      printf("<SET_NKF>\n");
+  }
   u32 state_dim = num_sdiffs - 1;
   u32 num_diffs = num_sdiffs - 1;
   kf->state_dim = state_dim;
@@ -620,6 +625,9 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
 
   // given plain old measurements, initialize the state
   initialize_state(kf, dd_measurements, amb_init_var);
+  if (DEBUG_AMB_KF) {
+      printf("</SET_NKF>\n");
+  }
 }
 
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,

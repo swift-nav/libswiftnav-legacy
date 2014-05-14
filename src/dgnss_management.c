@@ -20,7 +20,7 @@
 #include "linear_algebra.h"
 #include "ambiguity_test.h"
 
-#define DEBUG_DGNSS_MANAGEMENT 1
+#define DEBUG_DGNSS_MANAGEMENT 0
 
 nkf_t nkf;
 kf_t kf;
@@ -123,8 +123,20 @@ u8 dgnss_intersect_sats(u8 num_old_prns, u8 *old_prns,
 
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("<DGNSS_INIT>\n");
+  }
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
+
+  create_ambiguity_test(&ambiguity_test);
+
+  if (num_sats <= 1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("</DGNSS_INIT>\n");
+    }
+    return;
+  }
 
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
@@ -148,7 +160,9 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt
     num_sats, corrected_sdiffs, dd_measurements, reciever_ecef
   );
 
-  create_ambiguity_test(&ambiguity_test);
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("</DGNSS_INIT>\n");
+  }
 }
 
 void dgnss_start_over(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
@@ -159,6 +173,14 @@ void dgnss_start_over(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dou
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
 
+  reset_ambiguity_test(&ambiguity_test);
+
+  if (num_sats <= 1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("</DGNSS_START_OVER>\n");
+    }
+    return;
+  }
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
@@ -181,7 +203,6 @@ void dgnss_start_over(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], dou
     num_sats, corrected_sdiffs, dd_measurements, reciever_ecef
   );
 
-  reset_ambiguity_test(&ambiguity_test);
   if (DEBUG_DGNSS_MANAGEMENT) {
       printf("</DGNSS_START_OVER>\n");
   }
@@ -196,6 +217,10 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u
   if (sats_management_code == NEW_REF_START_OVER) {
     printf("====== START OVER =======\n"); // TODO WRITE WHAT GOTTA BE DONE, YO
     dgnss_start_over(num_sdiffs, sdiffs, reciever_ecef, 1);
+    memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
+    if (num_sdiffs >= 1) {
+      copy_sdiffs_put_ref_first(old_prns[0], num_sdiffs, sdiffs, corrected_sdiffs);
+    }
     /*dgnss_init(num_sdiffs, sdiffs, reciever_ecef, dt); //TODO use current baseline state*/
     return;
   }
@@ -217,6 +242,9 @@ void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
 void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *corrected_sdiffs,
                        double *dd_measurements, double dt)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_UPDATE_SATS>\n");
+  }
   (void)dd_measurements;
   u8 new_prns[num_sdiffs];
   sdiffs_to_prns(num_sdiffs, corrected_sdiffs, new_prns);
@@ -291,7 +319,9 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
       num_sdiffs, corrected_sdiffs, reciever_ecef
     );
   }
-
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_UPDATE_SATS>\n");
+  }
 }
 
 void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
@@ -337,6 +367,24 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
     printf("<DGNSS_UPDATE>\n");
+    for (u8 i=0; i < num_sats; i++) {
+      printf("sdiff[%u].prn = %u\n", i, sdiffs[i].prn);
+    }
+  }
+
+  if (num_sats <= 1) {
+    sats_management.num_sats = num_sats;
+    if (num_sats == 1) {
+      sats_management.prns[0] = sdiffs[0].prn;
+    }
+    return;
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("<DGNSS_UPDATE>\n");
+    }
+  }
+
+  if (sats_management.num_sats <= 1) {
+    dgnss_start_over(num_sats, sdiffs, reciever_ecef, 1);
   }
 
   sdiff_t corrected_sdiffs[num_sats];
@@ -658,6 +706,11 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
   }
 }
 
+void yolo()
+{
+  printf("yolo\n");
+}
+
 u8 get_de_and_phase(sats_management_t *sats_man,
                     u8 num_sdiffs, sdiff_t *sdiffs,
                     double ref_ecef[3],
@@ -687,6 +740,7 @@ u8 get_de_and_phase(sats_management_t *sats_man,
     }
     else if (sdiffs[j].prn > sats_man->prns[i]) {
       i++;
+      yolo();
       printf("probable error. sdiffs should be a super set of sats_man prns\n");
     }
     else {  // else they match

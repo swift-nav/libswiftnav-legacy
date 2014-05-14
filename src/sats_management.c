@@ -17,7 +17,7 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
-#define DEBUG_SATS_MAN 1
+#define DEBUG_SATS_MAN 0
 
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
@@ -30,13 +30,6 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
     }
   }
   return best_prn;
-}
-
-void yolo(u8 prn)
-{
-  for (u8 i=0; i<100; i++) {
-    printf("yolo\n");
-  }
 }
 
 // bool contains(u8 num_sats, u8 ref_prn, sdiff_t *sdiffs) 
@@ -91,11 +84,13 @@ u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
       n++;
     }
   }
-  printf("intersection_sats= {");
-  for (u8 k=0; k< n; k++) {
-    printf("%u, ", intersection_sats[k].prn);
+  if (DEBUG_SATS_MAN) {
+    printf("intersection_sats= {");
+    for (u8 k=0; k< n; k++) {
+      printf("%u, ", intersection_sats[k].prn);
+    }
+    printf("}\n</INTERSECT_SATS>\n");
   }
-  printf("}\n</INTERSECT_SATS>\n");
   return n;
 }
 
@@ -284,13 +279,12 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
   else {
     sdiff_t intersection_sats[num_sdiffs];
-    if (sats_management->prns[1]==110) {
-      yolo(sats_management->prns[1]);
-    }
     u8 num_intersection = intersect_sats(sats_management->num_sats, num_sdiffs,
                                          &(sats_management->prns[1]), sdiffs, intersection_sats);
     if (num_intersection < INTERSECTION_SATS_THRESHOLD_SIZE) {
-      printf("</REBASE_SATS_MANAGEMENT>\n");
+      if (DEBUG_SATS_MAN) {
+        printf("</REBASE_SATS_MANAGEMENT>\n");
+      }
       return NEW_REF_START_OVER;
     }
     else {
@@ -318,7 +312,9 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
   set_reference_sat(ref_prn, sats_management,
                     num_sdiffs, sdiffs, sdiffs_with_ref_first);
-  printf("</REBASE_SATS_MANAGEMENT>\n");
+  if (DEBUG_SATS_MAN) {
+    printf("</REBASE_SATS_MANAGEMENT>\n");
+  }
   return return_code;
 }
 
