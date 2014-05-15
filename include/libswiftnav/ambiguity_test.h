@@ -33,10 +33,18 @@ typedef struct {
 } residual_mtxs_t;
 
 typedef struct {
+  u8 initialized;
+  u8 num_matching_ndxs;
+  u8 matching_ndxs[MAX_CHANNELS-1];
+  s32 ambs[MAX_CHANNELS-1];
+} unanimous_amb_check_t; //NOTE maybe do this in a semi-decorrelated space, where more should match sooner.
+
+typedef struct {
   u8 num_dds;
   memory_pool_t *pool;
   residual_mtxs_t res_mtxs;
   sats_management_t sats;
+  unanimous_amb_check_t amb_check;
 } ambiguity_test_t;
 
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
@@ -64,6 +72,10 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measureme
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                            sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
 u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
+u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
+void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
+            u8 num_sdiffs, sdiff_t *sdiffs,
+            double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);

@@ -366,10 +366,11 @@ void dvec_printf(double *v, u32 n)
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt)
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
-    printf("<DGNSS_UPDATE>\n");
+    printf("<DGNSS_UPDATE>\nsdiff[*].prn = {");
     for (u8 i=0; i < num_sats; i++) {
-      printf("sdiff[%u].prn = %u\n", i, sdiffs[i].prn);
+      printf("%u, ",sdiffs[i].prn);
     }
+    printf("}\n");
   }
 
   if (num_sats <= 1) {
@@ -430,7 +431,25 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double 
                         &ambiguity_test, nkf.state_dim, &sats_management,
                         sdiffs, nkf.state_mean, nkf.state_cov_U,
                         nkf.state_cov_D);
+
+  
   if (DEBUG_DGNSS_MANAGEMENT) {
+    if (num_sats >=4) {
+      double bb[3];
+      u8 num_used;
+      dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
+                           &num_used, bb);
+      printf("\n\nold dgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
+             bb[0], bb[1], bb[2],
+             num_used, num_sats,
+             dgnss_iar_resolved());
+      dgnss_fixed_baseline2(num_sats, sdiffs, ref_ecef,
+                            &num_used, bb);
+      printf("\n\nnew dgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
+             bb[0], bb[1], bb[2],
+             num_used, num_sats,
+             ambiguity_iar_can_solve(&ambiguity_test));
+    }
     printf("</DGNSS_UPDATE>\n");
   }
 }
@@ -494,6 +513,25 @@ void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
     lesq_solution(ambiguity_test.sats.num_sats-1, dd_meas, hyp->N, DE, b, 0);
   } else {
     dgnss_new_float_baseline(n, sdiffs, ref_ecef, num_used, b);
+  }
+}
+
+/* this version returns the fixed baseline iff there are at least 3 dd ambs unanimously agreed upon in the ambiguity_test
+ */
+void dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
+                           u8 *num_used, double b[3])
+{
+  if (ambiguity_iar_can_solve(&ambiguity_test)) {
+    sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
+    double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+    make_ambiguity_resolved_dd_measurements_and_sdiffs(&ambiguity_test, num_sdiffs, sdiffs,
+        dd_meas, ambiguity_sdiffs);
+    double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
+    assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1, ambiguity_sdiffs, ref_ecef, DE);
+    *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
+    lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+  } else {
+    dgnss_new_float_baseline(num_sdiffs, sdiffs, ref_ecef, num_used, b);
   }
 }
 
@@ -706,10 +744,6 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
   }
 }
 
-void yolo()
-{
-  printf("yolo\n");
-}
 
 u8 get_de_and_phase(sats_management_t *sats_man,
                     u8 num_sdiffs, sdiff_t *sdiffs,
@@ -740,7 +774,6 @@ u8 get_de_and_phase(sats_management_t *sats_man,
     }
     else if (sdiffs[j].prn > sats_man->prns[i]) {
       i++;
-      yolo();
       printf("probable error. sdiffs should be a super set of sats_man prns\n");
     }
     else {  // else they match
