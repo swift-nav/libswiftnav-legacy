@@ -27,7 +27,7 @@
 #define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
 
-#define DEBUG_AMBIGUITY_TEST 1
+#define DEBUG_AMBIGUITY_TEST 0
 
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
@@ -36,6 +36,7 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->pool = &pool;
   memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
   amb_test->sats.num_sats = 0;
+  amb_test->amb_check.initialized = 0;
 }
 
 
@@ -44,7 +45,7 @@ s8 filter_all(void *arg, element_t *elem) {
 }
 
 
-void reset_ambiguity_test(ambiguity_test_t *amb_test)
+void reset_ambiguity_test(ambiguity_test_t *amb_test) //TODO is this even necessary? we may only need create_ambiguity_test
 {
   if (DEBUG_AMBIGUITY_TEST) {
       printf("<RESET_AMBIGUITY_TEST>\n");
@@ -52,6 +53,7 @@ void reset_ambiguity_test(ambiguity_test_t *amb_test)
   u8 x = 0;
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_all);
   amb_test->sats.num_sats = 0;
+  amb_test->amb_check.initialized = 0;
   if (DEBUG_AMBIGUITY_TEST) {
       printf("</RESET_AMBIGUITY_TEST>\n");
   }
@@ -296,24 +298,19 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   }
 }
 
+
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test)
 {
   return memory_pool_n_allocated(amb_test->pool);
 }
 
-typedef struct {
-  u8 initialized;
-  u8 num_matching_ndxs;
-  u8 matching_ndxs[MAX_CHANNELS-1];
-  s32 ambs[MAX_CHANNELS-1];
-} unanimous_amb_check_t;
 
 typedef struct {
   u8 num_dds;
   double r_vec[2*MAX_CHANNELS-5];
   double max_ll;
   residual_mtxs_t *res_mtxs;
-  unanimous_amb_check_t unanimous_amb_check;
+  unanimous_amb_check_t *unanimous_amb_check;
 } hyp_filter_t;
 
 void update_and_get_max_ll(void *x_, element_t *elem) {
@@ -365,6 +362,7 @@ void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
   }
 }
 
+
 /* filter_and_renormalize serves three purposes:
  *  Foremost, it decides which hypotheses make the cut to stay in the test.
  *  For those hyps that make the cut:
@@ -380,12 +378,10 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
   if (keep_it) {
     hyp->ll -= ((hyp_filter_t *) arg)->max_ll;
     check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp, 
-                         &((hyp_filter_t *) arg)->unanimous_amb_check);
+                         ((hyp_filter_t *) arg)->unanimous_amb_check);
   }
   return keep_it;
 }
-
-s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem));
 
 
 /* test_ambiguities tests the hypotheses given new observations.
@@ -401,33 +397,45 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   // VEC_PRINTF(x.r_vec, amb_test->res_mtxs.res_dim);
   x.max_ll = -1e20; //TODO get the first element, or use this as threshold to restart test
   x.res_mtxs = &amb_test->res_mtxs;
-  x.unanimous_amb_check.initialized = 0;
+  x.unanimous_amb_check = &amb_test->amb_check;
+  x.unanimous_amb_check->initialized = 0;
 
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   if (DEBUG_AMBIGUITY_TEST) {
     memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
-    printf("num_unanimous_ndxs=%u\n</TEST_AMBIGUITIES>\n", x.unanimous_amb_check.num_matching_ndxs);
+    printf("num_unanimous_ndxs=%u\n</TEST_AMBIGUITIES>\n", x.unanimous_amb_check->num_matching_ndxs);
   }
 }
 
-void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                                               double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
+/* This says whether we can use the ambiguity_test to resolve a position in 3-space.
+ */
+u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
+{
+  return (amb_test->amb_check.num_matching_ndxs >= 3);
+}
+
+
+void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds, 
+                                     u8 num_sdiffs, sdiff_t *sdiffs,
+                                     double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
-    printf("<MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
+    printf("<MAKE_DD_MEASUREMENTS_AND_SDIFFS>\n");
+    printf("ref_prn = %u\nnon_ref_prns = {", ref_prn);
+    for (u8 i=0; i < num_dds; i++) {
+      printf("%d, ", non_ref_prns[i]);
+    }
+    printf("}\nnum_dds = %u\nnum_sdiffs = %u\n", num_dds, num_sdiffs);
   }
-  u8 ref_prn = amb_test->sats.prns[0];
   double ref_phase;
   double ref_pseudorange;
   u8 i=0;
   u8 j=0;
-  u8 *amb_test_non_ref_prns = &amb_test->sats.prns[1];
-  u8 num_dds = MAX(1, amb_test->sats.num_sats)-1;
   u8 found_ref = 0; //DEBUG
   while (i < num_dds) {
-    if (amb_test_non_ref_prns[i] == sdiffs[j].prn) {
+    if (non_ref_prns[i] == sdiffs[j].prn) {
       memcpy(&amb_sdiffs[i+1], &sdiffs[j], sizeof(sdiff_t));
       ambiguity_dd_measurements[i] = sdiffs[j].carrier_phase;
       ambiguity_dd_measurements[i+num_dds] = sdiffs[j].pseudorange;
@@ -443,21 +451,21 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
     // else {
     //   j++;
     // }
-    else if (amb_test_non_ref_prns[i] > sdiffs[i].prn) {
+    else if (non_ref_prns[i] > sdiffs[i].prn) {
       j++;
     } else { //DEBUG
-      //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test->sats
-      printf("there is either disorder in amb_test->sats or it contains a sat not in sdiffs. amb_test->sats must be a subset of sdiffs by this point.\n");
-      printf("amb_test->sats.prns = [");
-      for (u8 j=0; j < amb_test->sats.num_sats; j++) {
-        printf("%d, ", amb_test->sats.prns[i]);
+      //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
+      printf("there is either disorder in the amb_test sats or it contains a sat not in sdiffs. amb_test's sats must be a subset of sdiffs by this point.\n");
+      printf("amb_test sat prns = {%u, ", ref_prn);
+      for (u8 j=0; j < num_dds; j++) {
+        printf("%u, ", non_ref_prns[i]);
       }
-      printf("]\n");
-      printf("sdiffs.prns = [");
+      printf("}\n");
+      printf("sdiffs.prns = {");
       for (u8 j=0; j < num_sdiffs; j++) {
         printf("%d, ", sdiffs[i].prn);
       }
-      printf("]\n");
+      printf("}\n");
     }
   }
   /* This awkward case deals with the situation when sdiffs and sats have the
@@ -473,27 +481,87 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
   }
 
   if (found_ref == 0) { //DEBUG
-    //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test->sats
-    printf("amb_test->sats's reference wasn't found in the sdiffs, but it should have already been rebased.\n");
-    printf("amb_test->sats.prns = [");
-    for (u8 j=0; j < amb_test->sats.num_sats; j++) {
-      printf("%d, ", amb_test->sats.prns[j]);
+    //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
+    printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
+    printf("amb_test sat .prns = {%u", ref_prn);
+    for (u8 j=0; j < num_dds; j++) {
+      printf("%d, ", non_ref_prns[j]);
     }
-    printf("]\n");
-    printf("sdiffs.prns = [");
+    printf("}\n");
+    printf("sdiffs.prns = {");
     for (u8 j=0; j < num_sdiffs; j++) {
       printf("%d, ", sdiffs[j].prn);
     }
-    printf("]\n");
+    printf("}\n");
   }
   for (u8 i=0; i < num_dds; i++) {
     ambiguity_dd_measurements[i] -= ref_phase;
     ambiguity_dd_measurements[i+num_dds] -= ref_pseudorange;
   }
   if (DEBUG_AMBIGUITY_TEST) {
+    printf("amb_sdiff_prns = {");
+    for (i = 0; i < num_dds; i++) {
+      printf("%u, ", amb_sdiffs[i].prn);
+    }
+    printf("}\ndd_measurements = {");
+    for (i=0; i < 2 * num_dds; i++) {
+      printf("%f, \t", ambiguity_dd_measurements[i]);
+    }
+    printf("}\n</MAKE_DD_MEASUREMENTS_AND_SDIFFS>\n");
+  }
+}
+
+
+void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
+            u8 num_sdiffs, sdiff_t *sdiffs,
+            double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
+{
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("<MAKE_AMBIGUITY_RESOLVED_DD_MEASUREMENTS_AND_SDIFFS>\n");
+    printf("amb_test->sats.prns = {");
+    for (u8 i=0; i < amb_test->sats.num_sats; i++) {
+      printf("%u, ", amb_test->sats.prns[i]);
+    }
+    printf("}\n");
+  }
+
+  u8 ref_prn = amb_test->sats.prns[0];
+  u8 num_dds = amb_test->amb_check.num_matching_ndxs;
+  u8 non_ref_prns[num_dds];
+  for (u8 i=0; i < num_dds; i++) {
+    non_ref_prns[i] = amb_test->sats.prns[1 + amb_test->amb_check.matching_ndxs[i]];
+    if (DEBUG_AMBIGUITY_TEST) {
+      printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %d\n", 
+             i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i], 
+             i, amb_test->amb_check.ambs[i]);
+    }
+  }
+  make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
+                                  num_sdiffs, sdiffs,
+                                  ambiguity_dd_measurements, amb_sdiffs);
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("</MAKE_AMBIGUITY_RESOLVED_DD_MEASUREMENTS_AND_SDIFFS>\n");
+  }
+}
+
+
+void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+                                               double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
+{
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("<MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
+  }
+  u8 ref_prn = amb_test->sats.prns[0];
+  u8 *non_ref_prns = &amb_test->sats.prns[1];
+  u8 num_dds = MAX(1, amb_test->sats.num_sats)-1;
+  make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
+                                  num_sdiffs, sdiffs,
+                                  ambiguity_dd_measurements, amb_sdiffs);
+  if (DEBUG_AMBIGUITY_TEST) {
     printf("</MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
 }
+
 
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs)
 {
@@ -981,7 +1049,7 @@ u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, 
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<FIND_INDICES_OF_INTERSECTION_SATS>\n");
-    printf("amb_test->sats.prns = {");
+    printf("amb_test->sats.prns          = {");
     for (u8 i = 0; i < amb_test->sats.num_sats; i++) {
       printf("%u, ", amb_test->sats.prns[i]);
     }

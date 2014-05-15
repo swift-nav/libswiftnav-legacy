@@ -215,8 +215,24 @@ void nkf_update(nkf_t *kf, double *measurements)
 // presumes that the first alm entry is the reference sat
 void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE)
 {
-  if (num_sats <= 1)
+  if (DEBUG_AMB_KF) {
+    printf("<ASSIGN_DE_MTX>\nnum_sats = %u\nsdiff prns&positions = {\n", num_sats);
+    for (u8 i=0; i < num_sats; i++) {
+      printf("i = %u, prn = %u, \tpos = [%f, \t%f, \t%f]\n",
+             i,
+             sats_with_ref_first[i].prn,
+             sats_with_ref_first[i].sat_pos[0],
+             sats_with_ref_first[i].sat_pos[1],
+             sats_with_ref_first[i].sat_pos[2]);
+    }
+    printf("}\nref_ecef = {%f, \t%f, \t%f}\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
+  }
+  if (num_sats <= 1) {
+    if (DEBUG_AMB_KF) {
+      printf("not enough sats\n</ASSIGN_DE_MTX>\n");
+    }
     return;
+  }
 
   memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
   double e0[3];
@@ -236,6 +252,10 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
     DE[3*(i-1)] = x / norm - e0[0];
     DE[3*(i-1) + 1] = y / norm - e0[1];
     DE[3*(i-1) + 2] = z / norm - e0[2];
+  }
+  if (DEBUG_AMB_KF) {
+    MAT_PRINTF(DE, (num_sats-1), 3);
+    printf("</ASSIGN_DE_MTX>\n");
   }
 }
 
