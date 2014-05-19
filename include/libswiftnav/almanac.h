@@ -21,7 +21,7 @@
 
 /** Structure containing the GPS almanac for one satellite. */
 typedef struct {
-  double ecc;   /**< Eccentricity in radians. */
+  double ecc;   /**< Eccentricity (unitless) */
   double toa;   /**< Time of Applicability in seconds since Sunday. */
   double inc;   /**< Inclination in radians. */
   double rora;  /**< Rate of Right Ascension in radians/sec. */
