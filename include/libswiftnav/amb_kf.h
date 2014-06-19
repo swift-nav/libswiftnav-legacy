@@ -35,8 +35,6 @@ typedef struct {
   double state_cov_D[MAX_STATE_DIM];
 } nkf_t;
 
-
-
 // void predict_forward(nkf_t *kf);
 void nkf_update(nkf_t *kf, double *measurements);
 

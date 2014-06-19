@@ -8,6 +8,11 @@
  * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * 
+ * This is a Bierman-Thornton kalman filter implementation, as described in:
+ *  [1] Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
+ *      John C. Wiley & Sons, Inc., 2011.
  */
 
 #include <string.h>
@@ -42,6 +47,9 @@ static void eye(u32 n, double *M)
   }
 }
 
+/** performs th UDU' decomposition of a matrix
+ * This is algorithm 10.2-2 of Gibbs[1]
+ */
 static s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
 {
   double alpha, beta;
@@ -88,18 +96,32 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
   }
 }
 
-/** In place updating of the state covariances and k vec to use a single decorrelated observation
+/** In place updating of the state cov and k vec using a scalar observation
+ * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
+ *    singular matrices, dictating that zeros from cov_D dominate.
+ *
  */
-static void update_scalar_measurement(u32 state_dim, double *h, double R,
+static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
-  // VEC_PRINTF(h, state_dim);
+  if (DEBUG_AMB_KF) {
+    printf("<INCORPORATE_SCALAR_MEASUREMENT>\n");
+    VEC_PRINTF(h, state_dim);
+    printf("R = %.16f", R);
+    if (abs(R) == 0) {
+      printf(" \t (R == 0 exactly)\n");
+    }
+    else {
+      printf("\n");
+    }
+  }
+  
   double f[state_dim]; // f = U^T * h
   memcpy(f, h, state_dim * sizeof(double));
   cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit, //CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG
               state_dim, U, //int N, double *A
               state_dim, f, 1); // int lda, double *X, int incX
-  // VEC_PRINTF(f, state_dim);
+  
 
   double g[state_dim]; // g = diag(D) * f
   double alpha = R; // alpha = f * g + R = f^T * diag(D) * f + R
@@ -107,8 +129,17 @@ static void update_scalar_measurement(u32 state_dim, double *h, double R,
     g[i] = D[i] * f[i];
     alpha += f[i] * g[i];
   }
-  // VEC_PRINTF(g, state_dim);
-  // printf("%f\n", alpha);
+  if (DEBUG_AMB_KF) {
+    VEC_PRINTF(f, state_dim);  
+    VEC_PRINTF(g, state_dim);
+    printf("alpha = %.16f", alpha);
+    if (abs(alpha) == 0) {
+      printf(" \t (alpha == 0 exactly)\n");
+    }
+    else {
+      printf("\n");
+    }
+  }
 
   double gamma[state_dim];
   double U_bar[state_dim * state_dim];
@@ -120,16 +151,51 @@ static void update_scalar_measurement(u32 state_dim, double *h, double R,
   memset(k,     0,             state_dim * sizeof(double));
 
   gamma[0] = R + g[0] * f[0];
-  D_bar[0] = D[0] * R / gamma[0];
+  if (D[0] == 0 || R == 0) {
+    D_bar[0] = 0; // this is just an expansion of the other branch with the proper 0 `div` 0 definitions
+  }
+  else {
+    D_bar[0] = D[0] * R / gamma[0];
+  }
   k[0] = g[0];
   U_bar[0] = 1;
+  if (DEBUG_AMB_KF) {
+    printf("gamma[0] = %f\n", gamma[0]);
+    printf("D_bar[0] = %f\n", D_bar[0]);
+    VEC_PRINTF(k, state_dim);
+    printf("U_bar[:,0] = {");
+    for (u32 i=0; i < state_dim; i++) {
+      printf("%f, ", U_bar[i*state_dim]);
+    }
+    printf("}\n");
+  }
   for (u32 j=1; j<state_dim; j++) {
     gamma[j] = gamma[j-1] + g[j] * f[j];
-    D_bar[j] = D[j] * gamma[j-1] / gamma[j];
+    if (D[j] == 0 || gamma[j-1] == 0) {
+      D_bar[j] = 0; // this is just an expansion of the other branch with the proper 0 `div` 0 definitions
+    }
+    else {
+      D_bar[j] = D[j] * gamma[j-1] / gamma[j];
+    }
     double f_over_gamma = f[j] / gamma[j-1];
     for (u32 i=0; i<=j; i++) {
-      U_bar[i*state_dim + j] = U[i*state_dim + j] - f_over_gamma * k[i]; // U_bar[:,j] = U[:,j] - f[j]/gamma[j-1] * k
+      if (k[i] == 0) {
+        U_bar[i*state_dim + j] = U[i*state_dim + j]; // same as other branch with correct 0 `div` 0 definitions
+      }
+      else {
+        U_bar[i*state_dim + j] = U[i*state_dim + j] - f_over_gamma * k[i]; // U_bar[:,j] = U[:,j] - f[j]/gamma[j-1] * k
+      }
       k[i] += g[j] * U[i*state_dim + j]; // k = k + g[j] * U[:,j]
+    }
+    if (DEBUG_AMB_KF) {
+      printf("gamma[%u] = %f\n", j, gamma[j]);
+      printf("D_bar[%u] = %f\n", j, D_bar[j]);
+      VEC_PRINTF(k, state_dim);
+      printf("U_bar[:,%u] = {", j);
+      for (u32 i=0; i < state_dim; i++) {
+        printf("%f, ", U_bar[i*state_dim + j]);
+      }
+      printf("}\n");
     }
   }
   for (u32 i=0; i<state_dim; i++) {
@@ -137,14 +203,21 @@ static void update_scalar_measurement(u32 state_dim, double *h, double R,
   }
   memcpy(U, U_bar, state_dim * state_dim * sizeof(double));
   memcpy(D, D_bar,             state_dim * sizeof(double));
-
+  if (DEBUG_AMB_KF) {
+    MAT_PRINTF(U, state_dim, state_dim);
+    VEC_PRINTF(D, state_dim);
+    printf("</INCORPORATE_SCALAR_MEASUREMENT>\n");
+  }
 }
 
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
+ * This is directly from section 10.2.1 of Gibbs [1]
  */
 static void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
-
+  if (DEBUG_AMB_KF) {
+    printf("<INCORPORATE_OBS>\n");
+  }
   for (u32 i=0; i<kf->obs_dim; i++) {
     double *h = &kf->decor_obs_mtx[kf->state_dim * i]; //vector of length kf->state_dim
     double R = kf->decor_obs_cov[i]; //scalar
@@ -152,7 +225,7 @@ static void incorporate_obs(nkf_t *kf, double *decor_obs)
     // printf("i=%i\n", i);
     // VEC_PRINTF(h, kf->state_dim);
 
-    update_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]); //updates cov and sets k
+    incorporate_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]); //updates cov and sets k
     // VEC_PRINTF(k, kf->state_dim);
 
     double predicted_obs = 0;
@@ -168,6 +241,9 @@ static void incorporate_obs(nkf_t *kf, double *decor_obs)
       kf->state_mean[j] += k[j] * obs_minus_predicted_obs; // uses k to update mean
     }
     // VEC_PRINTF(intermediate_mean, kf->state_dim);
+  }
+  if (DEBUG_AMB_KF) {
+    printf("</INCORPORATE_OBS>\n");
   }
 }
 
@@ -192,10 +268,14 @@ void diffuse_state(nkf_t *kf)
   }
 }
 
+
 /** In place updating of the state mean and covariance. Modifies measurements.
  */
 void nkf_update(nkf_t *kf, double *measurements)
 {
+  if (DEBUG_AMB_KF) {
+    printf("<NKF_UPDATE>\n");
+  }
   double resid_measurements[kf->obs_dim];
   make_residual_measurements(kf, measurements, resid_measurements);
   // VEC_PRINTF(measurements, kf->obs_dim);
@@ -210,6 +290,12 @@ void nkf_update(nkf_t *kf, double *measurements)
   // predict_forward(kf);
   diffuse_state(kf);
   incorporate_obs(kf, resid_measurements);
+  if (DEBUG_AMB_KF) {
+    MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
+    VEC_PRINTF(kf->state_cov_D, kf->state_dim);
+    VEC_PRINTF(kf->state_mean, kf->state_dim);
+    printf("</NKF_UPDATE>\n");
+  }
 }
 
 // presumes that the first alm entry is the reference sat
