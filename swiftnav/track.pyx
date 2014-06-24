@@ -211,6 +211,55 @@ cdef class SimpleLoopFilter:
     def __get__(self):
       return self.s.y
 
+cdef class AidedLoopFilter:
+  """
+  Wraps the `libswiftnav` aided first-order loop filter implementation.
+
+  It's a PI filter using an extra I aiding error term.
+
+  The loop filter state, :libswiftnav:`simple_lf_state_t` is maintained by the
+  class instance.
+
+  Parameters
+  ----------
+  y0 : float
+    The initial output variable value.
+  pgain : float
+    The proportional gain.
+  igain : float
+    The integral gain.
+  aiding_igain : float
+    The aiding integral gain.
+
+  """
+
+  cdef track_c.aided_lf_state_t s
+
+  def __cinit__(self, y0, pgain, igain, aiding_igain):
+    track_c.aided_lf_init(&self.s, y0, pgain, igain, aiding_igain)
+
+  def update(self, p_i_error, aiding_error):
+    """
+    Wraps the function :libswiftnav:`simple_lf_update`.
+
+    Parameters
+    ----------
+    error : float
+      The error input.
+
+    Returns
+    -------
+    out : float
+      The updated value of the output variable.
+
+    """
+    return track_c.aided_lf_update(&self.s, p_i_error, aiding_error)
+
+  property y:
+    """The output variable."""
+    def __get__(self):
+      return self.s.y
+
 
 cdef class SimpleTrackingLoop:
   """
@@ -290,6 +339,95 @@ cdef class SimpleTrackingLoop:
     cs[2].I = l.real
     cs[2].Q = l.imag
     track_c.simple_tl_update(&self.s, cs)
+    return (self.code_freq, self.carr_freq)
+
+  property code_freq:
+    """The code phase rate (i.e. frequency)."""
+    def __get__(self):
+      return self.s.code_freq
+
+  property carr_freq:
+    """The carrier frequency."""
+    def __get__(self):
+      return self.s.carr_freq
+
+
+cdef class AidedTrackingLoop:
+  """
+  Wraps the `libswiftnav` simple second-order tracking loop implementation
+  and the aided second-order tracking loop implementation.
+
+  The tracking loop state, :libswiftnav:`aided_tl_state_t` is maintained by
+  the class instance.
+
+  TODO, add carrier aiding to the code loop.
+
+  For a full description of the loop filter parameters, see
+  :libswiftnav:`calc_loop_gains`.
+
+  Parameters
+  ----------
+  code_params : (float, float, float)
+    Code tracking loop parameter tuple, `(bw, zeta, k)`.
+  loop_freq : float
+    The frequency with which loop updates are performed.
+
+  """
+
+  cdef track_c.aided_tl_state_t s
+  cdef float loop_freq
+  cdef float code_bw, code_zeta, code_k
+
+  def __cinit__(self, code_params, loop_freq):
+    self.loop_freq = loop_freq
+    self.code_bw, self.code_zeta, self.code_k = code_params
+
+  def start(self, code_freq, carr_freq):
+    """
+    (Re-)initialise the tracking loop.
+
+    Parameters
+    ----------
+    code_freq : float
+      The code phase rate (i.e. frequency).
+    carr_freq : float
+      The carrier frequency.
+
+    """
+    track_c.aided_tl_init(&self.s, self.loop_freq,
+                           code_freq, self.code_bw,
+                           self.code_zeta, self.code_k,
+                           carr_freq)
+
+  def update(self, complex e, complex p, complex l):
+    """
+    Wraps the function :libswiftnav:`aided_tl_update`.
+
+    Parameters
+    ----------
+    e : complex, :math:`I_E + Q_E j`
+      The early correlation. The real component contains the in-phase
+      correlation and the imaginary component contains the quadrature
+      correlation.
+    p : complex, :math:`I_P + Q_P j`
+      The prompt correlation.
+    l : complex, :math:`I_L + Q_L j`
+      The late correlation.
+
+    Returns
+    -------
+    out : (float, float)
+      The tuple (code_freq, carrier_freq).
+
+    """
+    cdef track_c.correlation_t cs[3]
+    cs[0].I = e.real
+    cs[0].Q = e.imag
+    cs[1].I = p.real
+    cs[1].Q = p.imag
+    cs[2].I = l.real
+    cs[2].Q = l.imag
+    track_c.aided_tl_update(&self.s, cs)
     return (self.code_freq, self.carr_freq)
 
   property code_freq:

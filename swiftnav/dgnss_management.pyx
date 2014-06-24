@@ -103,6 +103,7 @@ def dgnss_update(alms, GpsTime timestamp,
 
   cdef double b_[3]
   # dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt, 1, b_)
+  # print n
   dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt)
   
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \

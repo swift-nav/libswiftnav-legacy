@@ -38,9 +38,24 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct simple_lf_state_t:
     float y
 
+  ctypedef struct aided_lf_state_t:
+    float pgain
+    float igain
+    float aiding_igain
+    float prev_error
+    float y
+
   ctypedef struct simple_tl_state_t:
     float code_freq
     float carr_freq
+
+  ctypedef struct aided_tl_state_t:
+    float carr_freq
+    aided_lf_state_t carr_filt
+    float code_freq
+    simple_lf_state_t code_filt
+    float prev_I
+    float prev_Q
 
   ctypedef struct comp_tl_state_t:
     float code_freq
@@ -64,12 +79,23 @@ cdef extern from "libswiftnav/track.h":
                       float pgain, float igain)
   float simple_lf_update(simple_lf_state_t *s, float error)
 
+  void aided_lf_init(aided_lf_state_t *s, float y0,
+                   float pgain, float igain,
+                   float aiding_igain)
+  float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
+
   void simple_tl_init(simple_tl_state_t *s, float loop_freq,
                       float code_freq, float code_bw,
                       float code_zeta, float code_k,
                       float carr_freq, float carr_bw,
                       float carr_zeta, float carr_k)
   void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
+
+  void aided_tl_init(aided_tl_state_t *s, float loop_freq,
+                   float code_freq, float code_bw,
+                   float code_zeta, float code_k,
+                   float carr_freq)
+  void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
 
   void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                       float code_freq, float code_bw,
