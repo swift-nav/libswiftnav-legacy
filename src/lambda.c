@@ -260,8 +260,8 @@ void matmul(const char *tr, int n, int k, int m, double alpha,
                    const double *A, const double *B, double beta, double *C)
 {
     int lda=tr[0]=='T'?m:n,ldb=tr[1]=='T'?k:m;
-    
-    dgemm_((char *)tr,(char *)tr+1,&n,&k,&m,&alpha,(double *)A,&lda,(double *)B, 
+
+    dgemm_((char *)tr,(char *)tr+1,&n,&k,&m,&alpha,(double *)A,&lda,(double *)B,
            &ldb,&beta,C,&n);
 }
 
@@ -282,7 +282,7 @@ int solve(const char *tr, const double *A, const double *Y, int n,
     double B[n*n];
     int info;
     int ipiv[n];
-    
+
     memcpy(B, A, sizeof(double)*n*n);
     memcpy(X, Y, sizeof(double)*n*m);
     dgetrf_(&n,&n,B,&n,ipiv,&info);
@@ -307,14 +307,14 @@ int lambda_solution(int n, int m, const double *a, const double *Q, double *F,
                   double *s)
 {
     int info;
-    
+
     if (n<=0||m<=0) return -1;
     double L[n*n];
     double D[n];
     double Z[n*n];
     double z[n];
     double E[n*m];
-    
+
     /* L = zeros(n,n) */
     memset(L, 0, sizeof(double)*n*n);
 
@@ -325,14 +325,14 @@ int lambda_solution(int n, int m, const double *a, const double *Q, double *F,
 
     /* LD factorization */
     if (!(info=LD(n,Q,L,D))) {
-        
+
         /* lambda reduction */
         reduction(n,L,D,Z);
         matmul("TN",n,1,n,1.0,Z,a,0.0,z); /* z=Z'*a */
-        
+
         /* mlambda search */
         if (!(info=search(n,m,L,D,z,E,s))) {
-            
+
             info=solve("T",Z,E,n,m,F); /* F=Z'\E */
         }
     }

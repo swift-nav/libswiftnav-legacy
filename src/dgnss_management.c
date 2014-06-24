@@ -841,7 +841,18 @@ u8 get_amb_test_prns(u8 *prns)
 
 s8 dgnss_iar_resolved()
 {
-  return ambiguity_test_n_hypotheses(&ambiguity_test) == 1;
+  return ambiguity_iar_can_solve(&ambiguity_test);
+}
+
+u8 dgnss_iar_pool_contains(double *ambs)
+{
+  return ambiguity_test_pool_contains(&ambiguity_test, ambs);
+}
+
+u8 dgnss_iar_MLE_ambs(s32 *ambs)
+{
+  ambiguity_test_MLE_ambs(&ambiguity_test, ambs);
+  return MAX(1, ambiguity_test.sats.num_sats) - 1;
 }
 
 u8 dgnss_iar_pool_contains(double *ambs)

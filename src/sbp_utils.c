@@ -43,6 +43,18 @@ void sbp_make_pos_llh(sbp_pos_llh_t *pos_llh, gnss_solution *soln, u8 flags)
   pos_llh->flags = flags;
 }
 
+void sbp_make_pos_ecef(sbp_pos_ecef_t *pos_ecef, gnss_solution *soln, u8 flags)
+{
+  pos_ecef->tow = round(soln->time.tow * 1e3);
+  pos_ecef->x = soln->pos_ecef[0];
+  pos_ecef->y = soln->pos_ecef[1];
+  pos_ecef->z = soln->pos_ecef[2];
+  /* TODO: fill in accuracy field. */
+  pos_ecef->accuracy = 0;
+  pos_ecef->n_sats = soln->n_used;
+  pos_ecef->flags = flags;
+}
+
 void sbp_make_vel_ned(sbp_vel_ned_t *vel_ned, gnss_solution *soln, u8 flags)
 {
   vel_ned->tow = round(soln->time.tow * 1e3);
@@ -54,6 +66,18 @@ void sbp_make_vel_ned(sbp_vel_ned_t *vel_ned, gnss_solution *soln, u8 flags)
   vel_ned->v_accuracy = 0;
   vel_ned->n_sats = soln->n_used;
   vel_ned->flags = flags;
+}
+
+void sbp_make_vel_ecef(sbp_vel_ecef_t *vel_ecef, gnss_solution *soln, u8 flags)
+{
+  vel_ecef->tow = round(soln->time.tow * 1e3);
+  vel_ecef->x = round(soln->vel_ecef[0] * 1e3);
+  vel_ecef->y = round(soln->vel_ecef[1] * 1e3);
+  vel_ecef->z = round(soln->vel_ecef[2] * 1e3);
+  /* TODO: fill in accuracy field. */
+  vel_ecef->accuracy = 0;
+  vel_ecef->n_sats = soln->n_used;
+  vel_ecef->flags = flags;
 }
 
 void sbp_make_dops(sbp_dops_t *dops_out, dops_t *dops_in)

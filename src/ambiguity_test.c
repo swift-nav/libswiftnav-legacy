@@ -66,23 +66,23 @@ void destroy_ambiguity_test(ambiguity_test_t *amb_test)
 }
 
 
-void print_double_mtx(double *m, u32 _r, u32 _c) {                    \
-    for (u32 _i = 0; _i < (_r); _i++) {              \
-      printf(" [% 12lf", (m)[_i*(_c) + 0]);                \
-      for (u32 _j = 1; _j < (_c); _j++)              \
-        printf(" % 12lf", (m)[_i*(_c) + _j]);               \
-      printf("]\n");                                 \
-    }                                              \
+void print_double_mtx(double *m, u32 _r, u32 _c) {
+    for (u32 _i = 0; _i < (_r); _i++) {
+      printf(" [% 12lf", (m)[_i*(_c) + 0]);
+      for (u32 _j = 1; _j < (_c); _j++)
+        printf(" % 12lf", (m)[_i*(_c) + _j]);
+      printf("]\n");
+    }
 }
 
 
-void print_pearson_mtx(double *m, u32 dim) {                    \
-    for (u32 _i = 0; _i < dim; _i++) {              \
-      printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));                \
-      for (u32 _j = 1; _j < dim; _j++)              \
-        printf(" % 12lf", m[_i*dim + _j] / sqrt(m[_i*dim + _i]) / sqrt(m[_j * dim + _j]));               \
-      printf("]\n");                                 \
-    }                                              \
+void print_pearson_mtx(double *m, u32 dim) {
+    for (u32 _i = 0; _i < dim; _i++) {
+      printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));
+      for (u32 _j = 1; _j < dim; _j++)
+        printf(" % 12lf", m[_i*dim + _j] / sqrt(m[_i*dim + _i]) / sqrt(m[_j * dim + _j]));
+      printf("]\n");
+    }
 }
 
 
@@ -128,7 +128,7 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
 }
 
 s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
-{ 
+{
   if (memory_pool_n_allocated(amb_test->pool) == 1) {
     hypothesis_t hyp;
     memory_pool_to_array(amb_test->pool, &hyp);
@@ -171,9 +171,9 @@ u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
 typedef struct {
   u8 started;
   double max_ll;
-  u8 num_dds;  
+  u8 num_dds;
   s32 N[MAX_CHANNELS-1];
-  
+
 } fold_mle_t; // fold omelette
 
 void fold_mle(void *x, element_t *elem)
@@ -332,7 +332,7 @@ void update_and_get_max_ll(void *x_, element_t *elem) {
  *    (i)   num_dds:    the number of double differences in the hypothesis:
  *                              Only used for initialization of amb_check.
  *    (i)   hyp:        the hypothesis to update the unanimity test with.
- *    (i/o) amb_check:  a struct to keep track of the ambs still unanimous 
+ *    (i/o) amb_check:  a struct to keep track of the ambs still unanimous
  *                              among all the hyps tested thus far. It updates
  *                              to hold that tracking for the union of the
  *                              previously tested hyps and {the current hyp}.
@@ -366,9 +366,9 @@ void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
 /* filter_and_renormalize serves three purposes:
  *  Foremost, it decides which hypotheses make the cut to stay in the test.
  *  For those hyps that make the cut:
- *    It renormalizes their psuedo-log-likelihoods such that the most likely 
+ *    It renormalizes their psuedo-log-likelihoods such that the most likely
  *        has value 0.
- *    It updates the unanimity_check with that hyp, to see which ambiguities 
+ *    It updates the unanimity_check with that hyp, to see which ambiguities
  *        have the same value across all hyps.
  */
 s8 filter_and_renormalize(void *arg, element_t *elem) {
@@ -377,7 +377,7 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
   u8 keep_it = (hyp->ll > LOG_PROB_RAT_THRESHOLD);
   if (keep_it) {
     hyp->ll -= ((hyp_filter_t *) arg)->max_ll;
-    check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp, 
+    check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp,
                          ((hyp_filter_t *) arg)->unanimous_amb_check);
   }
   return keep_it;
@@ -413,11 +413,12 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
  */
 u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
 {
-  return (amb_test->amb_check.num_matching_ndxs >= 3);
+  return amb_test->amb_check.initialized &&
+         amb_test->amb_check.num_matching_ndxs >= 3;
 }
 
 
-void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds, 
+void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                      u8 num_sdiffs, sdiff_t *sdiffs,
                                      double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
@@ -433,6 +434,8 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   double ref_pseudorange;
   u8 i=0;
   u8 j=0;
+  u8 *amb_test_non_ref_prns = &amb_test->sats.prns[1];
+  u8 num_dds = amb_test->sats.num_sats-1;
   u8 found_ref = 0; //DEBUG
   while (i < num_dds) {
     if (non_ref_prns[i] == sdiffs[j].prn) {
@@ -531,8 +534,8 @@ void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_te
   for (u8 i=0; i < num_dds; i++) {
     non_ref_prns[i] = amb_test->sats.prns[1 + amb_test->amb_check.matching_ndxs[i]];
     if (DEBUG_AMBIGUITY_TEST) {
-      printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %d\n", 
-             i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i], 
+      printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %d\n",
+             i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i],
              i, amb_test->amb_check.ambs[i]);
     }
   }
