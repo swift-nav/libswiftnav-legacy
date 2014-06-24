@@ -132,15 +132,46 @@ void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
  *  -# Understanding GPS: Principles and Applications.
  *     Elliott D. Kaplan. Artech House, 1996.
  *
- * \todo Fix potential divide by zero if Q is zero.
- *
  * \param I The prompt in-phase correlation, \f$I_k\f$.
  * \param Q The prompt quadrature correlation, \f$Q_k\f$.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
 float costas_discriminator(float I, float Q)
 {
+  if (I == 0) {
+    // Technically, it should be +/- 0.25, but then we'd have to keep track
+    //  of the previous sign do it right, so it's simple enough to just return
+    //  the average of 0.25 and -0.25 in the face of that ambiguity, so zero.
+    return 0; 
+  }
   return atanf(Q / I) * (float)(1/(2*M_PI));
+}
+
+/** Frequency discriminator for a FLL, used to aid the PLL.
+ *
+ * Implements the \f$atan2\f$ frequency discriminator
+ *
+ * \f[
+ *    dot_k = abs(I_k * I_{k-1}) + abs(Q_k * Q_{k-1})
+ *    cross_k = I_{k-1} * Q_k - I_k * Q_{k-1}
+ *    \varepsilon_k = atan2 \left(cross_k, dot_k\right)
+ * \f]
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications.
+ *     Elliott D. Kaplan. Artech House, 1996.
+ *
+ * \param I The prompt in-phase correlation, \f$I_k\f$.
+ * \param Q The prompt quadrature correlation, \f$Q_k\f$.
+ * \param I The prompt in-phase correlation, \f$I_{k-1}\f$.
+ * \param Q The prompt quadrature correlation, \f$Q_{k-1}\f$.
+ * \return The discriminator value, \f$\varepsilon_k\f$.
+ */
+float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
+{
+  float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
+  float cross = prev_I * Q - I * prev_Q;
+  return atan2f(cross, dot);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -175,6 +206,46 @@ float dll_discriminator(correlation_t cs[3])
   float late_mag = sqrtf((float)cs[2].I*cs[2].I + (float)cs[2].Q*cs[2].Q);
 
   return 0.5f * (early_mag - late_mag) / (early_mag + late_mag);
+}
+
+/** Initialize an integral aided loop filter.
+ *
+ * This initializes a feedback loop with a PI component, plus an extra independent I term.
+ *
+ * \param s The loop filter state struct to initialize.
+ * \param y0 The initial value of the output variable, \f$y_0\f$.
+ * \param pgain The proportional gain of the PI error term, \f$k_p\f$.
+ * \param igain The integral gain of the PI error term, \f$k_i\f$.
+ * \param aiding_igain The integral gain of the aiding error term, \f$k_{ia}\f$.
+ */
+void aided_lf_init(aided_lf_state_t *s, float y0,
+                   float pgain, float igain,
+                   float aiding_igain)
+{
+  s->y = y0;
+  s->prev_error = 0.f;
+  s->pgain = pgain;
+  s->igain = igain;
+  s->aiding_igain = aiding_igain;
+}
+
+/** Update step for the integral aided loop filter.
+ *
+ * This updates a feedback loop with a PI component plus an extra independent I term.
+ *
+ * \param s The loop filter state struct.
+ * \param p_i_error The error output from the discriminator used in both P and I terms.
+ * \param aiding_error The error output from the discriminator use just in an I term.
+ * \return The updated output variable.
+ */
+float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
+{
+  s->y += s->pgain * (p_i_error - s->prev_error) + \
+          s->igain * p_i_error + \
+          s->aiding_igain * aiding_error;
+  s->prev_error = p_i_error;
+
+  return s->y;
 }
 
 /** Initialise a simple first-order loop filter.
@@ -217,6 +288,68 @@ float simple_lf_update(simple_lf_state_t *s, float error)
   s->prev_error = error;
 
   return s->y;
+}
+
+/** Initialise an aided tracking loop.
+ *
+ * For a full description of the loop filter parameters, see calc_loop_gains().
+ *
+ * TODO, add carrier aiding to the code loop.
+ *
+ * \param s The tracking loop state struct to initialise.
+ * \param code_freq The initial code phase rate (i.e. frequency).
+ * \param code_bw The code tracking loop noise bandwidth.
+ * \param code_zeta The code tracking loop damping ratio.
+ * \param code_k The code tracking loop gain.
+ * \param carr_freq The initial carrier frequency.
+ * \param carr_bw The carrier tracking loop noise bandwidth.
+ * \param carr_zeta The carrier tracking loop damping ratio.
+ * \param carr_k The carrier tracking loop gain.
+ */
+void aided_tl_init(aided_tl_state_t *s, float loop_freq,
+                   float code_freq, float code_bw,
+                   float code_zeta, float code_k,
+                   float carr_freq)
+{
+  float pgain, igain;
+
+  s->carr_freq = carr_freq;
+  s->prev_I = 1.0f; // This works, but is it a really good way to do it?
+  s->prev_Q = 0.0f;
+  aided_lf_init(&(s->carr_filt), carr_freq, PLL_PGAIN, PLL_IGAIN, PLL_FREQ_IGAIN / carr_freq);
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  s->code_freq = code_freq;
+  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+}
+
+/** Update step for the aided tracking loop.
+ *
+ * Implements a basic second-order tracking loop. The code tracking loop is a
+ * second-order DLL using dll_discriminator() as its discriminator function.
+ * The carrier phase tracking loop is a second-order Costas loop using
+ * costas_discriminator(), aided by a frequency discriminator using
+ * frequency_discriminator().
+ *
+ * TODO, add carrier aiding to the code loop.
+ *
+ * The tracking loop output variables, i.e. code and carrier frequencies can be
+ * read out directly from the state struct.
+ *
+ * \param s The tracking loop state struct.
+ * \param cs An array [E, P, L] of correlation_t structs for the Early, Prompt
+ *           and Late correlations.
+ */
+void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
+{
+  float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+  float freq_error = frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
+  s->prev_I = cs[1].I;
+  s->prev_Q = cs[1].Q;
+  s->carr_freq = aided_lf_update(&(s->carr_filt), carr_error, freq_error);
+
+  float code_error = dll_discriminator(cs);
+  s->code_freq = simple_lf_update(&(s->code_filt), -code_error); // + s->carr_freq * SCALING_FACTOR
 }
 
 /** Initialise a simple tracking loop.
