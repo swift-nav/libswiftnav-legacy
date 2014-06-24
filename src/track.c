@@ -149,12 +149,16 @@ float costas_discriminator(float I, float Q)
 
 /** Frequency discriminator for a FLL, used to aid the PLL.
  *
- * Implements the \f$atan2\f$ frequency discriminator
+ * Implements the \f$atan2\f$ frequency discriminator.
+ *
+ * Strictly speaking this should have a 1 / dt factor, but then we
+ * would later multiply the gain by dt again, and it would cancel out.
+ * So why do those unnecessary operations at all?
  *
  * \f[
  *    dot_k = abs(I_k * I_{k-1}) + abs(Q_k * Q_{k-1})
  *    cross_k = I_{k-1} * Q_k - I_k * Q_{k-1}
- *    \varepsilon_k = atan2 \left(cross_k, dot_k\right)
+ *    \varepsilon_k = atan2 \left(cross_k, dot_k\right) / \pi
  * \f]
  *
  * References:
@@ -171,7 +175,7 @@ float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
 {
   float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
   float cross = prev_I * Q - I * prev_Q;
-  return atan2f(cross, dot);
+  return atan2f(cross, dot) / ((float) M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -316,7 +320,7 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
   s->carr_freq = carr_freq;
   s->prev_I = 1.0f; // This works, but is it a really good way to do it?
   s->prev_Q = 0.0f;
-  aided_lf_init(&(s->carr_filt), carr_freq, PLL_PGAIN, PLL_IGAIN, PLL_FREQ_IGAIN / carr_freq);
+  aided_lf_init(&(s->carr_filt), carr_freq, PLL_PGAIN, PLL_IGAIN, PLL_FREQ_IGAIN);
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
   s->code_freq = code_freq;
