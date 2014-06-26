@@ -39,7 +39,8 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->amb_check.initialized = 0;
 }
 
-
+/** A memory pool filter for clearing out all elements of a pool.
+ */
 s8 filter_all(void *arg, element_t *elem) {
   return (0 == 1);
 }
@@ -66,6 +67,15 @@ void destroy_ambiguity_test(ambiguity_test_t *amb_test)
 }
 
 
+/** Prints a matrix of doubles.
+ *
+ * Used primarily for printing matrices in a gdb session.
+ * Assumes row-major (C-style) storage.
+ *
+ * \param m     The matrix to be printed.
+ * \param _r    The number of rows to be printed.
+ * \param _c    The number of columns in the matrix.
+ */
 void print_double_mtx(double *m, u32 _r, u32 _c) {
     for (u32 _i = 0; _i < (_r); _i++) {
       printf(" [% 12lf", (m)[_i*(_c) + 0]);
@@ -76,6 +86,18 @@ void print_double_mtx(double *m, u32 _r, u32 _c) {
 }
 
 
+/** Prints the matrix of Pearson correlation coefficients of a covariance matrix.
+ *
+ * Takes in a double valued covariance matrix and prints the pearson correlation
+ * coefficients of each pair of variables:
+ *
+ * \f[
+ *    \rho_{ij} = \frac{cov_{ij}}{\sigma_i \sigma_j}
+ * \f]
+ *
+ * \param m     The covariance matrix to be transformed.
+ * \param dim   The dimension of the covariance matrix.
+ */
 void print_pearson_mtx(double *m, u32 dim) {
     for (u32 _i = 0; _i < dim; _i++) {
       printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));
@@ -86,29 +108,52 @@ void print_pearson_mtx(double *m, u32 dim) {
 }
 
 
-void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+/** Prints the difference between two s32 valued matrices.
+ *
+ * Given two s32 valued matrices of the same shape, prints their difference
+ * (first matrix minus second).
+ *
+ * \param m     The number of rows in the matrices.
+ * \param n     The number of columns in the matrices.
+ * \param mat1  The matrix to be subtracted from.
+ * \param mat2  The matrix to be subtracted.
+ */
+void print_s32_mtx_diff(u32 m, u32 n, s32 *mat1, s32 *mat2)
 {
   for (u32 i=0; i < m; i++) {
     for (u32 j=0; j < n; j++) {
-      printf("%"PRId32", ", Z_inv1[i*n + j] - Z_inv2[i*n + j]);
+      printf("%"PRId32", ", mat1[i*n + j] - mat2[i*n + j]);
     }
     printf("\n");
   }
   printf("\n");
 }
 
-
-void print_s32_mtx(u32 m, u32 n, s32 *Z_inv)
+/** Prints a s32 valued matrix.
+ *
+ * \param m     The number of rows to be printed in the matrices.
+ * \param n     The number of columns in the matrix.
+ * \param mat1  The matrix to be printed.
+ */
+void print_s32_mtx(u32 m, u32 n, s32 *mat)
 {
   for (u32 i=0; i < m; i++) {
     for (u32 j=0; j < n; j++) {
-      printf("%"PRId32", ", Z_inv[i*n + j]);
+      printf("%"PRId32", ", mat[i*n + j]);
     }
     printf("\n");
   }
   printf("\n");
 }
 
+/** Prints the result of a matrix-vector product of s32's.
+ * Given a matrix M and vector v of s32's, prints the result of M*v.
+ *
+ * \param m   The number of rows in the matrix M.
+ * \param n   The number of columns in the matrix M and elements of v.
+ * \param M   The matrix M to be multiplied.
+ * \param v   The vector v to be multiplied.
+ */
 void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
 {
   s32 mv[m];
@@ -127,6 +172,15 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
   }
 }
 
+/** Gets the hypothesis out of an ambiguity test struct, if there is only one.
+ *
+ * Given an ambiguity_test_t, if that test has only one hypothesis allocated,
+ * copies it to the hyp_N and returns 0. Otherwise, returns -1.
+ *
+ * \param amb_test    A pointer to the ambiguity_test_t struct to query against.
+ * \param hyp_N       A pointer to the array of s32's to represent the output hyp.
+ * \return            0 iff there only one hypothesis in the pool, -1 otherwise.
+ */
 s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
 {
   if (memory_pool_n_allocated(amb_test->pool) == 1) {
@@ -138,16 +192,29 @@ s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
   return -1;
 }
 
+/** A struct to be used as the x in a memory pool fold, checking set membership.
+ * Used in fold_contains().
+ */
 typedef struct {
-  u8 num_dds;
-  s32 N[MAX_CHANNELS-1];
-  u8 found;
+  u8 num_dds;             /**< The number of double differences in the hypotheses. */
+  s32 N[MAX_CHANNELS-1];  /**< The ambiguity vector being searched for. */
+  u8 found;               /**< Whether or not the ambiguity vector is found yet. */
 } fold_contains_t;
 
+/** A memory pool fold method to check if a hypothesis is in the pool.
+ *
+ * Should be used in memory_pool_fold().
+ *
+ * \param x    The accumulator. Contains the hypothesis and whether it's found.
+ * \param elem The hypothesis being folded against (checked for match).
+ */
 void fold_contains(void *x, element_t *elem)
 {
-  hypothesis_t *hyp = (hypothesis_t *) elem;
   fold_contains_t *acc = (fold_contains_t *) x;
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+  if (acc->found == 1) {
+    return;
+  }
   for (u8 i=0; i<acc->num_dds; i++) {
     if (hyp->N[i] != acc->N[i]) {
       return;
@@ -156,6 +223,12 @@ void fold_contains(void *x, element_t *elem)
   acc->found = 1;
 }
 
+/** Tests whether an ambiguity test has a particular hypothesis.
+ *
+ * \param amb_test    The test to check against.
+ * \param ambs        The ambiguity hypothesis to look for.
+ * \return            Whether or not the pool contains ambs.
+ */
 u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
 {
   fold_contains_t acc;
@@ -168,14 +241,24 @@ u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
   return acc.found;
 }
 
-typedef struct {
-  u8 started;
-  double max_ll;
-  u8 num_dds;
-  s32 N[MAX_CHANNELS-1];
 
+/** A struct to be used in a memory pool fold to find the most likely hypothesis.
+ * Should be used in fold_mle().
+ */
+typedef struct {
+  u8 started;            /**< Whether the test has actually been started yet. */
+  double max_ll;         /**< The likelihood of the most likely hypothesis so far. */
+  u8 num_dds;            /**< The number of double differences in the hypotheses being tested. */
+  s32 N[MAX_CHANNELS-1]; /**< The most likely hypothesis so far. */
 } fold_mle_t; // fold omelette
 
+/** A memory pool fold method to find the max likelihood estimate of the ambiguities.
+ *
+ * Should be used in memory_pool_fold().
+ *
+ * \param x     The fold accumulator. Contains the MLE and supporting fields.
+ * \param elem  The hypothesis to fold.
+ */
 void fold_mle(void *x, element_t *elem)
 {
   hypothesis_t *hyp = (hypothesis_t *) elem;
@@ -187,6 +270,14 @@ void fold_mle(void *x, element_t *elem)
   }
 }
 
+/** Performs max likelihood estimation on an ambiguity test.
+ *
+ * Assuming an ambiguity test already has hypotheses, finds the MLE hypothesis.
+ * WARNING: Does not handle the case where the test is not populated.
+ *
+ * \param amb_test  The ambiguity test to perform MLE in.
+ * \param ambs      The output MLE hypothesis.
+ */
 void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
 {
   fold_mle_t mle;
@@ -196,6 +287,25 @@ void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
   memcpy(ambs, mle.N, mle.num_dds * sizeof(s32));
 }
 
+/** Starts a hypothesis test for integer ambiguity resolution (IAR).
+ *
+ * Initializes an IAR test.
+ *
+ * Adds an empty element the ambiguity test pool, then adds
+ * hypotheses for various satellites if they fit.
+ *
+ * Assumes that the IAR hypothesis pool is empty.
+ * Assumes that the dimension of the float state is the number of DDs.
+ *
+ * \param amb_test    The amb_test struct to be updated
+ * \param state_dim   The length of the float state/number of DDs.
+ * \param float_prns  The list of prns associated with the float DD estimate.
+ * \param sdiffs      Not currently used.
+ * \param float_mean  The float DD ambiguity estimate.
+ * \param float_cov   The float DD ambiguity estimate's covariance.
+ * \param DE_mtx      The differenced ECEF unit vectors pointing to the satellite.
+ * \param obs_cov     The observation covariance matrix of the phase.
+ */
 void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prns, sdiff_t *sdiffs, double *float_mean,
                          double *float_cov, double *DE_mtx, double *obs_cov)
 {
@@ -209,9 +319,6 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prn
       float_cov_N[i*num_dds + j] = float_cov[i*state_dim + j]; //TODO this is just a memcpy
     }
   }
-
-  // MAT_PRINTF(float_cov, state_dim, state_dim);
-  // MAT_PRINTF(float_cov_N, num_dds, num_dds);
 
   /* Initialize pool with single element with num_dds = 0, i.e.
    * zero length N vector, i.e. no satellites. When we take the
@@ -239,12 +346,25 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prn
 }
 
 
-// void add_sats(ambiguity_test_t *amb_test,
-//               u32 num_added_dds, u8 *added_prns,
-//               double *float_mean, double *float_cov_diag,
-//               s32 *Z_inv, double *new_DE_mtx, double *new_obs_cov)
-
-
+/** Updates the IAR process with new measurements.
+ *
+ * Updates the satellites being tested, adding and removing hypotheses as needed.
+ *
+ * Assumes that the float estimates include all of the sats in the sdiffs.
+ * Assumes that the dimension of the float estimates is one less than the number of sats.
+ * Assumes that the sdiffs are arranged entirely in increasing order by PRN.
+ *
+ * \param ref_ecef    The ecef coordinate to pretend we are at to use relative to the sats.
+ * \param phase_var   The variance of the carrier phase measurements.
+ * \param code_var    The variance of the code pseudorange measurements.
+ * \param amb_test    The ambiguity test to update.
+ * \param state_dim   The dimension of the float state.
+ * \param float_sats  The satellites being represented in the float state.
+ * \param sdiffs      The single differenced measurements/sat positions of all sats tracked.
+ * \param float_mean  The float estimate of the integer ambiguities.
+ * \param float_cov_U The U in the UDU' decomposition of the covariance of the float estimate.
+ * \param float_cov_D The D in the UDU' decomposition of the covariance of the float estimate.
+ */
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
                            double *float_mean, double *float_cov_U, double *float_cov_D)
@@ -299,20 +419,36 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 }
 
 
+/** Returns the number of hypotheses currently in the ambiguity test.
+ * \param amb_test    The ambiguity test whose number of hypotheses we want.
+ * \return            The number of hypotheses currently in the ambiguity test.
+ */
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test)
 {
   return memory_pool_n_allocated(amb_test->pool);
 }
 
-
+/** A memory pool filter to do most everything related to the estimation algorithm.
+ * To be used by update_and_get_max_ll() and filter_and_renormalize().
+ */
 typedef struct {
-  u8 num_dds;
-  double r_vec[2*MAX_CHANNELS-5];
-  double max_ll;
-  residual_mtxs_t *res_mtxs;
-  unanimous_amb_check_t *unanimous_amb_check;
+  u8 num_dds;                                 /**< Number of ambiguities. */
+  double r_vec[2*MAX_CHANNELS-5];             /**< Transformed measurement to check hypotheses against. */
+  double max_ll;                              /**< The greatest log likelihood in the pool so far. */
+  residual_mtxs_t *res_mtxs;                  /**< Matrices necessary for testing hypotheses. */
+  unanimous_amb_check_t *unanimous_amb_check; /**< A struct to check which int ambs are agreed upon among all hyps. */
 } hyp_filter_t;
 
+/** A mapAccum styled function to update the hypothesis log-likelihoods and find the greatest LL.
+ * Simultaneously performs a map, doing a Bayesian update of the log likelihoods
+ * of each hypothesis, while performing a fold on those updated log likelihoods
+ * to find the likelihood of the MLE hypothesis.
+ *
+ * To be given to memory_pool_fold().
+ *
+ * \param x     Points to a hyp_filter_t containing the accumulator and everything needed for the map.
+ * \param elem  The hypothesis to be mapAccum'd.
+ */
 void update_and_get_max_ll(void *x_, element_t *elem) {
   hyp_filter_t *x = (hyp_filter_t *) x_;
   hypothesis_t *hyp = (hypothesis_t *) elem;
@@ -326,16 +462,10 @@ void update_and_get_max_ll(void *x_, element_t *elem) {
   x->max_ll = MAX(x->max_ll, hyp->ll);
 }
 
-
-/* check_unanimous_ambs keeps track of which ambiguities are agreed upon:
- *  Parameters:
- *    (i)   num_dds:    the number of double differences in the hypothesis:
- *                              Only used for initialization of amb_check.
- *    (i)   hyp:        the hypothesis to update the unanimity test with.
- *    (i/o) amb_check:  a struct to keep track of the ambs still unanimous
- *                              among all the hyps tested thus far. It updates
- *                              to hold that tracking for the union of the
- *                              previously tested hyps and {the current hyp}.
+/** Keeps track of which integer ambiguities are uninimously agreed upon in the pool.
+ * \param num_dds   The number of DDs in each hypothesis. (Used to initialize amb_check).
+ * \param hyp       The hypothesis to be checked against.
+ * \param amb_check Keeps track of which ambs are still unanimous and their values.
  */
 void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
                           unanimous_amb_check_t *amb_check)
@@ -362,14 +492,24 @@ void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
   }
 }
 
-
-/* filter_and_renormalize serves three purposes:
- *  Foremost, it decides which hypotheses make the cut to stay in the test.
- *  For those hyps that make the cut:
- *    It renormalizes their psuedo-log-likelihoods such that the most likely
- *        has value 0.
- *    It updates the unanimity_check with that hyp, to see which ambiguities
- *        have the same value across all hyps.
+/** A combination fold/map/filter to renormalize the log likelihoods and remove unlikely hyps.
+ *
+ * The log likelihood of the hypotheses are filtered against a threshold.
+ * Those hypotheses that make the cut are (1) normalized such that the MLE has
+ * value 0, making them logs of the probability ratio against the MLE hyp,
+ * and (2) checked to see if any of their integer ambiguities are unanimous
+ * amongst all hypotheses in the test pool.
+ *
+ * The thresholding is done before the normalization for both numerical
+ * stability, and so that hypotheses which are just REALLY BAD are removed,
+ * even if they are the best we have. This is a kinda arbitrary choice of how
+ * to do things. Maybe we should see if it has practical implications?
+ *
+ * This function is used by memory_pool_filter().
+ *
+ * \param arg     The accumulator/map/filter information
+ * \param elem    The hypothesis to be mapped/filtered/folded against.
+ * \return        Whether or not this hypothesis made the cut.
  */
 s8 filter_and_renormalize(void *arg, element_t *elem) {
   hypothesis_t *hyp = (hypothesis_t *) elem;
@@ -384,7 +524,7 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
 }
 
 
-/* test_ambiguities tests the hypotheses given new observations.
+/* Updates the IAR hypothesis pool log likelihood ratios and filters them.
  *  It assumes that the observations are structured to match the amb_test sats.
  */
 void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
