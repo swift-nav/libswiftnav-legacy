@@ -53,6 +53,13 @@ void reset_ambiguity_test(ambiguity_test_t *amb_test) //TODO is this even necess
   }
   u8 x = 0;
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_all);
+  /* Initialize pool with single element with num_dds = 0, i.e.
+   * zero length N vector, i.e. no satellites. When we take the
+   * product of this single element with the set of new satellites
+   * we will just get a set of elements corresponding to the new sats. */
+  hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool);
+  /* Start with ll = 0, just for the sake of argument. */
+  empty_element->ll = 0;
   amb_test->sats.num_sats = 0;
   amb_test->amb_check.initialized = 0;
   if (DEBUG_AMBIGUITY_TEST) {
@@ -544,6 +551,13 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   if (memory_pool_empty(amb_test->pool)) {
+      /* Initialize pool with single element with num_dds = 0, i.e.
+     * zero length N vector, i.e. no satellites. When we take the
+     * product of this single element with the set of new satellites
+     * we will just get a set of elements corresponding to the new sats. */
+    hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool);
+    /* Start with ll = 0, just for the sake of argument. */
+    empty_element->ll = 0;
     amb_test->sats.num_sats = 0;
     amb_test->amb_check.initialized = 0;
   }
