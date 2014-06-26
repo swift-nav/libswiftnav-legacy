@@ -41,8 +41,10 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
 
 /** A memory pool filter for clearing out all elements of a pool.
  */
-s8 filter_all(void *arg, element_t *elem) {
-  return (0 == 1);
+s8 filter_all(void *arg, element_t *elem)
+{
+  (void) arg; (void) elem;
+  return false;
 }
 
 
@@ -1133,7 +1135,8 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                                                  lower_bounds, upper_bounds, Z);
     if (new_hyp_set_cardinality <= max_new_hyps_cardinality) {
       double Z_inv_[*num_dds_to_add * *num_dds_to_add];
-      s8 ret = matrix_inverse(*num_dds_to_add, Z, Z_inv_);
+      matrix_inverse(*num_dds_to_add, Z, Z_inv_);
+      /* TODO: Check return value of matrix_inverse to handle singular matrix. */
       for (u8 i=0; i < *num_dds_to_add; i++) {
         for (u8 j=0; j < *num_dds_to_add; j++) {
           Z_inv[i* *num_dds_to_add + j] = lround(Z_inv_[i* *num_dds_to_add + j]);

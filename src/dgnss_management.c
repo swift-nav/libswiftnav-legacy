@@ -617,7 +617,7 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
 
   printf("Known Base: [");
   for (u8 i=0; i<num_sats-1; i++)
-    printf("%d, ", N[i]);
+    printf("%"PRId32", ", N[i]);
   printf("]\n");
 
   /* Construct fake state means. */
@@ -752,7 +752,6 @@ u8 get_de_and_phase(sats_management_t *sats_man,
 {
   u8 ref_prn = sats_man->prns[0];
   u8 num_sats = sats_man->num_sats;
-  sdiff_t ref_sdiff;
   double e0[3];
   double phi0;
   u8 i;
