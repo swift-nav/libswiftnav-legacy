@@ -196,6 +196,17 @@ s32 memory_pool_n_allocated(memory_pool_t *pool)
   return count;
 }
 
+/** Check if the memory pool is empty.
+ * This operation is O(1) in the number of allocated elements.
+ *
+ * \param pool Pointer to a memory pool
+ * \returns True if the memory pool is empty, otherwise false.
+ */
+u8 memory_pool_empty(memory_pool_t *pool)
+{
+  return (pool->allocated_nodes_head == NULL);
+}
+
 /** Basic getter method for memory_pool_t's n_elements field.
  */
 u32 memory_pool_n_elements(memory_pool_t *pool)
