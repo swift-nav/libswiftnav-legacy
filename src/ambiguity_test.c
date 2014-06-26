@@ -543,6 +543,10 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
+  if (memory_pool_empty(amb_test->pool)) {
+    amb_test->sats.num_sats = 0;
+    amb_test->amb_check.initialized = 0;
+  }
   if (DEBUG_AMBIGUITY_TEST) {
     memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
     printf("num_unanimous_ndxs=%u\n</TEST_AMBIGUITIES>\n", x.unanimous_amb_check->num_matching_ndxs);
