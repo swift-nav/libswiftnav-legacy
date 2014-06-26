@@ -592,8 +592,6 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   double ref_pseudorange;
   u8 i=0;
   u8 j=0;
-  u8 *amb_test_non_ref_prns = &amb_test->sats.prns[1];
-  u8 num_dds = amb_test->sats.num_sats-1;
   u8 found_ref = 0; //DEBUG
   while (i < num_dds) {
     if (non_ref_prns[i] == sdiffs[j].prn) {

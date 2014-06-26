@@ -855,17 +855,6 @@ u8 dgnss_iar_MLE_ambs(s32 *ambs)
   return MAX(1, ambiguity_test.sats.num_sats) - 1;
 }
 
-u8 dgnss_iar_pool_contains(double *ambs)
-{
-  return ambiguity_test_pool_contains(&ambiguity_test, ambs);
-}
-
-u8 dgnss_iar_MLE_ambs(s32 *ambs)
-{
-  ambiguity_test_MLE_ambs(&ambiguity_test, ambs);
-  return MAX(1, ambiguity_test.sats.num_sats) - 1;
-}
-
 kf_t * get_dgnss_kf()
 {
   return &kf;
