@@ -13,11 +13,22 @@ the following command:
 
 \section building_source Building from source
 
-libswiftnav makes use of the CMake build system which is available at
-http://www.cmake.org/ or through your operating system package manager.
+Libswiftnav is intended to have very few dependencies, to facilitate
+use in embedded environments.  It has no runtime dependencies outside
+of the C standard library.  The only build dependencies are the CMake
+build system and pkg-config.
 
-First navigate to the libswiftnav root directory and create a build directory
-where the library will be built.
+On Debian-based systems (including Ubuntu 12.10 or later) you can get
+them with:
+
+    $ sudo apt-get install build-essential pkg-config cmake
+
+On other systems, you can obtain CMake from your operating system
+package manager or from http://www.cmake.org/.
+
+Once you have the dependencies installed, navigate to the libswiftnav
+root directory and create a build directory where the library will be
+built.
 
     $ cd libswiftnav
     $ mkdir build
