@@ -9,6 +9,6 @@
 
 cdef extern from "libswiftnav/lambda.h":
   int lambda_reduction(int n, double *Q, double *Z)
-  int lambda_solution(int n, int m, const double *a, const double *Q, double *F,
+  int lambda_solution(int n, int m, double *a, double *Q, double *F,
                       double *s)
 
