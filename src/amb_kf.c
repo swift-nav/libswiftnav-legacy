@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <cblas.h>
 #include <clapack.h>
+#include <f2c.h>
 // #include <lapacke.h>
 #include <math.h>
 #include <linear_algebra.h>
