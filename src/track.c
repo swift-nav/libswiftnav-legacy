@@ -313,14 +313,17 @@ float simple_lf_update(simple_lf_state_t *s, float error)
 void aided_tl_init(aided_tl_state_t *s, float loop_freq,
                    float code_freq, float code_bw,
                    float code_zeta, float code_k,
-                   float carr_freq)
+                   float carr_freq, float carr_bw,
+                   float carr_zeta, float carr_k,
+                   float carr_freq_igain)
 {
   float pgain, igain;
 
   s->carr_freq = carr_freq;
   s->prev_I = 1.0f; // This works, but is it a really good way to do it?
   s->prev_Q = 0.0f;
-  aided_lf_init(&(s->carr_filt), carr_freq, PLL_PGAIN, PLL_IGAIN, PLL_FREQ_IGAIN);
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
+  aided_lf_init(&(s->carr_filt), carr_freq, pgain, igain, carr_freq_igain);
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
   s->code_freq = code_freq;
