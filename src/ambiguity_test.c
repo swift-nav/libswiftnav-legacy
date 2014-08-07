@@ -39,22 +39,12 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->amb_check.initialized = 0;
 }
 
-/** A memory pool filter for clearing out all elements of a pool.
- */
-s8 filter_all(void *arg, element_t *elem)
-{
-  (void) arg; (void) elem;
-  return false;
-}
-
-
 void reset_ambiguity_test(ambiguity_test_t *amb_test) //TODO is this even necessary? we may only need create_ambiguity_test
 {
   if (DEBUG_AMBIGUITY_TEST) {
       printf("<RESET_AMBIGUITY_TEST>\n");
   }
-  u8 x = 0;
-  memory_pool_filter(amb_test->pool, (void *) &x, &filter_all);
+  memory_pool_clear(amb_test->pool);
   /* Initialize pool with single element with num_dds = 0, i.e.
    * zero length N vector, i.e. no satellites. When we take the
    * product of this single element with the set of new satellites
