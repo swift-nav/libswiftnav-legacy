@@ -31,22 +31,6 @@
 
 #define DEBUG_AMB_KF 0
 
-void triu(u32 n, double *M)
-{
-  for (u32 i=1; i<n; i++) {
-    for (u32 j=0; j<i; j++) {
-      M[i*n + j] = 0;
-    }
-  }
-}
-
-void eye(u32 n, double *M)
-{
-  memset(M, 0, n * n * sizeof(double));
-  for (u32 i=0; i<n; i++) {
-    M[i*n + i] = 1;
-  }
-}
 
 /** performs th UDU' decomposition of a matrix
  * This is algorithm 10.2-2 of Gibbs[1]
@@ -54,8 +38,8 @@ void eye(u32 n, double *M)
 s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
 {
   double alpha, beta;
-  triu(n, M);
-  eye(n, U);
+  matrix_triu(n, M);
+  matrix_eye(n, U);
   memset(D, 0, n * sizeof(double));
 
   for (u32 j=n; j>=2; j--) {
@@ -488,7 +472,7 @@ void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
     // Sigma begins as a diagonal
     kf->state_cov_D[i] = init_var;
   }
-  eye(num_dds, kf->state_cov_U);
+  matrix_eye(num_dds, kf->state_cov_U);
 }
 
 void QR_part1(integer m, integer n, double *A, double *tau)
@@ -643,7 +627,7 @@ void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
 {
   // set the H_prime variable to equal H
   memcpy(H_prime, Q, constraint_dim * num_dds * sizeof(double));
-  eye(num_dds, &H_prime[constraint_dim * num_dds]);
+  matrix_eye(num_dds, &H_prime[constraint_dim * num_dds]);
 
   // multiply H_prime by U_inv to make it the actual H_prime
   cblas_dtrmm(CblasRowMajor, CblasLeft, CblasUpper, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG

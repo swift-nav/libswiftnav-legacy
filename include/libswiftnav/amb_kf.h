@@ -23,9 +23,6 @@
 #define MAX_OBS_DIM (2 * MAX_CHANNELS - 5)
 
 s8 udu(u32 n, double *M, double *U, double *D);
-void triu(u32 n, double *M);
-
-void eye(u32 n, double *M);
 
 typedef struct {
   u32 state_dim;

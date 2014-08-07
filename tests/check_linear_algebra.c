@@ -152,6 +152,50 @@ START_TEST(test_matrix_inverse_5x5) {
 }
 END_TEST
 
+START_TEST(test_matrix_eye)
+{
+  double M[10][10];
+
+  matrix_eye(10, (double *)M);
+
+  for (u32 i=0; i<10; i++) {
+    for (u32 j=0; j<10; j++) {
+      if (i == j) {
+        fail_unless(M[i][j] == 1, "Identity diagonal element != 1");
+      } else {
+        fail_unless(M[i][j] == 0, "Identity off-diagonal element != 0");
+      }
+    }
+  }
+}
+END_TEST
+
+START_TEST(test_matrix_triu)
+{
+  double M[4][4] = {
+    { 1,  2,  3,  4},
+    { 5,  6,  7,  8},
+    { 9, 10, 11, 12},
+    {13, 14, 15, 16}
+  };
+
+  double M_[4][4] = {
+    {1, 2,  3,  4},
+    {0, 6,  7,  8},
+    {0, 0, 11, 12},
+    {0, 0,  0, 16}
+  };
+
+  matrix_triu(4, (double *)M);
+
+  for (u32 i=0; i<4; i++) {
+    for (u32 j=0; j<4; j++) {
+      fail_unless(M[i][j] == M_[i][j], "triu result != test matrix");
+    }
+  }
+}
+END_TEST
+
 START_TEST(test_matrix_add_sc) {
   u32 i, j, t;
 
@@ -490,6 +534,8 @@ Suite* linear_algebra_suite(void) {
 
   /* Core test case */
   TCase *tc_core = tcase_create("Core");
+  tcase_add_test(tc_core, test_matrix_eye);
+  tcase_add_test(tc_core, test_matrix_triu);
   tcase_add_test(tc_core, test_matrix_add_sc);
   tcase_add_test(tc_core, test_matrix_copy);
   tcase_add_test(tc_core, test_matrix_transpose);

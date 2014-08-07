@@ -559,7 +559,7 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
 
   /* Construct fake covariance U factor (just identity). */
   double state_cov_U[(num_sats-1+6)*(num_sats-1+6)];
-  eye(num_sats-1+6, state_cov_U);
+  matrix_eye(num_sats-1+6, state_cov_U);
 
   double state_cov_D[num_sats-1+6];
   memset(state_cov_D, 0, 6 * sizeof(double));

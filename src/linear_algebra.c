@@ -784,6 +784,40 @@ inline void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
     }
 }
 
+/** Zero lower triangle of an `n` x `n` square matrix.
+ * Some routines designed to work on upper triangular matricies use the lower
+ * triangle as scratch space. This function zeros the lower triangle such that
+ * the matrix can be passed to a routine designed to act on a dense matrix.
+ *
+ * \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times n}\f$
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the matrix.
+ */
+void matrix_triu(u32 n, double *M)
+{
+  for (u32 i=1; i<n; i++) {
+    for (u32 j=0; j<i; j++) {
+      M[i*n + j] = 0;
+    }
+  }
+}
+
+/** Initialise an `n` x `n` identity matrix.
+ *
+ * \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times n}\f$
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the matrix.
+ */
+void matrix_eye(u32 n, double *M)
+{
+  memset(M, 0, n * n * sizeof(double));
+  for (u32 i=0; i<n; i++) {
+    M[i*n + i] = 1;
+  }
+}
+
 /** Add a matrix to a scaled matrix.
  *  Add two matrices: \f$ C := A + \gamma B \f$, where \f$ A \f$, \f$
  *  B \f$ and \f$C\f$ are matrices on \f$\mathbb{R}^{n \times m}\f$
