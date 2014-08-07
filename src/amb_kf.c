@@ -8,8 +8,9 @@
  * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
- *
- * 
+ */
+
+/*
  * This is a Bierman-Thornton kalman filter implementation, as described in:
  *  [1] Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
  *      John C. Wiley & Sons, Inc., 2011.
@@ -30,7 +31,7 @@
 
 #define DEBUG_AMB_KF 0
 
-static void triu(u32 n, double *M)
+void triu(u32 n, double *M)
 {
   for (u32 i=1; i<n; i++) {
     for (u32 j=0; j<i; j++) {
@@ -39,7 +40,7 @@ static void triu(u32 n, double *M)
   }
 }
 
-static void eye(u32 n, double *M)
+void eye(u32 n, double *M)
 {
   memset(M, 0, n * n * sizeof(double));
   for (u32 i=0; i<n; i++) {
@@ -50,7 +51,7 @@ static void eye(u32 n, double *M)
 /** performs th UDU' decomposition of a matrix
  * This is algorithm 10.2-2 of Gibbs[1]
  */
-static s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
+s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
 {
   double alpha, beta;
   triu(n, M);
@@ -101,7 +102,7 @@ void reconstruct_udu(u32 n, double *U, double *D, double *M)
  *    singular matrices, dictating that zeros from cov_D dominate.
  *
  */
-static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
+void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
   if (DEBUG_AMB_KF) {
@@ -115,13 +116,13 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
       printf("\n");
     }
   }
-  
+
   double f[state_dim]; // f = U^T * h
   memcpy(f, h, state_dim * sizeof(double));
   cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit, //CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG
               state_dim, U, //int N, double *A
               state_dim, f, 1); // int lda, double *X, int incX
-  
+
 
   double g[state_dim]; // g = diag(D) * f
   double alpha = R; // alpha = f * g + R = f^T * diag(D) * f + R
@@ -130,7 +131,7 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     alpha += f[i] * g[i];
   }
   if (DEBUG_AMB_KF) {
-    VEC_PRINTF(f, state_dim);  
+    VEC_PRINTF(f, state_dim);
     VEC_PRINTF(g, state_dim);
     printf("alpha = %.16f", alpha);
     if (abs(alpha) == 0) {
@@ -213,7 +214,7 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
  * This is directly from section 10.2.1 of Gibbs [1]
  */
-static void incorporate_obs(nkf_t *kf, double *decor_obs)
+void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
   if (DEBUG_AMB_KF) {
     printf("<INCORPORATE_OBS>\n");
@@ -478,7 +479,7 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, double *ambs, sdiff_t *s
 
 // initializes the ambiguity means and variances.
 // Note that the covariance is  in UDU form, and U starts as identity.
-static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
+void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
@@ -690,13 +691,13 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
     assign_phase_obs_null_basis(num_dds, DE, null_basis_Q);
     assign_residual_obs_cov(num_dds, phase_var, code_var, null_basis_Q, Sig);
     //TODO U seems to have that fancy blockwise structure we love so much. Use it
-    udu(res_dim, Sig, U_inv, D); //U_inv holds U after this 
+    udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
     invert_U(res_dim, U_inv);
     //TODO this also has fancy structure
     assign_H_prime(res_dim, constraint_dim, num_dds, null_basis_Q, U_inv, H_prime);
   }
   else {
-    assign_simple_sig(num_dds, 
+    assign_simple_sig(num_dds,
                       phase_var + code_var / (GPS_L1_LAMBDA_NO_VAC * GPS_L1_LAMBDA_NO_VAC),
                       Sig);
     udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
@@ -784,7 +785,7 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
   memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
 }
 
-static void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
 {
   u8 state_dim = num_sats - 1;
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
