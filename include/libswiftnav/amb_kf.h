@@ -22,8 +22,6 @@
 #define MAX_STATE_DIM (MAX_CHANNELS - 1)
 #define MAX_OBS_DIM (2 * MAX_CHANNELS - 5)
 
-s8 udu(u32 n, double *M, double *U, double *D);
-
 typedef struct {
   u32 state_dim;
   u32 obs_dim;
@@ -65,7 +63,6 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3]);
 void least_squares_solve_b_external_ambs(u8 num_dds, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3]);
 
-void reconstruct_udu(u32 n, double *U, double *D, double *M);
 void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns);
 

@@ -751,7 +751,7 @@ u8 get_amb_kf_mean(double *ambs)
 u8 get_amb_kf_cov(double *cov)
 {
   u8 num_dds = MAX(1, sats_management.num_sats) - 1;
-  reconstruct_udu(num_dds, nkf.state_cov_U, nkf.state_cov_D, cov);
+  matrix_reconstruct_udu(num_dds, nkf.state_cov_U, nkf.state_cov_D, cov);
   return num_dds;
 }
 
