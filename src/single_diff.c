@@ -130,6 +130,74 @@ int sdiff_search_prn(const void *a, const void *b)
   return (*(u8*)a - ((sdiff_t *)b)->prn);
 }
 
+/** Propogates remote measurements to a local time and makes sdiffs
+ * When we get two sets of observations that aren't time matched to each
+ * other (but are internally time matched within each set), we need to
+ * adjust one set of measurements to be our best guess of what it would have
+ * been had we measured it at the other set's time. This function does that
+ * and differences those measurements from sats present in both sets.
+ *
+ * It returns the number of sats common in both.
+ *
+ * \\TODO  Integrate this with single_diff via a higher order function.
+ *
+ * \param n_local           The number of measurements taken locally.
+ * \param m_local           The measurements taken locally (sorted by prn).
+ * \param n_remote          The number of measurements taken remotely.
+ * \param m_remote          THe measurements taken remotely (sorted by prn).
+ * \param remote_dists      The distances from the remote receiver to each
+ *                           satellite at the time the remote measurements
+ *                           were taken (i-th element of this list must
+ *                           correspond to the i-th element of m_remote).
+ * \param remote_pos_ecef   The position of the remote receiver (presumed
+ *                           constant in ecef).
+ * \param sds               The single differenced propogated measurements.
+ */
+u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
+                          u8 n_remote, navigation_measurement_t *m_remote,
+                          double *remote_dists, double remote_pos_ecef[3],
+                          sdiff_t *sds)
+{
+  u8 i, j, n = 0;
+
+  /* Loop over m_a and m_b and check if a PRN is present in both. */
+  for (i=0, j=0; i<n_local && j<n_remote; i++, j++) {
+    if (m_local[i].prn < m_remote[j].prn)
+      j--;
+    else if (m_local[i].prn > m_remote[j].prn)
+      i--;
+    else {
+      sds[n].prn = m_local[i].prn;
+      //raw_psuedorange = new_dist = old_dist + (new_dist - old_dist)
+      //                           = old_pseudorang + (new_dist - old_dist)
+      // -raw_pseudorange = -old_pseudorange + old_dist - new_dist
+      // NOTE This is actually using the sat positions at the time the receiver
+      //      got the signal. You can backtrack to the sat position at the time
+      //      the signal was sent. At the very least, if you backtrack assuming
+      //      sat constant velocity, the difference is miniscule.
+      double dx = m_local[i].sat_pos[0] - remote_pos_ecef[0];
+      double dy = m_local[i].sat_pos[1] - remote_pos_ecef[1];
+      double dz = m_local[i].sat_pos[2] - remote_pos_ecef[2];
+      double new_dist = sqrt( dx * dx + dy * dy + dz * dz);
+      double dist_diff = remote_dists[j] - new_dist;
+      sds[n].pseudorange = m_local[i].raw_pseudorange - m_remote[j].raw_pseudorange
+                                                      + dist_diff;
+      sds[n].carrier_phase = m_local[i].carrier_phase - m_remote[j].carrier_phase
+                                                      + dist_diff / GPS_L1_LAMBDA;
+      /* Doppler is not propogated. */
+      sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler;
+      sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
+      memcpy(&(sds[n].sat_pos), &(m_local[i].sat_pos), 3*sizeof(double));
+      memcpy(&(sds[n].sat_vel), &(m_local[i].sat_vel), 3*sizeof(double));
+
+      n++;
+    }
+  }
+
+  return n;
+}
+
+
 /** Convert a list of almanacs to a list of single differences.
  * This only fills the position, velocity and prn.
  *

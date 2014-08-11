@@ -40,6 +40,11 @@ void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx);
 
 int sdiff_search_prn(const void *a, const void *b);
 
+u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
+                          u8 n_remote, navigation_measurement_t *m_remote,
+                          double *remote_dists, double remote_pos_ecef[3],
+                          sdiff_t *sds);
+
 void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs);
 
 s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);

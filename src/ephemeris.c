@@ -162,4 +162,15 @@ double predict_range(double rx_pos[3],
   return vector_norm(3, temp);
 }
 
-
+/** Do we have an ephemeris for this PRN?
+ * //TODO  This should actually be more than just the "valid" flag.
+ *         When we write an is_usable() function, lets use that instead
+ *         of just es[prn].valid.
+ *
+ * /param prn     The prn we want to check.
+ */
+u8 ephemeris_good(ephemeris_t eph, gps_time_t t)
+{
+  (void) t;
+  return eph.valid;
+}
