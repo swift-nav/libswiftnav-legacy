@@ -184,8 +184,8 @@ u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                                                       + dist_diff;
       sds[n].carrier_phase = m_local[i].carrier_phase - m_remote[j].carrier_phase
                                                       + dist_diff / GPS_L1_LAMBDA;
-      /* Doppler is not propogated. */
-      sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler;
+      /* Doppler is not propogated.
+       * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
       sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
       memcpy(&(sds[n].sat_pos), &(m_local[i].sat_pos), 3*sizeof(double));
       memcpy(&(sds[n].sat_vel), &(m_local[i].sat_vel), 3*sizeof(double));
