@@ -20,7 +20,6 @@ else (CMAKE_CROSSCOMPILING)
       check_main.c
       check_utils.c
 
-      check_float_kf.c
       check_edc.c
       check_bits.c
       check_memory_pool.c

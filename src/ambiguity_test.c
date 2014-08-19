@@ -949,7 +949,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
 
   u32 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
-  reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
+  matrix_reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
   u8 float_prns[float_sats->num_sats];
   memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
   double N_mean[float_sats->num_sats-1];

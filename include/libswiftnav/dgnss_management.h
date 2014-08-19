@@ -11,7 +11,6 @@
  */
 
 
-#include "float_kf.h"
 #include "amb_kf.h"
 #include "sats_management.h"
 
@@ -52,10 +51,9 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double pos_init_var, double vel_init_var, double amb_init_var,
                         double new_int_var);
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], double dt);
+void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
-kf_t * get_dgnss_kf(void);
 nkf_t * get_dgnss_nkf(void);
 s32 * get_stupid_filter_ints(void);
 sats_management_t * get_sats_management(void);

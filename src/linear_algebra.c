@@ -784,6 +784,127 @@ inline void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
     }
 }
 
+/** Zero lower triangle of an `n` x `n` square matrix.
+ * Some routines designed to work on upper triangular matricies use the lower
+ * triangle as scratch space. This function zeros the lower triangle such that
+ * the matrix can be passed to a routine designed to act on a dense matrix.
+ *
+ * \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times n}\f$
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the matrix.
+ */
+void matrix_triu(u32 n, double *M)
+{
+  /* NOTE: This function has been bounds checked. Please check again if
+   * modifying. */
+  for (u32 i=1; i<n; i++) {
+    for (u32 j=0; j<i; j++) {
+      M[i*n + j] = 0;
+    }
+  }
+}
+
+/** Initialise an `n` x `n` identity matrix.
+ *
+ * \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times n}\f$
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the matrix.
+ */
+void matrix_eye(u32 n, double *M)
+{
+  /* NOTE: This function has been bounds checked. Please check again if
+   * modifying. */
+  memset(M, 0, n * n * sizeof(double));
+  for (u32 i=0; i<n; i++) {
+    M[i*n + i] = 1;
+  }
+}
+
+/** Performs the \f$U D U^{T}\f$ decomposition of a symmetric positive definite
+ * matrix.
+ * This is algorithm 10.2-2 of Gibbs [1].
+ *
+ * \f$ M = U D U^{T}\f$, where \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times
+ * n}\f$ and \f$U\f$ is (therefore) a upper unit triangular matrix on
+ * \f$\mathbb{R}^{n \times n}\f$ and \f$D\f$ is a diagonal matrix expressed as
+ * a vector on \f$\mathbb{R}^{n}\f$.
+ *
+ * \note The M matrix is overwritten by this function.
+ *
+ * References:
+ *   -# Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
+ *      John C. Wiley & Sons, Inc., 2011.
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the input matrix.
+ * \param U Pointer to the upper unit triangular output matrix.
+ * \param D Pointer to the diagonal vector.
+ */
+void matrix_udu(u32 n, double *M, double *U, double *D)
+{
+  /* TODO: replace with DSYTRF? */
+  /* NOTE: This function has been bounds checked. Please check again if
+   * modifying. */
+  double alpha, beta;
+  matrix_triu(n, M);
+  matrix_eye(n, U);
+  memset(D, 0, n * sizeof(double));
+
+  for (u32 j=n; j>=2; j--) {
+    D[j - 1] = M[(j-1)*n + j-1];
+    if (D[j-1] != 0) {
+      alpha = 1.0 / D[j-1];
+    } else {
+      alpha = 0.0;
+    }
+    for (u32 k=1; k<j; k++) {
+      beta = M[(k-1)*n + j-1];
+      U[(k-1)*n + j-1] = alpha * beta;
+      for (u32 kk = 0; kk < k; kk++) {
+        M[kk*n + k-1] = M[kk*n + k-1] - beta * U[kk*n + j-1];
+      }
+    }
+  }
+  D[0] = M[0];
+}
+
+/** Reconstructs a matrix from its \f$U D U^{T}\f$ decomposition.
+ *
+ * \f$ M = U D U^{T}\f$, where \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times
+ * n}\f$ and \f$U\f$ is a upper unit triangular matrix on \f$\mathbb{R}^{n
+ * \times n}\f$ and \f$D\f$ is a diagonal matrix expressed as a vector on
+ * \f$\mathbb{R}^{n}\f$.
+ *
+ * References:
+ *   -# Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
+ *      John C. Wiley & Sons, Inc., 2011.
+ *
+ * \param n The size of the matrix.
+ * \param U Pointer to the upper unit triangular output matrix.
+ * \param D Pointer to the diagonal vector.
+ * \param M Pointer to the output matrix.
+ */
+void matrix_reconstruct_udu(u32 n, double *U, double *D, double *M)
+{
+  memset(M, 0, n * n * sizeof(double));
+  /* TODO: M will be symmetric, only need to bother populating part of it */
+  for (u32 i=0; i<n; i++) {
+    for (u32 k=i; k<n; k++) {
+      for (u32 j=k; j<n; j++) {
+        /* U[i][j] is upper triangular = 0 if j < i
+         * U[k][j] is upper triangular = 0 if j < k
+         * U[i][j] * U[k][j] = 0 if j < k or j < i
+         */
+        M[i*n + k] += U[i*n +j] * D[j] * U[k*n + j];
+      }
+      M[k*n + i] = M[i*n + k];
+    }
+  }
+}
+
+
 /** Add a matrix to a scaled matrix.
  *  Add two matrices: \f$ C := A + \gamma B \f$, where \f$ A \f$, \f$
  *  B \f$ and \f$C\f$ are matrices on \f$\mathbb{R}^{n \times m}\f$
