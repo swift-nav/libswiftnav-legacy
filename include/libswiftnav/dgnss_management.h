@@ -18,12 +18,7 @@
 #define DEFAULT_CODE_VAR_TEST   (100 * 400)
 #define DEFAULT_PHASE_VAR_KF    (9e-4 * 16)
 #define DEFAULT_CODE_VAR_KF     (100 * 400)
-#define DEFAULT_POS_TRANS_VAR   1e-1
-#define DEFAULT_VEL_TRANS_VAR   1e-5
-#define DEFAULT_INT_TRANS_VAR   1e-8
 #define DEFAULT_AMB_DRIFT_VAR   1e-8
-#define DEFAULT_POS_INIT_VAR    1e2
-#define DEFAULT_VEL_INIT_VAR    4e2
 #define DEFAULT_AMB_INIT_VAR    1e8
 #define DEFAULT_NEW_INT_VAR     1e10
 
@@ -46,14 +41,13 @@ extern dgnss_settings_t dgnss_settings;
 
 void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
-                        double pos_trans_var, double vel_trans_var, double int_trans_var,
-                        double amb_drift_var,
-                        double pos_init_var, double vel_init_var, double amb_init_var,
+                        double amb_drift_var, double amb_init_var,
                         double new_int_var);
 void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
+void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
+                      u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
 s32 * get_stupid_filter_ints(void);
 sats_management_t * get_sats_management(void);

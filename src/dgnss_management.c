@@ -31,33 +31,21 @@ dgnss_settings_t dgnss_settings = {
   .code_var_test = DEFAULT_CODE_VAR_TEST,
   .phase_var_kf = DEFAULT_PHASE_VAR_KF,
   .code_var_kf = DEFAULT_CODE_VAR_KF,
-  .pos_trans_var = DEFAULT_POS_TRANS_VAR,
-  .vel_trans_var = DEFAULT_VEL_TRANS_VAR,
-  .int_trans_var = DEFAULT_INT_TRANS_VAR,
   .amb_drift_var = DEFAULT_AMB_DRIFT_VAR,
-  .pos_init_var = DEFAULT_POS_INIT_VAR,
-  .vel_init_var = DEFAULT_VEL_INIT_VAR,
   .amb_init_var = DEFAULT_AMB_INIT_VAR,
   .new_int_var = DEFAULT_NEW_INT_VAR,
 };
 
 void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
-                        double pos_trans_var, double vel_trans_var, double int_trans_var,
-                        double amb_drift_var,
-                        double pos_init_var, double vel_init_var, double amb_init_var,
+                        double amb_drift_var, double amb_init_var,
                         double new_int_var)
 {
   dgnss_settings.phase_var_test = phase_var_test;
   dgnss_settings.code_var_test  = code_var_test;
   dgnss_settings.phase_var_kf   = phase_var_kf;
   dgnss_settings.code_var_kf    = code_var_kf;
-  dgnss_settings.pos_trans_var  = pos_trans_var;
-  dgnss_settings.vel_trans_var  = vel_trans_var;
-  dgnss_settings.int_trans_var  = int_trans_var;
   dgnss_settings.amb_drift_var  = amb_drift_var;
-  dgnss_settings.pos_init_var   = pos_init_var;
-  dgnss_settings.vel_init_var   = vel_init_var;
   dgnss_settings.amb_init_var   = amb_init_var;
   dgnss_settings.new_int_var    = new_int_var;
 }
