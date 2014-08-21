@@ -595,14 +595,18 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   u8 i=0;
   u8 j=0;
   u8 found_ref = 0; //DEBUG
+  /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
+   * and the reference sat. */
   while (i < num_dds) {
     if (non_ref_prns[i] == sdiffs[j].prn) {
+      /* When we find a non-ref sat, we fill in the next measurement. */
       memcpy(&amb_sdiffs[i+1], &sdiffs[j], sizeof(sdiff_t));
       ambiguity_dd_measurements[i] = sdiffs[j].carrier_phase;
       ambiguity_dd_measurements[i+num_dds] = sdiffs[j].pseudorange;
       i++;
       j++;
     } else if (ref_prn == sdiffs[j].prn) {
+      /* when we find the ref sat, we copy it over and raise the FOUND flag */
       memcpy(&amb_sdiffs[0], &sdiffs[j], sizeof(sdiff_t));
       ref_phase =  sdiffs[j].carrier_phase;
       ref_pseudorange = sdiffs[j].pseudorange;
@@ -612,11 +616,20 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     // else {
     //   j++;
     // }
-    else if (non_ref_prns[i] > sdiffs[i].prn) {
+    else if (non_ref_prns[i] > sdiffs[j].prn) {
+      /* If both sets are ordered, and we increase j (and possibly i), and the
+       * i prn is higher than the j one, it means that the i one might be in the 
+       * j set for higher j, and that the current j prn isn't in the i set. */
       j++;
     } else { //DEBUG
-      //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
-      printf("there is either disorder in the amb_test sats or it contains a sat not in sdiffs. amb_test's sats must be a subset of sdiffs by this point.\n");
+      /* if both sets are ordered, and we increase j (and possibly i), and the
+       * j prn is higher than the i one, it means that the j one might be in the 
+       * i set for higher i, and that the current i prn isn't in the j set.
+       * This means a sat in the IAR's sdiffs isn't in the sdiffs.
+       * THAT IS BAD AND WON'T/SHOULDN"T HAPPEN! */
+      printf("there is either disorder in the amb_test sats or it contains a "
+             "sat not in sdiffs. amb_test's sats must be a subset of sdiffs by "
+             "this point.\n");
       printf("amb_test sat prns = {%u, ", ref_prn);
       for (u8 j=0; j < num_dds; j++) {
         printf("%u, ", non_ref_prns[i]);
@@ -642,18 +655,20 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   }
 
   if (found_ref == 0) { //DEBUG
-    //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
-    printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
-    printf("amb_test sat .prns = {%u", ref_prn);
-    for (u8 j=0; j < num_dds; j++) {
-      printf("%d, ", non_ref_prns[j]);
+    while (1) {
+      //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
+      printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
+      printf("amb_test sat .prns = {%u", ref_prn);
+      for (u8 j=0; j < num_dds; j++) {
+        printf("%d, ", non_ref_prns[j]);
+      }
+      printf("}\n");
+      printf("sdiffs.prns = {");
+      for (u8 j=0; j < num_sdiffs; j++) {
+        printf("%d, ", sdiffs[j].prn);
+      }
+      printf("}\n");
     }
-    printf("}\n");
-    printf("sdiffs.prns = {");
-    for (u8 j=0; j < num_sdiffs; j++) {
-      printf("%d, ", sdiffs[j].prn);
-    }
-    printf("}\n");
   }
   for (u8 i=0; i < num_dds; i++) {
     ambiguity_dd_measurements[i] -= ref_phase;
