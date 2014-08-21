@@ -16,10 +16,6 @@
 #include "common.h"
 #include "ephemeris.h"
 
-#define PLL_PGAIN 242.6f
-#define PLL_IGAIN 8.9f
-#define PLL_FREQ_IGAIN 29.3f
-
 /** \addtogroup track
  * \{ */
 
