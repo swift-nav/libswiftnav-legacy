@@ -577,7 +577,26 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
          amb_test->amb_check.num_matching_ndxs >= 3;
 }
 
-
+/* Constructs the double differenced measurements and sdiffs needed for IAR.
+ * This requires that all IAR prns are in the sdiffs used (sdiffs is a superset
+ * of IAR's PRNs), that the sdiffs are ordered by prn, and that the IAR
+ * non_ref_prns are also ordered (both ascending).
+ *
+ * The ambiguity_dd_measurements output will be ordered like the non_ref_prns
+ * with the whole vector of carrier phase elements coming before the
+ * pseudoranges. The amb_sdiffs will have the ref sat first, then the rest in
+ * ascending order like the non_ref_prns.
+ *
+ * \param ref_prn                    The current reference PRN for the IAR.
+ * \param non_ref_prns               The rest of the current PRNs for the IAR.
+ * \param num_dds                    The number of dds used in the IAR
+ *                                   (length of non_ref_prns).
+ * \param num_sdiffs                 The number of sdiffs being passed in.
+ * \param sdiffs                     The sdiffs to pull measurements out of.
+ * \param ambiguity_dd_measurements  The output vector of DD measurements
+ *                                   to be used to update the IAR.
+ * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
+ */
 void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                      u8 num_sdiffs, sdiff_t *sdiffs,
                                      double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
