@@ -665,19 +665,21 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
    * same satellites only the ref of amb_test.sats is the last PRN in sdiffs.
    * This case is never checked for j = num_dds as i only runs to num_dds-1. */
   /* TODO: This function could be refactored to be a lot clearer. */
-  if (ref_prn == sdiffs[j].prn) {
-    memcpy(&amb_sdiffs[0], &sdiffs[j], sizeof(sdiff_t));
-    ref_phase =  sdiffs[j].carrier_phase;
-    ref_pseudorange = sdiffs[j].pseudorange;
+  while (!found_ref && j < num_sdiffs ) {
+    if (ref_prn == sdiffs[j].prn) {
+      memcpy(&amb_sdiffs[0], &sdiffs[j], sizeof(sdiff_t));
+      ref_phase =  sdiffs[j].carrier_phase;
+      ref_pseudorange = sdiffs[j].pseudorange;
+      found_ref = 1; //DEBUG
+    }
     j++;
-    found_ref = 1; //DEBUG
   }
 
   if (found_ref == 0) { //DEBUG
     while (1) {
       //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
       printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
-      printf("amb_test sat .prns = {%u", ref_prn);
+      printf("amb_test sat .prns = {%u, ", ref_prn);
       for (u8 j=0; j < num_dds; j++) {
         printf("%d, ", non_ref_prns[j]);
       }
