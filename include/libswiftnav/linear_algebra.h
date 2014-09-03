@@ -44,6 +44,10 @@ s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x);
 int matrix_inverse(u32 n, const double *const a, double *b);
 void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
                      const double *b, double *c);
+void matrix_triu(u32 n, double *M);
+void matrix_eye(u32 n, double *M);
+void matrix_udu(u32 n, double *M, double *U, double *D);
+void matrix_reconstruct_udu(u32 n, double *U, double *D, double *M);
 void matrix_add_sc(u32 n, u32 m, const double *a,
                    const double *b, double gamma, double *c);
 void matrix_transpose(u32 n, u32 m, const double *a, double *b);

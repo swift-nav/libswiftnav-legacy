@@ -2,7 +2,6 @@
 #define CHECK_SUITES_H
 
 Suite* sdiff_test_suite(void);
-Suite* float_kf_suite(void);
 Suite* coord_system_suite(void);
 Suite* rtcm3_suite(void);
 Suite* bits_suite(void);

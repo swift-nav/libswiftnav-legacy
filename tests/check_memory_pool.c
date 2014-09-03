@@ -340,6 +340,22 @@ s32 cmp_s32s(void *arg, element_t *a_, element_t *b_)
   return *a - *b;
 }
 
+START_TEST(test_clear)
+{
+  memory_pool_clear(test_pool_seq);
+  fail_unless(memory_pool_n_allocated(test_pool_seq) == 0,
+      "Pool still not empty after clear");
+
+  memory_pool_clear(test_pool_random);
+  fail_unless(memory_pool_n_allocated(test_pool_random) == 0,
+      "Pool still not empty after clear");
+
+  memory_pool_clear(test_pool_empty);
+  fail_unless(memory_pool_n_allocated(test_pool_empty) == 0,
+      "Pool still not empty after clear");
+}
+END_TEST
+
 START_TEST(test_sort)
 {
   s32 xs[22];
@@ -668,6 +684,7 @@ Suite* memory_pool_suite(void)
   tcase_add_test(tc_core, test_filter_2);
   tcase_add_test(tc_core, test_filter_3);
   tcase_add_test(tc_core, test_filter_4);
+  tcase_add_test(tc_core, test_clear);
   tcase_add_test(tc_core, test_sort);
   tcase_add_test(tc_core, test_groupby_1);
   tcase_add_test(tc_core, test_groupby_2);

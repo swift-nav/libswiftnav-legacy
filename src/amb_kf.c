@@ -8,8 +8,9 @@
  * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
- *
- * 
+ */
+
+/*
  * This is a Bierman-Thornton kalman filter implementation, as described in:
  *  [1] Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
  *      John C. Wiley & Sons, Inc., 2011.
@@ -30,78 +31,12 @@
 
 #define DEBUG_AMB_KF 0
 
-static void triu(u32 n, double *M)
-{
-  for (u32 i=1; i<n; i++) {
-    for (u32 j=0; j<i; j++) {
-      M[i*n + j] = 0;
-    }
-  }
-}
-
-static void eye(u32 n, double *M)
-{
-  memset(M, 0, n * n * sizeof(double));
-  for (u32 i=0; i<n; i++) {
-    M[i*n + i] = 1;
-  }
-}
-
-/** performs th UDU' decomposition of a matrix
- * This is algorithm 10.2-2 of Gibbs[1]
- */
-static s8 udu(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
-{
-  double alpha, beta;
-  triu(n, M);
-  eye(n, U);
-  memset(D, 0, n * sizeof(double));
-
-  for (u32 j=n; j>=2; j--) {
-    D[j - 1] = M[(j-1)*n + j-1];
-    if (D[j-1] > 0) {
-      alpha = 1.0 / D[j-1];
-    } else {
-      alpha = 0.0;
-    }
-    for (u32 k=1; k<j; k++) {
-      beta = M[(k-1)*n + j-1];
-      U[(k-1)*n + j-1] = alpha * beta;
-      for (u32 kk = 0; kk < k; kk++) {
-        M[kk*n + k-1] = M[kk*n + k-1] - beta * U[kk*n + j-1];
-      }
-    }
-
-  }
-  D[0] = M[0];
-  return 0;
-}
-
-/** Reconsructs a UDU' decomposed matrix
- */
-void reconstruct_udu(u32 n, double *U, double *D, double *M)
-{
-  memset(M, 0, n * n * sizeof(double));
-  // TODO: will be symmetric, only need to bother populating part of it
-  for (u32 i=0; i<n; i++) {
-    for (u32 k=i; k<n; k++) {
-      for (u32 j=k; j<n; j++) {
-        //U[i][j] is upper triangular = 0 if j < i
-        //U[k][j] is upper triangular = 0 if j < k
-        //U[i][j] * U[k][j] = 0 if j < k or j < i
-        M[i*n + k] += U[i*n +j] * D[j] * U[k*n + j];
-      }
-      M[k*n + i] = M[i*n + k];
-    }
-  }
-}
-
 /** In place updating of the state cov and k vec using a scalar observation
  * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
  *    singular matrices, dictating that zeros from cov_D dominate.
  *
  */
-static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
+void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
   if (DEBUG_AMB_KF) {
@@ -115,13 +50,13 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
       printf("\n");
     }
   }
-  
+
   double f[state_dim]; // f = U^T * h
   memcpy(f, h, state_dim * sizeof(double));
   cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit, //CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG
               state_dim, U, //int N, double *A
               state_dim, f, 1); // int lda, double *X, int incX
-  
+
 
   double g[state_dim]; // g = diag(D) * f
   double alpha = R; // alpha = f * g + R = f^T * diag(D) * f + R
@@ -130,7 +65,7 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     alpha += f[i] * g[i];
   }
   if (DEBUG_AMB_KF) {
-    VEC_PRINTF(f, state_dim);  
+    VEC_PRINTF(f, state_dim);
     VEC_PRINTF(g, state_dim);
     printf("alpha = %.16f", alpha);
     if (abs(alpha) == 0) {
@@ -213,7 +148,7 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
  * This is directly from section 10.2.1 of Gibbs [1]
  */
-static void incorporate_obs(nkf_t *kf, double *decor_obs)
+void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
   if (DEBUG_AMB_KF) {
     printf("<INCORPORATE_OBS>\n");
@@ -478,7 +413,7 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, double *ambs, sdiff_t *s
 
 // initializes the ambiguity means and variances.
 // Note that the covariance is  in UDU form, and U starts as identity.
-static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
+void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
@@ -487,7 +422,7 @@ static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var
     // Sigma begins as a diagonal
     kf->state_cov_D[i] = init_var;
   }
-  eye(num_dds, kf->state_cov_U);
+  matrix_eye(num_dds, kf->state_cov_U);
 }
 
 void QR_part1(integer m, integer n, double *A, double *tau)
@@ -642,7 +577,7 @@ void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
 {
   // set the H_prime variable to equal H
   memcpy(H_prime, Q, constraint_dim * num_dds * sizeof(double));
-  eye(num_dds, &H_prime[constraint_dim * num_dds]);
+  matrix_eye(num_dds, &H_prime[constraint_dim * num_dds]);
 
   // multiply H_prime by U_inv to make it the actual H_prime
   cblas_dtrmm(CblasRowMajor, CblasLeft, CblasUpper, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
@@ -690,16 +625,16 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
     assign_phase_obs_null_basis(num_dds, DE, null_basis_Q);
     assign_residual_obs_cov(num_dds, phase_var, code_var, null_basis_Q, Sig);
     //TODO U seems to have that fancy blockwise structure we love so much. Use it
-    udu(res_dim, Sig, U_inv, D); //U_inv holds U after this 
+    matrix_udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
     invert_U(res_dim, U_inv);
     //TODO this also has fancy structure
     assign_H_prime(res_dim, constraint_dim, num_dds, null_basis_Q, U_inv, H_prime);
   }
   else {
-    assign_simple_sig(num_dds, 
+    assign_simple_sig(num_dds,
                       phase_var + code_var / (GPS_L1_LAMBDA_NO_VAC * GPS_L1_LAMBDA_NO_VAC),
                       Sig);
-    udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
+    matrix_udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
     invert_U(res_dim, U_inv);
 
     // H = I in this case, so H' = U^-1 * H = U^-1
@@ -784,7 +719,7 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
   memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
 }
 
-static void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
 {
   u8 state_dim = num_sats - 1;
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
@@ -832,9 +767,9 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 {
   u8 state_dim = num_sats - 1;
   double state_cov[state_dim * state_dim];
-  reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
+  matrix_reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
   rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);
-  udu(state_dim, state_cov, state_cov_U, state_cov_D);
+  matrix_udu(state_dim, state_cov, state_cov_U, state_cov_D);
 }
 
 
@@ -851,7 +786,7 @@ void nkf_state_projection(nkf_t *kf,
 {
   u8 old_state_dim = num_old_non_ref_sats;
   double old_cov[old_state_dim * old_state_dim];
-  reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
+  matrix_reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
   /*MAT_PRINTF(old_cov, old_state_dim, old_state_dim);*/
 
   u8 new_state_dim = num_new_non_ref_sats;
@@ -870,7 +805,7 @@ void nkf_state_projection(nkf_t *kf,
 
   //put it all back into the kf
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
-  udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
+  matrix_udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
   //NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE
 }
 
@@ -882,7 +817,7 @@ void nkf_state_inclusion(nkf_t *kf,
 {
   u8 old_state_dim = num_old_non_ref_sats;
   double old_cov[old_state_dim * old_state_dim];
-  reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
+  matrix_reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
 
   u8 new_state_dim = num_new_non_ref_sats;
   double new_cov[new_state_dim * new_state_dim];
@@ -902,7 +837,7 @@ void nkf_state_inclusion(nkf_t *kf,
       new_cov[ndxi*new_state_dim + ndxj] = old_cov[i*old_state_dim + j];
     }
   }
-  udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
+  matrix_udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
 }
 

@@ -21,7 +21,6 @@ else (CMAKE_CROSSCOMPILING)
       check_utils.c
 
       check_single_diff.c
-      check_float_kf.c
       check_edc.c
       check_bits.c
       check_memory_pool.c

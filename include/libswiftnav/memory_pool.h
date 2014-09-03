@@ -62,6 +62,7 @@ s32 memory_pool_map(memory_pool_t *pool, void *arg,
                     void (*f)(void *arg, element_t *elem));
 s32 memory_pool_filter(memory_pool_t *pool, void *arg,
                        s8 (*f)(void *arg, element_t *elem));
+s32 memory_pool_clear(memory_pool_t *pool);
 s32 memory_pool_fold(memory_pool_t *pool, void *x0,
                      void (*f)(void *x, element_t *elem));
 double memory_pool_dfold(memory_pool_t *pool, double x0,

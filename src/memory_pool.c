@@ -453,12 +453,49 @@ s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, elemen
   return count;
 }
 
+/** Remove all elements from the collection and return them all back to the pool.
+ * This function is O(n) in the number of currently allocated nodes.
+ *
+ * \param pool Pointer to a memory pool
+ */
+s32 memory_pool_clear(memory_pool_t *pool)
+{
+  u32 count = 0;
+  node_t *p = pool->allocated_nodes_head;
+
+  if (!p) {
+    /* If allocated_nodes_head is NULL then the pool was already empty. */
+    return 0;
+  }
+
+  while (p->hdr.next && count <= pool->n_elements) {
+    p = p->hdr.next;
+    count++;
+  }
+
+  if (p->hdr.next) {
+    /* Failed to find the end of the allocaed nodes list. */
+    return -1;
+  }
+
+  /* p now points to the last node in the list. We can now insert the old
+   * allocated nodes list in front of the current free nodes list. */
+  p->hdr.next = pool->free_nodes_head;
+  pool->free_nodes_head = pool->allocated_nodes_head;
+  pool->allocated_nodes_head = NULL;
+
+  return 0;
+}
+
 /** Sort the elements in a collection.
  * This is implemented as a merge sort on a linked list and has O(N log N) time
  * complexity and O(1) space complexity. The implementation is stable and has
  * no pathological cases. The worst-case running time is still O(N log N).
  *
- * Ordering is defined by a comparison function `cmp` which takes two elements `a` and `b` and returns `>0` if `a` should be placed before `b`, `<0` if `b` should be placed before `a` ans `0` if they are 'equal' and their current ordering should be preserved.
+ * Ordering is defined by a comparison function `cmp` which takes two elements
+ * `a` and `b` and returns `>0` if `a` should be placed before `b`, `<0` if `b`
+ * should be placed before `a` and `0` if they are 'equal' and their current
+ * ordering should be preserved.
  *
  * The comparison function also takes an arbitrary argument which is passed
  * through from memory_pool_sort(), this can be used to pass a key or index to
