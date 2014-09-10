@@ -452,10 +452,120 @@ void dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   }
 }
 
+
+/** Makes DD measurement vector and sdiffs to match KF
+ * If given a set of sdiffs which is a superset of the KF's sdiffs, this
+ * function finds the subset of sdiffs matching the KF sats, and outputs it
+ * with the reference first.
+ *
+ * //TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * amb_test context, pull it into another file.
+ *
+ * Returns 0 if input sdiffs are superset of KF sats.
+ * Returns -1 otherwise.
+ *
+ */
+s8 make_float_dd_measurements_and_sdiffs(
+            u8 num_sdiffs, sdiff_t *sdiffs,
+            double *float_dd_measurements, sdiff_t *float_sdiffs)
+{
+  u8 ref_prn = sats_management.prns[0];
+  u8 num_dds = sats_management.num_sats - 1;
+  u8 *non_ref_prns = sats_management.prns[1];
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
+                                  num_dds, num_sdiffs, sdiffs,
+                                  float_dd_measurements, float_sdiffs);
+  return valid_sdiffs;
+}
+
+
+/** Constructs a low latency float baseline measurement.
+ * Has to be tricksy like hobbitses, since the sdiffs have no particular reason
+ * (other than a general tendency brough by hysteresis) to match up with the
+ * float filter's sats.
+ * For now, unless the sdiffs are a superset of the float sats, we don't solve.
+ * //TODO, solve whenever we can
+ * Returns  -1 if it can't solve
+ * Returns 0 if it can.
+ *
+ * \param num_sdiffs  The number of sdiffs input.
+ * \param sdiffs      The sdiffs used to measure. (These should be a superset
+ *                    of the float sats).
+ * \param ref_ecef    The reference position used for solving, and making
+ *                    observation matrices.
+ * \param num_used    The number of sats actually used to compute the baseline.
+ * \param b           The baseline computed.
+ */
+s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+                                 double ref_ecef[3], u8 *num_used, double b[3])
+{
+  if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
+    return -1;
+  }
+  double float_dd_measurements[sats_management.num_sats - 1];
+  sdiff_t float_sdiffs[sats_management.num_sats];
+  s8 can_haz_float = make_float_dd_measurements_and_sdiffs(
+          num_sdiffs, sdiffs,
+          float_dd_measurements, float_sdiffs);
+  if (can_haz_float == -1) {
+    return -1;
+  }
+  least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
+                        ref_ecef, b);
+  *num_used = sats_management.num_sats;
+  return 0;
+}
+
+
+/** Finds the baseline using low latency sdiffs.
+ * The low latency sdiffs are not guaranteed to match up with either the
+ * amb_test's or the float sdiffs, and thus care must be taken to transform them
+ * accordingly and check their availability in those sat sets.
+ * Returns 1 if we are using an IAR resolved baseline.
+ * Returns 2 if we are using a float baseline.
+ * Returns -1 if we can't give a baseline.
+ *
+ * \param num_sdiffs  The number of low-latency sdiffs provided.
+ * \param sdiffs      The low-latency sdiffs.
+ * \param ref_ecef    The referece position for the baseline.
+ *                    (TODO is this the local or remote receiver position?)
+ * \param num_used    Output number of sdiffs actually used in the baseline
+ *                    estimate.
+ * \param b           Output baseline.
+ */
+s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+                               double ref_ecef[3], u8 *num_used, double b[3])
+{
+  if (ambiguity_iar_can_solve(&ambiguity_test)) {
+    sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
+    double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+    s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
+                &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
+    if (valid_sdiffs != -1) { //TODO: check internals of this if's content
+      double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
+      assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
+                    ambiguity_sdiffs, ref_ecef, DE);
+      *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
+      lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
+                    dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+      return 1;
+    }
+  }
+  //if we get here, we weren't able to get an IAR resolved one. check if we can get a float
+  s8 float_ret_code = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+                                              ref_ecef, num_used, b);
+  if (float_ret_code == 0) {
+    return 2;
+  }
+  return -1;
+}
+
+
 void dgnss_reset_iar()
 {
   create_ambiguity_test(&ambiguity_test);
 }
+
 
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3])
 {
