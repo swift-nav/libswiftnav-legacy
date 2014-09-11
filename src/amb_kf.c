@@ -286,6 +286,9 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
  */
 void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
 {
+  if (1 || DEBUG_AMB_KF) {
+    printf("<LEAST_SQUARES_SOLVE_B>\n");
+  }
   integer num_dds = kf->state_dim;
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
@@ -310,6 +313,24 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
     // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
   }
 
+  if (1 || DEBUG_AMB_KF) {
+    printf("\tdd_measurements = {\n");
+    for (u8 i=0; i< num_dds; i++) {
+      printf("\t%f,\n", dd_measurements[i]);
+    }
+    printf("\t}\n");
+    printf("\tkf->state_mean = {\n");
+    for (u8 i=0; i< num_dds; i++) {
+      printf("\t%f,\n", kf->state_mean[i]);
+    }
+    printf("\t}\n");
+    printf("\tdifferenced phase_ranges = {\n");
+    for (u8 i=0; i< num_dds; i++) {
+      printf("\t%f,\n", phase_ranges[i]);
+    }
+    printf("\t}\n");
+  }
+
   //TODO could use plain old DGELS here
 
   s32 ldb = (s32) MAX(num_dds,3);
@@ -329,6 +350,7 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
           w, &lwork, // WORK, LWORK
           &info); //INFO
   lwork = round(w[0]);
+  printf("lwork = %d\n", lwork);
 
   double work[lwork];
   dgelss_(&num_dds, &three, &one, //M, N, NRHS
@@ -342,6 +364,9 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
+  if (1 || DEBUG_AMB_KF) {
+    printf("b = {%f, %f, %f}\n</LEAST_SQUARES_SOLVE_B>\n", b[0], b[1], b[2]);
+  }
 }
 
 // presumes that the first alm entry is the reference sat

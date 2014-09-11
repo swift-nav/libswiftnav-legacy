@@ -19,7 +19,7 @@
 #include "linear_algebra.h"
 #include "ambiguity_test.h"
 
-#define DEBUG_DGNSS_MANAGEMENT 0
+#define DEBUG_DGNSS_MANAGEMENT 1
 
 nkf_t nkf;
 stupid_filter_state_t stupid_state;
@@ -401,6 +401,9 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
 
 void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], u8 *num_used, double b[3])
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_NEW_FLOAT_BASELINE>\n");
+  }
   sdiff_t corrected_sdiffs[num_sats];
 
   u8 old_prns[MAX_CHANNELS];
@@ -413,6 +416,9 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
 
   least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, receiver_ecef, b);
   *num_used = sats_management.num_sats;
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_NEW_FLOAT_BASELINE>\n");
+  }
 }
 
 void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
@@ -471,10 +477,10 @@ s8 make_float_dd_measurements_and_sdiffs(
 {
   u8 ref_prn = sats_management.prns[0];
   u8 num_dds = sats_management.num_sats - 1;
-  // u8 *non_ref_prns = sats_management.prns[1];
+  u8 *non_ref_prns = &sats_management.prns[1];
   //TODO get to the bottom of why the above line doesn't work.
-  u8 non_ref_prns[MAX_CHANNELS];
-  memcpy(non_ref_prns, &sats_management.prns[1], num_dds);
+  // u8 non_ref_prns[MAX_CHANNELS];
+  // memcpy(non_ref_prns, &sats_management.prns[1], num_dds);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
                                   float_dd_measurements, float_sdiffs);
@@ -502,7 +508,13 @@ s8 make_float_dd_measurements_and_sdiffs(
 s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                  double ref_ecef[3], u8 *num_used, double b[3])
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+  }
   if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("too few sats or too few sdiffs\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+    }
     return -1;
   }
   double float_dd_measurements[sats_management.num_sats - 1];
@@ -511,11 +523,17 @@ s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
           num_sdiffs, sdiffs,
           float_dd_measurements, float_sdiffs);
   if (can_haz_float == -1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("make_float_dd_measurements_and_sdiffs has error code -1\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+    }
     return -1;
   }
   least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
                         ref_ecef, b);
   *num_used = sats_management.num_sats;
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+  }
   return 0;
 }
 
@@ -539,6 +557,9 @@ s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
 s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                double ref_ecef[3], u8 *num_used, double b[3])
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_LOW_LATENCY_BASELINE>\n");
+  }
   if (ambiguity_iar_can_solve(&ambiguity_test)) {
     sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
     double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
@@ -551,6 +572,9 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
       *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
       lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
                     dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+      if (DEBUG_DGNSS_MANAGEMENT) {
+        printf("low latency IAR resolved solution\n</DGNSS_LOW_LATENCY_BASELINE>\n");
+      }
       return 1;
     }
   }
@@ -558,7 +582,13 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   s8 float_ret_code = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, num_used, b);
   if (float_ret_code == 0) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("low latency float solution\n<DGNSS_LOW_LATENCY_BASELINE>\n");
+    }
     return 2;
+  }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("no low latency solution\n</DGNSS_LOW_LATENCY_BASELINE>\n");
   }
   return -1;
 }
@@ -700,6 +730,9 @@ void measure_amb_kf_b(double reciever_ecef[3],
                       u8 num_sdiffs, sdiff_t *sdiffs,
                       double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<MEASURE_AMB_KF_B>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
   copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
@@ -720,6 +753,9 @@ void measure_amb_kf_b(double reciever_ecef[3],
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</MEASURE_AMB_KF_B>\n");
+  }
 }
 
 /*TODO consolidate this with the similar one above*/
@@ -728,6 +764,9 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
                                   double *ambs,
                                   double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<MEASURE_B_WITH_EXTERNAL_AMBS>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
   copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
@@ -747,6 +786,9 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(nkf.state_dim, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</MEASURE_B_WITH_EXTERNAL_AMBS>\n");
+  }
 }
 
 /*TODO consolidate this with the similar ones above*/
@@ -755,6 +797,9 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
                                       double *ambs,
                                       double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("<MEASURE_IAR_B_WITH_EXTERNAL_AMBS>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   match_sdiffs_to_sats_man(&ambiguity_test.sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   double dd_measurements[2*(num_sdiffs-1)];
@@ -771,6 +816,9 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("</MEASURE_IAR_B_WITH_EXTERNAL_AMBS>\n");
   }
 }
 
