@@ -314,19 +314,24 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
   }
 
   if (1 || DEBUG_AMB_KF) {
-    printf("\tdd_measurements = {\n");
+    // printf("\tdd_measurements = {\n");
+    // for (u8 i=0; i< num_dds; i++) {
+    //   printf("\t%f,\n", dd_measurements[i]);
+    // }
+    // printf("\t}\n");
+    // printf("\tkf->state_mean = {\n");
+    // for (u8 i=0; i< num_dds; i++) {
+    //   printf("\t%f,\n", kf->state_mean[i]);
+    // }
+    // printf("\t}\n");
+    // printf("\tdifferenced phase_ranges = {\n");
+    // for (u8 i=0; i< num_dds; i++) {
+    //   printf("\t%f,\n", phase_ranges[i]);
+    // }
+    // printf("\t}\n");
+    printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f,\n", dd_measurements[i]);
-    }
-    printf("\t}\n");
-    printf("\tkf->state_mean = {\n");
-    for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f,\n", kf->state_mean[i]);
-    }
-    printf("\t}\n");
-    printf("\tdifferenced phase_ranges = {\n");
-    for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f,\n", phase_ranges[i]);
+      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], kf->state_mean[i], phase_ranges[i]);
     }
     printf("\t}\n");
   }
