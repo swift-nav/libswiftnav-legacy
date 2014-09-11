@@ -471,7 +471,10 @@ s8 make_float_dd_measurements_and_sdiffs(
 {
   u8 ref_prn = sats_management.prns[0];
   u8 num_dds = sats_management.num_sats - 1;
-  u8 *non_ref_prns = sats_management.prns[1];
+  // u8 *non_ref_prns = sats_management.prns[1];
+  //TODO get to the bottom of why the above line doesn't work.
+  u8 non_ref_prns[MAX_CHANNELS];
+  memcpy(non_ref_prns, &sats_management.prns[1], num_dds);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
                                   float_dd_measurements, float_sdiffs);
