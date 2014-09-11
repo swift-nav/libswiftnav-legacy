@@ -610,7 +610,11 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     for (u8 i=0; i < num_dds; i++) {
       printf("%d, ", non_ref_prns[i]);
     }
-    printf("}\nnum_dds = %u\nnum_sdiffs = %u\n", num_dds, num_sdiffs);
+    printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds, num_sdiffs);
+    for (u8 i=0; i < num_sdiffs; i++) {
+      printf("%d, ", sdiffs[i].prn);
+    }
+    printf("}\n");
   }
   double ref_phase;
   double ref_pseudorange;
