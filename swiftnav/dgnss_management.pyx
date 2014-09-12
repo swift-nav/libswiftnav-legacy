@@ -24,21 +24,19 @@ from sats_management_c cimport *
 
 def set_settings(phase_var_test, code_var_test,
                  phase_var_kf, code_var_kf,
-                 pos_trans_var, vel_trans_var, int_trans_var,
                  amb_drift_var,
-                 pos_init_var, vel_init_var, amb_init_var,
+                 amb_init_var,
                  new_int_var):
   dgnss_management_c.dgnss_set_settings(phase_var_test, code_var_test,
                                         phase_var_kf, code_var_kf,
-                                        pos_trans_var, vel_trans_var, int_trans_var,
                                         amb_drift_var,
-                                        pos_init_var, vel_init_var, amb_init_var,
+                                        amb_init_var,
                                         new_int_var)
   
 
 def dgnss_init(alms, GpsTime timestamp,
                numpy_measurements,
-               reciever_ecef, dt, b=None):
+               reciever_ecef, b=None):
   n = len(alms)
   state_dim = n + 5
   obs_dim = 2 * (n-1)
@@ -71,11 +69,11 @@ def dgnss_init(alms, GpsTime timestamp,
     sdiffs[i].carrier_phase = l
 
   # dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], &b_[0])
-  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0], dt)
+  dgnss_management_c.dgnss_init(n, &sdiffs[0], &ref_ecef_[0])
 
 def dgnss_update(alms, GpsTime timestamp,
                numpy_measurements,
-               reciever_ecef, dt):
+               reciever_ecef):
   n = len(alms)
   state_dim = n + 5
   obs_dim = 2 * (n-1)
@@ -104,7 +102,7 @@ def dgnss_update(alms, GpsTime timestamp,
   cdef double b_[3]
   # dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt, 1, b_)
   # print n
-  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0], dt)
+  dgnss_management_c.dgnss_update(n, &sdiffs[0], &ref_ecef_[0])
   
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)

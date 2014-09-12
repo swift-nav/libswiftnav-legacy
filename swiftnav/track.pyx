@@ -377,10 +377,14 @@ cdef class AidedTrackingLoop:
   cdef track_c.aided_tl_state_t s
   cdef float loop_freq
   cdef float code_bw, code_zeta, code_k
+  cdef float carr_bw, carr_zeta, carr_k
+  cdef float carr_freq_igain
 
-  def __cinit__(self, code_params, loop_freq):
+  def __cinit__(self, code_params, carr_params, loop_freq, carr_freq_igain):
     self.loop_freq = loop_freq
     self.code_bw, self.code_zeta, self.code_k = code_params
+    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
+    self.carr_freq_igain = carr_freq_igain
 
   def start(self, code_freq, carr_freq):
     """
@@ -397,7 +401,9 @@ cdef class AidedTrackingLoop:
     track_c.aided_tl_init(&self.s, self.loop_freq,
                            code_freq, self.code_bw,
                            self.code_zeta, self.code_k,
-                           carr_freq)
+                           carr_freq, self.carr_bw,
+                           self.carr_zeta, self.carr_k,
+                           self.carr_freq_igain)
 
   def update(self, complex e, complex p, complex l):
     """
