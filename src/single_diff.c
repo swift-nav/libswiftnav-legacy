@@ -179,11 +179,18 @@ u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double dy = m_local[i].sat_pos[1] - remote_pos_ecef[1];
       double dz = m_local[i].sat_pos[2] - remote_pos_ecef[2];
       double new_dist = sqrt( dx * dx + dy * dy + dz * dz);
-      double dist_diff = remote_dists[j] - new_dist;
+      volatile double dist_diff = remote_dists[j] - new_dist;
       sds[n].pseudorange = m_local[i].raw_pseudorange - m_remote[j].raw_pseudorange
                                                       + dist_diff;
       sds[n].carrier_phase = m_local[i].carrier_phase - m_remote[j].carrier_phase
                                                       + dist_diff / GPS_L1_LAMBDA;
+
+      printf("\t\t(prn %u) psuedorange_adj     = %f\n", sds[n].prn,
+                      dist_diff);
+      printf("\t\t(prn %u) carrier_phase_adj   = %f\n", sds[n].prn,
+                      dist_diff / GPS_L1_LAMBDA);
+      printf("\t\t(prn %u) dist_diff           = %f\n\n", sds[n].prn,
+                    dist_diff);
       /* Doppler is not propogated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
       sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
