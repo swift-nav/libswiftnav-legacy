@@ -309,30 +309,17 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
 
   double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
+    kf->state_mean[i] = lround(dd_measurements[i]);
     phase_ranges[i] = dd_measurements[i] - kf->state_mean[i];
     // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
   }
 
   if (1 || DEBUG_AMB_KF) {
-    // printf("\tdd_measurements = {\n");
-    // for (u8 i=0; i< num_dds; i++) {
-    //   printf("\t%f,\n", dd_measurements[i]);
-    // }
-    // printf("\t}\n");
-    // printf("\tkf->state_mean = {\n");
-    // for (u8 i=0; i< num_dds; i++) {
-    //   printf("\t%f,\n", kf->state_mean[i]);
-    // }
-    // printf("\t}\n");
-    // printf("\tdifferenced phase_ranges = {\n");
-    // for (u8 i=0; i< num_dds; i++) {
-    //   printf("\t%f,\n", phase_ranges[i]);
-    // }
-    // printf("\t}\n");
     printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
       printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], kf->state_mean[i], phase_ranges[i]);
     }
+
     printf("\t}\n");
   }
 
@@ -365,12 +352,13 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
           &rank, //RANK
           work, &lwork, // WORK, LWORK
           &info); //INFO
-
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
   if (1 || DEBUG_AMB_KF) {
-    printf("b = {%f, %f, %f}\n</LEAST_SQUARES_SOLVE_B>\n", b[0], b[1], b[2]);
+    printf("yoloLKJSHDLKAJHSDLAKJSDHAKSDJH\n");
+    printf("b = {%f, %f, %f}\n", b[0], b[1], b[2]);
+    printf("</LEAST_SQUARES_SOLVE_B>\n");
   }
 }
 

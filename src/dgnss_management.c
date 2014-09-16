@@ -508,22 +508,22 @@ s8 make_float_dd_measurements_and_sdiffs(
 s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                  double ref_ecef[3], u8 *num_used, double b[3])
 {
-  if (DEBUG_DGNSS_MANAGEMENT) {
+  if (1 || DEBUG_DGNSS_MANAGEMENT) {
     printf("<DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
   }
   if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
-    if (DEBUG_DGNSS_MANAGEMENT) {
+    if (1 || DEBUG_DGNSS_MANAGEMENT) {
       printf("too few sats or too few sdiffs\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
     }
     return -1;
   }
-  double float_dd_measurements[sats_management.num_sats - 1];
+  double float_dd_measurements[2 * (sats_management.num_sats - 1)];
   sdiff_t float_sdiffs[sats_management.num_sats];
   s8 can_haz_float = make_float_dd_measurements_and_sdiffs(
           num_sdiffs, sdiffs,
           float_dd_measurements, float_sdiffs);
   if (can_haz_float == -1) {
-    if (DEBUG_DGNSS_MANAGEMENT) {
+    if (1 || DEBUG_DGNSS_MANAGEMENT) {
       printf("make_float_dd_measurements_and_sdiffs has error code -1\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
     }
     return -1;
@@ -561,6 +561,7 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     printf("<DGNSS_LOW_LATENCY_BASELINE>\n");
   }
   if (ambiguity_iar_can_solve(&ambiguity_test)) {
+
     sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
     double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
     s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
