@@ -19,7 +19,7 @@
 #include "linear_algebra.h"
 #include "ambiguity_test.h"
 
-#define DEBUG_DGNSS_MANAGEMENT 1
+#define DEBUG_DGNSS_MANAGEMENT 0
 
 nkf_t nkf;
 stupid_filter_state_t stupid_state;
@@ -508,11 +508,11 @@ s8 make_float_dd_measurements_and_sdiffs(
 s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                  double ref_ecef[3], u8 *num_used, double b[3])
 {
-  if (1 || DEBUG_DGNSS_MANAGEMENT) {
+  if (DEBUG_DGNSS_MANAGEMENT) {
     printf("<DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
   }
   if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
-    if (1 || DEBUG_DGNSS_MANAGEMENT) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
       printf("too few sats or too few sdiffs\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
     }
     return -1;
@@ -523,7 +523,7 @@ s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
           num_sdiffs, sdiffs,
           float_dd_measurements, float_sdiffs);
   if (can_haz_float == -1) {
-    if (1 || DEBUG_DGNSS_MANAGEMENT) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
       printf("make_float_dd_measurements_and_sdiffs has error code -1\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
     }
     return -1;

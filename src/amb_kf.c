@@ -286,7 +286,7 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
  */
 void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
 {
-  if (1 || DEBUG_AMB_KF) {
+  if (DEBUG_AMB_KF) {
     printf("<LEAST_SQUARES_SOLVE_B>\n");
   }
   integer num_dds = kf->state_dim;
@@ -314,7 +314,7 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
     // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
   }
 
-  if (1 || DEBUG_AMB_KF) {
+  if (DEBUG_AMB_KF) {
     printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
       printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], kf->state_mean[i], phase_ranges[i]);
@@ -342,7 +342,7 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
           w, &lwork, // WORK, LWORK
           &info); //INFO
   lwork = round(w[0]);
-  printf("lwork = %d\n", lwork);
+  // printf("lwork = %d\n", lwork);
 
   double work[lwork];
   dgelss_(&num_dds, &three, &one, //M, N, NRHS
@@ -355,9 +355,9 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
-  if (1 || DEBUG_AMB_KF) {
+  if (DEBUG_AMB_KF) {
     printf("yoloLKJSHDLKAJHSDLAKJSDHAKSDJH\n");
-    printf("b = {%f, %f, %f}\n", b[0], b[1], b[2]);
+    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100);
     printf("</LEAST_SQUARES_SOLVE_B>\n");
   }
 }

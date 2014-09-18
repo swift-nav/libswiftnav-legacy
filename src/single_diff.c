@@ -225,12 +225,12 @@ u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       sds[n].carrier_phase = m_local[i].carrier_phase - m_remote[j].carrier_phase
                                                       - dist_diff / GPS_L1_LAMBDA;
 
-      printf("   low-lat   (prn %u) psuedorange_adj     = %f\n", sds[n].prn,
-                      dist_diff);
-      printf("             (prn %u) carrier_phase_adj   = %f\n", sds[n].prn,
-                      -dist_diff / GPS_L1_LAMBDA);
-      printf("             (prn %u) dist_diff           = %f\n\n", sds[n].prn,
-                    dist_diff);
+      // printf("   low-lat   (prn %u) psuedorange_adj     = %f\n", sds[n].prn,
+      //                 dist_diff);
+      // printf("             (prn %u) carrier_phase_adj   = %f\n", sds[n].prn,
+      //                 -dist_diff / GPS_L1_LAMBDA);
+      // printf("             (prn %u) dist_diff           = %f\n\n", sds[n].prn,
+      //               dist_diff);
       /* Doppler is not propogated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
       sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
