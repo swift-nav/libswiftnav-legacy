@@ -280,11 +280,72 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
   }
 }
 
-// presumes that the first alm entry is the reference sat
-/*TODO use the state covariance matrix for a better estimate:
- *  That is, decorrelate and scale the LHS of y = A * x before solving for x
+
+/* TODO use the state covariance matrix for a better estimate:
+ *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
+ *
+ *    That is, we assume that y ~ N ( A * x, S), and want to make a maximum
+ *    likelihood estimate (asymptotically optimal by the Cramer-Rao bound).
+ *    This is the minimizer of (A * x - y)' * S^-1 * (A * x - y).
+ *        = min_x  (x' * A' - y') * S^-1 * (A * x - y)
+ *        = min_x  x' * A' * S^-1* A * x - x' * A' * S^-1 * y
+ *                                       - y' * S^-1 * A * x  +  y' * S^-1 * y
+ *    Differentiating by x, this becomes
+ *    0   =   2 * A' * S^-1 * A * x - 2 * A' * S^-1 * y  ====>
+ *    A' * S^-1 * y   =   A' * S^-1 * A * x              ====>
+ *    (A'* S^-1 * A)^-1 * A' * S^-1 * y = x
+ *
+ *    Decomposing S^(-1) = U'^-1 * D^-1/2 * D^-1/2 * U^-1 and defining
+ *    C = D^-1/2 * U^-1 * A, we get
+ *    (C' * C)^-1 * C' * D^(-1/2) * U^(-1) * y = x
+ *    We know that (C' * C)^-1 * C' is the pseudoinverse of C for all C, so
+ *    we're really just solving
+ *    D^(-1/2) * U^(-1) * y = C * x = D^(-1/2) * U^(-1) * A * x.
+ *
+ *
+ *    Alternatively, we can show this as
+ *    If y ~ N( A * x, S = U * D * U'),
+ *        then D^(-1/2) * U^(-1) * y ~  N( D^(-1/2) * U^-1 * A * x, I).
+ *
+ *    This form brings more light on the fact that:
+ *      z = U^(-1) * y ~  N(U^-1 * A * x, D).
+ *    This form helps us decide how to solve when d_i ~~ 0.
+ *    The z_I for I = {i | d_i ~~ 0} want to be solved exactly, because we are
+ *    saying that there is no noise in the measurement. This can reduce the
+ *    dimension of the problem we are solving, if we really want to.
+
+ *    Therefore we want to:
+ *      Triangularly solve y = U * z, for z = U^(-1) * y
+ *                         A = U * B, for C = U^(-1) * A
+ *        (perhaps simultaneously)
+ *      Scale w = D^(-1/2) * z, being mindful that D might not be full rank.
+ *      Scale C = D^(-1/2) * B, being mindful that D might not be full rank.
+ *      Perform an ordinary least squares solution for w = C * x.
+ *          -If we have zeros (d_i below some threshold), we could just do an
+ *              exact solution for those then least squares solve the rest.
+ *          -Or we could set those d_i to be at threshold and then invert.
+ *
+ *    We then have that the covariance matrix for x is (C' * C)^-1.
+ *
+ *    We also need to determine if this is even worth the extra effort.
  */
-void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
+/** A least squares solution for baseline from phases using the KF state.
+ * This uses the current state of the KF and a set of phase observations to
+ * solve for the current baseline.
+ *
+ * \param kf                    The Kalman filter struct.
+ * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
+ *                              the reference sat of the KF, and the rest must
+ *                              correspond to the KF's DD amb estimates' sats.
+ * \param dd_measurements       A vector of carrier phases. They must be double
+ *                              differenced and ordered according to the sdiffs
+ *                              and KF's sats (which must match each other).
+ * \param ref_ecef              The reference position in ECEF frame, for
+ *                              computing the sat direction vectors.
+ * \param b                     The output baseline in meters.
+ */
+void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
+                      double *dd_measurements, double ref_ecef[3], double b[3])
 {
   if (DEBUG_AMB_KF) {
     printf("<LEAST_SQUARES_SOLVE_B>\n");
