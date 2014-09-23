@@ -121,6 +121,13 @@ START_TEST(test_sats_match)
 }
 END_TEST
 
+// START_TEST(test_make_dd_measurements_and_sdiffs)
+// {
+//   //TODO this function needs testing
+// }
+// END_TEST
+
+
 Suite* ambiguity_test_suite(void)
 {
   Suite *s = suite_create("Ambiguity Test");

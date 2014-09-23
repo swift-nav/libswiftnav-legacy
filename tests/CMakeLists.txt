@@ -20,6 +20,7 @@ else (CMAKE_CROSSCOMPILING)
       check_main.c
       check_utils.c
 
+      check_dgnss_management.c
       check_amb_kf.c
       check_single_diff.c
       check_edc.c

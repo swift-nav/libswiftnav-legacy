@@ -719,8 +719,9 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
 
 /** Make the DD measurements and sdiffs that correspond to the resolved DDs in amb_test.
  * Assuming that amb_test has not been modified since the last check to see
- * whether it can resolve a fixed position, this will make a set of sdiffs
- * and DD measurements that correspond to the resolved sats.
+ * whether it can resolve a fixed position (that is, amb_test->amb_check is up
+ * to date, this will make a set of sdiffs and DD measurements that correspond
+ * to the resolved sats.
  *
  * Returns 0 if the input sdiff sats are a superset of the resolved IAR sats.
  * Returns -1 otherwise.

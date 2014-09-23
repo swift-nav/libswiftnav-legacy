@@ -3,15 +3,7 @@
 #include <stdio.h>
 #include "amb_kf.h"
 #include "single_diff.h"
-
-#define epsilon 0.00001
-
-u8 within_epsilon(double a, double b) {
-  if (fabs(a - b) < epsilon) {
-    return 1;
-  }
-  return 0;
-}
+#include "check_utils.h"
 
 START_TEST(test_lsq) {
   sdiff_t sdiffs[5];
@@ -39,6 +31,7 @@ START_TEST(test_lsq) {
   kf.state_mean[0] = 0;
   kf.state_mean[1] = 0;
   kf.state_mean[2] = 0;
+  kf.state_mean[3] = 0;
   kf.state_dim = 4;
 
   double meas[4];
@@ -55,33 +48,21 @@ START_TEST(test_lsq) {
   ref_ecef[2] = 0;
 
   least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
-
-  printf("%f, %f, %f\n", b[0], b[1], b[2]);
   fail_unless(within_epsilon(b[0], 0));
   fail_unless(within_epsilon(b[1], 0));
   fail_unless(within_epsilon(b[2], 0));
 
-  meas[1] = 1.f;
-
+  meas[1] = 1;
   least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
-
-  printf("%f, %f, %f\n", b[0], b[1], b[2]);
-  // fail_unless(within_epsilon(b[0], -1.7071067812));
-  // fail_unless(within_epsilon(b[1], -0.7071067812));
-  // fail_unless(within_epsilon(b[2], -1.7071067812));
+  fail_unless(within_epsilon(b[0], -0.324757)); // check that it matches computation made elsewhere
+  fail_unless(within_epsilon(b[1], -0.134519));
+  fail_unless(within_epsilon(b[2], -0.324757));
 
   meas[1] = 2;
-
-  // while(1 == 1) {
-  //   printf("yolo\n");
-  // }
-
   least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
-
-  printf("%f, %f, %f\n", b[0], b[1], b[2]);
-  // fail_unless(within_epsilon(b[0], -1.7071067812 * 2));
-  // fail_unless(within_epsilon(b[1], -0.7071067812 * 2));
-  // fail_unless(within_epsilon(b[2], -1.7071067812 * 2));
+  fail_unless(within_epsilon(b[0], -0.324757 * 2)); // check that it's linear
+  fail_unless(within_epsilon(b[1], -0.134519 * 2));
+  fail_unless(within_epsilon(b[2], -0.324757 * 2));
 }
 END_TEST
 
