@@ -75,9 +75,6 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
   s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_ref_first = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_first = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
@@ -102,9 +99,6 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
 
   s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
-
-  printf("b_ref_middle = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_end = %d\n", valid);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.622609));
@@ -131,9 +125,6 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
   s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_ref_end = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_end = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
@@ -157,9 +148,9 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
   b_orig[1] = 1;
   b_orig[2] = 1;
 
-  ref_ecef[0] = 0; /* Done so that we can just do the vector operations on */
+  ref_ecef[0] = 0; /* Done so that we can just do the vector operations on  */
   ref_ecef[1] = 0; /*  the sat_pos vectors themselves, instead of computing */
-  ref_ecef[2] = 0; /*  the line of sight vectors for each sdiff. */
+  ref_ecef[2] = 0; /*  the line of sight vectors for each sdiff.            */
 
   sdiffs[0].carrier_phase = vector_dot(3, b_orig, sdiffs[0].sat_pos) /
                             vector_norm(3, sdiffs[0].sat_pos) /
@@ -183,9 +174,6 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
 
   s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
-
-  printf("b_fixed_point = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_fixed_point = %d\n", valid);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], b_orig[0]));
@@ -262,9 +250,6 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_ref_first = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_first = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
@@ -276,12 +261,6 @@ END_TEST
  * This should verify that the induction works. */
 START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   check_dgnss_management_setup();
-  // sats_management.num_sats = 5;
-  // sats_management.prns[0] = 2;
-  // sats_management.prns[1] = 1;
-  // sats_management.prns[2] = 3;
-  // sats_management.prns[3] = 4;
-  // sats_management.prns[4] = 5;
 
   u8 ref_prn = 2;
   u8 prns[4];
@@ -301,7 +280,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   Z_inv[2 + 4*2] = 1;
   Z_inv[3 + 4*3] = 1;
   add_sats(&ambiguity_test,
-           1,
+           ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
@@ -321,9 +300,6 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_ref_middle = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_end = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.622609));
   fail_unless(within_epsilon(b[1], -0.432371));
@@ -335,12 +311,6 @@ END_TEST
  * This should verify that the loop can terminate correctly.*/
 START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   check_dgnss_management_setup();
-  // sats_management.num_sats = 5;
-  // sats_management.prns[0] = 5;
-  // sats_management.prns[1] = 1;
-  // sats_management.prns[2] = 2;
-  // sats_management.prns[3] = 3;
-  // sats_management.prns[4] = 4;
 
   u8 ref_prn = 5;
   u8 prns[4];
@@ -360,7 +330,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   Z_inv[2 + 4*2] = 1;
   Z_inv[3 + 4*3] = 1;
   add_sats(&ambiguity_test,
-           1,
+           ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
@@ -380,9 +350,6 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_ref_end = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_ref_end = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
@@ -394,12 +361,6 @@ END_TEST
  * matching the baseline. */
 START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   check_dgnss_management_setup();
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 5;
-  sats_management.prns[1] = 1;
-  sats_management.prns[2] = 2;
-  sats_management.prns[3] = 3;
-  sats_management.prns[4] = 4;
 
   check_dgnss_management_setup();
 
@@ -421,7 +382,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   Z_inv[2 + 4*2] = 1;
   Z_inv[3 + 4*3] = 1;
   add_sats(&ambiguity_test,
-           1,
+           ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
@@ -439,9 +400,9 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   b_orig[1] = 1;
   b_orig[2] = 1;
 
-  ref_ecef[0] = 0; /* Done so that we can just do the vector operations on */
+  ref_ecef[0] = 0; /* Done so that we can just do the vector operations on  */
   ref_ecef[1] = 0; /*  the sat_pos vectors themselves, instead of computing */
-  ref_ecef[2] = 0; /*  the line of sight vectors for each sdiff. */
+  ref_ecef[2] = 0; /*  the line of sight vectors for each sdiff.            */
 
   sdiffs[0].carrier_phase = vector_dot(3, b_orig, sdiffs[0].sat_pos) /
                             vector_norm(3, sdiffs[0].sat_pos) /
@@ -466,9 +427,6 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
-  printf("b_fixed_point = [%f, %f, %f]\n", b[0], b[1], b[2]);
-  printf("valid_fixed_point = %d\n", valid);
-
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], b_orig[0]));
   fail_unless(within_epsilon(b[1], b_orig[1]));
@@ -479,27 +437,66 @@ END_TEST
 START_TEST(test_dgnss_low_latency_IAR_baseline_few_sats) {
   check_dgnss_management_setup();
 
-  sats_management.prns[0] = 5;
-  sats_management.num_sats = 1;
+  ambiguity_test.amb_check.initialized = 1;
+  ambiguity_test.amb_check.num_matching_ndxs = 1;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
+
   s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
-
   fail_unless(valid == -1);
 
-  sats_management.num_sats = 0;
+  ambiguity_test.amb_check.num_matching_ndxs = 0;
 
   dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 
+  ambiguity_test.amb_check.initialized = 0;
+  ambiguity_test.amb_check.num_matching_ndxs = 4;
+
+  dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+                                   ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
 END_TEST
 
+START_TEST(test_dgnss_low_latency_IAR_baseline_uninitialized) {
+  check_dgnss_management_setup();
+
+  ambiguity_test.amb_check.initialized = 0;
+  ambiguity_test.amb_check.num_matching_ndxs = 5;
+
+  double b[3];
+  u8 num_used;
+  u8 num_sdiffs = 6;
+
+
+  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+                                              ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
+}
+END_TEST
+
+START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
+  check_dgnss_management_setup();
+
+  ambiguity_test.amb_check.initialized = 0;
+  ambiguity_test.amb_check.num_matching_ndxs = 5;
+
+  double b[3];
+  u8 num_used;
+  u8 num_sdiffs = 6;
+
+
+  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+                                              ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
+}
+END_TEST
 
 Suite* dgnss_management_test_suite(void)
 {
@@ -509,14 +506,15 @@ Suite* dgnss_management_test_suite(void)
   tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_first);
   tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_middle);
   tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_end);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_few_sats);
   tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_fixed_point);
+  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_few_sats);
 
   tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_first);
   tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_middle);
-  // tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_end);
-  // tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_few_sats);
-  // tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_fixed_point);
+  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_end);
+  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_fixed_point);
+  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_few_sats);
+  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_uninitialized);
   suite_add_tcase(s, tc_core);
 
   return s;

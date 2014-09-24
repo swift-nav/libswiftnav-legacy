@@ -1556,13 +1556,13 @@ void add_sats(ambiguity_test_t *amb_test,
   }
 
   printf("IAR: %d hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);*/
+  // memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
   memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &generate_next_hypothesis, &hypothesis_prod);
   printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &k, &print_hyp);*/
+  // memory_pool_map(amb_test->pool, &k, &print_hyp);
 
 
   // /* Recorrelate the new ambiguities we just added. */
