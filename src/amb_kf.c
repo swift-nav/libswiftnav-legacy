@@ -474,7 +474,7 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
 
   //DE is num_sats-1 by 3, need to transpose it to column major
   double A[num_dds * num_dds];
-  for (u8 i=0; i<num_dds; i++) {
+  for (u8 i=0; i < num_dds; i++) {
     for (u8 j=0; j<3; j++) {
       A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
     }
@@ -484,7 +484,7 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
   double tau[3];
   QR_part1(m, n, A, tau);
   QR_part2(m, n, A, tau);
-  memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
+  memcpy(q, &A[3*num_dds], (MAX(3, num_dds) - 3) * num_dds * sizeof(double));
 }
 
 void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd_obs_cov) //TODO this could be made more efficient, if it matters
@@ -558,9 +558,15 @@ void invert_U(u8 res_dim, double *U) // in place inversion of U
 
 void assign_simple_sig(u8 num_dds, double var, double *simple_cov)
 {
-  memset(simple_cov, var, num_dds * num_dds * sizeof(double));
   for (u8 i = 0; i < num_dds; i++) {
-    simple_cov[i*num_dds + i] = 2 * var;
+    for (u8 j = 0; j < num_dds; j++) {
+      if (i == j) {
+        simple_cov[i*num_dds + j] = 2 * var;
+      }
+      else {
+        simple_cov[i*num_dds + j] = var;
+      }
+    }
   }
 }
 
@@ -612,11 +618,15 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double *U_inv, double *D,
                      double *H_prime)
 {
-  u8 num_dds = num_sdiffs - 1;
+  u8 num_dds = MAX(1, num_sdiffs) - 1;
   u8 constraint_dim = MAX(num_dds, 3) - 3;;
   u8 res_dim = num_dds + constraint_dim;
 
   double Sig[res_dim * res_dim];
+
+  for (u8 i = 0; i < 10; i++) {
+    printf("constraint_dim = %u\n", constraint_dim);
+  }
 
   //assign Sig and H
   if (constraint_dim > 0) {
@@ -674,8 +684,8 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3])
 {
-  u32 state_dim = num_sdiffs - 1;
-  u32 num_diffs = num_sdiffs - 1;
+  u32 state_dim = MAX(1, num_sdiffs) - 1;
+  u32 num_diffs = MAX(1, num_sdiffs) - 1;
   kf->state_dim = state_dim;
   u32 constraint_dim = MAX(3, num_diffs) - 3;
   kf->obs_dim = num_diffs + constraint_dim;

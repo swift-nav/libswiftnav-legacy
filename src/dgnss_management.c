@@ -202,7 +202,7 @@ void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
   }
 }
 
-void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *corrected_sdiffs,
+void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *sdiffs_with_ref_first,
                        double *dd_measurements)
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
@@ -210,26 +210,26 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
   }
   (void)dd_measurements;
   u8 new_prns[num_sdiffs];
-  sdiffs_to_prns(num_sdiffs, corrected_sdiffs, new_prns);
+  sdiffs_to_prns(num_sdiffs, sdiffs_with_ref_first, new_prns);
 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
 
-  if (!prns_match(&old_prns[1], num_sdiffs-1, &corrected_sdiffs[1])) {
+  if (!prns_match(&old_prns[1], num_sdiffs-1, &sdiffs_with_ref_first[1])) {
     u8 ndx_of_intersection_in_old[sats_management.num_sats];
     u8 ndx_of_intersection_in_new[sats_management.num_sats];
     ndx_of_intersection_in_old[0] = 0;
     ndx_of_intersection_in_new[0] = 0;
     u8 num_intersection_sats = dgnss_intersect_sats(
         sats_management.num_sats-1, &old_prns[1],
-        num_sdiffs-1, &corrected_sdiffs[1],
+        num_sdiffs-1, &sdiffs_with_ref_first[1],
         &ndx_of_intersection_in_old[1],
         &ndx_of_intersection_in_new[1]) + 1;
 
     set_nkf_matrices(
       &nkf,
       dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
-      num_sdiffs, corrected_sdiffs, reciever_ecef
+      num_sdiffs, sdiffs_with_ref_first, reciever_ecef
     );
 
     if (num_intersection_sats < sats_management.num_sats) { //lost sats
@@ -247,7 +247,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     }
 
     /*print_sats_management(&sats_management);*/
-    update_sats_sats_management(&sats_management, num_sdiffs-1, &corrected_sdiffs[1]);
+    update_sats_sats_management(&sats_management, num_sdiffs-1, &sdiffs_with_ref_first[1]);
     /*print_sats_management(&sats_management);*/
 
   }
@@ -255,7 +255,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *correcte
     set_nkf_matrices(
       &nkf,
       dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
-      num_sdiffs, corrected_sdiffs, reciever_ecef
+      num_sdiffs, sdiffs_with_ref_first, reciever_ecef
     );
   }
   if (DEBUG_DGNSS_MANAGEMENT) {
@@ -322,40 +322,49 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     dgnss_start_over(num_sats, sdiffs, reciever_ecef);
   }
 
-  sdiff_t corrected_sdiffs[num_sats];
+  if (num_sats <= 3) {
+    printf("whatever\n");
+  }
+
+  sdiff_t sdiffs_with_ref_first[num_sats];
 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
 
-  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
-  dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, old_prns, corrected_sdiffs);
+  //rebase globals to a new reference sat (permutes sdiffs_with_ref_first accordingly)
+  dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, old_prns, sdiffs_with_ref_first);
 
   double dd_measurements[2*(num_sats-1)];
-  make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
+  make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
   //all the added/dropped sat stuff
-  dgnss_update_sats(num_sats, reciever_ecef, corrected_sdiffs, dd_measurements);
+  dgnss_update_sats(num_sats, reciever_ecef, sdiffs_with_ref_first, dd_measurements);
   /*printf("done updating sats\n");*/
 
+  double ref_ecef[3];
   if (num_sats >= 5) {
     // update for observation
-    dgnss_incorporate_observation(corrected_sdiffs, dd_measurements, reciever_ecef);
+    dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
+
+    double b2[3];
+    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
+
+    ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
+    ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[1];
+    ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[2];
   }
 
-  double b2[3];
-  least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, reciever_ecef, b2);
+  u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
+                                          &sats_management, nkf.state_mean,
+                                          nkf.state_cov_U, nkf.state_cov_D);
 
-  double ref_ecef[3];
-  ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
-  ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[1];
-  ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[2];
-
-  update_ambiguity_test(ref_ecef,
-                        dgnss_settings.phase_var_test,
-                        dgnss_settings.code_var_test,
-                        &ambiguity_test, nkf.state_dim, &sats_management,
-                        sdiffs, nkf.state_mean, nkf.state_cov_U,
-                        nkf.state_cov_D);
+  if (num_sats >= 5) {
+    update_ambiguity_test(ref_ecef,
+                          dgnss_settings.phase_var_test,
+                          dgnss_settings.code_var_test,
+                          &ambiguity_test, nkf.state_dim,
+                          sdiffs, changed_sats);
+  }
 
   if (DEBUG_DGNSS_MANAGEMENT) {
     if (num_sats >=4) {
@@ -557,12 +566,15 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
 
   dgnss_reset_iar();
 
+  u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
+                                          &sats_management, nkf.state_mean,
+                                          nkf.state_cov_U, nkf.state_cov_D);
+
   update_ambiguity_test(ref_ecef,
                         dgnss_settings.phase_var_test,
                         dgnss_settings.code_var_test,
-                        &ambiguity_test,
-                        num_sats-1+6, &sats_management, corrected_sdiffs,
-                        state_mean, state_cov_U, state_cov_D);
+                        &ambiguity_test, nkf.state_dim,
+                        sdiffs, changed_sats);
 }
 
 double l2_dist(double x1[3], double x2[3])
