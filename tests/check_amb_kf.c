@@ -54,13 +54,13 @@ START_TEST(test_lsq) {
 
   meas[1] = 1;
   least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
-  fail_unless(within_epsilon(b[0], -0.324757)); // check that it matches computation made elsewhere
+  fail_unless(within_epsilon(b[0], -0.324757)); /* check that it matches computation made elsewhere */
   fail_unless(within_epsilon(b[1], -0.134519));
   fail_unless(within_epsilon(b[2], -0.324757));
 
   meas[1] = 2;
   least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
-  fail_unless(within_epsilon(b[0], -0.324757 * 2)); // check that it's linear
+  fail_unless(within_epsilon(b[0], -0.324757 * 2)); /* check that it's linear */
   fail_unless(within_epsilon(b[1], -0.134519 * 2));
   fail_unless(within_epsilon(b[2], -0.324757 * 2));
 }

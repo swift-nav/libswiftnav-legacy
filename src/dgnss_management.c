@@ -464,11 +464,11 @@ void dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
  * function finds the subset of sdiffs matching the KF sats, and outputs it
  * with the reference first.
  *
- * //TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
  * amb_test context, pull it into another file.
  *
- * Returns 0 if input sdiffs are superset of KF sats.
- * Returns -1 otherwise.
+ * \return 0 if input sdiffs are superset of KF sats.
+ *         -1 otherwise.
  *
  */
 s8 make_float_dd_measurements_and_sdiffs(
@@ -478,9 +478,10 @@ s8 make_float_dd_measurements_and_sdiffs(
   u8 ref_prn = sats_management.prns[0];
   u8 num_dds = sats_management.num_sats - 1;
   u8 *non_ref_prns = &sats_management.prns[1];
-  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
-                                  num_dds, num_sdiffs, sdiffs,
-                                  float_dd_measurements, float_sdiffs);
+  s8 valid_sdiffs =
+        make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
+                                        num_sdiffs, sdiffs,
+                                        float_dd_measurements, float_sdiffs);
   return valid_sdiffs;
 }
 
@@ -491,12 +492,12 @@ s8 make_float_dd_measurements_and_sdiffs(
  * to check if we can solve. For now, unless the sdiffs are a superset of the
  * float sats, we don't solve.
  *
- * TODO solve whenever the information is there.
+ * \TODO solve whenever the information is there.
  *
- * TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
  * amb_test context, pull it into another file.
  *
- * TODO pull this function into the KF, once we pull the sats_management struct
+ * \TODO pull this function into the KF, once we pull the sats_management struct
  *      into the KF too. When we do, do the same for the IAR low lat solution.
  *
  * \param num_sdiffs  The number of sdiffs input.
@@ -509,7 +510,7 @@ s8 make_float_dd_measurements_and_sdiffs(
  * \return -1 if it can't solve.
  *          0 If it can solve.
  */
-s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                  double ref_ecef[3], u8 *num_used, double b[3])
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
@@ -548,12 +549,12 @@ s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
  * to check if we can solve. For now, unless the sdiffs are a superset of the
  * IAR sats, we don't solve.
  *
- * TODO, solve whenever we can
+ * \TODO, solve whenever we can
  *
- * TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
  * amb_test context, pull it into another file.
  *
- * TODO pull this into the IAR file when we do the same for the float low lat
+ * \TODO pull this into the IAR file when we do the same for the float low lat
  *      solution.
  *
  * \param num_sdiffs  The number of sdiffs input.
@@ -566,7 +567,7 @@ s8 dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
  * \return -1 if it can't solve.
  *          0 If it can solve.
  */
-s8 dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                   double ref_ecef[3], u8 *num_used, double b[3])
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
@@ -592,10 +593,10 @@ s8 dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
       return 0;
     }
   }
-  return -1;
   if (DEBUG_DGNSS_MANAGEMENT) {
     printf("</DGNSS_LOW_LATENCY_IAR_BASELINE>\n");
   }
+  return -1;
 }
 
 /** Finds the baseline using low latency sdiffs.
@@ -620,15 +621,16 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   if (DEBUG_DGNSS_MANAGEMENT) {
     printf("<DGNSS_LOW_LATENCY_BASELINE>\n");
   }
-  if (0 == dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  if (0 == _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                   ref_ecef, num_used, b)) {
     if (DEBUG_DGNSS_MANAGEMENT) {
       printf("low latency IAR solution\n<DGNSS_LOW_LATENCY_BASELINE>\n");
     }
     return 1;
   }
-  //if we get here, we weren't able to get an IAR resolved one. check if we can get a float
-  s8 float_ret_code = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  /* if we get here, we weren't able to get an IAR resolved baseline.
+   * Check if we can get a float baseline. */
+  s8 float_ret_code = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, num_used, b);
   if (float_ret_code == 0) {
     if (DEBUG_DGNSS_MANAGEMENT) {

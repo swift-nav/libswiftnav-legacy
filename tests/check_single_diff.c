@@ -3,17 +3,18 @@
 #include <stdio.h>
 #include "single_diff.h"
 
+navigation_measurement_t nm1 = {.prn = 1};
+navigation_measurement_t nm2 = {.prn = 2};
+navigation_measurement_t nm3 = {.prn = 3};
+navigation_measurement_t nm4 = {.prn = 4};
+
+navigation_measurement_t nms_no_match1[2];
+navigation_measurement_t nms_no_match2[2];
+
 START_TEST(test_no_match)
 {
     sdiff_t sds_out[6];
 
-    navigation_measurement_t nm1 = {.prn = 1};
-    navigation_measurement_t nm2 = {.prn = 2};
-    navigation_measurement_t nm3 = {.prn = 3};
-    navigation_measurement_t nm4 = {.prn = 4};
-
-    navigation_measurement_t nms_no_match1[2];
-    navigation_measurement_t nms_no_match2[2];
     /* Test for when they are interleaved */
     memcpy(&nms_no_match1[0], &nm1, sizeof(navigation_measurement_t));
     memcpy(&nms_no_match2[0], &nm2, sizeof(navigation_measurement_t));
@@ -56,12 +57,6 @@ START_TEST(test_beginning_matches)
 {
     sdiff_t sds_out[3];
 
-    navigation_measurement_t nm1 = {.prn = 1};
-    navigation_measurement_t nm2 = {.prn = 2};
-    navigation_measurement_t nm3 = {.prn = 3};
-
-    navigation_measurement_t nms_no_match1[2];
-    navigation_measurement_t nms_no_match2[2];
     /* Test for when they both have two */
     memcpy(&nms_no_match1[0], &nm1, sizeof(navigation_measurement_t));
     memcpy(&nms_no_match1[1], &nm2, sizeof(navigation_measurement_t));
@@ -118,12 +113,6 @@ START_TEST(test_end_matches)
 {
     sdiff_t sds_out[3];
 
-    navigation_measurement_t nm1 = {.prn = 1};
-    navigation_measurement_t nm2 = {.prn = 2};
-    navigation_measurement_t nm3 = {.prn = 3};
-
-    navigation_measurement_t nms_no_match1[2];
-    navigation_measurement_t nms_no_match2[2];
     /* Test for when they both have two */
     memcpy(&nms_no_match1[0], &nm1, sizeof(navigation_measurement_t));
     memcpy(&nms_no_match1[1], &nm3, sizeof(navigation_measurement_t));

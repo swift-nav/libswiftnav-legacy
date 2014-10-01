@@ -56,11 +56,29 @@ void check_dgnss_management_setup()
   create_ambiguity_test(&ambiguity_test);
 }
 
+void check_dgnss_management_teardown()
+{}
+
+/** Initialise an `n` x `n` identity matrix of s32's.
+ *
+ * \f$ M \f$ is a matrix on \f$\mathbb{R}^{n \times n}\f$
+ *
+ * \param n The size of the matrix.
+ * \param M Pointer to the matrix.
+ */
+void matrix_eye_s32(u32 n, s32 *M)
+{
+  /* NOTE: This function has been bounds checked. Please check again if
+   * modifying. */
+  memset(M, 0, n * n * sizeof(s32));
+  for (u32 i=0; i<n; i++) {
+    M[i*n + i] = 1;
+  }
+}
+
 /* Check that it works with the first sdiff as the reference sat.
  * This should verify that the loop can start correctly.*/
-START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_float_baseline_ref_first) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 1;
   sats_management.prns[1] = 2;
@@ -72,7 +90,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -84,8 +102,7 @@ END_TEST
 
 /* Check that it works with a middle sdiff as the reference sat.
  * This should verify that the induction works. */
-START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
-  check_dgnss_management_setup();
+START_TEST(test__dgnss_low_latency_float_baseline_ref_middle) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 2;
   sats_management.prns[1] = 1;
@@ -97,7 +114,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -109,8 +126,7 @@ END_TEST
 
 /* Check that it works with the last sdiff as the reference sat.
  * This should verify that the loop can terminate correctly.*/
-START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
-  check_dgnss_management_setup();
+START_TEST(test__dgnss_low_latency_float_baseline_ref_end) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 5;
   sats_management.prns[1] = 1;
@@ -122,7 +138,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -134,8 +150,7 @@ END_TEST
 
 /* Check that measurements generated from a baseline result in an estimate
  * matching the baseline. */
-START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
-  check_dgnss_management_setup();
+START_TEST(test__dgnss_low_latency_float_baseline_fixed_point) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 5;
   sats_management.prns[1] = 1;
@@ -172,7 +187,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -182,9 +197,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
 }
 END_TEST
 
-START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_float_baseline_few_sats) {
   sats_management.prns[0] = 5;
   sats_management.num_sats = 1;
 
@@ -192,14 +205,14 @@ START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
 
   sats_management.num_sats = 0;
 
-  dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
@@ -209,9 +222,7 @@ END_TEST
 
 /* Check that it works with the first sdiff as the reference sat.
  * This should verify that the loop can start correctly.*/
-START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_ref_first) {
   u8 ref_prn = 1;
   u8 prns[4];
   prns[0] = 2;
@@ -222,13 +233,10 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   s32 upper[4];
   memset(lower, 0, sizeof(s32) * 4);
   memset(upper, 0, sizeof(s32) * 4);
-  // set identity matrix
+
   s32 Z_inv[16];
-  memset(Z_inv, 0, sizeof(s32) * 16);
-  Z_inv[0] = 1;
-  Z_inv[1 + 4] = 1;
-  Z_inv[2 + 4*2] = 1;
-  Z_inv[3 + 4*3] = 1;
+  matrix_eye_s32(4, Z_inv);
+
   add_sats(&ambiguity_test,
            1,
            4, prns,
@@ -247,7 +255,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -259,9 +267,7 @@ END_TEST
 
 /* Check that it works with a middle sdiff as the reference sat.
  * This should verify that the induction works. */
-START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_ref_middle) {
   u8 ref_prn = 2;
   u8 prns[4];
   prns[0] = 1;
@@ -272,13 +278,10 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   s32 upper[4];
   memset(lower, 0, sizeof(s32) * 4);
   memset(upper, 0, sizeof(s32) * 4);
-  // set identity matrix
+
   s32 Z_inv[16];
-  memset(Z_inv, 0, sizeof(s32) * 16);
-  Z_inv[0] = 1;
-  Z_inv[1 + 4] = 1;
-  Z_inv[2 + 4*2] = 1;
-  Z_inv[3 + 4*3] = 1;
+  matrix_eye_s32(4, Z_inv);
+
   add_sats(&ambiguity_test,
            ref_prn,
            4, prns,
@@ -297,7 +300,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -309,9 +312,7 @@ END_TEST
 
 /* Check that it works with the last sdiff as the reference sat.
  * This should verify that the loop can terminate correctly.*/
-START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_ref_end) {
   u8 ref_prn = 5;
   u8 prns[4];
   prns[0] = 1;
@@ -322,13 +323,10 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   s32 upper[4];
   memset(lower, 0, sizeof(s32) * 4);
   memset(upper, 0, sizeof(s32) * 4);
-  // set identity matrix
+
   s32 Z_inv[16];
-  memset(Z_inv, 0, sizeof(s32) * 16);
-  Z_inv[0] = 1;
-  Z_inv[1 + 4] = 1;
-  Z_inv[2 + 4*2] = 1;
-  Z_inv[3 + 4*3] = 1;
+  matrix_eye_s32(4, Z_inv);
+
   add_sats(&ambiguity_test,
            ref_prn,
            4, prns,
@@ -347,7 +345,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -359,11 +357,7 @@ END_TEST
 
 /* Check that measurements generated from a baseline result in an estimate
  * matching the baseline. */
-START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
-  check_dgnss_management_setup();
-
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_fixed_point) {
   u8 ref_prn = 5;
   u8 prns[4];
   prns[0] = 1;
@@ -374,13 +368,10 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   s32 upper[4];
   memset(lower, 0, sizeof(s32) * 4);
   memset(upper, 0, sizeof(s32) * 4);
-  // set identity matrix
+
   s32 Z_inv[16];
-  memset(Z_inv, 0, sizeof(s32) * 16);
-  Z_inv[0] = 1;
-  Z_inv[1 + 4] = 1;
-  Z_inv[2 + 4*2] = 1;
-  Z_inv[3 + 4*3] = 1;
+  matrix_eye_s32(4, Z_inv);
+
   add_sats(&ambiguity_test,
            ref_prn,
            4, prns,
@@ -424,7 +415,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -434,9 +425,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
 }
 END_TEST
 
-START_TEST(test_dgnss_low_latency_IAR_baseline_few_sats) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_few_sats) {
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 1;
 
@@ -445,28 +434,26 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_few_sats) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 
   ambiguity_test.amb_check.num_matching_ndxs = 0;
 
-  dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 
   ambiguity_test.amb_check.initialized = 0;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
 
-  dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
 END_TEST
 
-START_TEST(test_dgnss_low_latency_IAR_baseline_uninitialized) {
-  check_dgnss_management_setup();
-
+START_TEST(test__dgnss_low_latency_IAR_baseline_uninitialized) {
   ambiguity_test.amb_check.initialized = 0;
   ambiguity_test.amb_check.num_matching_ndxs = 5;
 
@@ -475,15 +462,13 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_uninitialized) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
 END_TEST
 
 START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
-  check_dgnss_management_setup();
-
   ambiguity_test.amb_check.initialized = 0;
   ambiguity_test.amb_check.num_matching_ndxs = 5;
 
@@ -492,7 +477,7 @@ START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
@@ -503,18 +488,20 @@ Suite* dgnss_management_test_suite(void)
   Suite *s = suite_create("DGNSS Management");
 
   TCase *tc_core = tcase_create("Core");
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_first);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_middle);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_end);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_fixed_point);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_few_sats);
+  tcase_add_checked_fixture (tc_core, check_dgnss_management_setup,
+                                      check_dgnss_management_teardown);
+  tcase_add_test(tc_core, test__dgnss_low_latency_float_baseline_ref_first);
+  tcase_add_test(tc_core, test__dgnss_low_latency_float_baseline_ref_middle);
+  tcase_add_test(tc_core, test__dgnss_low_latency_float_baseline_ref_end);
+  tcase_add_test(tc_core, test__dgnss_low_latency_float_baseline_fixed_point);
+  tcase_add_test(tc_core, test__dgnss_low_latency_float_baseline_few_sats);
 
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_first);
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_middle);
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_ref_end);
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_fixed_point);
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_few_sats);
-  tcase_add_test(tc_core, test_dgnss_low_latency_IAR_baseline_uninitialized);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_ref_first);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_ref_middle);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_ref_end);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_fixed_point);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_few_sats);
+  tcase_add_test(tc_core, test__dgnss_low_latency_IAR_baseline_uninitialized);
   suite_add_tcase(s, tc_core);
 
   return s;

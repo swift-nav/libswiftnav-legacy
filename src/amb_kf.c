@@ -373,7 +373,7 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
     printf("\t}\n");
   }
 
-  //TODO could use plain old DGELS here
+  /* TODO could use plain old DGELS here */
 
   s32 ldb = (s32) MAX(num_dds,3);
   double s[3];
@@ -410,8 +410,9 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
   }
 }
 
-// presumes that the first alm entry is the reference sat
-/*TODO use the state covariance matrix for a better estimate:
+
+/* presumes that the first alm entry is the reference sat.
+ *TODO use the state covariance matrix for a better estimate:
  *  That is, decorrelate and scale the LHS of y = A * x before solving for x
  *TODO consolidate this with the one using the float solution
  */

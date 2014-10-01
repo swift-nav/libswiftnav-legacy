@@ -41,7 +41,7 @@ void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx);
 
 int sdiff_search_prn(const void *a, const void *b);
 
-u8 make_propogated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
+u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
                           ephemeris_t *es, gps_time_t t,
