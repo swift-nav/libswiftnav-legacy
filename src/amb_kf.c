@@ -624,10 +624,6 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 
   double Sig[res_dim * res_dim];
 
-  for (u8 i = 0; i < 10; i++) {
-    printf("constraint_dim = %u\n", constraint_dim);
-  }
-
   //assign Sig and H
   if (constraint_dim > 0) {
     double DE[num_dds * 3];

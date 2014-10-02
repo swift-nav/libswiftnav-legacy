@@ -382,8 +382,6 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
     printf("<UPDATE_AMBIGUITY_TEST>\n");
   }
   u8 num_sdiffs = state_dim + 1;
-  // u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
-  //                                         float_sats, float_mean, float_cov_U, float_cov_D);
 
   if (amb_test->sats.num_sats < 5) {
     if (DEBUG_AMBIGUITY_TEST) {

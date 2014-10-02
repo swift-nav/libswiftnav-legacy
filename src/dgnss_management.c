@@ -322,10 +322,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     dgnss_start_over(num_sats, sdiffs, reciever_ecef);
   }
 
-  if (num_sats <= 3) {
-    printf("whatever\n");
-  }
-
   sdiff_t sdiffs_with_ref_first[num_sats];
 
   u8 old_prns[MAX_CHANNELS];
