@@ -69,17 +69,15 @@ void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measure
 bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
 {
   if (sats_management.num_sats-1 != num_non_ref_sdiffs) {
-    // printf("len_doesn't match\n");
+    /* lengths don't match */
     return false;
   }
   for (u8 i=0; i<num_non_ref_sdiffs; i++) {
-    //iterate through the non-reference_sats
-    /*printf("old[%u]=%u, new[%u]=%u\n", i+1, old_non_ref_prns[i], i+1, non_ref_sdiffs[i].prn);*/
+    /* iterate through the non-reference_sats, checking they match. */
     if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
       return false;
     }
   }
-  /*printf("prns_match\n");*/
   return true;
 }
 
@@ -176,10 +174,10 @@ void dgnss_start_over(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
 {
   (void)reciever_ecef;
-  //all the ref sat stuff
+  /* all the ref sat stuff */
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
-    printf("====== START OVER =======\n"); // TODO WRITE WHAT GOTTA BE DONE, YO
+    printf("====== START OVER =======\n");
     dgnss_start_over(num_sdiffs, sdiffs, reciever_ecef);
     memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
     if (num_sdiffs >= 1) {
@@ -189,7 +187,7 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u
     return;
   }
   else if (sats_management_code == NEW_REF) {
-    // do everything related to changing the reference sat here
+    /* do everything related to changing the reference sat here */
     rebase_nkf(&nkf, sats_management.num_sats, &old_prns[0], &sats_management.prns[0]);
   }
 }
@@ -232,13 +230,13 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *sdiffs_w
       num_sdiffs, sdiffs_with_ref_first, reciever_ecef
     );
 
-    if (num_intersection_sats < sats_management.num_sats) { //lost sats
+    if (num_intersection_sats < sats_management.num_sats) { /* we lost sats */
       nkf_state_projection(&nkf,
                            sats_management.num_sats-1,
                            num_intersection_sats-1,
                            &ndx_of_intersection_in_old[1]);
     }
-    if (num_intersection_sats < num_sdiffs) { //gained sats
+    if (num_intersection_sats < num_sdiffs) { /* we gained sats */
       nkf_state_inclusion(&nkf,
                           num_intersection_sats-1,
                           num_sdiffs-1,
@@ -246,10 +244,7 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *sdiffs_w
                           dgnss_settings.new_int_var);
     }
 
-    /*print_sats_management(&sats_management);*/
     update_sats_sats_management(&sats_management, num_sdiffs-1, &sdiffs_with_ref_first[1]);
-    /*print_sats_management(&sats_management);*/
-
   }
   else {
     set_nkf_matrices(
@@ -327,19 +322,18 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
 
-  //rebase globals to a new reference sat (permutes sdiffs_with_ref_first accordingly)
+  /* rebase globals to a new reference sat
+   * (permutes sdiffs_with_ref_first accordingly) */
   dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, old_prns, sdiffs_with_ref_first);
 
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
-  //all the added/dropped sat stuff
+  /* all the added/dropped sat stuff */
   dgnss_update_sats(num_sats, reciever_ecef, sdiffs_with_ref_first, dd_measurements);
-  /*printf("done updating sats\n");*/
 
   double ref_ecef[3];
   if (num_sats >= 5) {
-    // update for observation
     dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
 
     double b2[3];
@@ -410,7 +404,8 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
-  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
+  /* rebase globals to a new reference sat
+   * (permutes corrected_sdiffs accordingly) */
   dgnss_rebase_ref(num_sats, sdiffs, receiver_ecef, old_prns, corrected_sdiffs);
 
   double dd_measurements[2*(num_sats-1)];
@@ -473,7 +468,8 @@ void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ece
 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
-  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
+  /* rebase globals to a new reference sat
+   * (permutes corrected_sdiffs accordingly) */
   dgnss_rebase_ref(num_sats, sdiffs, ref_ecef, old_prns, corrected_sdiffs);
 
   double dds[2*(num_sats-1)];
@@ -526,7 +522,8 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
 
   u8 old_prns[MAX_CHANNELS];
   memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
-  //rebase globals to a new reference sat (permutes corrected_sdiffs accordingly)
+  /* rebase globals to a new reference sat
+   * (permutes corrected_sdiffs accordingly) */
   dgnss_rebase_ref(num_sats, sdiffs, ref_ecef, old_prns, corrected_sdiffs);
 
   double dds[2*(num_sats-1)];
@@ -596,7 +593,8 @@ void measure_amb_kf_b(double reciever_ecef[3],
                       double *b)
 {
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
-  u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
+  /* We require the sats updating has already been done with these sdiffs */
+  u8 ref_prn = sats_management.prns[0];
   copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   double dd_measurements[2*(num_sdiffs-1)];
   make_measurements(num_sdiffs - 1, sdiffs_with_ref_first, dd_measurements);
@@ -624,7 +622,8 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
                                   double *b)
 {
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
-  u8 ref_prn = sats_management.prns[0]; // We assume the sats updating has already been done with these sdiffs
+  /* We assume the sats updating has already been done with these sdiffs */
+  u8 ref_prn = sats_management.prns[0];
   copy_sdiffs_put_ref_first(ref_prn, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   double dd_measurements[2*(num_sdiffs-1)];
   make_measurements(num_sdiffs - 1, sdiffs_with_ref_first, dd_measurements);
@@ -700,7 +699,7 @@ u8 get_de_and_phase(sats_management_t *sats_man,
       i++;
       printf("probable error. sdiffs should be a super set of sats_man prns\n");
     }
-    else {  // else they match
+    else {  /* else they match */
       double e[3];
       e[0] = sdiffs[j].sat_pos[0] - ref_ecef[0];
       e[1] = sdiffs[j].sat_pos[1] - ref_ecef[1];
