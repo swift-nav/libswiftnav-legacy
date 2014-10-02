@@ -31,6 +31,10 @@
 
 #define DEBUG_AMB_KF 0
 
+/** \defgroup amb_kf Float Ambiguity Resolution
+ * Preliminary integer ambiguity estimation with a Kalman Filter.
+ * \{ */
+
 /** In place updating of the state cov and k vec using a scalar observation
  * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
  *    singular matrices, dictating that zeros from cov_D dominate.
@@ -908,3 +912,4 @@ void nkf_state_inclusion(nkf_t *kf,
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
 }
 
+/** \} */

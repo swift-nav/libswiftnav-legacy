@@ -130,7 +130,7 @@ int sdiff_search_prn(const void *a, const void *b)
   return (*(u8*)a - ((sdiff_t *)b)->prn);
 }
 
-/** Propagates remote measurements to a local time and makes sdiffs
+/** Propagates remote measurements to a local time and makes sdiffs.
  * When we get two sets of observations that aren't time matched to each
  * other (but are internally time matched within each set), we need to
  * adjust one set of measurements to be our best guess of what it would have
@@ -139,13 +139,12 @@ int sdiff_search_prn(const void *a, const void *b)
  *
  * It returns the number of sats common in both.
  *
- * \remark {
- *      This is actually using the sat positions at the time the receiver
- *      got the signal. You can backtrack to the sat position at the time
- *      the signal was sent. At the very least, if you backtrack assuming
- *      sat constant velocity, the difference is miniscule.}
+ * \remark This is actually using the sat positions at the time the receiver
+ *         got the signal. You can backtrack to the sat position at the time
+ *         the signal was sent. At the very least, if you backtrack assuming
+ *         sat constant velocity, the difference is miniscule.
  *
- * \TODO  Integrate this with single_diff via a higher order function.
+ * \todo  Integrate this with single_diff via a higher order function.
  *
  * \param n_local           The number of measurements taken locally.
  * \param m_local           The measurements taken locally (sorted by prn).

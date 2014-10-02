@@ -29,6 +29,11 @@
 
 #define DEBUG_AMBIGUITY_TEST 0
 
+
+/** \defgroup ambiguity_test Integer Ambiguity Resolution
+ * Integer ambiguity resolution using bayesian hypothesis testing.
+ * \{ */
+
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
@@ -1745,4 +1750,4 @@ double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothe
   return quad_term;
 }
 
-
+/** \} */
