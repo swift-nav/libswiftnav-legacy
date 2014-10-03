@@ -379,7 +379,11 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
 u32 dgnss_iar_num_hyps(void)
 {
-  return ambiguity_test_n_hypotheses(&ambiguity_test);
+  if (ambiguity_test.pool == NULL) {
+    return 0;
+  } else {
+    return ambiguity_test_n_hypotheses(&ambiguity_test);
+  }
 }
 
 u32 dgnss_iar_num_sats(void)
