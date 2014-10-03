@@ -58,8 +58,8 @@ void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
-                           double *float_mean, double *float_cov_U, double *float_cov_D);
+                           ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
+                           u8 changed_sats);
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
 u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs);
 void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs);

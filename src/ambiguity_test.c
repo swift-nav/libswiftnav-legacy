@@ -380,15 +380,13 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prn
  * \param float_cov_D The D in the UDU' decomposition of the covariance of the float estimate.
  */
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u8 state_dim, sats_management_t *float_sats, sdiff_t *sdiffs,
-                           double *float_mean, double *float_cov_U, double *float_cov_D)
+                           ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
+                           u8 changed_sats)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<UPDATE_AMBIGUITY_TEST>\n");
   }
   u8 num_sdiffs = state_dim + 1;
-  u8 changed_sats = ambiguity_update_sats(amb_test, num_sdiffs, sdiffs,
-                                          float_sats, float_mean, float_cov_U, float_cov_D);
 
   if (amb_test->sats.num_sats < 5) {
     if (DEBUG_AMBIGUITY_TEST) {
@@ -1577,8 +1575,8 @@ void add_sats(ambiguity_test_t *amb_test,
 
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
 {
-  res_mtxs->res_dim = 2 * num_dds - 3;
-  res_mtxs->null_space_dim = num_dds - 3;
+  res_mtxs->res_dim = num_dds + MAX(3, num_dds) - 3;
+  res_mtxs->null_space_dim = MAX(3, num_dds) - 3;
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
   assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->half_res_cov_inv);
   // MAT_PRINTF(res_mtxs->null_projector, res_mtxs->null_space_dim, num_dds);
@@ -1651,8 +1649,8 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {
   integer dd_dim = 2*num_dds;
-  integer res_dim = dd_dim - 3;
-  u32 nullspace_dim = num_dds-3;
+  integer res_dim = num_dds + MAX(3, num_dds) - 3;
+  u32 nullspace_dim = MAX(3, num_dds) - 3;
   double q_tilde[res_dim * dd_dim];
   memset(q_tilde, 0, res_dim * dd_dim * sizeof(double));
   // MAT_PRINTF(obs_cov, dd_dim, dd_dim);
