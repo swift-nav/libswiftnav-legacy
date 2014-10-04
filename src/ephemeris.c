@@ -162,4 +162,21 @@ double predict_range(double rx_pos[3],
   return vector_norm(3, temp);
 }
 
+/** Do we have an ephemeris for this PRN?
+ * \TODO  This should actually be more than just the "valid" flag.
+ *         When we write an is_usable() function, lets use that instead
+ *         of just es[prn].valid.
+ *
+ * \param prn     The prn we want to check.
+ * \return 1 if the ephemeris is valid and not too old.
+ *         0 otherwise.
+ */
+u8 ephemeris_good(ephemeris_t eph, gps_time_t t)
+{
 
+  /* Seconds from the time from ephemeris reference epoch (toe) */
+  double tdiff = gpsdifftime(t, eph.toe);
+
+  /* \TODO: this doesn't exclude ephemerides older than a week so could be made better. */
+  return (eph.valid && fabs(tdiff) < 4*3600);
+}

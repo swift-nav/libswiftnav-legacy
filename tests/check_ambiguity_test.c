@@ -103,23 +103,24 @@ END_TEST
 //s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 START_TEST(test_sats_match)
 {
-  ambiguity_test_t amb_test = {.sats = {.num_sats = 3, 
+  ambiguity_test_t amb_test = {.sats = {.num_sats = 3,
                                         .prns = {3,1,2}}};
   sdiff_t sdiffs[4] = {{.prn = 1},
-                       {.prn = 2}, 
-                       {.prn = 3}, 
+                       {.prn = 2},
+                       {.prn = 3},
                        {.prn = 4}};
   u8 num_sdiffs = 4;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
   num_sdiffs = 3;
-  fail_unless(sats_match(&amb_test, num_sdiffs, sdiffs));  
+  fail_unless(sats_match(&amb_test, num_sdiffs, sdiffs));
 
   sdiffs[0].prn = 22;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
 }
 END_TEST
+
 
 Suite* ambiguity_test_suite(void)
 {

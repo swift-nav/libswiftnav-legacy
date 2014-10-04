@@ -31,6 +31,10 @@
 
 #define DEBUG_AMB_KF 0
 
+/** \defgroup amb_kf Float Ambiguity Resolution
+ * Preliminary integer ambiguity estimation with a Kalman Filter.
+ * \{ */
+
 /** In place updating of the state cov and k vec using a scalar observation
  * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
  *    singular matrices, dictating that zeros from cov_D dominate.
@@ -280,12 +284,76 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
   }
 }
 
-// presumes that the first alm entry is the reference sat
-/*TODO use the state covariance matrix for a better estimate:
- *  That is, decorrelate and scale the LHS of y = A * x before solving for x
+
+/* TODO use the state covariance matrix for a better estimate:
+ *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
+ *
+ *    That is, we assume that y ~ N ( A * x, S), and want to make a maximum
+ *    likelihood estimate (asymptotically optimal by the Cramer-Rao bound).
+ *    This is the minimizer of (A * x - y)' * S^-1 * (A * x - y).
+ *        = min_x  (x' * A' - y') * S^-1 * (A * x - y)
+ *        = min_x  x' * A' * S^-1* A * x - x' * A' * S^-1 * y
+ *                                       - y' * S^-1 * A * x  +  y' * S^-1 * y
+ *    Differentiating by x, this becomes
+ *    0   =   2 * A' * S^-1 * A * x - 2 * A' * S^-1 * y  ====>
+ *    A' * S^-1 * y   =   A' * S^-1 * A * x              ====>
+ *    (A'* S^-1 * A)^-1 * A' * S^-1 * y = x
+ *
+ *    Decomposing S^(-1) = U'^-1 * D^-1/2 * D^-1/2 * U^-1 and defining
+ *    C = D^-1/2 * U^-1 * A, we get
+ *    (C' * C)^-1 * C' * D^(-1/2) * U^(-1) * y = x
+ *    We know that (C' * C)^-1 * C' is the pseudoinverse of C for all C, so
+ *    we're really just solving
+ *    D^(-1/2) * U^(-1) * y = C * x = D^(-1/2) * U^(-1) * A * x.
+ *
+ *
+ *    Alternatively, we can show this as
+ *    If y ~ N( A * x, S = U * D * U'),
+ *        then D^(-1/2) * U^(-1) * y ~  N( D^(-1/2) * U^-1 * A * x, I).
+ *
+ *    This form brings more light on the fact that:
+ *      z = U^(-1) * y ~  N(U^-1 * A * x, D).
+ *    This form helps us decide how to solve when d_i ~~ 0.
+ *    The z_I for I = {i | d_i ~~ 0} want to be solved exactly, because we are
+ *    saying that there is no noise in the measurement. This can reduce the
+ *    dimension of the problem we are solving, if we really want to.
+
+ *    Therefore we want to:
+ *      Triangularly solve y = U * z, for z = U^(-1) * y
+ *                         A = U * B, for C = U^(-1) * A
+ *        (perhaps simultaneously)
+ *      Scale w = D^(-1/2) * z, being mindful that D might not be full rank.
+ *      Scale C = D^(-1/2) * B, being mindful that D might not be full rank.
+ *      Perform an ordinary least squares solution for w = C * x.
+ *          -If we have zeros (d_i below some threshold), we could just do an
+ *              exact solution for those then least squares solve the rest.
+ *          -Or we could set those d_i to be at threshold and then invert.
+ *
+ *    We then have that the covariance matrix for x is (C' * C)^-1.
+ *
+ *    We also need to determine if this is even worth the extra effort.
  */
-void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
+/** A least squares solution for baseline from phases using the KF state.
+ * This uses the current state of the KF and a set of phase observations to
+ * solve for the current baseline.
+ *
+ * \param kf                    The Kalman filter struct.
+ * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
+ *                              the reference sat of the KF, and the rest must
+ *                              correspond to the KF's DD amb estimates' sats.
+ * \param dd_measurements       A vector of carrier phases. They must be double
+ *                              differenced and ordered according to the sdiffs
+ *                              and KF's sats (which must match each other).
+ * \param ref_ecef              The reference position in ECEF frame, for
+ *                              computing the sat direction vectors.
+ * \param b                     The output baseline in meters.
+ */
+void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
+                      double *dd_measurements, double ref_ecef[3], double b[3])
 {
+  if (DEBUG_AMB_KF) {
+    printf("<LEAST_SQUARES_SOLVE_B>\n");
+  }
   integer num_dds = kf->state_dim;
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
@@ -296,21 +364,20 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
     DET[2 * num_dds + i] = DE[i*3 + 2];
   }
 
-  // double fake_ints[num_dds];
-  // for (u8 i=0; i< num_dds; i++) {
-  //   fake_ints[i] = (i+1)*10; //TODO REMOVE THIS version
-  // }
-  // double resid[num_dds];
-  // lesq_solution_b(kf->state_dim, dd_measurements, kf->state_mean, DE, b, resid);
-  // lesq_solution_b(kf->state_dim, dd_measurements, fake_ints, DE, b, resid);
-
   double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
     phase_ranges[i] = dd_measurements[i] - kf->state_mean[i];
-    // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
   }
 
-  //TODO could use plain old DGELS here
+  if (DEBUG_AMB_KF) {
+    printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
+    for (u8 i=0; i< num_dds; i++) {
+      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], kf->state_mean[i], phase_ranges[i]);
+    }
+    printf("\t}\n");
+  }
+
+  /* TODO could use plain old DGELS here */
 
   s32 ldb = (s32) MAX(num_dds,3);
   double s[3];
@@ -338,14 +405,18 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd
           &rank, //RANK
           work, &lwork, // WORK, LWORK
           &info); //INFO
-
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
+  if (DEBUG_AMB_KF) {
+    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); // units --> cm
+    printf("</LEAST_SQUARES_SOLVE_B>\n");
+  }
 }
 
-// presumes that the first alm entry is the reference sat
-/*TODO use the state covariance matrix for a better estimate:
+
+/* presumes that the first alm entry is the reference sat.
+ *TODO use the state covariance matrix for a better estimate:
  *  That is, decorrelate and scale the LHS of y = A * x before solving for x
  *TODO consolidate this with the one using the float solution
  */
@@ -847,3 +918,4 @@ void nkf_state_inclusion(nkf_t *kf,
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
 }
 
+/** \} */

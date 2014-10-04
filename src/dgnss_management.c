@@ -379,7 +379,11 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
 u32 dgnss_iar_num_hyps(void)
 {
-  return ambiguity_test_n_hypotheses(&ambiguity_test);
+  if (ambiguity_test.pool == NULL) {
+    return 0;
+  } else {
+    return ambiguity_test_n_hypotheses(&ambiguity_test);
+  }
 }
 
 u32 dgnss_iar_num_sats(void)
@@ -400,6 +404,9 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
 
 void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], u8 *num_used, double b[3])
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_NEW_FLOAT_BASELINE>\n");
+  }
   sdiff_t corrected_sdiffs[num_sats];
 
   u8 old_prns[MAX_CHANNELS];
@@ -413,6 +420,9 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
 
   least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, receiver_ecef, b);
   *num_used = sats_management.num_sats;
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_NEW_FLOAT_BASELINE>\n");
+  }
 }
 
 void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
@@ -452,10 +462,198 @@ void dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   }
 }
 
+
+/** Makes DD measurement vector and sdiffs to match KF
+ * If given a set of sdiffs which is a superset of the KF's sdiffs, this
+ * function finds the subset of sdiffs matching the KF sats, and outputs it
+ * with the reference first.
+ *
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * amb_test context, pull it into another file.
+ *
+ * \return 0 if input sdiffs are superset of KF sats.
+ *         -1 otherwise.
+ *
+ */
+s8 make_float_dd_measurements_and_sdiffs(
+            u8 num_sdiffs, sdiff_t *sdiffs,
+            double *float_dd_measurements, sdiff_t *float_sdiffs)
+{
+  u8 ref_prn = sats_management.prns[0];
+  u8 num_dds = sats_management.num_sats - 1;
+  u8 *non_ref_prns = &sats_management.prns[1];
+  s8 valid_sdiffs =
+        make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
+                                        num_sdiffs, sdiffs,
+                                        float_dd_measurements, float_sdiffs);
+  return valid_sdiffs;
+}
+
+
+/** Constructs a low latency float baseline measurement.
+ * The sdiffs have no particular reason (other than a general tendency
+ * brought by hysteresis) to match up with the float filter's sats, so we have
+ * to check if we can solve. For now, unless the sdiffs are a superset of the
+ * float sats, we don't solve.
+ *
+ * \TODO solve whenever the information is there.
+ *
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * amb_test context, pull it into another file.
+ *
+ * \TODO pull this function into the KF, once we pull the sats_management struct
+ *      into the KF too. When we do, do the same for the IAR low lat solution.
+ *
+ * \param num_sdiffs  The number of sdiffs input.
+ * \param sdiffs      The sdiffs used to measure. (These should be a superset
+ *                    of the float sats).
+ * \param ref_ecef    The reference position used for solving, and making
+ *                    observation matrices.
+ * \param num_used    The number of sats actually used to compute the baseline.
+ * \param b           The baseline computed.
+ * \return -1 if it can't solve.
+ *          0 If it can solve.
+ */
+s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+                                 double ref_ecef[3], u8 *num_used, double b[3])
+{
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+  }
+  if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("too few sats or too few sdiffs\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+    }
+    return -1;
+  }
+  double float_dd_measurements[2 * (sats_management.num_sats - 1)];
+  sdiff_t float_sdiffs[sats_management.num_sats];
+  s8 can_make_obs = make_dd_measurements_and_sdiffs(sats_management.prns[0],
+             &sats_management.prns[1], sats_management.num_sats - 1,
+             num_sdiffs, sdiffs,
+             float_dd_measurements, float_sdiffs);
+  if (can_make_obs == -1) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("make_float_dd_measurements_and_sdiffs has error code -1\n</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+    }
+    return -1;
+  }
+  least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
+                        ref_ecef, b);
+  *num_used = sats_management.num_sats;
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_LOW_LATENCY_FLOAT_BASELINE>\n");
+  }
+  return 0;
+}
+
+/** Constructs a low latency IAR resolved baseline measurement.
+ * The sdiffs have no particular reason (other than a general tendency
+ * brought by hysteresis) to match up with the IAR sats, so we have
+ * to check if we can solve. For now, unless the sdiffs are a superset of the
+ * IAR sats, we don't solve.
+ *
+ * \TODO, solve whenever we can
+ *
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * amb_test context, pull it into another file.
+ *
+ * \TODO pull this into the IAR file when we do the same for the float low lat
+ *      solution.
+ *
+ * \param num_sdiffs  The number of sdiffs input.
+ * \param sdiffs      The sdiffs used to measure. (These should be a superset
+ *                    of the float sats).
+ * \param ref_ecef    The reference position used for solving, and making
+ *                    observation matrices.
+ * \param num_used    The number of sats actually used to compute the baseline.
+ * \param b           The baseline computed.
+ * \return -1 if it can't solve.
+ *          0 If it can solve.
+ */
+s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+                                  double ref_ecef[3], u8 *num_used, double b[3])
+{
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_LOW_LATENCY_IAR_BASELINE>\n");
+  }
+  if (ambiguity_iar_can_solve(&ambiguity_test)) {
+
+    sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
+    double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+    s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
+                &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
+    if (valid_sdiffs != -1) {
+      //TODO: check internals of this if's content and abstract it from the KF
+      double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
+      assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
+                    ambiguity_sdiffs, ref_ecef, DE);
+      *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
+      lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
+                    dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+      if (DEBUG_DGNSS_MANAGEMENT) {
+        printf("</DGNSS_LOW_LATENCY_IAR_BASELINE>\n");
+      }
+      return 0;
+    }
+  }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</DGNSS_LOW_LATENCY_IAR_BASELINE>\n");
+  }
+  return -1;
+}
+
+/** Finds the baseline using low latency sdiffs.
+ * The low latency sdiffs are not guaranteed to match up with either the
+ * amb_test's or the float sdiffs, and thus care must be taken to transform them
+ * accordingly and check their availability in those sat sets.
+ *
+ * \param num_sdiffs  The number of low-latency sdiffs provided.
+ * \param sdiffs      The low-latency sdiffs.
+ * \param ref_ecef    The referece position for the baseline.
+ *                    (TODO is this the local or remote receiver position?)
+ * \param num_used    Output number of sdiffs actually used in the baseline
+ *                    estimate.
+ * \param b           Output baseline.
+ * \return  1 if we are using an IAR resolved baseline.
+ *          2 if we are using a float baseline.
+ *         -1 if we can't give a baseline.
+ */
+s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
+                               double ref_ecef[3], u8 *num_used, double b[3])
+{
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<DGNSS_LOW_LATENCY_BASELINE>\n");
+  }
+  if (0 == _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+                                  ref_ecef, num_used, b)) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("low latency IAR solution\n<DGNSS_LOW_LATENCY_BASELINE>\n");
+    }
+    return 1;
+  }
+  /* if we get here, we weren't able to get an IAR resolved baseline.
+   * Check if we can get a float baseline. */
+  s8 float_ret_code = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+                                              ref_ecef, num_used, b);
+  if (float_ret_code == 0) {
+    if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("low latency float solution\n<DGNSS_LOW_LATENCY_BASELINE>\n");
+    }
+    return 2;
+  }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("no low latency solution\n</DGNSS_LOW_LATENCY_BASELINE>\n");
+  }
+  return -1;
+}
+
+
 void dgnss_reset_iar()
 {
   create_ambiguity_test(&ambiguity_test);
 }
+
 
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3])
 {
@@ -592,6 +790,9 @@ void measure_amb_kf_b(double reciever_ecef[3],
                       u8 num_sdiffs, sdiff_t *sdiffs,
                       double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<MEASURE_AMB_KF_B>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   /* We require the sats updating has already been done with these sdiffs */
   u8 ref_prn = sats_management.prns[0];
@@ -613,6 +814,9 @@ void measure_amb_kf_b(double reciever_ecef[3],
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</MEASURE_AMB_KF_B>\n");
+  }
 }
 
 /*TODO consolidate this with the similar one above*/
@@ -621,6 +825,9 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
                                   double *ambs,
                                   double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("<MEASURE_B_WITH_EXTERNAL_AMBS>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   /* We assume the sats updating has already been done with these sdiffs */
   u8 ref_prn = sats_management.prns[0];
@@ -641,6 +848,9 @@ void measure_b_with_external_ambs(double reciever_ecef[3],
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(nkf.state_dim, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+    printf("</MEASURE_B_WITH_EXTERNAL_AMBS>\n");
+  }
 }
 
 /*TODO consolidate this with the similar ones above*/
@@ -649,6 +859,9 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
                                       double *ambs,
                                       double *b)
 {
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("<MEASURE_IAR_B_WITH_EXTERNAL_AMBS>\n");
+  }
   sdiff_t sdiffs_with_ref_first[num_sdiffs];
   match_sdiffs_to_sats_man(&ambiguity_test.sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   double dd_measurements[2*(num_sdiffs-1)];
@@ -665,6 +878,9 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  }
+  if (DEBUG_DGNSS_MANAGEMENT) {
+      printf("</MEASURE_IAR_B_WITH_EXTERNAL_AMBS>\n");
   }
 }
 

@@ -29,6 +29,11 @@
 
 #define DEBUG_AMBIGUITY_TEST 0
 
+
+/** \defgroup ambiguity_test Integer Ambiguity Resolution
+ * Integer ambiguity resolution using bayesian hypothesis testing.
+ * \{ */
+
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
@@ -594,10 +599,12 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
  * \param ambiguity_dd_measurements  The output vector of DD measurements
  *                                   to be used to update the IAR.
  * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
+ * \return 0 if the input sdiffs are superset of the IAR sats.
+ *         -1 otherwise.
  */
-void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                     u8 num_sdiffs, sdiff_t *sdiffs,
-                                     double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, sdiff_t *sdiffs,
+                                   double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<MAKE_DD_MEASUREMENTS_AND_SDIFFS>\n");
@@ -605,7 +612,11 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     for (u8 i=0; i < num_dds; i++) {
       printf("%d, ", non_ref_prns[i]);
     }
-    printf("}\nnum_dds = %u\nnum_sdiffs = %u\n", num_dds, num_sdiffs);
+    printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds, num_sdiffs);
+    for (u8 i=0; i < num_sdiffs; i++) {
+      printf("%d, ", sdiffs[i].prn);
+    }
+    printf("}\n");
   }
   double ref_phase;
   double ref_pseudorange;
@@ -657,6 +668,7 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
         printf("%d, ", sdiffs[i].prn);
       }
       printf("}\n");
+      return -1;
     }
   }
   /* This awkward case deals with the situation when sdiffs and sats have the
@@ -674,20 +686,19 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   }
 
   if (found_ref == 0) { //DEBUG
-    while (1) {
-      //then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats
-      printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
-      printf("amb_test sat .prns = {%u, ", ref_prn);
-      for (u8 j=0; j < num_dds; j++) {
-        printf("%d, ", non_ref_prns[j]);
-      }
-      printf("}\n");
-      printf("sdiffs.prns = {");
-      for (u8 j=0; j < num_sdiffs; j++) {
-        printf("%d, ", sdiffs[j].prn);
-      }
-      printf("}\n");
+    /* Then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats */
+    printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
+    printf("amb_test sat .prns = {%u, ", ref_prn);
+    for (u8 j=0; j < num_dds; j++) {
+      printf("%d, ", non_ref_prns[j]);
     }
+    printf("}\n");
+    printf("sdiffs.prns = {");
+    for (u8 j=0; j < num_sdiffs; j++) {
+      printf("%d, ", sdiffs[j].prn);
+    }
+    printf("}\n");
+    return -1;
   }
   for (u8 i=0; i < num_dds; i++) {
     ambiguity_dd_measurements[i] -= ref_phase;
@@ -704,11 +715,33 @@ void make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     }
     printf("}\n</MAKE_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
+  return 0;
 }
 
 
-void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
-            u8 num_sdiffs, sdiff_t *sdiffs,
+/** Make the DD measurements and sdiffs that correspond to the resolved DDs in amb_test.
+ * Assuming that amb_test has not been modified since the last check to see
+ * whether it can resolve a fixed position (that is, amb_test->amb_check is up
+ * to date, this will make a set of sdiffs and DD measurements that correspond
+ * to the resolved sats.
+ *
+ * Returns 0 if the input sdiff sats are a superset of the resolved IAR sats.
+ * Returns -1 otherwise.
+ *
+ * \param amb_test                  The local amb_test struct. Must have a
+ *                                  current amb_check.
+ * \param num_sdiffs                The number of sdiffs passed in.
+ * \param sdiffs                    The sdiffs from which we make amb_sdiffs.
+ * \param ambiguity_dd_measurements DD measurement vector for the amb_test's
+ *                                  unanimously resolved sats.
+ * \param amb_sdiffs                sdiffs that match the amb_test's unanimously
+ *                                  resolved sats constructed from the input
+ *                                  sdiffs.
+ * \return 0 if the input sdiff sats are a superset of the resolved IAR sats.
+ *         -1 otherwise.
+ */
+s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
+            ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
@@ -731,16 +764,33 @@ void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_te
              i, amb_test->amb_check.ambs[i]);
     }
   }
-  make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
-                                  num_sdiffs, sdiffs,
-                                  ambiguity_dd_measurements, amb_sdiffs);
+  s8 valid_sdiffs =
+    make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds, num_sdiffs,
+                                    sdiffs, ambiguity_dd_measurements,
+                                    amb_sdiffs);
   if (DEBUG_AMBIGUITY_TEST) {
     printf("</MAKE_AMBIGUITY_RESOLVED_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
+  return valid_sdiffs;
 }
 
 
-void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+/** Make the DD measurements and sdiffs that correspond to the DDs in amb_test.
+ * This will make a set of sdiffs and DD measurements that correspond to the
+ * amb_test's sats.
+ *
+ * \param amb_test                  The local amb_test struct. Must have the
+ *                                  current amb_check.
+ * \param num_sdiffs                The number of sdiffs passed in.
+ * \param sdiffs                    The sdiffs from which we make amb_sdiffs.
+ * \param ambiguity_dd_measurements DD measurement vector for the amb_test's
+ *                                  sats.
+ * \param amb_sdiffs                sdiffs that match the amb_test's sats
+ *                                  constructed from the input sdiffs.
+ * \return 0 if the input sdiff sats are a superset of the IAR sats.
+ *         -1 otherwise.
+ */
+s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
@@ -749,12 +799,13 @@ void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 nu
   u8 ref_prn = amb_test->sats.prns[0];
   u8 *non_ref_prns = &amb_test->sats.prns[1];
   u8 num_dds = MAX(1, amb_test->sats.num_sats)-1;
-  make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds,
-                                  num_sdiffs, sdiffs,
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
+                                  num_dds, num_sdiffs, sdiffs,
                                   ambiguity_dd_measurements, amb_sdiffs);
   if (DEBUG_AMBIGUITY_TEST) {
     printf("</MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
+  return valid_sdiffs;
 }
 
 
@@ -1509,25 +1560,17 @@ void add_sats(ambiguity_test_t *amb_test,
   }
 
   printf("IAR: %d hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);*/
+  if (DEBUG_AMBIGUITY_TEST) {
+    memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
+  }
   memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &generate_next_hypothesis, &hypothesis_prod);
   printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &k, &print_hyp);*/
-
-
-  // /* Recorrelate the new ambiguities we just added. */
-  // recorrelation_params_t params;
-  // params.num_added_dds = num_added_dds;
-  // params.num_old_dds = MAX(1,amb_test->sats.num_sats) - 1;
-  // memcpy(params.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
-  // memory_pool_map(amb_test->pool, &params, &recorrelate_added_sats);
-
-  // u8 num_all_dds = x0.num_added_dds + x0.num_old_dds;
-  // memory_pool_map(amb_test->pool, &num_all_dds, &print_hyp);
-
+  if (DEBUG_AMBIGUITY_TEST) {
+    memory_pool_map(amb_test->pool, &k, &print_hyp);
+  }
 }
 
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
@@ -1705,4 +1748,4 @@ double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothe
   return quad_term;
 }
 
-
+/** \} */

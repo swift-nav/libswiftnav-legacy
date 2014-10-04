@@ -11,6 +11,9 @@ int main(void)
 
   SRunner *sr = srunner_create(s);
   srunner_set_xml(sr, "test_results.xml");
+  srunner_add_suite(sr, dgnss_management_test_suite());
+  srunner_add_suite(sr, amb_kf_test_suite());
+  srunner_add_suite(sr, sdiff_test_suite());
   srunner_add_suite(sr, ambiguity_test_suite());
   srunner_add_suite(sr, rtcm3_suite());
   srunner_add_suite(sr, bits_suite());

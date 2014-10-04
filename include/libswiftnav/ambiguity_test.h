@@ -18,7 +18,7 @@
 #include "memory_pool.h"
 #include "sats_management.h"
 
-#define MAX_HYPOTHESES 1200
+#define MAX_HYPOTHESES 1000
 
 typedef struct {
   s32 N[MAX_CHANNELS-1];
@@ -68,10 +68,10 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
                            sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
 u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
-void make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
+s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
             u8 num_sdiffs, sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
-void make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
@@ -91,7 +91,6 @@ void add_sats(ambiguity_test_t *amb_test,
               s32 *lower_bounds, s32 *upper_bounds,
               s32 *Z_inv);
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov);
-// void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv);
 void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements, double *r_vec);
 void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_mean);
