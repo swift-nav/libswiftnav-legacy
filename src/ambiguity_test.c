@@ -659,13 +659,13 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
              "sat not in sdiffs. amb_test's sats must be a subset of sdiffs by "
              "this point.\n");
       printf("amb_test sat prns = {%u, ", ref_prn);
-      for (u8 j=0; j < num_dds; j++) {
-        printf("%u, ", non_ref_prns[i]);
+      for (u8 k=0; k < num_dds; k++) {
+        printf("%u, ", non_ref_prns[k]);
       }
       printf("}\n");
       printf("sdiffs.prns = {");
-      for (u8 j=0; j < num_sdiffs; j++) {
-        printf("%d, ", sdiffs[i].prn);
+      for (u8 k=0; k < num_sdiffs; k++) {
+        printf("%d, ", sdiffs[k].prn);
       }
       printf("}\n");
       return -1;
