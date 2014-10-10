@@ -348,13 +348,13 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
                                           &sats_management, nkf.state_mean,
                                           nkf.state_cov_U, nkf.state_cov_D);
 
-  if (num_sats >= 5) {
-    update_ambiguity_test(ref_ecef,
-                          dgnss_settings.phase_var_test,
-                          dgnss_settings.code_var_test,
-                          &ambiguity_test, nkf.state_dim,
-                          sdiffs, changed_sats);
-  }
+  update_ambiguity_test(ref_ecef,
+                        dgnss_settings.phase_var_test,
+                        dgnss_settings.code_var_test,
+                        &ambiguity_test, nkf.state_dim,
+                        sdiffs, changed_sats);
+
+  update_unanimous_ambiguities(&ambiguity_test);
 
   if (DEBUG_DGNSS_MANAGEMENT) {
     if (num_sats >=4) {
@@ -475,6 +475,7 @@ void dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
  *         -1 otherwise.
  *
  */
+
 s8 make_float_dd_measurements_and_sdiffs(
             u8 num_sdiffs, sdiff_t *sdiffs,
             double *float_dd_measurements, sdiff_t *float_sdiffs)
@@ -751,7 +752,7 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
 
   double state_cov_D[num_sats-1+6];
   memset(state_cov_D, 0, 6 * sizeof(double));
-  for (u32 i=0; i<num_sats-1; i++) {
+  for (u8 i=0; i<num_sats-1; i++) {
     state_cov_D[i+6] = 1.0 / 64.0;
   }
 
@@ -760,12 +761,12 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs, double receiver_ec
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
                                           &sats_management, nkf.state_mean,
                                           nkf.state_cov_U, nkf.state_cov_D);
-
   update_ambiguity_test(ref_ecef,
                         dgnss_settings.phase_var_test,
                         dgnss_settings.code_var_test,
                         &ambiguity_test, nkf.state_dim,
                         sdiffs, changed_sats);
+  update_unanimous_ambiguities(&ambiguity_test);
 }
 
 double l2_dist(double x1[3], double x2[3])

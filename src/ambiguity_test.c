@@ -378,6 +378,8 @@ void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *float_prn
  * \param float_mean  The float estimate of the integer ambiguities.
  * \param float_cov_U The U in the UDU' decomposition of the covariance of the float estimate.
  * \param float_cov_D The D in the UDU' decomposition of the covariance of the float estimate.
+ *
+ *  INVALIDATES unanimous ambiguities
  */
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
@@ -425,6 +427,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   }
 
   test_ambiguities(amb_test, ambiguity_dd_measurements);
+
   if (DEBUG_AMBIGUITY_TEST) {
     printf("</UPDATE_AMBIGUITY_TEST>\n");
   }
@@ -529,15 +532,29 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
   u8 keep_it = (hyp->ll > LOG_PROB_RAT_THRESHOLD);
   if (keep_it) {
     hyp->ll -= ((hyp_filter_t *) arg)->max_ll;
-    check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp,
-                         ((hyp_filter_t *) arg)->unanimous_amb_check);
   }
   return keep_it;
 }
 
+void _check_unanimous(void *arg, element_t *elem) {
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+
+  check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp,
+                       ((hyp_filter_t *) arg)->unanimous_amb_check);
+}
+
+void update_unanimous_ambiguities(ambiguity_test_t *amb_test) {
+  hyp_filter_t x;
+  x.num_dds = amb_test->sats.num_sats-1;
+  x.unanimous_amb_check = &amb_test->amb_check;
+  x.unanimous_amb_check->initialized = 0;
+
+  memory_pool_map(amb_test->pool, (void *) &x, &_check_unanimous);
+}
 
 /* Updates the IAR hypothesis pool log likelihood ratios and filters them.
  *  It assumes that the observations are structured to match the amb_test sats.
+ *  INVALIDATES unanimous ambiguities
  */
 void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
   if (DEBUG_AMBIGUITY_TEST) {
@@ -1244,8 +1261,9 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 // input:        float_mean
 // input:        float_cov_U
 // input:        float_cov_D
+// INVALIDATES unanimous ambiguities
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                           sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
+                         sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_SATS>\n");
@@ -1288,6 +1306,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
   if (DEBUG_AMBIGUITY_TEST) {
     printf("changed_sats = %u\n</AMBIGUITY_UPDATE_SATS>\n", changed_sats);
   }
+
   return changed_sats;
   /* TODO: Should we order by 'goodness'? Perhaps by volume of hyps? */
 }
