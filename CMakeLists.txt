@@ -55,10 +55,10 @@ set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-strict-prototypes -std=gnu99 ${CMAKE_C_FLA
 if (NOT CMAKE_CROSSCOMPILING)
   # Detect and use optimised compiler flags for the host architecture,
   # this is specific to x86 family CPUs.
-  include(cmake/OptimizeForArchitecture.cmake)
-  OptimizeForArchitecture()
-  message(STATUS "Adding architecture flags: ${Vc_ARCHITECTURE_FLAGS}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
+  #include(cmake/OptimizeForArchitecture.cmake)
+  #OptimizeForArchitecture()
+  #message(STATUS "Adding architecture flags: ${Vc_ARCHITECTURE_FLAGS}")
+  #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Vc_ARCHITECTURE_FLAGS}")
 endif ()
 
 add_subdirectory(clapack-3.2.1-CMAKE)
