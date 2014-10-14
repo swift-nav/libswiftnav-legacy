@@ -593,7 +593,9 @@ float cn0_est(cn0_est_state_t *s, float I)
   return s->log_bw - 10.f*log10f(s->nsr);
 }
 
-void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[], navigation_measurement_t nav_meas[], double nav_time, ephemeris_t ephemerides[])
+void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
+                                 navigation_measurement_t nav_meas[], double nav_time,
+                                 ephemeris_t ephemerides[])
 {
   channel_measurement_t* meas_ptrs[n_channels];
   navigation_measurement_t* nav_meas_ptrs[n_channels];
@@ -634,6 +636,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
     nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
+
+    nav_meas[i]->lock_counter = meas[i]->lock_counter; // TODO COUNTER DONE
   }
 
   double clock_err, clock_rate_err;
