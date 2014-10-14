@@ -399,7 +399,19 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 
   sdiff_t ambiguity_sdiffs[amb_test->sats.num_sats];
   double ambiguity_dd_measurements[2*(amb_test->sats.num_sats-1)];
-  make_ambiguity_dd_measurements_and_sdiffs(amb_test, num_sdiffs, sdiffs, ambiguity_dd_measurements, ambiguity_sdiffs);
+  s8 valid_sdiffs = make_ambiguity_dd_measurements_and_sdiffs(
+      amb_test, num_sdiffs, sdiffs, ambiguity_dd_measurements, ambiguity_sdiffs);
+
+  // Error
+  if (valid_sdiffs != 0) {
+    printf("update_ambiguity_test: Invalid sdiffs. return code: %i\n", valid_sdiffs);
+    for (u8 k=0; k < num_sdiffs; k++) {
+      printf("%u, ", sdiffs[k].prn);
+    }
+    printf("}\n");
+    print_sats_management_short(&amb_test->sats);
+    return;
+  }
 
   if (1 == 1 || changed_sats == 1) { //TODO add logic about when to update DE
     double DE_mtx[(amb_test->sats.num_sats-1) * 3];
@@ -597,6 +609,21 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
          amb_test->amb_check.num_matching_ndxs >= 3;
 }
 
+bool is_prn_set(u8 len, u8 *prns)
+{
+  if (len == 0) {
+    return true;
+  }
+  u8 current = prns[0];
+  for (u8 i = 1; i < len; i++) {
+    if (prns[i] <= current) {
+      return false;
+    }
+    current = prns[i];
+  }
+  return true;
+}
+
 /* Constructs the double differenced measurements and sdiffs needed for IAR.
  * This requires that all IAR prns are in the sdiffs used (sdiffs is a superset
  * of IAR's PRNs), that the sdiffs are ordered by prn, and that the IAR
@@ -616,8 +643,9 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
  * \param ambiguity_dd_measurements  The output vector of DD measurements
  *                                   to be used to update the IAR.
  * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
- * \return 0 if the input sdiffs are superset of the IAR sats.
- *         -1 otherwise.
+ * \return 0 if the input sdiffs are superset of the IAR sats,
+ *        -1 if they are not,
+ *        -2 if non_ref_prns is not an ordered set.
  */
 s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                    u8 num_sdiffs, sdiff_t *sdiffs,
@@ -635,11 +663,22 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     }
     printf("}\n");
   }
+
+  if (!is_prn_set(num_dds, non_ref_prns)) {
+    printf("There is disorder in the amb_test sats.\n");
+    printf("amb_test sat prns = {%u, ", ref_prn);
+    for (u8 k=0; k < num_dds; k++) {
+      printf("%u, ", non_ref_prns[k]);
+    }
+    printf("}\n");
+    return -2;
+  }
+
   double ref_phase;
   double ref_pseudorange;
   u8 i=0;
   u8 j=0;
-  u8 found_ref = 0; //DEBUG
+  u8 found_ref = 0;
   /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
    * and the reference sat. */
   while (i < num_dds) {
@@ -656,35 +695,19 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
       ref_phase =  sdiffs[j].carrier_phase;
       ref_pseudorange = sdiffs[j].pseudorange;
       j++;
-      found_ref = 1; //DEBUG
+      found_ref = 1;
     }
-    // else {
-    //   j++;
-    // }
     else if (non_ref_prns[i] > sdiffs[j].prn) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
        * i prn is higher than the j one, it means that the i one might be in the 
        * j set for higher j, and that the current j prn isn't in the i set. */
       j++;
-    } else { //DEBUG
+    } else {
       /* if both sets are ordered, and we increase j (and possibly i), and the
        * j prn is higher than the i one, it means that the j one might be in the 
        * i set for higher i, and that the current i prn isn't in the j set.
        * This means a sat in the IAR's sdiffs isn't in the sdiffs.
-       * THAT IS BAD AND WON'T/SHOULDN"T HAPPEN! */
-      printf("there is either disorder in the amb_test sats or it contains a "
-             "sat not in sdiffs. amb_test's sats must be a subset of sdiffs by "
-             "this point.\n");
-      printf("amb_test sat prns = {%u, ", ref_prn);
-      for (u8 k=0; k < num_dds; k++) {
-        printf("%u, ", non_ref_prns[k]);
-      }
-      printf("}\n");
-      printf("sdiffs.prns = {");
-      for (u8 k=0; k < num_sdiffs; k++) {
-        printf("%d, ", sdiffs[k].prn);
-      }
-      printf("}\n");
+       * */
       return -1;
     }
   }
@@ -697,24 +720,12 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
       memcpy(&amb_sdiffs[0], &sdiffs[j], sizeof(sdiff_t));
       ref_phase =  sdiffs[j].carrier_phase;
       ref_pseudorange = sdiffs[j].pseudorange;
-      found_ref = 1; //DEBUG
+      found_ref = 1;
     }
     j++;
   }
 
-  if (found_ref == 0) { //DEBUG
-    /* Then the ref_prn wasn't in the sdiffs and something has gone wrong in setting up/rebasing amb_test's sats */
-    printf("amb_test sats' reference wasn't found in the sdiffs, but it should have already been rebased.\n");
-    printf("amb_test sat .prns = {%u, ", ref_prn);
-    for (u8 j=0; j < num_dds; j++) {
-      printf("%d, ", non_ref_prns[j]);
-    }
-    printf("}\n");
-    printf("sdiffs.prns = {");
-    for (u8 j=0; j < num_sdiffs; j++) {
-      printf("%d, ", sdiffs[j].prn);
-    }
-    printf("}\n");
+  if (found_ref == 0) {
     return -1;
   }
   for (u8 i=0; i < num_dds; i++) {
@@ -754,8 +765,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
  * \param amb_sdiffs                sdiffs that match the amb_test's unanimously
  *                                  resolved sats constructed from the input
  *                                  sdiffs.
- * \return 0 if the input sdiff sats are a superset of the resolved IAR sats.
- *         -1 otherwise.
+ * \return error code; see make_dd_measurements_and_sdiffs docstring.
  */
 s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
             ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
@@ -804,8 +814,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
  *                                  sats.
  * \param amb_sdiffs                sdiffs that match the amb_test's sats
  *                                  constructed from the input sdiffs.
- * \return 0 if the input sdiff sats are a superset of the IAR sats.
- *         -1 otherwise.
+ * \return error code. see make_dd_measurements_and_sdiffs docstring.
  */
 s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
@@ -909,13 +918,6 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
   memcpy(hypothesis->N, new_N, (num_sats-1) * sizeof(s32));
 }
 
-void print_sats_man(sats_management_t *sats_man) {
-  for (u8 i=0; i<sats_man->num_sats; i++) {
-    printf("%d,", sats_man->prns[i]);
-  }
-  printf("\n");
-}
-
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_AMBIGUITY_TEST) {
@@ -925,9 +927,9 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
   u8 old_prns[amb_test->sats.num_sats];
   memcpy(old_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
 
-  // print_sats_man(&amb_test->sats);
+  // print_sats_management_short(&amb_test->sats);
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
-  // print_sats_man(&amb_test->sats);
+  // print_sats_management_short(&amb_test->sats);
   if (sats_management_code != OLD_REF) {
     if (DEBUG_AMBIGUITY_TEST) {
       printf("updating iar reference sat\n");
