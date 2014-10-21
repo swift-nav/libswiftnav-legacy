@@ -24,9 +24,9 @@
 
 static double vel_solve(double rx_vel[],
                         const u8 n_used,
-                        const navigation_measurement_t const nav_meas[n_used],
-                        const double const G[n_used][4],
-                        const double const X[4][n_used])
+                        const navigation_measurement_t nav_meas[n_used],
+                        const double G[n_used][4],
+                        const double X[4][n_used])
 {
   /* Velocity Solution
    *
@@ -60,8 +60,8 @@ static double vel_solve(double rx_vel[],
   return rx_vel[3];
 }
 
-void compute_dops(const double const H[4][4],
-                  const double const pos_ecef[3],
+void compute_dops(const double H[4][4],
+                  const double pos_ecef[3],
                   dops_t *dops)
 {
   double H_pos_diag[3];
@@ -129,7 +129,7 @@ void compute_dops(const double const H[4][4],
  */
 static double pvt_solve(double rx_state[],
                         const u8 n_used,
-                        const navigation_measurement_t const nav_meas[n_used],
+                        const navigation_measurement_t nav_meas[n_used],
                         double H[4][4])
 {
   double p_pred[n_used];
@@ -280,7 +280,7 @@ u8 filter_solution(gnss_solution* soln, dops_t* dops)
 }
 
 s8 calc_PVT(const u8 n_used,
-            const navigation_measurement_t const nav_meas[n_used],
+            const navigation_measurement_t nav_meas[n_used],
             gnss_solution *soln,
             dops_t *dops)
 {

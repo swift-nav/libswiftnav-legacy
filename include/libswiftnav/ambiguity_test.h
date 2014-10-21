@@ -73,6 +73,9 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, sdiff_t *sdiffs,
+                                   double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
                              sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);

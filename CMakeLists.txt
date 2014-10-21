@@ -50,7 +50,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Some compiler options used globally
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-strict-prototypes -std=gnu99 ${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-strict-prototypes -Wno-unknown-warning-option -Werror -std=gnu99 ${CMAKE_C_FLAGS}")
 
 if (NOT CMAKE_CROSSCOMPILING)
   # Detect and use optimised compiler flags for the host architecture,
