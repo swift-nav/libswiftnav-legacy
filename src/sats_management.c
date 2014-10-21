@@ -19,6 +19,7 @@
 
 #define DEBUG_SATS_MAN 0
 
+// TODO MAX .snr over sdiff set
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
@@ -32,17 +33,7 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
   return best_prn;
 }
 
-// bool contains(u8 num_sats, u8 ref_prn, sdiff_t *sdiffs) 
-// {
-//   //todo make and use assumptions about the ordering of the prns
-//   for (u8 i=0; i<num_sats; i++) {
-//     if (ref_prn == sdiffs[i].prn) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
+// TODO intersection
 //assumes both sets are ordered
 u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
@@ -94,28 +85,7 @@ u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
   return n;
 }
 
-// s8 check_and_rebase_reference_sat(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   bool still_has_ref = contains(num_sats, sdiffs);
-//   if (still_has_ref == false) {
-//     sdiff_t common_sats[num_sats];
-//     u8 intersection_size = intersect_sats(num_sats, sdiffs, common_sats);
-//     if (intersection_size>=4) {
-//       u8 new_ref_prn = choose_reference_sat(intersection_size, common_sats);
-//       printf("%i\n", new_ref_prn);
-//       printf("%i\n", state->state_dim);
-//     }
-//   }
-//   return 1;
-// }
-
-// u8 update_filter(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   //TODO add update_E logic
-
-//   u8 control_logic = check_and_rebase_reference_sat(kf, num_sats, sdiffs, state);
-// }
-
+// TODO replace with pointer change
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
  */
 void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns)
@@ -151,6 +121,9 @@ void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns)
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
  */
+// TODO split function
+//   - sats_management operation -> update ref
+//   - sdiffs -> update ref
 void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {  
@@ -205,6 +178,8 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
   }
 }
 
+
+// TODO is above function needed?
 void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
                                 u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -226,6 +201,8 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
   }
 }
 
+// TODO get rid of 0 check?
+// no change
 void init_sats_management(sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -248,6 +225,8 @@ void init_sats_management(sats_management_t *sats_management,
     }
 }
 
+// TODO iterator printing
+// TODO prn print macro?
 void print_sats_management(sats_management_t *sats_management)
 {
   printf("sats_management->num_sats=%u\n", sats_management->num_sats);
@@ -258,6 +237,7 @@ void print_sats_management(sats_management_t *sats_management)
 
 /** Updates sats to the new measurements' sat set
  */
+// TODO intersect, contains?, call others
 s8 rebase_sats_management(sats_management_t *sats_management,
                           u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -271,6 +251,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
     // Need to init first.
     init_sats_management(sats_management, num_sdiffs, sdiffs, 0);
   }
+  
 
   // Check if old reference is in sdiffs
   if (bsearch(&(sats_management->prns[0]), sdiffs, num_sdiffs, sizeof(sdiff_t), &sdiff_search_prn)) {
@@ -318,6 +299,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   return return_code;
 }
 
+// TODO map, freeze
 void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
 {
   sats_management->num_sats = num_non_ref_sdiffs + 1;
@@ -326,8 +308,7 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
   }
 }
 
-
-
+// TODO intersect, subset? return code is not checked
 s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, 
                             sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -347,6 +328,3 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
   }
   return 0;
 }
-
-
-

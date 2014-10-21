@@ -5,30 +5,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include "single_diff.h"
-#include "linear_algebra.h"
+
 #include "set.h"
-
-void next(iterator_t *it)
-{
-  it->next(it);
-}
-bool end(const iterator_t *it)
-{
-  return it->end(it);
-}
-bool more(const iterator_t *it)
-{
-  return !end(it);
-}
-void *current(iterator_t *it)
-{
-  return it->current(it);
-}
-
-typedef struct {
-  void *current;
-  set_t *set;
-} set_state_t;
+#include "iterator.h"
 
 // Iterator: full set
 set_state_t *set_state(iterator_t *it)
@@ -40,17 +19,22 @@ void set_next(iterator_t *it)
   set_state_t *s = set_state(it);
   s->current += s->set->size;
 }
-void *set_current(iterator_t *it)
+void set_reset(iterator_t *it)
+{
+  set_state_t *s = set_state(it);
+  s->current = s->set->set;
+}
+const void *set_current(iterator_t *it)
 {
   return set_state(it)->current;
 }
-void *set_ending(const set_t *set)
+const void *set_ending(const set_t *set)
 {
   return set->set + set->len * set->size;
 }
 bool set_end(const iterator_t *it)
 {
-  set_t *set = set_state((iterator_t *) it)->set;
+  const set_t *set = set_state((iterator_t *) it)->set;
   return set_ending(set) == set_current((iterator_t *) it);
 }
 void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set)
@@ -61,18 +45,27 @@ void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set)
   it->state   = s;
   it->end     = &set_end;
   it->next    = &set_next;
+  it->reset   = &set_reset;
   it->current = &set_current;
 }
 
-key set_key(iterator_t* it)
+key current_key(iterator_t* it)
 {
   return set_state(it)->set->key(set_current(it));
 }
 
-
 // TODO
-// Iterator: set without reference
-// ...
+// convert array into itr, itr -> array
+//
+// general:
+//   fold, map, filter - done: freeze, 
+// needs key:
+//   intersect, subset?, contains?, 
+// needs pointed-set:
+//   update ref, non-refs (filter)
+// needs specific structure:
+//   print,
+
 
 // Iterator: set intersection 
 // ...
@@ -85,18 +78,37 @@ key set_key(iterator_t* it)
 // Delete prn
 // Add prn
 
-// Tests for valid set structure
-bool is_set(const set_t *set)
+bool is_empty(const set_t *set) {
+  return set->len == 0;
+}
+
+bool valid_ref(const set_t *set)
 {
-  key prev, current;
-  void *ref = set->ref;
-  // Empty set is valid as long as ref is null
-  if (set->len == 0) {
+  const void *ref = set->ref;
+
+  if (is_empty(set)) {
     return ref == NULL;
   }
   // Nonempty set must either have no reference, or must contain reference
   if (ref != NULL && (ref < set->set ||
                       ref > set_ending(set))) {
+    return false;
+  }
+  return true;
+}
+
+// Tests for valid set structure
+bool is_set(const set_t *set)
+{
+  key prev, current;
+  const void *ref = set->ref;
+
+  // Empty set is valid as long as ref is null
+  if (is_empty(set)) {
+    return ref == NULL;
+  }
+
+  if (!valid_ref(set)) {
     return false;
   }
 
@@ -115,7 +127,6 @@ bool is_set(const set_t *set)
 key prn_key(const void *x) {
   return *((u8 *) x);
 }
-
 void mk_prn_set(set_t *set, int len, prn *arr)
 {
   set->len = len;
@@ -127,10 +138,54 @@ void mk_prn_set(set_t *set, int len, prn *arr)
   assert(is_set(set));
 }
 
+void print_prn(const void *arg, const void *elem)
+{
+  (void)arg;
+  printf("prn: %i\n", *(prn *)elem);
+}
+
+bool eq_ref(const void *arg, const void *elem)
+{
+  return *(prn *)elem == *(prn *)arg;
+}
+bool not_eq_ref(const void *arg, const void *elem)
+{
+  return !(*((prn *)elem) == *((prn *)arg));
+}
+bool not_eq_ptr(const void *p1, const void *p2)
+{
+  return p1 != p2;
+}
+
+const void *find_key(iterator_t *it, key key)
+{
+  for(reset(it); more(it); next(it)) {
+    if (current_key(it) == key) {
+      return current(it);
+    }
+  }
+  return NULL;
+}
+
+s8 set_ref_prn(set_t *set, prn prn)
+{
+  iterator_t it;
+  set_state_t s;
+  mk_set_itr(&it, &s, set);
+  const void *ref = find_key(&it, prn);
+  if (ref == NULL) {
+    return -1;
+  }
+  set->ref = ref;
+  // TODO add assert()
+  return 0;
+}
+void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, set_t *set)
+{
+  mk_filter_itr(it, s, &not_eq_ptr, set->ref, base);
+}
+
 // TODO:
-void set_ref_prn(set_t *set, prn prn)
-{
-}
-void mk_sdiff_set(set_t *set, int len, sdiff_t *arr)
-{
-}
+//void mk_sdiff_set(set_t *set, int len, sdiff_t *arr)
+//{
+//}
