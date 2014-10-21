@@ -90,7 +90,7 @@ void llhdeg2rad(const double llg_deg[3], double llh_rad[3]) {
  * \param ecef Converted Cartesian coordinates are written into this array
  *             as [X, Y, Z], all in meters.
  */
-void wgsllh2ecef(const double const llh[3], double ecef[3]) {
+void wgsllh2ecef(const double llh[3], double ecef[3]) {
   double d = WGS84_E * sin(llh[0]);
   double N = WGS84_A / sqrt(1. - d*d);
 
@@ -125,7 +125,7 @@ void wgsllh2ecef(const double const llh[3], double ecef[3]) {
  * \param llh  Converted geodetic coordinates are written into this array as
  *             [lat, lon, height] in [radians, radians, meters].
  */
-void wgsecef2llh(const double const ecef[3], double llh[3]) {
+void wgsecef2llh(const double ecef[3], double llh[3]) {
   /* Distance from polar axis. */
   const double p = sqrt(ecef[0]*ecef[0] + ecef[1]*ecef[1]);
 

@@ -67,7 +67,7 @@ typedef struct __attribute__((packed)) {
 } gnss_solution;
 
 s8 calc_PVT(const u8 n_used,
-            const navigation_measurement_t const nav_meas[n_used],
+            const navigation_measurement_t nav_meas[n_used],
             gnss_solution *soln,
             dops_t *dops);
 

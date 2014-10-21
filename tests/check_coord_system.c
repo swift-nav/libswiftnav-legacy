@@ -19,7 +19,7 @@
 #define EARTH_B 6356752.31424517929553985595703125
 
 #define NUM_COORDS 10
-const double const llhs[NUM_COORDS][3] = {
+const double llhs[NUM_COORDS][3] = {
   {0, 0, 0},        /* On the Equator and Prime Meridian. */
   {0, 180*D2R, 0},  /* On the Equator. */
   {0, 90*D2R, 0},   /* On the Equator. */
@@ -31,7 +31,7 @@ const double const llhs[NUM_COORDS][3] = {
   {0, 0, 22},       /* 22m above the Equator and Prime Meridian. */
   {0, 180*D2R, 22}, /* 22m above the Equator. */
 };
-const double const ecefs[NUM_COORDS][3] = {
+const double ecefs[NUM_COORDS][3] = {
   {EARTH_A, 0, 0},
   {-EARTH_A, 0, 0},
   {0, EARTH_A, 0},
