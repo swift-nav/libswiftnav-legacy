@@ -49,11 +49,6 @@ void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set)
   it->current = &set_current;
 }
 
-key current_key(iterator_t* it)
-{
-  return set_state(it)->set->key(set_current(it));
-}
-
 // TODO
 // convert array into itr, itr -> array
 //
@@ -98,7 +93,7 @@ bool valid_ref(const set_t *set)
 }
 
 // Tests for valid set structure
-bool is_set(const set_t *set)
+bool is_set(const set_t *set, key (*to_key)(const void *))
 {
   key prev, current;
   const void *ref = set->ref;
@@ -113,9 +108,9 @@ bool is_set(const set_t *set)
   }
 
   // Set must have strictly increasing sequence of keys
-  prev = set->key(set->set);
+  prev = to_key(set->set);
   for (u8 i = 1; i < set->len; i++) {
-    current = set->key(set->set + i * set->size);
+    current = to_key(set->set + i * set->size);
     if (current <= prev) {
       return false;
     }
@@ -124,15 +119,11 @@ bool is_set(const set_t *set)
   return true;
 }
 
-key prn_key(const void *x) {
-  return *((u8 *) x);
-}
 void mk_prn_set(set_t *set, int len, prn *arr)
 {
   set->len = len;
   set->size = sizeof(prn);
   set->set = arr;
-  set->key = &prn_key;
   set->ref = NULL;
 
   assert(is_set(set));
@@ -142,6 +133,13 @@ void print_prn(const void *arg, const void *elem)
 {
   (void)arg;
   printf("prn: %i\n", *(prn *)elem);
+}
+void print_prn_tuple(const void *arg, const void *elem)
+{
+  (void)arg;
+  tuple *t = (tuple *)elem;
+  printf("prn1: %i\n", *((prn *)t->fst));
+  printf("prn2: %i\n", *((prn *)t->snd));
 }
 
 bool eq_ref(const void *arg, const void *elem)
@@ -157,16 +155,23 @@ bool not_eq_ptr(const void *p1, const void *p2)
   return p1 != p2;
 }
 
+/* PRN Utilities */
+key prn_key(const void *x) {
+  return (key)*((prn *) x);
+}
+prn current_prn(iterator_t* it)
+{
+  return prn_key(set_current(it));
+}
 const void *find_key(iterator_t *it, key key)
 {
   for(reset(it); more(it); next(it)) {
-    if (current_key(it) == key) {
+    if (current_prn(it) == key) {
       return current(it);
     }
   }
   return NULL;
 }
-
 s8 set_ref_prn(set_t *set, prn prn)
 {
   iterator_t it;
@@ -184,8 +189,3 @@ void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, set
 {
   mk_filter_itr(it, s, &not_eq_ptr, set->ref, base);
 }
-
-// TODO:
-//void mk_sdiff_set(set_t *set, int len, sdiff_t *arr)
-//{
-//}

@@ -18,14 +18,12 @@
 #include <iterator.h>
 
 typedef u8 prn;
-typedef prn key;
 
 typedef struct {
   u8 len;
   size_t size;
   const void *ref;
   const void *set; // TODO rename this to array?
-  key (*key)(const void *);
 } set_t;
 
 typedef struct {
@@ -33,7 +31,9 @@ typedef struct {
   const set_t *set;
 } set_state_t;
 
-bool is_set(const set_t *set);
+bool is_set(const set_t *set, key (*key)(const void *));
+key prn_key(const void *x);
+void print_prn_tuple(const void *arg, const void *elem);
 void mk_prn_set(set_t *set, int len, prn *arr);
 void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set);
 

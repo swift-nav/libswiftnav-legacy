@@ -23,13 +23,23 @@ s8 freeze_itr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it)
   return 0;
 }
 
+// TODO move intersection methods
 filter_state_t *filter_state(iterator_t *it)
+{
+  return it->state;
+}
+intersection_state_t *intersection_state(iterator_t *it)
 {
   return it->state;
 }
 bool filter_end(const iterator_t *it)
 {
   return end((const iterator_t *)filter_state((iterator_t *)it)->it);
+}
+bool intersection_end(const iterator_t *it)
+{
+  const intersection_state_t *s = intersection_state((iterator_t *)it);
+  return end((const iterator_t *)s->it1) || end((const iterator_t *)s->it2);
 }
 void filter_next0(iterator_t *it)
 {
@@ -38,20 +48,59 @@ void filter_next0(iterator_t *it)
     next(s->it);
   }
 }
+void intersection_next0(iterator_t *it)
+{
+  intersection_state_t *s = intersection_state(it);
+  key key1, key2;
+  while (more(s->it1) && more(s->it2)) {
+    key1 = s->key1(current(s->it1));
+    key2 = s->key2(current(s->it2));
+
+    if (key1 == key2) {
+      // Update current ptrs
+      s->current.fst = current(s->it1);
+      s->current.snd = current(s->it2);
+      return;
+    } else if (key1 < key2) {
+      next(s->it1);
+    } else if (key1 > key2) {
+      next(s->it2);
+    }
+  }
+}
 void filter_next1(iterator_t *it)
 {
   filter_state_t *s = filter_state(it);
   next(s->it);
   filter_next0(it);
 }
+void intersection_next1(iterator_t *it)
+{
+  intersection_state_t *s = intersection_state(it);
+  next(s->it1);
+  next(s->it2);
+  intersection_next0(it);
+}
 void filter_reset(iterator_t *it)
 {
   reset(filter_state(it)->it);
   filter_next0(it);
 }
+void intersection_reset(iterator_t *it)
+{
+  intersection_state_t *s = intersection_state(it);
+  reset(s->it1);
+  reset(s->it2);
+  intersection_next0(it);
+}
 const void *filter_current(iterator_t *it)
 {
   return current(filter_state(it)->it);
+}
+const void *intersection_current(iterator_t *it)
+{
+  intersection_state_t *s = intersection_state(it);
+  return &s->current;
 }
 void mk_filter_itr(iterator_t *it, filter_state_t* s, bool (*f)(const void*, const void*),
                    const void *arg, iterator_t *base)
@@ -68,6 +117,25 @@ void mk_filter_itr(iterator_t *it, filter_state_t* s, bool (*f)(const void*, con
 
   reset(it);
 }
+void mk_intersection_itr(iterator_t *it, intersection_state_t* s,
+                         iterator_t *it1, iterator_t *it2,
+                         key (*key1)(const void *),
+                         key (*key2)(const void *))
+{
+  s->it1 = it1;
+  s->it2 = it2;
+  s->key1 = key1;
+  s->key2 = key2;
+  
+  it->state = s;
+  it->end = &intersection_end;
+  it->next = &intersection_next1;
+  it->reset = &intersection_reset;
+  it->current = &intersection_current;
+
+  reset(it);
+}
+
 // Checks to see if iterators iterate over the same memory
 bool ptr_itr_equality(iterator_t *it1, iterator_t *it2)
 {

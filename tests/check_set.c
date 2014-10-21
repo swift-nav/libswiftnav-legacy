@@ -19,17 +19,17 @@ START_TEST(test_set)
   prn prns1[] = {};
   set_t set1;
   mk_prn_set(&set1, 0, prns1);
-  fail_unless(is_set(&set1), "Empty set should be a valid set");
+  fail_unless(is_set(&set1, &prn_key), "Empty set should be a valid set");
 
   prn prns2[] = {0,1,3};
   set_t set2;
   mk_prn_set(&set2, 3, prns2);
-  fail_unless(is_set(&set2), "0,1,3 should be a valid set");
+  fail_unless(is_set(&set2, &prn_key), "0,1,3 should be a valid set");
 
   prn prns3[] = {1,0};
   set_t set3;
   mk_prn_set(&set3, 2, prns3);
-  fail_unless(!is_set(&set3), "is_set(Disordered set) should return false.");
+  fail_unless(!is_set(&set3, &prn_key), "is_set(Disordered set) should return false.");
 
 }
 END_TEST
@@ -108,6 +108,38 @@ START_TEST(test_set_ref)
   each(&filter_itr, &print_prn, NULL); // 0, 2
 }
 END_TEST
+START_TEST(test_intersect)
+{
+  prn prns1[] = {0,1,4,7};
+  prn prns2[] = {0,4,5,6,7};
+  prn prns3[] = {};
+  prn prns4[] = {3,10,11,12};
+  set_t set1, set2, set3, set4;
+  iterator_t itr1, itr2;
+  set_state_t state1, state2;
+  mk_prn_set(&set1, 4, prns1);
+  mk_prn_set(&set2, 5, prns2);
+  mk_prn_set(&set3, 0, prns3);
+  mk_prn_set(&set4, 4, prns4);
+
+  /* Test 1 */
+  mk_set_itr(&itr1, &state1, &set1);
+  mk_set_itr(&itr2, &state2, &set2);
+  intersection_state_t s;
+  iterator_t intersection;
+  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
+  each(&intersection, &print_prn_tuple, NULL);
+  /* Test 2 */
+  mk_set_itr(&itr2, &state2, &set3);
+  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
+  each(&intersection, &print_prn_tuple, NULL);
+  /* Test 3 */
+  mk_set_itr(&itr2, &state2, &set4);
+  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
+  each(&intersection, &print_prn_tuple, NULL);
+
+}
+END_TEST
 
 Suite* set_suite(void)
 {
@@ -118,6 +150,7 @@ Suite* set_suite(void)
   tcase_add_test(tc_core, test_freeze);
   tcase_add_test(tc_core, test_filter);
   tcase_add_test(tc_core, test_set_ref);
+  tcase_add_test(tc_core, test_intersect);
   suite_add_tcase(s, tc_core);
 
   return s;
