@@ -281,5 +281,29 @@ s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t
   return not_found;
 }
 
+bool _contains_prn(u8 len, u8 *prns, u8 prn)
+{
+  for (u8 i = 0; i < len; i++) {
+    if (prns[i] == prn) {
+      return true;
+    }
+  }
+  return false;
+}
+
+u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_to_drop)
+{
+  u8 new_num_sdiffs = 0;
+  for (u8 i = 0; i < num_sdiffs; i++) {
+    if (!_contains_prn(num_sats_to_drop, sats_to_drop, sdiffs[i].prn)) {
+      if (new_num_sdiffs != i) {
+        memcpy(&sdiffs[new_num_sdiffs], &sdiffs[i], sizeof(sdiff_t));
+      }
+      new_num_sdiffs++;
+    }
+  }
+  return new_num_sdiffs;
+}
+
 /** \} */
 

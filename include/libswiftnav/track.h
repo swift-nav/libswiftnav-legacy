@@ -107,6 +107,7 @@ typedef struct {
   u32 time_of_week_ms;
   double receiver_time;
   double snr;
+  u16 lock_counter;
 } channel_measurement_t;
 
 typedef struct {
@@ -121,6 +122,7 @@ typedef struct {
   double lock_time;
   gps_time_t tot;
   u8 prn;
+  u16 lock_counter;
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
