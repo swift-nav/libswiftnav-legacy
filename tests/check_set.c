@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <check.h>
+#include "check_utils.h"
+
+#include <time.h>
+#include <stdlib.h>
 
 #include <set.h>
 #include <iterator.h>
+
+#include "sats_management.h"
 
 bool arr_eq(size_t len, prn *arr1, prn *arr2)
 {
@@ -108,25 +114,29 @@ START_TEST(test_set_ref)
   each(&filter_itr, &print_prn, NULL); // 0, 2
 }
 END_TEST
+
+// TODO make this a test, not a bunch of printf's
 START_TEST(test_intersect)
 {
   prn prns1[] = {0,1,4,7};
   prn prns2[] = {0,4,5,6,7};
   prn prns3[] = {};
   prn prns4[] = {3,10,11,12};
-  set_t set1, set2, set3, set4;
+  prn prns5[] = {0,1,2,3,4,5,7};
+  set_t set1, set2, set3, set4, set5;
   iterator_t itr1, itr2;
   set_state_t state1, state2;
   mk_prn_set(&set1, 4, prns1);
   mk_prn_set(&set2, 5, prns2);
   mk_prn_set(&set3, 0, prns3);
   mk_prn_set(&set4, 4, prns4);
+  mk_prn_set(&set5, 7, prns5);
 
   /* Test 1 */
   mk_set_itr(&itr1, &state1, &set1);
   mk_set_itr(&itr2, &state2, &set2);
-  intersection_state_t s;
   iterator_t intersection;
+  intersection_state_t s;
   mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
   each(&intersection, &print_prn_tuple, NULL);
   /* Test 2 */
@@ -138,6 +148,53 @@ START_TEST(test_intersect)
   mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
   each(&intersection, &print_prn_tuple, NULL);
 
+  /* Test 4 - Subset */
+  mk_set_itr(&itr1, &state1, &set1);
+  mk_set_itr(&itr2, &state2, &set5);
+  fail_unless(is_subset(&itr1, &itr2, &prn_key, &prn_key));
+  /* Test 5 */
+  mk_set_itr(&itr2, &state2, &set4);
+  fail_unless(!is_subset(&itr1, &itr2, &prn_key, &prn_key));
+  mk_set_itr(&itr2, &state2, &set3);
+  fail_unless(!is_subset(&itr1, &itr2, &prn_key, &prn_key));
+}
+END_TEST
+
+void fold_sum_int(const void *arg, void *sum, const void *elem)
+{
+  (void) arg;
+  *(int *)sum = *(int *)sum + *(int *)elem;
+}
+START_TEST(test_fold)
+{
+  int nums[] = {0,1,2};
+  set_t nums_set;
+  iterator_t nums_itr;
+  set_state_t nums_state;
+  mk_pointed(&nums_set, 3, sizeof(int), nums);
+  mk_set_itr(&nums_itr, &nums_state, &nums_set);
+  each(&nums_itr, &print_prn, NULL);
+  int sum = 0;
+  fold(&fold_sum_int, NULL, &sum, &nums_itr);
+  printf("sum: %i\n", sum);
+}
+END_TEST
+
+START_TEST(test_sats_man)
+{
+  u8 num_sats = 10;
+  sdiff_t sdiffs1[num_sats], sdiffs2[num_sats];
+  seed_rng();
+  /* Test 1: choose_ref */
+  for(prn prn = 0; prn < num_sats; prn++) {
+    sdiffs1[prn].prn = prn;
+    sdiffs1[prn].snr = frand(0,1);
+    sdiffs2[prn].prn = prn;
+    sdiffs2[prn].snr = frand(0,1);
+  }
+  fail_unless(choose_reference_sat(num_sats, sdiffs1) ==
+              choose_reference_sat2(num_sats, sdiffs1));
+  /* Test 2: intersect_sats */
 }
 END_TEST
 
@@ -151,6 +208,8 @@ Suite* set_suite(void)
   tcase_add_test(tc_core, test_filter);
   tcase_add_test(tc_core, test_set_ref);
   tcase_add_test(tc_core, test_intersect);
+  tcase_add_test(tc_core, test_fold);
+  tcase_add_test(tc_core, test_sats_man);
   suite_add_tcase(s, tc_core);
 
   return s;

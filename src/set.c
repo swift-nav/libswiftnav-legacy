@@ -49,17 +49,17 @@ void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set)
   it->current = &set_current;
 }
 
-// TODO
-// convert array into itr, itr -> array
+// DONE:
+// - freeze, filter, intersect, is_subset, fold
+// - set_ref_prn, without_ref_itr
+// - print
+//
+// TODO:
 //
 // general:
-//   fold, map, filter - done: freeze, 
+//   map
 // needs key:
-//   intersect, subset?, contains?, 
-// needs pointed-set:
-//   update ref, non-refs (filter)
-// needs specific structure:
-//   print,
+//   contains?, 
 
 
 // Iterator: set intersection 
@@ -119,14 +119,22 @@ bool is_set(const set_t *set, key (*to_key)(const void *))
   return true;
 }
 
+void mk_sdiff_set(set_t *set, int len, sdiff_t *sats)
+{
+  mk_pointed(set, len, sizeof(sdiff_t), sats);
+  assert(is_set(set, &sdiff_key));
+}
 void mk_prn_set(set_t *set, int len, prn *arr)
 {
+  mk_pointed(set, len, sizeof(prn), arr);
+  assert(is_set(set, &prn_key));
+}
+void mk_pointed(set_t *set, int len, size_t size, const void *arr)
+{
   set->len = len;
-  set->size = sizeof(prn);
+  set->size = size;
   set->set = arr;
   set->ref = NULL;
-
-  assert(is_set(set));
 }
 
 void print_prn(const void *arg, const void *elem)
@@ -156,8 +164,13 @@ bool not_eq_ptr(const void *p1, const void *p2)
 }
 
 /* PRN Utilities */
-key prn_key(const void *x) {
+key prn_key(const void *x)
+{
   return (key)*((prn *) x);
+}
+key sdiff_key(const void *x)
+{
+  return (key)((sdiff_t *) x)->prn;
 }
 prn current_prn(iterator_t* it)
 {

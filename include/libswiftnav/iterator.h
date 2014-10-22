@@ -44,6 +44,12 @@ typedef struct {
   tuple current;
 } intersection_state_t;
 
+// TODO implement
+typedef struct {
+  iterator_t *it;
+  void *current;
+} map_state_t;
+
 bool end(const iterator_t *it);
 void next(iterator_t *it);
 void reset(iterator_t *it);
@@ -58,9 +64,15 @@ void mk_intersection_itr(iterator_t *it, intersection_state_t* s,
                          key (*key1)(const void *),
                          key (*key2)(const void *));
 
-/* Interator Utilities */
+/* Iterator Utilities */
+// TODO length
 s8 freeze_itr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it);
 bool ptr_itr_equality(iterator_t *it1, iterator_t *it2);
+bool is_subset(iterator_t *it1, iterator_t *it2,
+               key (*key1)(const void *),
+               key (*key2)(const void *));
 void each(iterator_t *it, void (*f)(const void *, const void *), const void *arg);
+void fold(void (*f)(const void *, void *, const void *),
+          const void *arg, void *init, iterator_t *it);
 
 #endif /* LIBSWIFTNAV_ITERATOR_H */

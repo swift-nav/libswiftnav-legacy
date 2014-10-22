@@ -13,13 +13,45 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "single_diff.h"
 #include "sats_management.h"
 #include "linear_algebra.h"
 
+#include "set.h"
+#include "iterator.h"
+
 #define DEBUG_SATS_MAN 0
 
-// TODO MAX .snr over sdiff set
+typedef struct {
+  prn prn;
+  double snr;
+} prn_snr;
+void max_snr(const void *arg, void *max, const void *elem)
+{
+  (void) arg;
+  prn_snr *t = max;
+  const sdiff_t *sdiff = elem;
+  if (sdiff->snr > t->snr) {
+    t->snr = sdiff->snr;
+    t->prn = sdiff->prn;
+  }
+}
+u8 choose_reference_sat2(u8 num_sats, sdiff_t *sats)
+{
+  set_t set;
+  mk_sdiff_set(&set, num_sats, sats);
+  iterator_t it;
+  set_state_t s;
+  mk_set_itr(&it, &s, &set);
+
+  prn_snr best;
+  best.snr = -999;
+  best.prn = -1;
+  fold(&max_snr, NULL, &best, &it);
+
+  return best.prn;
+}
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
@@ -35,6 +67,29 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 
 // TODO intersection
 //assumes both sets are ordered
+u8 intersect_sats2(u8 num_sats, u8 num_sdiffs, u8 *sats, sdiff_t *sdiffs,
+                   sdiff_t *intersection_sats)
+{
+  set_t sats_set, sdiffs_set;
+  mk_prn_set(&sats_set, num_sats, sats);
+  mk_sdiff_set(&sdiffs_set, num_sdiffs, sdiffs);
+  iterator_t sats_itr, sdiffs_itr;
+  set_state_t sats_state, sdiffs_state;
+  mk_set_itr(&sats_itr,   &sats_state,   &sats_set);
+  mk_set_itr(&sdiffs_itr, &sdiffs_state, &sdiffs_set);
+
+  iterator_t intersection;
+  intersection_state_t is;
+  mk_intersection_itr(&intersection, &is,
+                      &sats_itr, &sdiffs_itr,
+                      &prn_key, &sdiff_key);
+
+  // TODO map snd
+  int count = freeze_itr(sizeof(sdiff_t), MIN(num_sats, num_sdiffs),
+                         intersection_sats, &intersection);
+  assert(count != -1);
+  return count;
+}
 u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
 {
