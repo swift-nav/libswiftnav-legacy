@@ -41,10 +41,13 @@ typedef struct {
   iterator_t *it2;
   key (*key1)(const void *);
   key (*key2)(const void *);
-  tuple current;
+  void (*map)(const void *, const void *, const void *, void *);
+  const void *arg;
+  void *current;
 } intersection_state_t;
 
 // TODO implement
+// TODO delete, add map function to intersection
 typedef struct {
   iterator_t *it;
   void *current;
@@ -59,10 +62,12 @@ bool more(const iterator_t *it);
 /* Generic Iterators */
 void mk_filter_itr(iterator_t *it, filter_state_t* s, bool (*f)(const void*, const void*),
                    const void *arg, iterator_t *base);
-void mk_intersection_itr(iterator_t *it, intersection_state_t* s,
+void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
                          iterator_t *it1, iterator_t *it2,
                          key (*key1)(const void *),
-                         key (*key2)(const void *));
+                         key (*key2)(const void *),
+                         void (*map)(const void *, const void *, const void *, void *),
+                         const void *arg);
 
 /* Iterator Utilities */
 // TODO length
@@ -74,5 +79,6 @@ bool is_subset(iterator_t *it1, iterator_t *it2,
 void each(iterator_t *it, void (*f)(const void *, const void *), const void *arg);
 void fold(void (*f)(const void *, void *, const void *),
           const void *arg, void *init, iterator_t *it);
-
+void fst(const void *arg, const void *first, const void *second, void *current);
+void snd(const void *arg, const void *first, const void *second, void *current);
 #endif /* LIBSWIFTNAV_ITERATOR_H */

@@ -137,16 +137,18 @@ START_TEST(test_intersect)
   mk_set_itr(&itr2, &state2, &set2);
   iterator_t intersection;
   intersection_state_t s;
-  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
-  each(&intersection, &print_prn_tuple, NULL);
+  prn curr;
+  size_t prn_size = sizeof(prn);
+  mk_intersection_itr(&intersection, &s, &curr, &itr1, &itr2, &prn_key, &prn_key, &fst, &prn_size);
+  each(&intersection, &print_prn, NULL);
   /* Test 2 */
   mk_set_itr(&itr2, &state2, &set3);
-  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
-  each(&intersection, &print_prn_tuple, NULL);
+  mk_intersection_itr(&intersection, &s, &curr, &itr1, &itr2, &prn_key, &prn_key, &snd, &prn_size);
+  each(&intersection, &print_prn, NULL);
   /* Test 3 */
   mk_set_itr(&itr2, &state2, &set4);
-  mk_intersection_itr(&intersection, &s, &itr1, &itr2, &prn_key, &prn_key);
-  each(&intersection, &print_prn_tuple, NULL);
+  mk_intersection_itr(&intersection, &s, &curr, &itr1, &itr2, &prn_key, &prn_key, &snd, &prn_size);
+  each(&intersection, &print_prn, NULL);
 
   /* Test 4 - Subset */
   mk_set_itr(&itr1, &state1, &set1);
@@ -157,6 +159,7 @@ START_TEST(test_intersect)
   fail_unless(!is_subset(&itr1, &itr2, &prn_key, &prn_key));
   mk_set_itr(&itr2, &state2, &set3);
   fail_unless(!is_subset(&itr1, &itr2, &prn_key, &prn_key));
+
 }
 END_TEST
 
@@ -195,6 +198,15 @@ START_TEST(test_sats_man)
   fail_unless(choose_reference_sat(num_sats, sdiffs1) ==
               choose_reference_sat2(num_sats, sdiffs1));
   /* Test 2: intersect_sats */
+  prn other[3] = {0, 5, 15};
+  sdiff_t inter1[num_sats], inter2[num_sats];
+  u8 num_inter1 = intersect_sats( 3, num_sats, other, sdiffs1, inter1);
+  u8 num_inter2 = intersect_sats2(3, num_sats, other, sdiffs1, inter2);
+  fail_unless(num_inter1 == num_inter2, "Intersections should be the same size");
+  for (u8 i = 0; i < num_inter1; i++) {
+    printf("%u, %u\n", inter1[i].prn, inter2[i].prn);
+  }
+  fail_unless(memcmp(inter1, inter2, num_inter1 * sizeof(sdiff_t)) == 0);
 }
 END_TEST
 

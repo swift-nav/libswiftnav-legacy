@@ -80,9 +80,13 @@ u8 intersect_sats2(u8 num_sats, u8 num_sdiffs, u8 *sats, sdiff_t *sdiffs,
 
   iterator_t intersection;
   intersection_state_t is;
-  mk_intersection_itr(&intersection, &is,
+  sdiff_t current;
+  size_t sdiff_t_size = sizeof(sdiff_t);
+  mk_intersection_itr(&intersection, &is, &current,
                       &sats_itr, &sdiffs_itr,
-                      &prn_key, &sdiff_key);
+                      &prn_key, &sdiff_key,
+                      &snd,
+                      &sdiff_t_size);
 
   // TODO map snd
   int count = freeze_itr(sizeof(sdiff_t), MIN(num_sats, num_sdiffs),

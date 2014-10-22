@@ -43,5 +43,8 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, sdiff_t *sdi
 // TODO remove
 u8 choose_reference_sat2(u8 num_sats, sdiff_t *sats);
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats);
-
+u8 intersect_sats2(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
+                   sdiff_t *intersection_sats);
+u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
+                  sdiff_t *intersection_sats);
 #endif /* LIBSWIFTNAV_SATS_MANAGEMENT_H */

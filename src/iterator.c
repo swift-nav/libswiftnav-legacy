@@ -90,9 +90,8 @@ void intersection_next0(iterator_t *it)
     key2 = s->key2(current(s->it2));
 
     if (key1 == key2) {
-      // Update current ptrs
-      s->current.fst = current(s->it1);
-      s->current.snd = current(s->it2);
+      /* Update current ptr */
+      s->map(s->arg, current(s->it1), current(s->it2), s->current);
       return;
     } else if (key1 < key2) {
       next(s->it1);
@@ -118,17 +117,22 @@ void intersection_reset(iterator_t *it)
 const void *intersection_current(iterator_t *it)
 {
   intersection_state_t *s = intersection_state(it);
-  return &s->current;
+  return s->current;
 }
-void mk_intersection_itr(iterator_t *it, intersection_state_t* s,
+void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
                          iterator_t *it1, iterator_t *it2,
                          key (*key1)(const void *),
-                         key (*key2)(const void *))
+                         key (*key2)(const void *),
+                         void (*map)(const void *, const void *, const void *, void *),
+                         const void *arg)
 {
   s->it1 = it1;
   s->it2 = it2;
   s->key1 = key1;
   s->key2 = key2;
+  s->map = map;
+  s->arg = arg;
+  s->current = current;
   
   it->state = s;
   it->end = &intersection_end;
@@ -194,3 +198,14 @@ void fold(void (*f)(const void *, void *, const void *),
   }
 }
 
+void fst(const void *arg, const void *first, const void *second, void *current)
+{
+  (void) second;
+  memcpy(current, first, *((size_t *) arg));
+}
+
+void snd(const void *arg, const void *first, const void *second, void *current)
+{
+  (void) first;
+  memcpy(current, second, *((size_t *) arg));
+}
