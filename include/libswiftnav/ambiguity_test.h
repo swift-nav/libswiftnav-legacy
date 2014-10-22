@@ -60,14 +60,18 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
                            ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
                            u8 changed_sats);
+void update_unanimous_ambiguities(ambiguity_test_t *amb_test);
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
 u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs);
 void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                           sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
+                         sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
 u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, sdiff_t *sdiffs,
+                                   double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
             u8 num_sdiffs, sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);

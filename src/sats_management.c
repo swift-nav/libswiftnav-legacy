@@ -248,6 +248,7 @@ void init_sats_management(sats_management_t *sats_management,
     }
 }
 
+/** Prints one prn per line */
 void print_sats_management(sats_management_t *sats_management)
 {
   printf("sats_management->num_sats=%u\n", sats_management->num_sats);
@@ -255,6 +256,15 @@ void print_sats_management(sats_management_t *sats_management)
     printf("sats_management->prns[%u]= %u\n", i, sats_management->prns[i]);
   }
 }
+/** Prints all prns on one line */
+void print_sats_management_short(sats_management_t *sats_man) {
+  printf("sats_management sats: ");
+  for (u8 i=0; i<sats_man->num_sats; i++) {
+    printf("%d,", sats_man->prns[i]);
+  }
+  printf("\n");
+}
+
 
 /** Updates sats to the new measurements' sat set
  */
