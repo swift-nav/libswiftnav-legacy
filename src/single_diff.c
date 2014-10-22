@@ -290,6 +290,7 @@ bool _contains_prn(u8 len, u8 *prns, u8 prn)
   }
   return false;
 }
+
 u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_to_drop)
 {
   u8 new_num_sdiffs = 0;

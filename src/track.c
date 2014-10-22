@@ -637,7 +637,7 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
     nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
 
-    nav_meas[i]->lock_counter = meas[i]->lock_counter; // TODO COUNTER DONE
+    nav_meas[i]->lock_counter = meas[i]->lock_counter;
   }
 
   double clock_err, clock_rate_err;

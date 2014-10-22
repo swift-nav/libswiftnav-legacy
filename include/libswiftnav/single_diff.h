@@ -52,5 +52,6 @@ void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff
 s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 
 u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_to_drop);
+
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
 
