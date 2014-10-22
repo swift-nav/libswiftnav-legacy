@@ -402,7 +402,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
   s8 valid_sdiffs = make_ambiguity_dd_measurements_and_sdiffs(
       amb_test, num_sdiffs, sdiffs, ambiguity_dd_measurements, ambiguity_sdiffs);
 
-  // Error
+  /* Error */
   if (valid_sdiffs != 0) {
     printf("update_ambiguity_test: Invalid sdiffs. return code: %i\n", valid_sdiffs);
     for (u8 k=0; k < num_sdiffs; k++) {
@@ -548,14 +548,16 @@ s8 filter_and_renormalize(void *arg, element_t *elem) {
   return keep_it;
 }
 
-void _check_unanimous(void *arg, element_t *elem) {
+static void _check_unanimous(void *arg, element_t *elem)
+{
   hypothesis_t *hyp = (hypothesis_t *) elem;
 
   check_unanimous_ambs(((hyp_filter_t *) arg)->num_dds, hyp,
                        ((hyp_filter_t *) arg)->unanimous_amb_check);
 }
 
-void update_unanimous_ambiguities(ambiguity_test_t *amb_test) {
+void update_unanimous_ambiguities(ambiguity_test_t *amb_test)
+{
   hyp_filter_t x;
   x.num_dds = amb_test->sats.num_sats-1;
   x.unanimous_amb_check = &amb_test->amb_check;
@@ -568,7 +570,8 @@ void update_unanimous_ambiguities(ambiguity_test_t *amb_test) {
  *  It assumes that the observations are structured to match the amb_test sats.
  *  INVALIDATES unanimous ambiguities
  */
-void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements) {
+void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
+{
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<TEST_AMBIGUITIES>\n");
   }

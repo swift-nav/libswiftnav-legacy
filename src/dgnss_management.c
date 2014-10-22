@@ -455,8 +455,8 @@ s8 dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
     double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
     s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(&ambiguity_test, num_sdiffs, sdiffs,
         dd_meas, ambiguity_sdiffs);
-    // At this point, sdiffs should be valid due to dgnss_update
-    // Return code not equal to 0 signals an error.
+    /* At this point, sdiffs should be valid due to dgnss_update
+     * Return code not equal to 0 signals an error. */
     if (valid_sdiffs == 0) {
       double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
       assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1, ambiguity_sdiffs, ref_ecef, DE);
@@ -471,11 +471,9 @@ s8 dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
         }
         printf("}\n");
       }
-      return 0;
     }
-  } else {
-    return 0;
   }
+  return 0;
 }
 
 
