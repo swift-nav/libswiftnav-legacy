@@ -40,11 +40,4 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns);
 s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 
-// TODO remove
-u8 choose_reference_sat2(u8 num_sats, sdiff_t *sats);
-u8 choose_reference_sat(u8 num_sats, sdiff_t *sats);
-u8 intersect_sats2(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
-                   sdiff_t *intersection_sats);
-u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
-                  sdiff_t *intersection_sats);
 #endif /* LIBSWIFTNAV_SATS_MANAGEMENT_H */

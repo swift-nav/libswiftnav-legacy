@@ -77,7 +77,7 @@ bool is_empty(const set_t *set) {
   return set->len == 0;
 }
 
-bool valid_ref(const set_t *set)
+bool valid_ref(const ptd_set_t *set)
 {
   const void *ref = set->ref;
 
@@ -137,6 +137,12 @@ void mk_pointed(set_t *set, int len, size_t size, const void *arr)
   set->ref = NULL;
 }
 
+void freeze_to_set(size_t max_len, set_t *set, iterator_t *it)
+{
+  s8 len = freeze_itr(set->size, max_len, set->set, it);
+  set->len = len;
+  assert(len >= 0);
+}
 void print_prn(const void *arg, const void *elem)
 {
   (void)arg;
@@ -172,32 +178,25 @@ key sdiff_key(const void *x)
 {
   return (key)((sdiff_t *) x)->prn;
 }
-prn current_prn(iterator_t* it)
-{
-  return prn_key(set_current(it));
-}
-const void *find_key(iterator_t *it, key key)
+const void *find_key(iterator_t *it, key key, key (*f)(const void*))
 {
   for(reset(it); more(it); next(it)) {
-    if (current_prn(it) == key) {
+    if (f(current(it)) == key) {
       return current(it);
     }
   }
   return NULL;
 }
-s8 set_ref_prn(set_t *set, prn prn)
+void set_ref_prn(ptd_set_t *ptd, prn prn, key (*f)(const void *))
 {
   iterator_t it;
   set_state_t s;
-  mk_set_itr(&it, &s, set);
+  mk_set_itr(&it, &s, ptd->set);
   const void *ref = find_key(&it, prn);
-  if (ref == NULL) {
-    return -1;
-  }
+  assert(ref != NULL)
   set->ref = ref;
-  // TODO add assert()
-  return 0;
 }
+s8 set_
 void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, set_t *set)
 {
   mk_filter_itr(it, s, &not_eq_ptr, set->ref, base);

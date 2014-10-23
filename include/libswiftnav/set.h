@@ -20,14 +20,16 @@
 // TODO move sdiff set definitions to single_diff?
 #include "single_diff.h"
 
-typedef u8 prn;
-
 typedef struct {
   u8 len;
   size_t size;
-  const void *ref;
   const void *set;
 } set_t;
+
+typedef struct {
+  set_t *set;
+  const void *ref;
+} ptd_set_t;
 
 typedef struct {
   const void *current;
@@ -35,6 +37,7 @@ typedef struct {
 } set_state_t;
 
 void mk_pointed(set_t *set, int len, size_t size, const void *arr);
+void freeze_to_set(size_t max_len, set_t *set, iterator_t *it);
 
 bool is_set(const set_t *set, key (*key)(const void *));
 key prn_key(const void *x);
@@ -49,7 +52,7 @@ void print_prn(const void *arg, const void *elem);
 bool eq_ref(const void *arg, const void *elem);
 bool not_eq_ref(const void *arg, const void *elem);
 
-s8 set_ref_prn(set_t *set, prn prn);
+void set_ref_prn(ptd_set_t *ptd, prn prn, key (*f)(const void *));
 void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, set_t *set);
 
 /* MACROS */

@@ -8,7 +8,7 @@
 #include <set.h>
 #include <iterator.h>
 
-#include "sats_management.h"
+#include "sats_management2.h"
 
 bool arr_eq(size_t len, prn *arr1, prn *arr2)
 {

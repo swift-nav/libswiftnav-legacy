@@ -46,10 +46,10 @@ typedef struct {
   void *current;
 } intersection_state_t;
 
-// TODO implement
-// TODO delete, add map function to intersection
 typedef struct {
   iterator_t *it;
+  void (*map)(const void *, const void *, void *);
+  const void *arg;
   void *current;
 } map_state_t;
 
@@ -68,7 +68,9 @@ void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
                          key (*key2)(const void *),
                          void (*map)(const void *, const void *, const void *, void *),
                          const void *arg);
-
+void mk_map_itr(iterator_t *it, map_state_t* s, void *current, iterator_t *it1,
+                void (*map)(const void*, const void *, void *),
+                const void *arg);
 /* Iterator Utilities */
 // TODO length
 s8 freeze_itr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it);

@@ -20,9 +20,33 @@
 
 #include "set.h"
 #include "iterator.h"
+#include "iterator_utils.h"
 
 #define DEBUG_SATS_MAN 0
 
+/* ORDER OF OPERATIONS
+ *
+ * old
+ * new
+ * new-box
+ * test (use original name)
+ *
+ */
+
+
+/* choose_reference_sat */
+u8 old_choose_reference_sat(u8 num_sats, sdiff_t *sats)
+{
+  double best_snr=sats[0].snr;
+  u8 best_prn=sats[0].prn;
+  for (u8 i=1; i<num_sats; i++) {
+    if (sats[i].snr > best_snr) {
+      best_snr = sats[i].snr;
+      best_prn = sats[i].prn;
+    }
+  }
+  return best_prn;
+}
 typedef struct {
   prn prn;
   double snr;
@@ -37,7 +61,16 @@ void max_snr(const void *arg, void *max, const void *elem)
     t->prn = sdiff->prn;
   }
 }
-u8 choose_reference_sat2(u8 num_sats, sdiff_t *sats)
+u8 fresh_choose_reference_sat(iterator_t *it)
+{
+  prn_snr best;
+  best.snr = -999;
+  best.prn = -1;
+  fold(&max_snr, NULL, &best, it);
+
+  return best.prn;
+}
+u8 box_choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
   set_t set;
   mk_sdiff_set(&set, num_sats, sats);
@@ -45,55 +78,17 @@ u8 choose_reference_sat2(u8 num_sats, sdiff_t *sats)
   set_state_t s;
   mk_set_itr(&it, &s, &set);
 
-  prn_snr best;
-  best.snr = -999;
-  best.prn = -1;
-  fold(&max_snr, NULL, &best, &it);
-
-  return best.prn;
+  return fresh_choose_reference_sat(&it);
 }
 u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 {
-  double best_snr=sats[0].snr;
-  u8 best_prn=sats[0].prn;
-  for (u8 i=1; i<num_sats; i++) {
-    if (sats[i].snr > best_snr) {
-      best_snr = sats[i].snr;
-      best_prn = sats[i].prn;
-    }
-  }
-  return best_prn;
+  u8 r1 = old_choose_reference_sat(num_sats, sats);
+  u8 r2 = box_choose_reference_sat(num_sats, sats);
+  assert(r1 == r2);
+  return r1;
 }
+/* choose_reference_sat */
 
-// TODO intersection
-//assumes both sets are ordered
-u8 intersect_sats2(u8 num_sats, u8 num_sdiffs, u8 *sats, sdiff_t *sdiffs,
-                   sdiff_t *intersection_sats)
-{
-  set_t sats_set, sdiffs_set;
-  mk_prn_set(&sats_set, num_sats, sats);
-  mk_sdiff_set(&sdiffs_set, num_sdiffs, sdiffs);
-  iterator_t sats_itr, sdiffs_itr;
-  set_state_t sats_state, sdiffs_state;
-  mk_set_itr(&sats_itr,   &sats_state,   &sats_set);
-  mk_set_itr(&sdiffs_itr, &sdiffs_state, &sdiffs_set);
-
-  iterator_t intersection;
-  intersection_state_t is;
-  sdiff_t current;
-  size_t sdiff_t_size = sizeof(sdiff_t);
-  mk_intersection_itr(&intersection, &is, &current,
-                      &sats_itr, &sdiffs_itr,
-                      &prn_key, &sdiff_key,
-                      &snd,
-                      &sdiff_t_size);
-
-  // TODO map snd
-  int count = freeze_itr(sizeof(sdiff_t), MIN(num_sats, num_sdiffs),
-                         intersection_sats, &intersection);
-  assert(count != -1);
-  return count;
-}
 u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
 {
@@ -237,9 +232,9 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
   }
 }
 
-
+/* set_reference_sat_and_prns */
 // TODO is above function needed?
-void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
+void old_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
                                 u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
@@ -259,6 +254,40 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
     }
   }
 }
+
+#define each(I) \
+  for(reset(I); more(I); next(I))
+
+/* each(some_itr) {
+ *   // foo bar
+ * }
+ * */
+
+void fresh_set_reference_sat_and_prns(u8 ref_prn, ptd_set_t *sats,
+                                      iterator_t *sdiffs, ptd_set_t *sdiffs_with_ref)
+{
+  iterator_t map_itr;
+  map_state_t map_state;
+  prn current;
+  mk_map_itr(&map_itr, &map_state, &current, sdiffs, &map_sdiff_prn, NULL);
+  freeze_to_set(MAX_SATS, sats->set, &map_itr);
+  set_ref_prn(sats, ref_prn, &prn_key);
+  freeze_to_set(MAX_SATS, sdiffs_with_ref->set, sdiffs);
+  set_ref_prn(sdiffs_with_ref, ref_prn, &sdiff_key);
+}
+
+//void boxed_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
+//                                u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+//{
+//}
+//
+void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
+                                u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  old_set_reference_sat_and_prns(ref_prn, sats_management, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+}
+
+/* set_reference_sat_and_prns */
 
 // TODO get rid of 0 check?
 // no change

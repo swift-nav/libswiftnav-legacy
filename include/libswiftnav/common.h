@@ -51,6 +51,9 @@ typedef uint64_t u64;
 
 /** \} */
 
+/** PRN as Unsigned 8-bit integer. */
+typedef u8 prn;
+
 /** \} */
 
 #endif /* LIBSWIFTNAV_COMMON_H */

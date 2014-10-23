@@ -76,11 +76,13 @@ intersection_state_t *intersection_state(iterator_t *it)
 {
   return it->state;
 }
+
 bool intersection_end(const iterator_t *it)
 {
   const intersection_state_t *s = intersection_state((iterator_t *)it);
   return end((const iterator_t *)s->it1) || end((const iterator_t *)s->it2);
 }
+
 void intersection_next0(iterator_t *it)
 {
   intersection_state_t *s = intersection_state(it);
@@ -100,6 +102,7 @@ void intersection_next0(iterator_t *it)
     }
   }
 }
+
 void intersection_next1(iterator_t *it)
 {
   intersection_state_t *s = intersection_state(it);
@@ -107,6 +110,7 @@ void intersection_next1(iterator_t *it)
   next(s->it2);
   intersection_next0(it);
 }
+
 void intersection_reset(iterator_t *it)
 {
   intersection_state_t *s = intersection_state(it);
@@ -114,11 +118,13 @@ void intersection_reset(iterator_t *it)
   reset(s->it2);
   intersection_next0(it);
 }
+
 const void *intersection_current(iterator_t *it)
 {
   intersection_state_t *s = intersection_state(it);
   return s->current;
 }
+
 void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
                          iterator_t *it1, iterator_t *it2,
                          key (*key1)(const void *),
@@ -139,6 +145,62 @@ void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
   it->next = &intersection_next1;
   it->reset = &intersection_reset;
   it->current = &intersection_current;
+
+  reset(it);
+}
+
+/* Map */
+map_state_t *map_state(iterator *it)
+{
+  return it->state;
+}
+
+bool map_end(const iterator_t *it)
+{
+  const map_state_t *s = map_state((iterator_r *)it);
+  return end((const iterator *)s->it);
+}
+
+void map_next0(iterator_t *it)
+{
+  map_state_t *s = map_state(it);
+  s->map(s->arg, current(s->it), s->current);
+}
+
+void map_next1(iterator_t *it)
+{
+  map_state_t *s = map_state(it);
+  next(s->it);
+  map_next0(it);
+}
+
+void map_reset(iterator_t *it)
+{
+  map_state_t *s = map_state(it);
+  reset(s->it);
+  map_next0(it);
+}
+
+const void *map_current(iterator_t *it)
+{
+  map_state_t *s = map_state(it);
+  return s->current;
+}
+
+void mk_map_itr(iterator_t *it, map_state_t* s, void *current, iterator_t *it2,
+                void (*map)(const void*, const void *, void *),
+                const void *arg)
+{
+  s->it       = it1;
+  s->map      = map;
+  s->arg      = arg;
+  s->current  = current;
+
+  it->state   = s;
+  it->end     = &map_end;
+  it->next    = &map_next1;
+  it->reset   = &map_reset;
+  it->current = &map_current;
 
   reset(it);
 }
