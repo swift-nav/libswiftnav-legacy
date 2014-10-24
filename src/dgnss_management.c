@@ -914,7 +914,8 @@ u8 get_de_and_phase(sats_management_t *sats_man,
   u8 ref_prn = sats_man->prns[0];
   u8 num_sats = sats_man->num_sats;
   double e0[3];
-  double phi0;
+  double phi0 = 0;
+  /* TODO: Detect if ref_prn is not in prns and return error? */
   u8 i;
   for (i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn == ref_prn) {

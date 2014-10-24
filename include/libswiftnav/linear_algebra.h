@@ -15,21 +15,21 @@
 
 #include "common.h"
 
- #define VEC_PRINTF(v, _n) {                                     \
-    printf("%s:%u <|%s| %lf",                                   \
-           __FILE__, __LINE__, #v, (v)[0]);                       \
-    for (u32 _i = 1; _i < (_n); _i++) printf(", %lf", (v)[_i]);     \
-    printf(">\n");                                              \
+ #define VEC_PRINTF(v, _n) {                                         \
+    printf("%s:%u <|%s| %lf",                                        \
+           __FILE__, __LINE__, #v, (v)[0]);                          \
+    for (u32 _i = 1; _i < (u32)(_n); _i++) printf(", %lf", (v)[_i]); \
+    printf(">\n");                                                   \
   }
 
 #define MAT_PRINTF(m, _r, _c) {                    \
-    printf("%s:%u <|%s|\n",                          \
+    printf("%s:%u <|%s|\n",                        \
            __FILE__, __LINE__, #m);                \
-    for (u32 _i = 0; _i < (_r); _i++) {              \
-      printf(" [% 12lf", (m)[_i*(_c) + 0]);                \
-      for (u32 _j = 1; _j < (_c); _j++)              \
-        printf(" % 12lf", (m)[_i*(_c) + _j]);               \
-      printf("]\n");                                 \
+    for (u32 _i = 0; _i < (u32)(_r); _i++) {       \
+      printf(" [% 12lf", (m)[_i*(u32)(_c) + 0]);   \
+      for (u32 _j = 1; _j < (u32)(_c); _j++)       \
+        printf(" % 12lf", (m)[_i*(u32)(_c) + _j]); \
+      printf("]\n");                               \
     }                                              \
     printf(">\n");                                 \
   }
