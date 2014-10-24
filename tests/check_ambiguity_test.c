@@ -93,6 +93,7 @@ START_TEST(test_ambiguity_update_reference)
   memory_pool_map(amb_test.pool, &num_dds, &print_hyp);
 
   sdiff_t sdiffs_with_ref_first[4];
+  memset(sdiffs_with_ref_first, 0, sizeof(sdiff_t));
   ambiguity_update_reference(&amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first);
 
   printf("After rebase:\n");

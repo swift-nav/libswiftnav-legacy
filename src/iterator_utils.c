@@ -14,7 +14,7 @@
 #include "iterator_utils.h"
 
 
-void map_sdiff_prn(const void *arg, const void *it_current, const void *state_current)
+void map_sdiff_prn(const void *arg, const void *it_current, void *state_current)
 {
   (void) arg;
   sdiff_t *sdiff = (sdiff_t *) it_current;

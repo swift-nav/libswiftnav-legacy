@@ -17,17 +17,19 @@
 #include <common.h>
 #include <iterator.h>
 
-// TODO move sdiff set definitions to single_diff?
 #include "single_diff.h"
 
+typedef key key_fn_t(const void*);
+
 typedef struct {
-  u8 len;
+  u16 len;
   size_t size;
-  const void *set;
+  void *arr;
+  key_fn_t *keyfn;
 } set_t;
 
 typedef struct {
-  set_t *set;
+  set_t set;
   const void *ref;
 } ptd_set_t;
 
@@ -36,14 +38,17 @@ typedef struct {
   const set_t *set;
 } set_state_t;
 
-void mk_pointed(set_t *set, int len, size_t size, const void *arr);
-void freeze_to_set(size_t max_len, set_t *set, iterator_t *it);
+void mk_set(set_t *set, u16 len, size_t size, void *arr, key_fn_t *keyfn);
+void mk_ptd_set(ptd_set_t *ptd, u16 len, size_t size, void *arr, key ref, key_fn_t *keyfn);
+void freeze_set(set_t *set, iterator_t *it, u16 max_len, size_t size, key_fn_t *keyfn);
+void freeze_ptd(ptd_set_t *ptd, iterator_t *it, u16 max_len, size_t size, key ref, key_fn_t *keyfn);
 
-bool is_set(const set_t *set, key (*key)(const void *));
+bool is_set(const set_t *set);
+bool is_ptd_set(const ptd_set_t *ptd);
 key prn_key(const void *x);
 key sdiff_key(const void *x);
 void print_prn_tuple(const void *arg, const void *elem);
-void mk_sdiff_set(set_t *set, int len, sdiff_t *sats);
+void mk_sdiff_set(set_t *set, int len, sdiff_t *arr);
 void mk_prn_set(set_t *set, int len, prn *arr);
 void mk_set_itr(iterator_t *it, set_state_t *s, set_t *set);
 
@@ -52,8 +57,13 @@ void print_prn(const void *arg, const void *elem);
 bool eq_ref(const void *arg, const void *elem);
 bool not_eq_ref(const void *arg, const void *elem);
 
-void set_ref_prn(ptd_set_t *ptd, prn prn, key (*f)(const void *));
-void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, set_t *set);
+void set_ref(ptd_set_t *ptd, key key);
+key get_ref(ptd_set_t *ptd);
+void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, ptd_set_t *ptd);
+
+/* Testing */
+void ref_fst_to_ptd(ptd_set_t *ptd, u16 len, size_t size, void *arr);
+void ptd_to_ref_fst(ptd_set_t *ptd, void *arr);
 
 /* MACROS */
 #define MK_PRN_ITR(name, len) \

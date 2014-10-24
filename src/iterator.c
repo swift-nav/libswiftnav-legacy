@@ -11,7 +11,7 @@ void reset(     iterator_t *it       ) { it->reset(it         ) ; }
 const void *current(  iterator_t *it ) { return it->current(it) ; } 
 bool more(const iterator_t *it       ) { return !end(it       ) ; } 
 
-s8 freeze_itr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it)
+s8 freeze_arr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it)
 {
   size_t i = 0;
   for (reset(it); more(it); next(it), i++) {
@@ -150,15 +150,15 @@ void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
 }
 
 /* Map */
-map_state_t *map_state(iterator *it)
+map_state_t *map_state(iterator_t *it)
 {
   return it->state;
 }
 
 bool map_end(const iterator_t *it)
 {
-  const map_state_t *s = map_state((iterator_r *)it);
-  return end((const iterator *)s->it);
+  const map_state_t *s = map_state((iterator_t *)it);
+  return end((const iterator_t *)s->it);
 }
 
 void map_next0(iterator_t *it)
@@ -187,7 +187,7 @@ const void *map_current(iterator_t *it)
   return s->current;
 }
 
-void mk_map_itr(iterator_t *it, map_state_t* s, void *current, iterator_t *it2,
+void mk_map_itr(iterator_t *it, map_state_t* s, void *current, iterator_t *it1,
                 void (*map)(const void*, const void *, void *),
                 const void *arg)
 {

@@ -35,7 +35,7 @@
 
 
 /* choose_reference_sat */
-u8 old_choose_reference_sat(u8 num_sats, sdiff_t *sats)
+u8 old_choose_reference_sat(u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
@@ -61,7 +61,7 @@ void max_snr(const void *arg, void *max, const void *elem)
     t->prn = sdiff->prn;
   }
 }
-u8 fresh_choose_reference_sat(iterator_t *it)
+u8 new_choose_reference_sat(iterator_t *it)
 {
   prn_snr best;
   best.snr = -999;
@@ -70,24 +70,24 @@ u8 fresh_choose_reference_sat(iterator_t *it)
 
   return best.prn;
 }
-u8 box_choose_reference_sat(u8 num_sats, sdiff_t *sats)
+u8 box_choose_reference_sat(u8 num_sats, const sdiff_t *sats)
 {
   set_t set;
-  mk_sdiff_set(&set, num_sats, sats);
+  mk_sdiff_set(&set, num_sats, (sdiff_t *)sats);
   iterator_t it;
   set_state_t s;
   mk_set_itr(&it, &s, &set);
 
-  return fresh_choose_reference_sat(&it);
+  return new_choose_reference_sat(&it);
 }
-u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
+u8 choose_reference_sat(u8 num_sats, const sdiff_t *sats)
 {
   u8 r1 = old_choose_reference_sat(num_sats, sats);
   u8 r2 = box_choose_reference_sat(num_sats, sats);
   assert(r1 == r2);
   return r1;
 }
-/* choose_reference_sat */
+/* choose_reference_sat DONE */
 
 u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
@@ -235,7 +235,7 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
 /* set_reference_sat_and_prns */
 // TODO is above function needed?
 void old_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
-                                u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+                                    u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
   sats_management->prns[0] = ref_prn;
@@ -263,28 +263,70 @@ void old_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_manageme
  * }
  * */
 
-void fresh_set_reference_sat_and_prns(u8 ref_prn, ptd_set_t *sats,
-                                      iterator_t *sdiffs, ptd_set_t *sdiffs_with_ref)
+void new_set_reference_sat_and_prns(u8 ref_prn, iterator_t *sdiffs,
+                                    ptd_set_t *sats_ptd, ptd_set_t *sdiffs_ptd)
 {
   iterator_t map_itr;
   map_state_t map_state;
   prn current;
   mk_map_itr(&map_itr, &map_state, &current, sdiffs, &map_sdiff_prn, NULL);
-  freeze_to_set(MAX_SATS, sats->set, &map_itr);
-  set_ref_prn(sats, ref_prn, &prn_key);
-  freeze_to_set(MAX_SATS, sdiffs_with_ref->set, sdiffs);
-  set_ref_prn(sdiffs_with_ref, ref_prn, &sdiff_key);
+  // TODO store max size of buffer in set_t
+  freeze_ptd(sats_ptd, &map_itr, MAX_CHANNELS, sizeof(prn), (key)ref_prn, &prn_key);
+  freeze_ptd(sdiffs_ptd, sdiffs, MAX_CHANNELS, sizeof(sdiff_t), (key)ref_prn, &sdiff_key);
 }
 
-//void boxed_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
-//                                u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
-//{
-//}
-//
+void box_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
+                                    u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  set_t sdiffs_set;
+  set_state_t sdiffs_state;
+  iterator_t sdiffs_itr;
+  mk_set(&sdiffs_set, num_sdiffs, sizeof(sdiff_t), sdiffs, &sdiff_key);
+  mk_set_itr(&sdiffs_itr, &sdiffs_state, &sdiffs_set);
+
+  u16 num_sats = sats_management->num_sats;
+  prn prn_buff[num_sats];
+  ptd_set_t sats_ptd;
+  sats_ptd.set.arr = prn_buff;
+
+  ptd_set_t sdiffs_ptd;
+  sdiff_t sdiff_buff[num_sdiffs];
+  sdiffs_ptd.set.arr = sdiff_buff;
+
+  new_set_reference_sat_and_prns(ref_prn, &sdiffs_itr, &sats_ptd, &sdiffs_ptd);
+
+  sats_management->num_sats = sats_ptd.set.len;
+  ptd_to_ref_fst(&sats_ptd, sats_management->prns);
+  ptd_to_ref_fst(&sdiffs_ptd, sdiffs_with_ref_first);
+
+  //memcpy(prn_buff, sats_management->prns, num_sats * sizeof(prn));
+  //ref_fst_to_ptd(&sats_ptd, num_sats, sizeof(prn),
+  //               prn_buff, prn_buff[0]);
+  //ptd.set.len = 
+
+  //new_set_reference_sat_and_prns(ref_prn, &sats, &sdiffs_itr, &sdiffs_ptd);
+
+  //ptd_to_ref_fst(&sdiffs_ptd, num_sdiffs, sizeof(sdiff_t), 
+  //    sdiffs_with_ref_first, &sdiffs_ptd);
+}
+
 void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
                                 u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
-  old_set_reference_sat_and_prns(ref_prn, sats_management, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+  sats_management_t man1, man2;
+  sdiff_t ref_first1[MAX_CHANNELS];
+  sdiff_t ref_first2[MAX_CHANNELS];
+  old_set_reference_sat_and_prns(ref_prn, &man1, num_sdiffs, sdiffs, ref_first1);
+  box_set_reference_sat_and_prns(ref_prn, &man2, num_sdiffs, sdiffs, ref_first2);
+  assert(man1.num_sats == man2.num_sats);
+  assert(man1.num_sats == num_sdiffs);
+  assert(0 == memcmp(man1.prns, man2.prns, man1.num_sats * sizeof(prn)));
+  assert(0 == memcmp(ref_first1, ref_first2, num_sdiffs * sizeof(sdiff_t)));
+
+  memcpy(sats_management, &man1, sizeof(sats_management_t));
+  // TODO get rid of NULL call to this function
+  (void)sdiffs_with_ref_first;
+  //memcpy(sdiffs_with_ref_first, ref_first1, num_sdiffs * sizeof(sdiff_t));
 }
 
 /* set_reference_sat_and_prns */

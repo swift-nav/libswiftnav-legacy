@@ -8,8 +8,6 @@
 #include <set.h>
 #include <iterator.h>
 
-#include "sats_management2.h"
-
 bool arr_eq(size_t len, prn *arr1, prn *arr2)
 {
   for (size_t i = 0; i < len; i++) {
@@ -25,17 +23,17 @@ START_TEST(test_set)
   prn prns1[] = {};
   set_t set1;
   mk_prn_set(&set1, 0, prns1);
-  fail_unless(is_set(&set1, &prn_key), "Empty set should be a valid set");
+  fail_unless(is_set(&set1), "Empty set should be a valid set");
 
   prn prns2[] = {0,1,3};
   set_t set2;
   mk_prn_set(&set2, 3, prns2);
-  fail_unless(is_set(&set2, &prn_key), "0,1,3 should be a valid set");
+  fail_unless(is_set(&set2), "0,1,3 should be a valid set");
 
   prn prns3[] = {1,0};
   set_t set3;
   mk_prn_set(&set3, 2, prns3);
-  fail_unless(!is_set(&set3, &prn_key), "is_set(Disordered set) should return false.");
+  fail_unless(!is_set(&set3), "is_set(Disordered set) should return false.");
 
 }
 END_TEST
@@ -50,10 +48,10 @@ START_TEST(test_freeze)
   iterator_t it2;
   set_state_t s2;
   mk_set_itr(&it2, &s2, &set2);
-  freeze_itr(sizeof(prn), 22, frozen2, &it2);
+  freeze_arr(sizeof(prn), 22, frozen2, &it2);
   fail_unless(arr_eq(3, frozen2, prns2), "Frozen array does not match input to iterator.");
 
-  fail_unless(freeze_itr(sizeof(prn), 2, frozen2, &it2) == -1, "Iterator exceeds max length?");
+  fail_unless(freeze_arr(sizeof(prn), 2, frozen2, &it2) == -1, "Iterator exceeds max length?");
 }
 END_TEST
 START_TEST(test_filter)
@@ -94,23 +92,25 @@ END_TEST
 START_TEST(test_set_ref)
 {
   prn prns[] = {0,1,2};
-  set_t set;
-  mk_prn_set(&set, 3, prns);
+  ptd_set_t ptd;
+  mk_ptd_set(&ptd, 3, sizeof(prn), prns, 22, &prn_key);
   /* Test 1 */
-  fail_unless(-1 == set_ref_prn(&set, 3), "Ref must be contained in set.");
+  fail_unless(NULL == ptd.ref, "Ref must be contained in set.");
 
   /* Test 2 */
   prn ref = 1;
-  fail_unless(0 == set_ref_prn(&set, ref));
-  prn new_ref = *(prn *)set.ref;
+  set_ref(&ptd, ref);
+  /* do pointer comparison */
+  fail_unless(&prns[1] == ptd.ref);
+  prn new_ref = *(prn *)ptd.ref;
   fail_unless(new_ref == ref, "Don't match: %i %i", new_ref, ref);
   /* Test 3 */
   iterator_t filter_itr;
   filter_state_t f_state;
   iterator_t set_itr;
   set_state_t s_state;
-  mk_set_itr(&set_itr, &s_state, &set);
-  mk_without_ref_itr(&filter_itr, &f_state, &set_itr, &set);
+  mk_set_itr(&set_itr, &s_state, &ptd.set);
+  mk_without_ref_itr(&filter_itr, &f_state, &set_itr, &ptd);
   each(&filter_itr, &print_prn, NULL); // 0, 2
 }
 END_TEST
@@ -163,6 +163,10 @@ START_TEST(test_intersect)
 }
 END_TEST
 
+key int_key(const void *num)
+{
+  return *(int *)num;
+}
 void fold_sum_int(const void *arg, void *sum, const void *elem)
 {
   (void) arg;
@@ -174,7 +178,7 @@ START_TEST(test_fold)
   set_t nums_set;
   iterator_t nums_itr;
   set_state_t nums_state;
-  mk_pointed(&nums_set, 3, sizeof(int), nums);
+  mk_set(&nums_set, 3, sizeof(int), nums, &int_key);
   mk_set_itr(&nums_itr, &nums_state, &nums_set);
   each(&nums_itr, &print_prn, NULL);
   int sum = 0;
@@ -195,18 +199,18 @@ START_TEST(test_sats_man)
     sdiffs2[prn].prn = prn;
     sdiffs2[prn].snr = frand(0,1);
   }
-  fail_unless(choose_reference_sat(num_sats, sdiffs1) ==
-              choose_reference_sat2(num_sats, sdiffs1));
+  //fail_unless(box_choose_reference_sat(num_sats, sdiffs1) ==
+  //            old_choose_reference_sat(num_sats, sdiffs1));
   /* Test 2: intersect_sats */
-  prn other[3] = {0, 5, 15};
-  sdiff_t inter1[num_sats], inter2[num_sats];
-  u8 num_inter1 = intersect_sats( 3, num_sats, other, sdiffs1, inter1);
-  u8 num_inter2 = intersect_sats2(3, num_sats, other, sdiffs1, inter2);
-  fail_unless(num_inter1 == num_inter2, "Intersections should be the same size");
-  for (u8 i = 0; i < num_inter1; i++) {
-    printf("%u, %u\n", inter1[i].prn, inter2[i].prn);
-  }
-  fail_unless(memcmp(inter1, inter2, num_inter1 * sizeof(sdiff_t)) == 0);
+  //prn other[3] = {0, 5, 15};
+  //sdiff_t inter1[num_sats], inter2[num_sats];
+  //u8 num_inter1 = intersect_sats( 3, num_sats, other, sdiffs1, inter1);
+  //u8 num_inter2 = intersect_sats2(3, num_sats, other, sdiffs1, inter2);
+  //fail_unless(num_inter1 == num_inter2, "Intersections should be the same size");
+  //for (u8 i = 0; i < num_inter1; i++) {
+  //  printf("%u, %u\n", inter1[i].prn, inter2[i].prn);
+  //}
+  //fail_unless(memcmp(inter1, inter2, num_inter1 * sizeof(sdiff_t)) == 0);
 }
 END_TEST
 

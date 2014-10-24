@@ -73,7 +73,7 @@ void mk_map_itr(iterator_t *it, map_state_t* s, void *current, iterator_t *it1,
                 const void *arg);
 /* Iterator Utilities */
 // TODO length
-s8 freeze_itr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it);
+s8 freeze_arr(size_t elem_size, size_t max_len, void *buffer, iterator_t *it);
 bool ptr_itr_equality(iterator_t *it1, iterator_t *it2);
 bool is_subset(iterator_t *it1, iterator_t *it2,
                key (*key1)(const void *),
