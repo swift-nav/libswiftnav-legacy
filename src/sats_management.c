@@ -324,9 +324,7 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
   assert(0 == memcmp(ref_first1, ref_first2, num_sdiffs * sizeof(sdiff_t)));
 
   memcpy(sats_management, &man1, sizeof(sats_management_t));
-  // TODO get rid of NULL call to this function
-  (void)sdiffs_with_ref_first;
-  //memcpy(sdiffs_with_ref_first, ref_first1, num_sdiffs * sizeof(sdiff_t));
+  memcpy(sdiffs_with_ref_first, ref_first1, num_sdiffs * sizeof(sdiff_t));
 }
 
 /* set_reference_sat_and_prns */
@@ -378,8 +376,10 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
 
   if (sats_management->num_sats <= 1) {
-    // Need to init first.
-    init_sats_management(sats_management, num_sdiffs, sdiffs, 0);
+    /* Need to init first. */
+    // TODO test this change
+    /* sdiffs_with_ref_first is overwritten later in this function. */
+    init_sats_management(sats_management, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   }
   
 
