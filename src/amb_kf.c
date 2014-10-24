@@ -127,10 +127,10 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
       k[i] += g[j] * U[i*state_dim + j]; // k = k + g[j] * U[:,j]
     }
     if (DEBUG_AMB_KF) {
-      printf("gamma[%u] = %f\n", j, gamma[j]);
-      printf("D_bar[%u] = %f\n", j, D_bar[j]);
+      printf("gamma[%"PRIu32"] = %f\n", j, gamma[j]);
+      printf("D_bar[%"PRIu32"] = %f\n", j, D_bar[j]);
       VEC_PRINTF(k, state_dim);
-      printf("U_bar[:,%u] = {", j);
+      printf("U_bar[:,%"PRIu32"] = {", j);
       for (u32 i=0; i < state_dim; i++) {
         printf("%f, ", U_bar[i*state_dim + j]);
       }

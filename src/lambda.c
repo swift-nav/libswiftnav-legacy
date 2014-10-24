@@ -256,10 +256,10 @@ int lambda_reduction(int n, const double *Q, double *Z)
 *          double *C        IO matrix C (n x k)
 * return : none
 *-----------------------------------------------------------------------------*/
-void matmul(const char *tr, int n, int k, int m, double alpha,
+void matmul(const char *tr, integer n, integer k, integer m, double alpha,
                    const double *A, const double *B, double beta, double *C)
 {
-    int lda=tr[0]=='T'?m:n,ldb=tr[1]=='T'?k:m;
+    integer lda=tr[0]=='T'?m:n,ldb=tr[1]=='T'?k:m;
 
     dgemm_((char *)tr,(char *)tr+1,&n,&k,&m,&alpha,(double *)A,&lda,(double *)B,
            &ldb,&beta,C,&n);
@@ -276,12 +276,12 @@ void matmul(const char *tr, int n, int k, int m, double alpha,
 * notes  : matirix stored by column-major order (fortran convention)
 *          X can be same as Y
 *-----------------------------------------------------------------------------*/
-int solve(const char *tr, const double *A, const double *Y, int n,
-                 int m, double *X)
+int solve(const char *tr, const double *A, const double *Y, integer n,
+                 integer m, double *X)
 {
     double B[n*n];
-    int info;
-    int ipiv[n];
+    integer info;
+    integer ipiv[n];
 
     memcpy(B, A, sizeof(double)*n*n);
     memcpy(X, Y, sizeof(double)*n*m);

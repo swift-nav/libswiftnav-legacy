@@ -11,6 +11,7 @@
  */
 
 #include <clapack.h>
+#include <inttypes.h>
 #include <cblas.h>
 #include <stdio.h>
 #include <string.h>
@@ -677,8 +678,8 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     return -2;
   }
 
-  double ref_phase;
-  double ref_pseudorange;
+  double ref_phase = 0;
+  double ref_pseudorange = 0;
   u8 i=0;
   u8 j=0;
   u8 found_ref = 0;
@@ -789,7 +790,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
   for (u8 i=0; i < num_dds; i++) {
     non_ref_prns[i] = amb_test->sats.prns[1 + amb_test->amb_check.matching_ndxs[i]];
     if (DEBUG_AMBIGUITY_TEST) {
-      printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %d\n",
+      printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %"PRId32"\n",
              i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i],
              i, amb_test->amb_check.ambs[i]);
     }
@@ -1020,13 +1021,13 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
   memcpy(intersection.intersection_ndxs, dd_intersection_ndxs, num_dds_in_intersection * sizeof(u8));
 
 
-  printf("IAR: %d hypotheses before projection\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: %"PRIu32" hypotheses before projection\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);*/
   memory_pool_group_by(amb_test->pool,
                        &intersection, &projection_comparator,
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
-  printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
   /*memory_pool_map(amb_test->pool, &num_dds_in_intersection, &print_hyp);*/
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
@@ -1583,7 +1584,7 @@ void add_sats(ambiguity_test_t *amb_test,
     empty_element->ll = 0; // only in init
   }
 
-  printf("IAR: %d hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: %"PRIu32" hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
   if (DEBUG_AMBIGUITY_TEST) {
     memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
   }
@@ -1591,7 +1592,7 @@ void add_sats(ambiguity_test_t *amb_test,
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &generate_next_hypothesis, &hypothesis_prod);
-  printf("IAR: updates to %d\n", memory_pool_n_allocated(amb_test->pool));
+  printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
   if (DEBUG_AMBIGUITY_TEST) {
     memory_pool_map(amb_test->pool, &k, &print_hyp);
   }
