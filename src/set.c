@@ -88,11 +88,13 @@ bool valid_ref(const ptd_set_t *ptd)
   const void *ref = ptd->ref;
 
   if (is_empty(set)) {
-    return ref == NULL;
+    return false;
+  }
+  if (ref == NULL) {
+    return false;
   }
   // Nonempty set must either have no reference, or must contain reference
-  if (ref != NULL && (ref < set->arr ||
-                      ref > set_ending(set))) {
+  if (ref < set->arr || ref > set_ending(set)) {
     return false;
   }
   return true;
@@ -119,21 +121,20 @@ bool is_set(const set_t *set)
   }
   return true;
 }
-/* Tests for valid pointed set structure */
+/* Tests for valid pointed set structure
+ * Must be nonempty. */
 bool is_ptd_set(const ptd_set_t *ptd)
 {
-  const void *ref = ptd->ref;
-  const set_t *set = &ptd->set;
-
-  // Empty set is valid as long as ref is null
-  if (is_empty(set)) {
-    return ref == NULL;
-  }
-
   if (!valid_ref(ptd)) {
     return false;
   }
   return is_set(&ptd->set);
+}
+/* May be empty. */
+bool is_ptd_set_or_empty(const ptd_set_t *ptd)
+{
+  return (is_empty(&ptd->set) && ptd->ref == NULL)
+         || is_ptd_set(ptd);
 }
 
 void mk_set(set_t *set, u16 len, size_t size, void *arr, key_fn_t *keyfn)
@@ -148,6 +149,11 @@ void mk_ptd_set(ptd_set_t *ptd, u16 len, size_t size, void *arr, key ref, key_fn
 {
   mk_set(&ptd->set, len, size, arr, keyfn);
   set_ref(ptd, ref);
+}
+void mk_empty(ptd_set_t *ptd)
+{
+  ptd->ref = NULL;
+  ptd->set.len = 0;
 }
 void mk_sdiff_set(set_t *set, int len, sdiff_t *arr)
 {

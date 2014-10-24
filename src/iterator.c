@@ -247,7 +247,7 @@ bool is_subset(iterator_t *it1, iterator_t *it2,
 
 void each(iterator_t *it, void (*f)(const void *, const void *), const void *arg)
 {
-  for(reset(it); more(it); next(it)) {
+  foreach(it) {
     f(arg, current(it));
   }
 }
@@ -255,9 +255,17 @@ void each(iterator_t *it, void (*f)(const void *, const void *), const void *arg
 void fold(void (*f)(const void *, void *, const void *),
           const void *arg, void *init, iterator_t *it)
 {
-  for(reset(it); more(it); next(it)) {
+  foreach(it) {
     f(arg, init, current(it));
   }
+}
+u16 length(iterator_t *it)
+{
+  u16 len = 0;
+  foreach(it) {
+    len++;
+  }
+  return len;
 }
 
 void fst(const void *arg, const void *first, const void *second, void *current)

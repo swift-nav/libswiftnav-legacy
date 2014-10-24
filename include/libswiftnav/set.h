@@ -40,6 +40,7 @@ typedef struct {
 
 void mk_set(set_t *set, u16 len, size_t size, void *arr, key_fn_t *keyfn);
 void mk_ptd_set(ptd_set_t *ptd, u16 len, size_t size, void *arr, key ref, key_fn_t *keyfn);
+void mk_empty(ptd_set_t *ptd);
 void freeze_set(set_t *set, iterator_t *it, u16 max_len, size_t size, key_fn_t *keyfn);
 void freeze_ptd(ptd_set_t *ptd, iterator_t *it, u16 max_len, size_t size, key ref, key_fn_t *keyfn);
 

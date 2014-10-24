@@ -61,12 +61,12 @@ void max_snr(const void *arg, void *max, const void *elem)
     t->prn = sdiff->prn;
   }
 }
-u8 new_choose_reference_sat(iterator_t *it)
+u8 new_choose_reference_sat(iterator_t *sdiffs)
 {
   prn_snr best;
   best.snr = -999;
   best.prn = -1;
-  fold(&max_snr, NULL, &best, it);
+  fold(&max_snr, NULL, &best, sdiffs);
 
   return best.prn;
 }
@@ -87,7 +87,7 @@ u8 choose_reference_sat(u8 num_sats, const sdiff_t *sats)
   assert(r1 == r2);
   return r1;
 }
-/* choose_reference_sat DONE */
+/* END choose_reference_sat */
 
 u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
@@ -255,9 +255,6 @@ void old_set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_manageme
   }
 }
 
-#define each(I) \
-  for(reset(I); more(I); next(I))
-
 /* each(some_itr) {
  *   // foo bar
  * }
@@ -326,13 +323,12 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
   memcpy(sats_management, &man1, sizeof(sats_management_t));
   memcpy(sdiffs_with_ref_first, ref_first1, num_sdiffs * sizeof(sdiff_t));
 }
+/* END set_reference_sat_and_prns */
 
-/* set_reference_sat_and_prns */
-
+/* init_sats_management */
 // TODO get rid of 0 check?
-// no change
-void init_sats_management(sats_management_t *sats_management,
-                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+void old_init_sats_management(sats_management_t *sats_management,
+                              u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_SATS_MAN) {
     printf("<INIT_SATS_MANAGEMENT>\n");
@@ -352,6 +348,62 @@ void init_sats_management(sats_management_t *sats_management,
       printf("</INIT_SATS_MANAGEMENT>\n");
     }
 }
+void new_init_sats_management(iterator_t *sdiffs, ptd_set_t *sats_ptd, 
+                              ptd_set_t *sdiffs_ptd)
+{
+  if(length(sdiffs) == 0) {
+    mk_empty(sats_ptd);
+    mk_empty(sdiffs_ptd);
+  } else {
+    u8 ref_prn = new_choose_reference_sat(sdiffs);
+    new_set_reference_sat_and_prns(ref_prn, sdiffs, sats_ptd, sdiffs_ptd);
+  }
+}
+void box_init_sats_management(sats_management_t *sats_management,
+                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  set_t sdiffs_set;
+  set_state_t sdiffs_state;
+  iterator_t sdiffs_itr;
+  mk_set(&sdiffs_set, num_sdiffs, sizeof(sdiff_t), sdiffs, &sdiff_key);
+  mk_set_itr(&sdiffs_itr, &sdiffs_state, &sdiffs_set);
+
+  u16 num_sats = sats_management->num_sats;
+  prn prn_buff[num_sats];
+  ptd_set_t sats_ptd;
+  sats_ptd.set.arr = prn_buff;
+
+  ptd_set_t sdiffs_ptd;
+  sdiff_t sdiff_buff[num_sdiffs];
+  sdiffs_ptd.set.arr = sdiff_buff;
+
+  new_init_sats_management(&sdiffs_itr, &sats_ptd, &sdiffs_ptd);
+
+  sats_management->num_sats = sats_ptd.set.len;
+  ptd_to_ref_fst(&sats_ptd, sats_management->prns);
+  ptd_to_ref_fst(&sdiffs_ptd, sdiffs_with_ref_first);
+
+}
+void init_sats_management(sats_management_t *sats_management,
+                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
+  old_init_sats_management(sats_management, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+  box_init_sats_management(sats_management, num_sdiffs, sdiffs, sdiffs_with_ref_first);
+
+  sats_management_t man1, man2;
+  sdiff_t ref_first1[MAX_CHANNELS];
+  sdiff_t ref_first2[MAX_CHANNELS];
+  old_init_sats_management(&man1, num_sdiffs, sdiffs, ref_first1);
+  box_init_sats_management(&man2, num_sdiffs, sdiffs, ref_first2);
+  assert(man1.num_sats == man2.num_sats);
+  assert(man1.num_sats == num_sdiffs);
+  assert(0 == memcmp(man1.prns, man2.prns, man1.num_sats * sizeof(prn)));
+  assert(0 == memcmp(ref_first1, ref_first2, num_sdiffs * sizeof(sdiff_t)));
+
+  memcpy(sats_management, &man1, sizeof(sats_management_t));
+  memcpy(sdiffs_with_ref_first, ref_first1, num_sdiffs * sizeof(sdiff_t));
+}
+/* END init_sats_management */
 
 // TODO iterator printing
 // TODO prn print macro?

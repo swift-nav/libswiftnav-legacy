@@ -43,7 +43,16 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   amb_test->sats.num_sats = 0;
   amb_test->amb_check.initialized = 0;
 }
-
+//void new_create_ambiguity_test(new_ambiguity_test_t *amb_test)
+//{
+//  static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
+//  static memory_pool_t pool;
+//  amb_test->pool = &pool;
+//  memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
+//  static prn amb_test_sats_arr[MAX_SATS];
+//  mk_empty(&amb_test->sats, arr, len=0, size=sizeof(prn),...);
+//  amb_test->amb_check.initialized = 0;
+//}
 /** A memory pool filter for clearing out all elements of a pool.
  */
 s8 filter_all(void *arg, element_t *elem)

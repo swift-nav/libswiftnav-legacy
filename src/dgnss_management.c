@@ -112,6 +112,7 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   }
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
+  /* ***HERE*** */
 
   create_ambiguity_test(&ambiguity_test);
 

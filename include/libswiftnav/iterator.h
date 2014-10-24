@@ -81,6 +81,13 @@ bool is_subset(iterator_t *it1, iterator_t *it2,
 void each(iterator_t *it, void (*f)(const void *, const void *), const void *arg);
 void fold(void (*f)(const void *, void *, const void *),
           const void *arg, void *init, iterator_t *it);
+u16 length(iterator_t *it);
 void fst(const void *arg, const void *first, const void *second, void *current);
 void snd(const void *arg, const void *first, const void *second, void *current);
+
+/* MACROS */
+
+#define foreach(I) \
+  for(reset(I); more(I); next(I))
+
 #endif /* LIBSWIFTNAV_ITERATOR_H */
