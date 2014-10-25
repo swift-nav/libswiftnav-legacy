@@ -213,6 +213,30 @@ START_TEST(test_sats_man)
   //fail_unless(memcmp(inter1, inter2, num_inter1 * sizeof(sdiff_t)) == 0);
 }
 END_TEST
+void (*each_body)(const void *arg, const void *elem);
+#define each_block(itr) \
+  iterator_t itr##_it; \
+  set_state_t itr##_state;\
+  
+void do_each()
+{
+  prn ps[] = {22, 44};
+  iterator_t it;
+  set_state_t ss;
+  set_t set;
+  mk_set(&set, 2, sizeof(prn), ps, &prn_key);
+  mk_set_itr(&it, &ss, &set);
+
+  each_body = &print_prn;
+
+  each(&it, each_body, NULL);
+}
+START_TEST(test_macros)
+{
+  do_each();
+  free(NULL);
+}
+END_TEST
 
 Suite* set_suite(void)
 {
@@ -226,6 +250,7 @@ Suite* set_suite(void)
   tcase_add_test(tc_core, test_intersect);
   tcase_add_test(tc_core, test_fold);
   tcase_add_test(tc_core, test_sats_man);
+  tcase_add_test(tc_core, test_macros);
   suite_add_tcase(s, tc_core);
 
   return s;

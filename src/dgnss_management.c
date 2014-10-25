@@ -19,6 +19,9 @@
 #include "linear_algebra.h"
 #include "ambiguity_test.h"
 
+#include "iterator.h"
+#include "set.h"
+
 #define DEBUG_DGNSS_MANAGEMENT 0
 
 nkf_t nkf;
@@ -50,7 +53,8 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
   dgnss_settings.new_int_var    = new_int_var;
 }
 
-void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
+/* make_measurements */
+void old_make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   if (DEBUG_DGNSS_MANAGEMENT) {
       printf("<MAKE_MEASUREMENTS>\n");
@@ -65,6 +69,47 @@ void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measure
       printf("</MAKE_MEASUREMENTS>\n");
   }
 }
+
+/* Existing interface.
+ * Compare with below. */
+void new_make_measurements(ptd_set_t *sdiffs, double *raw_measurements)
+{
+  sdiff_t *ref = get_ref_val(sdiffs);
+
+  iterator_t sdiff_itr;
+  set_state_t sdiff_state;
+  mk_set_itr(&sdiff_itr, &sdiff_state, &sdiffs->set);
+  iterator_t non_ref_itr;
+  filter_state_t f_state;
+  mk_without_ref_itr(&non_ref_itr, &f_state, &sdiff_itr, sdiff);
+  iterator_t map_itr;
+  map_state_t map_state;
+  double current;
+  u16 num_ddiffs = length(&non_ref_itr);
+  mk_map_itr(&map_itr, &map_state, &current, &non_ref_itr, &map_phase_measurement, ref);
+  freeze_arr(sizeof(double), num_ddiffs, raw_measurements, &map_itr);
+  mk_map_itr(&map_itr, &map_state, &current, &non_ref_itr, &map_pseudorange_measurement, ref);
+  freeze_arr(sizeof(double), num_ddiffs, &raw_measurements[num_sdiffs], &map_itr);
+}
+
+/* Hypothetical interface relying on malloc */
+void new_make_measurements2(ptd_set_itr_t *sdiffs, iterator_t *raw_measurements)
+{
+  sdiff_t *ref = get_ref_val(sdiffs);
+
+  iterator_t non_ref_itr, measure_itr1, measure_itr2;
+  mk_without_ref_itr(&non_ref_itr, sdiffs);
+  mk_map_itr(&measure_itr1, &non_ref_itr, &map_phase_measurement, ref, sizeof(double));
+  mk_map_itr(&measure_itr2, &non_ref_itr, &map_pseudorange_measurement, ref, sizeof(double));
+  mk_seq_itr(&raw_measurements, &measure_itr1, &measure_itr2);
+  // Calling freeze later will also free memory?
+}
+void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
+{
+  // TODO
+  old_make_measurements(num_double_diffs, sdiffs, raw_measurements);
+}
+/* END make_measurements */
 
 bool prns_match(u8 *old_non_ref_prns, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
 {
@@ -112,9 +157,8 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   }
   sdiff_t corrected_sdiffs[num_sats];
   init_sats_management(&sats_management, num_sats, sdiffs, corrected_sdiffs);
-  /* ***HERE*** */
 
-  create_ambiguity_test(&ambiguity_test);
+  create_ambiguity_test(&ambiguity_test); // SKIPPED
 
   if (num_sats <= 1) {
     if (DEBUG_DGNSS_MANAGEMENT) {
@@ -124,6 +168,7 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   }
 
   double dd_measurements[2*(num_sats-1)];
+  /* ***HERE*** */
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
   set_nkf(

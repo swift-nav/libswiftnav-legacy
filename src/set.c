@@ -226,9 +226,13 @@ void set_ref(ptd_set_t *ptd, key key)
   assert(ref != NULL);
   ptd->ref = ref;
 }
-key get_ref(ptd_set_t *ptd)
+key get_ref_key(ptd_set_t *ptd)
 {
   return ptd->set.keyfn(ptd->ref);
+}
+const void *get_ref_val(ptd_set_t *ptd)
+{
+  return ptd->ref;
 }
 void mk_without_ref_itr(iterator_t *it, filter_state_t *s, iterator_t *base, ptd_set_t *ptd)
 {
