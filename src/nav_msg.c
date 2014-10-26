@@ -281,7 +281,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       // These unions facilitate signed/unsigned conversion and sign extension
       // TODO: Use types from common.h here
       union {
-        char s8;
+		signed char s8;
         unsigned char u8;
       } onebyte;
 
