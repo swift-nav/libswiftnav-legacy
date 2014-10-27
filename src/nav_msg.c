@@ -279,22 +279,21 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       // Now let's actually go through the parameters...
 
       // These unions facilitate signed/unsigned conversion and sign extension
-      // TODO: Use types from common.h here
       union {
-        char s8;
-        unsigned char u8;
+        s8 s8;
+        u8 u8;
       } onebyte;
 
       union
       {
-        short s16;
-        unsigned short u16;
+        s16 s16;
+        u16 u16;
       } twobyte;
 
       union
       {
-        int s32;
-        unsigned u32;
+        s32 s32;
+        u32 u32;
       } fourbyte;
 
       // Subframe 1: SV health, T_GD, t_oc, a_f2, a_f1, a_f0
