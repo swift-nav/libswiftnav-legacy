@@ -79,9 +79,11 @@ void new_make_measurements(ptd_set_t *sdiffs, double *raw_measurements)
   iterator_t sdiff_itr;
   set_state_t sdiff_state;
   mk_set_itr(&sdiff_itr, &sdiff_state, &sdiffs->set);
+
   iterator_t non_ref_itr;
   filter_state_t f_state;
   mk_without_ref_itr(&non_ref_itr, &f_state, &sdiff_itr, sdiff);
+
   iterator_t map_itr;
   map_state_t map_state;
   double current;
@@ -92,18 +94,19 @@ void new_make_measurements(ptd_set_t *sdiffs, double *raw_measurements)
   freeze_arr(sizeof(double), num_ddiffs, &raw_measurements[num_sdiffs], &map_itr);
 }
 
-/* Hypothetical interface relying on malloc */
-void new_make_measurements2(ptd_set_itr_t *sdiffs, iterator_t *raw_measurements)
+/* Hypothetical interface relying on macros */
+void new_make_measurements2(ptd_set_t *sdiffs, double *raw_measurements)
 {
   sdiff_t *ref = get_ref_val(sdiffs);
-
-  iterator_t non_ref_itr, measure_itr1, measure_itr2;
-  mk_without_ref_itr(&non_ref_itr, sdiffs);
-  mk_map_itr(&measure_itr1, &non_ref_itr, &map_phase_measurement, ref, sizeof(double));
-  mk_map_itr(&measure_itr2, &non_ref_itr, &map_pseudorange_measurement, ref, sizeof(double));
-  mk_seq_itr(&raw_measurements, &measure_itr1, &measure_itr2);
-  // Calling freeze later will also free memory?
+  MK_WITHOUT_REF_ITR(non_ref_itr, sdiffs);
+  u16 num_ddiffs = length(&non_ref_itr);
+  itr_enumerate(non_ref_itr, i) {
+    sdiff_t *curr = current(non_ref_itr);
+    raw_measurements[i]              = curr->carrier_phase - ref->carrier_phase;
+    raw_measurements[i + num_ddiffs] = curr->pseudorange   - ref->pseudorange;
+  }
 }
+
 void make_measurements(u8 num_double_diffs, sdiff_t *sdiffs, double *raw_measurements)
 {
   // TODO

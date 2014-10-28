@@ -10,6 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+// TODO F 
+// robust documentation
+
+// TODO F prefix itr_ ?
 #ifndef LIBSWIFTNAV_ITERATOR_H
 #define LIBSWIFTNAV_ITERATOR_H
 
@@ -32,10 +36,11 @@ typedef struct {
   bool (*f)(const void *, const void *);
 } filter_state_t;
 
-typedef struct {
-  const void *fst;
-  const void *snd;
-} tuple;
+// TODO delete
+//typedef struct {
+//  const void *fst;
+//  const void *snd;
+//} tuple;
 typedef struct {
   iterator_t *it1;
   iterator_t *it2;
@@ -60,6 +65,15 @@ const void *current(iterator_t *it);
 bool more(const iterator_t *it);
 
 /* Generic Iterators */
+// TODO F
+#define MK_ITR(name, type, ...) \
+  iterator_t name; \
+  { \
+    type##_state_t state; \
+    mk_##type##_itr(&name, &state, ...); \
+  }
+#define MK_FILTER(name, f, arg, base) MK_ITR(name, filter, f, arg, base)
+
 void mk_filter_itr(iterator_t *it, filter_state_t* s, bool (*f)(const void*, const void*),
                    const void *arg, iterator_t *base);
 void mk_intersection_itr(iterator_t *it, intersection_state_t* s, void *current,
@@ -86,8 +100,9 @@ void fst(const void *arg, const void *first, const void *second, void *current);
 void snd(const void *arg, const void *first, const void *second, void *current);
 
 /* MACROS */
-
-#define foreach(I) \
+#define itr_for(I) \
   for(reset(I); more(I); next(I))
+#define itr_enumerate(I, index) \
+  for(u16 index = 0, reset(I); more(I); next(I), index++)
 
 #endif /* LIBSWIFTNAV_ITERATOR_H */

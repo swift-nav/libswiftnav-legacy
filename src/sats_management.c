@@ -268,6 +268,7 @@ void new_set_reference_sat_and_prns(u8 ref_prn, iterator_t *sdiffs,
   prn current;
   mk_map_itr(&map_itr, &map_state, &current, sdiffs, &map_sdiff_prn, NULL);
   // TODO store max size of buffer in set_t
+  // TODO error handling
   freeze_ptd(sats_ptd, &map_itr, MAX_CHANNELS, sizeof(prn), (key)ref_prn, &prn_key);
   freeze_ptd(sdiffs_ptd, sdiffs, MAX_CHANNELS, sizeof(sdiff_t), (key)ref_prn, &sdiff_key);
 }

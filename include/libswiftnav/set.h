@@ -21,6 +21,7 @@
 
 typedef key key_fn_t(const void*);
 
+// TODO add max_len for buffer size
 typedef struct {
   u16 len;
   size_t size;
@@ -38,16 +39,17 @@ typedef struct {
   const set_t *set;
 } set_state_t;
 
+// TODO F return codes?
 void mk_set(set_t *set, u16 len, size_t size, void *arr, key_fn_t *keyfn);
 void mk_ptd_set(ptd_set_t *ptd, u16 len, size_t size, void *arr, key ref, key_fn_t *keyfn);
-void mk_empty(ptd_set_t *ptd);
 void freeze_set(set_t *set, iterator_t *it, u16 max_len, size_t size, key_fn_t *keyfn);
 void freeze_ptd(ptd_set_t *ptd, iterator_t *it, u16 max_len, size_t size, key ref, key_fn_t *keyfn);
+void mk_empty(ptd_set_t *ptd);
 
 bool is_set(const set_t *set);
 bool is_ptd_set(const ptd_set_t *ptd);
-key prn_key(const void *x);
-key sdiff_key(const void *x);
+key  prn_key(const void *x);
+key  sdiff_key(const void *x);
 void print_prn_tuple(const void *arg, const void *elem);
 void mk_sdiff_set(set_t *set, int len, sdiff_t *arr);
 void mk_prn_set(set_t *set, int len, prn *arr);

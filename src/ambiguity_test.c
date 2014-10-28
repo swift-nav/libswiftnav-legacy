@@ -34,6 +34,7 @@
  * Integer ambiguity resolution using bayesian hypothesis testing.
  * \{ */
 
+// SKIPPED
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
   static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];

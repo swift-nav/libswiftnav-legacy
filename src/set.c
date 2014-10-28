@@ -1,3 +1,4 @@
+// TODO F mark static fns
 #define NDEBUG
 
 #include <string.h>
