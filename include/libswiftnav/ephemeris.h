@@ -24,7 +24,9 @@ typedef struct {
   gps_time_t toe, toc;
   u8 valid;
   u8 healthy;
+  u8 prn;
 } ephemeris_t;
+
 
 int calc_sat_pos(double pos[3], double vel[3],
                  double *clock_err, double *clock_rate_err,
