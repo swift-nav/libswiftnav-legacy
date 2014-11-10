@@ -14,6 +14,11 @@ else (CMAKE_CROSSCOMPILING)
     include_directories(${CHECK_INCLUDE_DIRS})
     set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapacke cblas m)
 
+    # Check needs to be linked against Librt on Linux
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+      set(TEST_LIBS ${TEST_LIBS} rt)
+    endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
     add_executable(test_libswiftnav
