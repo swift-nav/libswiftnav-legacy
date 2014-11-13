@@ -560,6 +560,10 @@ static void _check_unanimous(void *arg, element_t *elem)
 void update_unanimous_ambiguities(ambiguity_test_t *amb_test)
 {
   hyp_filter_t x;
+  if (amb_test->sats.num_sats <= 1) {
+    amb_test->amb_check.num_matching_ndxs = 0;
+    return;
+  }
   x.num_dds = amb_test->sats.num_sats-1;
   x.unanimous_amb_check = &amb_test->amb_check;
   x.unanimous_amb_check->initialized = 0;
