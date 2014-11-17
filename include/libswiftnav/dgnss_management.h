@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef LIBSWIFTNAV_DGNSS_MANAGEMENT_H
+#define LIBSWIFTNAV_DGNSS_MANAGEMENT_H
 
 #include "amb_kf.h"
 #include "sats_management.h"
@@ -98,3 +100,5 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                     double ref_ecef[3], u8 *num_used, double b[3]);
 s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                   double ref_ecef[3], u8 *num_used, double b[3]);
+
+#endif /* LIBSWIFTNAV_DGNSS_MANAGEMENT_H */
