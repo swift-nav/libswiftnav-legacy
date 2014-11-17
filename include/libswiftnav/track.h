@@ -98,16 +98,31 @@ typedef struct {
 
 /** \} */
 
+/** This struct holds the state of a tracking channel at a given receiver time epoch.
+ *
+ * The struct contains the information necessary to calculate the pseudorange,
+ * carrier phase and Doppler information needed for a PVT solution but is
+ * formatted closer to the natural outputs from the tracking channels.
+ *
+ * \see calc_navigation_measurement()
+ */
 typedef struct {
-  u8 prn;
-  double code_phase_chips;
-  double code_phase_rate;
-  double carrier_phase;
-  double carrier_freq;
-  u32 time_of_week_ms;
-  double receiver_time;
-  double snr;
-  u16 lock_counter;
+  u8 prn;                  /**< Satellite PRN. */
+  double code_phase_chips; /**< The code-phase in chips at `receiver_time`. */
+  double code_phase_rate;  /**< Code phase rate in chips/s. */
+  double carrier_phase;    /**< Carrier phase in cycles. */
+  double carrier_freq;     /**< Carrier frequency in Hz. */
+  u32 time_of_week_ms;     /**< Number of milliseconds since the start of the
+                                GPS week corresponding to the last code rollover.  */
+  double receiver_time;    /**< Receiver clock time at which this measurement
+                                is valid in seconds. */
+  double snr;              /**< Signal to noise ratio. */
+  u16 lock_counter;        /**< This number is changed each time the tracking
+                                channel is re-locked or a cycle slip is
+                                detected and the carrier phase integer
+                                ambiguity is reset.  If this number changes it
+                                is an indication you should reset integer
+                                ambiguity resolution for this channel. */
 } channel_measurement_t;
 
 typedef struct {
