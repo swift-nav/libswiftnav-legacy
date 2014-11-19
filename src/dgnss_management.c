@@ -892,13 +892,17 @@ void measure_iar_b_with_external_ambs(double reciever_ecef[3],
   ref_ecef[0] = reciever_ecef[0];
   ref_ecef[1] = reciever_ecef[1];
   ref_ecef[2] = reciever_ecef[2];
-  least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+  least_squares_solve_b_external_ambs(
+      CLAMP_DIFF(ambiguity_test.sats.num_sats, 1),
+      ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   while (l2_dist(b_old, b) > 1e-4) {
     memcpy(b_old, b, sizeof(double)*3);
     ref_ecef[0] = reciever_ecef[0] + 0.5 * b_old[0];
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b_old[2];
-    least_squares_solve_b_external_ambs(MAX(1,ambiguity_test.sats.num_sats)-1, ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+    least_squares_solve_b_external_ambs(
+        CLAMP_DIFF(ambiguity_test.sats.num_sats, 1),
+        ambs, sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
   }
   if (DEBUG_DGNSS_MANAGEMENT) {
       printf("</MEASURE_IAR_B_WITH_EXTERNAL_AMBS>\n");
@@ -976,14 +980,14 @@ u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
 
 u8 get_amb_kf_mean(double *ambs)
 {
-  u8 num_dds = MAX(1, sats_management.num_sats) - 1;
+  u8 num_dds = CLAMP_DIFF(sats_management.num_sats, 1);
   memcpy(ambs, nkf.state_mean, num_dds * sizeof(double));
   return num_dds;
 }
 
 u8 get_amb_kf_cov(double *cov)
 {
-  u8 num_dds = MAX(1, sats_management.num_sats) - 1;
+  u8 num_dds = CLAMP_DIFF(sats_management.num_sats, 1);
   matrix_reconstruct_udu(num_dds, nkf.state_cov_U, nkf.state_cov_D, cov);
   return num_dds;
 }
@@ -1013,7 +1017,7 @@ u8 dgnss_iar_pool_contains(double *ambs)
 u8 dgnss_iar_MLE_ambs(s32 *ambs)
 {
   ambiguity_test_MLE_ambs(&ambiguity_test, ambs);
-  return MAX(1, ambiguity_test.sats.num_sats) - 1;
+  return CLAMP_DIFF(ambiguity_test.sats.num_sats, 1);
 }
 
 nkf_t* get_dgnss_nkf()

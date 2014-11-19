@@ -20,6 +20,7 @@
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define CLAMP_DIFF(a,b) (MAX((a),(b)) - (b))
 
 #include <stdint.h>
 #include <stdbool.h>

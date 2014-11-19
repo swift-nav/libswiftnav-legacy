@@ -189,7 +189,7 @@ void incorporate_obs(nkf_t *kf, double *decor_obs)
 // turns (phi, rho) into Q_tilde * (phi, rho)
 void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
 {
-  u8 constraint_dim = MAX(kf->state_dim, 3) - 3;
+  u8 constraint_dim = CLAMP_DIFF(kf->state_dim, 3);
   cblas_dgemv (CblasRowMajor, CblasNoTrans, //Order, TransA
                constraint_dim, kf->state_dim, // M, N
                1, kf->null_basis_Q, kf->state_dim, // alpha A, lda
@@ -259,7 +259,7 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
     return;
   }
 
-  memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
+  memset(DE, 0, CLAMP_DIFF(num_sats, 1) * 3 * sizeof(double));
   double e0[3];
   double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
   double y0 = sats_with_ref_first[0].sat_pos[1] - ref_ecef[1];
@@ -555,7 +555,7 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
   double tau[3];
   QR_part1(m, n, A, tau);
   QR_part2(m, n, A, tau);
-  memcpy(q, &A[3*num_dds], (MAX(3, num_dds) - 3) * num_dds * sizeof(double));
+  memcpy(q, &A[3*num_dds], CLAMP_DIFF(num_dds, 3) * num_dds * sizeof(double));
 }
 
 void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd_obs_cov) //TODO this could be made more efficient, if it matters
@@ -580,7 +580,7 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
 {
   double dd_obs_cov[4 * num_dds * num_dds];
   assign_dd_obs_cov(num_dds, phase_var, code_var, dd_obs_cov);
-  integer nullspace_dim = MAX(num_dds, 3) - 3;;
+  integer nullspace_dim = CLAMP_DIFF(num_dds, 3);
   integer dd_dim = 2*num_dds;
   integer res_dim = num_dds + nullspace_dim;
   double q_tilde[res_dim * dd_dim];
@@ -689,8 +689,8 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double *U_inv, double *D,
                      double *H_prime)
 {
-  u8 num_dds = MAX(1, num_sdiffs) - 1;
-  u8 constraint_dim = MAX(num_dds, 3) - 3;;
+  u8 num_dds = CLAMP_DIFF(num_sdiffs, 1);
+  u8 constraint_dim = CLAMP_DIFF(num_dds, 3);
   u8 res_dim = num_dds + constraint_dim;
 
   double Sig[res_dim * res_dim];
@@ -727,10 +727,10 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
   if (DEBUG_AMB_KF) {
       printf("<SET_NKF>\n");
   }
-  u32 state_dim = num_sdiffs - 1;
-  u32 num_diffs = num_sdiffs - 1;
+  u32 state_dim = CLAMP_DIFF(num_sdiffs, 1);
+  u32 num_diffs = CLAMP_DIFF(num_sdiffs, 1);
   kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(3, num_sdiffs) - 3;
+  u32 constraint_dim = CLAMP_DIFF(num_sdiffs, 3);
   kf->obs_dim = num_diffs + constraint_dim;
   kf->amb_drift_var = amb_drift_var;
 
@@ -751,10 +751,10 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3])
 {
-  u32 state_dim = MAX(1, num_sdiffs) - 1;
-  u32 num_diffs = MAX(1, num_sdiffs) - 1;
+  u32 state_dim = CLAMP_DIFF(num_sdiffs, 1);
+  u32 num_diffs = CLAMP_DIFF(num_sdiffs, 1);
   kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(3, num_diffs) - 3;
+  u32 constraint_dim = CLAMP_DIFF(num_diffs, 3);
   kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
@@ -798,7 +798,7 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 
 void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
 {
-  u8 state_dim = num_sats - 1;
+  u8 state_dim = CLAMP_DIFF(num_sats, 1);
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
@@ -818,7 +818,7 @@ void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *re
 
 void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  u8 state_dim = num_sats - 1;
+  u8 state_dim = CLAMP_DIFF(num_sats, 1);
   double rebase_mtx[state_dim * state_dim];
   assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
 
@@ -842,7 +842,7 @@ void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *n
 
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  u8 state_dim = num_sats - 1;
+  u8 state_dim = CLAMP_DIFF(num_sats, 1);
   double state_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
   rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);

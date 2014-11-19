@@ -30,7 +30,6 @@
 
 #define DEBUG_AMBIGUITY_TEST 0
 
-
 /** \defgroup ambiguity_test Integer Ambiguity Resolution
  * Integer ambiguity resolution using bayesian hypothesis testing.
  * \{ */
@@ -297,7 +296,7 @@ void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
 {
   fold_mle_t mle;
   mle.started = 0;
-  mle.num_dds = MAX(1,amb_test->sats.num_sats)-1;
+  mle.num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   memory_pool_fold(amb_test->pool, (void *) &mle, &fold_mle);
   memcpy(ambs, mle.N, mle.num_dds * sizeof(s32));
 }
@@ -832,7 +831,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
   }
   u8 ref_prn = amb_test->sats.prns[0];
   u8 *non_ref_prns = &amb_test->sats.prns[1];
-  u8 num_dds = MAX(1, amb_test->sats.num_sats)-1;
+  u8 num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
                                   ambiguity_dd_measurements, amb_sdiffs);
@@ -959,7 +958,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 
 typedef struct {
   u8 num_ndxs;
-  u8 intersection_ndxs[MAX_CHANNELS-1];
+  u8 intersection_ndxs[MAX_CHANNELS - 1];
 } intersection_ndxs_t;
 
 s32 projection_comparator(void *arg, element_t *a, element_t *b)
@@ -1013,7 +1012,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_SAT_PROJECTION>\n");
   }
-  u8 num_dds_before_proj = MAX(1, amb_test->sats.num_sats) - 1;
+  u8 num_dds_before_proj = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   if (num_dds_before_proj == num_dds_in_intersection) {
     if (DEBUG_AMBIGUITY_TEST) {
       printf("no need for projection\n</AMBIGUITY_SAT_PROJECTION>\n");
@@ -1221,7 +1220,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                            s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
                            s32 *Z_inv)
 {
-  u8 num_current_dds = MAX(1, amb_test->sats.num_sats) - 1;
+  u8 num_current_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds); // num_current_dds + min_dds_to_add = 4 so that we have a nullspace projector
 
   u32 max_new_hyps_cardinality;
@@ -1545,7 +1544,7 @@ void add_sats(ambiguity_test_t *amb_test,
   // printf("]\n");
 
   x0.num_added_dds = num_added_dds;
-  x0.num_old_dds = MAX(1,amb_test->sats.num_sats)-1;
+  x0.num_old_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
 
   //then construct the mapping from the old prn indices into the new, and from the added prn indices into the new
   u8 i = 0;
@@ -1604,8 +1603,8 @@ void add_sats(ambiguity_test_t *amb_test,
 
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
 {
-  res_mtxs->res_dim = num_dds + MAX(3, num_dds) - 3;
-  res_mtxs->null_space_dim = MAX(3, num_dds) - 3;
+  res_mtxs->res_dim = num_dds + CLAMP_DIFF(num_dds, 3);
+  res_mtxs->null_space_dim = CLAMP_DIFF(num_dds, 3);
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
   assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->half_res_cov_inv);
   // MAT_PRINTF(res_mtxs->null_projector, res_mtxs->null_space_dim, num_dds);
@@ -1678,8 +1677,8 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {
   integer dd_dim = 2*num_dds;
-  integer res_dim = num_dds + MAX(3, num_dds) - 3;
-  u32 nullspace_dim = MAX(3, num_dds) - 3;
+  integer res_dim = num_dds + CLAMP_DIFF(num_dds, 3);
+  u32 nullspace_dim = CLAMP_DIFF(num_dds, 3);
   double q_tilde[res_dim * dd_dim];
   memset(q_tilde, 0, res_dim * dd_dim * sizeof(double));
   // MAT_PRINTF(obs_cov, dd_dim, dd_dim);
