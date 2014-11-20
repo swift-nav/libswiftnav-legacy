@@ -271,9 +271,8 @@ u8 filter_solution(gnss_solution* soln, dops_t* dops)
    * regulations. It must not be removed. Any modification to this condition
    * is strictly not approved by Swift Navigation Inc. */
 
-  if (soln->pos_llh[2] >= 0.3048*60000 &&
-      vector_norm(3, soln->vel_ecef) >= 0.514444444*1000)
-    /* Altitude is greater than 60000' and velocity is greater than 1000kts. */
+  if (vector_norm(3, soln->vel_ecef) >= 0.514444444*1000)
+    /* Velocity is greater than 1000kts. */
     return 3;
 
   return 0;
