@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <linear_algebra.h>
 #include <ambiguity_test.h>
 #include <printing_utils.h>
 
@@ -123,6 +124,83 @@ START_TEST(test_sats_match)
 }
 END_TEST
 
+void resize_matrix(u8 r1, u8 c1, u8 r2, u8 c2, const double *m1, double *m2)
+{
+  (void) r1;
+  for (u8 i = 0; i < r2; i++) {
+    for (u8 j = 0; j < c2; j++) {
+      m2[i*c2 + j] = m1[i*c1 + j];
+    }
+  }
+}
+START_TEST(test_amb_sat_inclusion)
+{
+  /* TODO Load matrix */
+  u8 state_dim = 5;
+  /* Test dimension */
+  u8 dim = 5;
+  double cov_mat[state_dim * state_dim];
+  matrix_eye(state_dim, cov_mat);
+  for (u8 i = 0; i < state_dim; i++) {
+    cov_mat[i*state_dim+i] = 0.1;
+  }
+  for (u8 i = 0; i < state_dim; i++) {
+    for (u8 j = 0; j < i; j++) {
+      double x = (float)rand()/(float)RAND_MAX;
+      cov_mat[i*state_dim+j] = x;
+      cov_mat[j*state_dim+i] = x;
+    }
+  }
+
+  /* Take some block, factor */
+  u8 prns[dim];
+  for (u8 i = 0; i < dim+1; i++) {
+    prns[i] = i;
+  }
+  double block[dim * dim];
+  resize_matrix(state_dim, state_dim, dim, dim, cov_mat, block);
+
+  printf("test covariance matrix:\n");
+  dmtx_printf(block, dim, dim);
+
+  double u[dim * dim];
+  double d[dim * dim];
+  matrix_udu(dim, block, u, d);
+  double mean[dim];
+  for (u8 i = 0; i < dim; i++) {
+    mean[i] = 0;
+  }
+  //If we want to use init_ambiguity_test:
+  //init_ambiguity_test(amb_test, dim, prns, mean, cov, →de_matrix, →obs_cov);
+
+  /* Init amb_test */
+  ambiguity_test_t amb_test;
+  create_ambiguity_test(&amb_test);
+  /* Add one element */
+  hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
+  (void) hyp;
+  sats_management_t float_sats = {
+    .num_sats = dim+1,
+  };
+  memcpy(float_sats.prns, prns, (dim+1) * sizeof(u8));
+
+  u16 pool_size;
+  pool_size = memory_pool_n_allocated(amb_test.pool);
+  printf("pool_size: %i\n", pool_size);
+  /* Initial include */
+  //u8 flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
+  u8 flag = ambiguity_sat_inclusion2(&amb_test, 0, &float_sats, mean, u, d);
+  printf("inclusion return code: %i\n", flag);
+
+  pool_size = memory_pool_n_allocated(amb_test.pool);
+  printf("pool_size: %i\n", pool_size);
+
+  /* Checks */
+  fail_unless(flag == 1);
+  fail_unless(pool_size > 1);
+}
+END_TEST
+
 
 Suite* ambiguity_test_suite(void)
 {
@@ -133,6 +211,7 @@ Suite* ambiguity_test_suite(void)
   tcase_add_test(tc_core, test_ambiguity_update_reference);
   tcase_add_test(tc_core, test_update_sats_same_sats);
   tcase_add_test(tc_core, test_update_sats_rebase);
+  tcase_add_test(tc_core, test_amb_sat_inclusion);
   suite_add_tcase(s, tc_core);
 
   return s;

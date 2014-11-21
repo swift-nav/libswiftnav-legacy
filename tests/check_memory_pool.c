@@ -607,6 +607,10 @@ typedef struct {
   u8 i;
 } test_gen_state_t;
 
+void test_init(void *x, element_t *elem)
+{
+  (void) x; (void) elem;
+}
 s8 test_next(void *x_, u32 n)
 {
   (void) n;
@@ -650,7 +654,9 @@ START_TEST(test_prod_generator)
     .i = 0
   };
 
-  memory_pool_product_generator(test_pool_hyps, &test_gen_state, 100, sizeof(test_gen_state_t), &test_next, &prod_N_gen);
+  memory_pool_product_generator(test_pool_hyps, &test_gen_state, 100,
+                                sizeof(test_gen_state_t),
+                                &test_init, &test_next, &prod_N_gen);
 
   fail_unless(memory_pool_n_allocated(test_pool_hyps) == 9,
       "Reduced length does not match22");

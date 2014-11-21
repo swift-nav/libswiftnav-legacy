@@ -50,7 +50,7 @@ void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
-void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns, sdiff_t *sdiffs, 
+void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns,
                          double *float_mean, double *float_cov, double *DE_mtx, double *obs_cov);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
@@ -79,10 +79,14 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                    double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
-                             sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D);
-u32 float_to_decor(ambiguity_test_t *amb_test,
-                   double *addible_float_cov, u8 num_addible_dds,
-                   double *addible_float_mean,
+                             sats_management_t *float_sats, double *float_mean,
+                             double *float_cov_U, double *float_cov_D);
+u8 ambiguity_sat_inclusion2(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
+                            sats_management_t *float_sats, double *float_mean,
+                            double *float_cov_U, double *float_cov_D);
+u32 float_to_decor(const double *addible_float_cov,
+                   const double *addible_float_mean,
+                   u8 num_addible_dds,
                    u8 num_dds_to_add,
                    s32 *lower_bounds, s32 *upper_bounds, double *Z);
 s8 determine_sats_addition(ambiguity_test_t *amb_test,
