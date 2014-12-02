@@ -13,8 +13,6 @@
 #ifndef LIBSWIFTNAV_AMBIGUITY_TEST_H
 #define LIBSWIFTNAV_AMBIGUITY_TEST_H
 
-#include "constants.h"
-#include "common.h"
 #include "memory_pool.h"
 #include "sats_management.h"
 
@@ -47,14 +45,13 @@ typedef struct {
   unanimous_amb_check_t amb_check;
 } ambiguity_test_t;
 
-void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
 s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N);
+void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
 void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns, sdiff_t *sdiffs, 
                          double *float_mean, double *float_cov, double *DE_mtx, double *obs_cov);
-void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
