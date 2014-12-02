@@ -18,6 +18,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include <cblas.h>
 #include <clapack.h>
 #include <math.h>
@@ -253,6 +254,10 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
     }
     printf("}\nref_ecef = {%f, \t%f, \t%f}\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
   }
+
+  assert(num_sats > 1);
+  u8 de_length = num_sats - 1;
+
   if (num_sats <= 1) {
     if (DEBUG_AMB_KF) {
       printf("not enough sats\n</ASSIGN_DE_MTX>\n");
@@ -260,7 +265,7 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
     return;
   }
 
-  memset(DE, 0, CLAMP_DIFF(num_sats, 1) * 3 * sizeof(double));
+  memset(DE, 0, de_length * 3 * sizeof(double));
   double e0[3];
   double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
   double y0 = sats_with_ref_first[0].sat_pos[1] - ref_ecef[1];
@@ -607,6 +612,7 @@ void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
               H_prime, num_dds); /* B, ldb. */
 }
 
+/* REQUIRES num_sdiffs > 0 */
 /* y = H * x
  * Var[y] = Sig = U * D * U^T
  * ==> Var[U^-1 * y] = D
@@ -634,7 +640,9 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double *U_inv, double *D,
                      double *H_prime)
 {
-  u8 num_dds = CLAMP_DIFF(num_sdiffs, 1);
+  assert (num_sdiffs > 0);
+
+  u8 num_dds = num_sdiffs - 1;
   u8 constraint_dim = CLAMP_DIFF(num_dds, 3);
   u8 res_dim = num_dds + constraint_dim;
 
@@ -666,28 +674,19 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 }
 
 
+/* REQUIRES num_sats > 1 */
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
   if (DEBUG_AMB_KF) {
       printf("<SET_NKF>\n");
   }
-  u32 state_dim = CLAMP_DIFF(num_sdiffs, 1);
-  u32 num_diffs = CLAMP_DIFF(num_sdiffs, 1);
-  kf->state_dim = state_dim;
-  u32 constraint_dim = CLAMP_DIFF(num_sdiffs, 3);
-  kf->obs_dim = num_diffs + constraint_dim;
-  kf->amb_drift_var = amb_drift_var;
 
-  get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
-                  ref_ecef,
-                  phase_var, code_var,
-                  kf->null_basis_Q,
-                  kf->decor_mtx, kf->decor_obs_cov,
-                  kf->decor_obs_mtx);
+  kf->amb_drift_var = amb_drift_var;
+  set_nkf_matrices(kf, phase_var, code_var, num_sdiffs, sdiffs_with_ref_first, ref_ecef);
+  initialize_state(kf, dd_measurements, amb_init_var);
 
   /*  given plain old measurements, initialize the state. */
-  initialize_state(kf, dd_measurements, amb_init_var);
   if (DEBUG_AMB_KF) {
       printf("</SET_NKF>\n");
   }
@@ -696,9 +695,10 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3])
 {
-  u32 state_dim = CLAMP_DIFF(num_sdiffs, 1);
-  u32 num_diffs = CLAMP_DIFF(num_sdiffs, 1);
-  kf->state_dim = state_dim;
+  assert(num_sdiffs > 1);
+
+  u32 num_diffs = num_sdiffs - 1;
+  kf->state_dim = num_sdiffs - 1;
   u32 constraint_dim = CLAMP_DIFF(num_diffs, 3);
   kf->obs_dim = num_diffs + constraint_dim;
 
@@ -720,15 +720,19 @@ s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
   return -1;
 }
 
+/* REQUIRES num_sats > 1 */
 void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
+  u8 state_dim = num_sats - 1;
+
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  double new_mean[num_sats-1];
+  double new_mean[state_dim];
   s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats, new_ref, &old_prns[1]);
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
-  for (u8 i=0; i<num_sats-1; i++) {
+  for (u8 i=0; i<state_dim; i++) {
     u8 new_prn = new_prns[1+i];
     if (new_prn == old_ref) {
       new_mean[i] = - val_for_new_ref_in_old_basis;
@@ -738,31 +742,36 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
       new_mean[i] = mean[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
   }
-  memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
+  memcpy(mean, new_mean, (state_dim) * sizeof(double));
 }
 
+/* REQUIRES num_sats > 1 */
 void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
 {
-  u8 state_dim = CLAMP_DIFF(num_sats, 1);
+  assert(num_sats > 1);
+  u8 state_dim = num_sats - 1;
+
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
-  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(state_dim, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(state_dim, old_ref, &new_prns[1]);
   for (u8 i=0; i<state_dim; i++) {
     rebase_mtx[i*state_dim + index_of_new_ref_in_old] = -1;
     if (i != (u8) index_of_old_ref_in_new) {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(state_dim, new_prns[i+1], &old_prns[1]);
       rebase_mtx[i*state_dim + index_of_this_sat_in_old_basis] = 1;
     }
   }
 }
 
-
+/* REQUIRES num_sats > 1 */
 void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  u8 state_dim = CLAMP_DIFF(num_sats, 1);
+  assert(num_sats > 1);
+  u8 state_dim = num_sats - 1;
+
   double rebase_mtx[state_dim * state_dim];
   assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
 
@@ -782,9 +791,12 @@ void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *n
               0, state_cov, state_dim);                /* beta, double *C, int ldc. */
 }
 
+/* REQUIRES num_sats > 1 */
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
-  u8 state_dim = CLAMP_DIFF(num_sats, 1);
+  assert(num_sats > 1);
+  u8 state_dim = num_sats - 1;
+
   double state_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
   rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);
@@ -792,8 +804,10 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 }
 
 
+/* REQUIRES num_sats > 1 */
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
   rebase_mean_N(kf->state_mean, num_sats, old_prns, new_prns);
   rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
