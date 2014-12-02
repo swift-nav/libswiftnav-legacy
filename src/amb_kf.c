@@ -216,9 +216,8 @@ void diffuse_state(nkf_t *kf)
  */
 void nkf_update(nkf_t *kf, double *measurements)
 {
-  if (DEBUG_AMB_KF) {
-    printf("<NKF_UPDATE>\n");
-  }
+  DEBUG_ENTRY(DEBUG_AMB_KF);
+
   double resid_measurements[kf->obs_dim];
   make_residual_measurements(kf, measurements, resid_measurements);
 
@@ -230,6 +229,7 @@ void nkf_update(nkf_t *kf, double *measurements)
   /*  predict_forward(kf);. */
   diffuse_state(kf);
   incorporate_obs(kf, resid_measurements);
+
   if (DEBUG_AMB_KF) {
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
     VEC_PRINTF(kf->state_cov_D, kf->state_dim);
@@ -679,16 +679,16 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
   if (DEBUG_AMB_KF) {
-      printf("<SET_NKF>\n");
+    printf("<SET_NKF>\n");
   }
 
   kf->amb_drift_var = amb_drift_var;
   set_nkf_matrices(kf, phase_var, code_var, num_sdiffs, sdiffs_with_ref_first, ref_ecef);
+  /* Given plain old measurements, initialize the state. */
   initialize_state(kf, dd_measurements, amb_init_var);
 
-  /*  given plain old measurements, initialize the state. */
   if (DEBUG_AMB_KF) {
-      printf("</SET_NKF>\n");
+    printf("</SET_NKF>\n");
   }
 }
 
