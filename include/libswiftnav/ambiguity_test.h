@@ -50,8 +50,7 @@ void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
-void init_ambiguity_test(ambiguity_test_t *amb_test, u8 state_dim, u8 *prns,
-                         double *float_mean, double *float_cov, double *DE_mtx, double *obs_cov);
+void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
@@ -78,10 +77,11 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                    u8 num_sdiffs, sdiff_t *sdiffs,
                                    double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs);
+// TODO(dsk) delete
+u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
+                               sats_management_t *float_sats, double *float_mean,
+                               double *float_cov_U, double *float_cov_D);
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
-                             sats_management_t *float_sats, double *float_mean,
-                             double *float_cov_U, double *float_cov_D);
-u8 ambiguity_sat_inclusion2(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
                             sats_management_t *float_sats, double *float_mean,
                             double *float_cov_U, double *float_cov_D);
 u32 float_to_decor(const double *addible_float_cov,
@@ -89,15 +89,17 @@ u32 float_to_decor(const double *addible_float_cov,
                    u8 num_addible_dds,
                    u8 num_dds_to_add,
                    s32 *lower_bounds, s32 *upper_bounds, double *Z);
+// TODO(dsk) delete
 s8 determine_sats_addition(ambiguity_test_t *amb_test,
                            double *float_N_cov, u8 num_float_dds, double *float_N_mean,
                            s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
                            s32 *Z_inv);
-void add_sats(ambiguity_test_t *amb_test,
-              u8 ref_prn,
-              u32 num_added_dds, u8 *added_prns,
-              s32 *lower_bounds, s32 *upper_bounds,
-              s32 *Z_inv);
+// TODO(dsk) delete
+void add_sats_old(ambiguity_test_t *amb_test,
+                  u8 ref_prn,
+                  u32 num_added_dds, u8 *added_prns,
+                  s32 *lower_bounds, s32 *upper_bounds,
+                  s32 *Z_inv);
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov);
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv);
 void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements, double *r_vec);

@@ -607,9 +607,10 @@ typedef struct {
   u8 i;
 } test_gen_state_t;
 
-void test_init(void *x, element_t *elem)
+s8 test_init(void *x, element_t *elem)
 {
   (void) x; (void) elem;
+  return 1;
 }
 s8 test_next(void *x_, u32 n)
 {
