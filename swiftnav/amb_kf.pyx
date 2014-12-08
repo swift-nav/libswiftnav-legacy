@@ -14,54 +14,11 @@ from libc.string cimport memcpy, memcmp, memset
 from almanac cimport *
 from almanac_c cimport *
 from gpstime cimport *
+from linear_algebra import *
 from gpstime_c cimport *
 from single_diff_c cimport *
 from dgnss_management_c cimport *
 
-def udu(M):
-  n = M.shape[0]
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] M_ = \
-    np.array(M, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] U = \
-    np.empty((n,n), dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] D = \
-    np.empty(n, dtype=np.double)
-  amb_kf_c.udu(n, <double *> &M_[0,0], <double *> &U[0,0], <double *> &D[0])
-  return UDU_decomposition(U, D)
-
-def reconstruct_udu(ud):
-  n = ud.D.shape[0]
-
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] U = \
-    np.array(ud.U, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] D = \
-    np.array(ud.D, dtype=np.double)
-
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] M = \
-    np.empty((n,n), dtype=np.double)
-
-  amb_kf_c.reconstruct_udu(n, <double *> &U[0,0], <double *> &D[0], <double *> &M[0,0])
-  return M
-
-def update_scalar_measurement(h, R, U, D):
-  state_dim = h.shape[0]
-
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] h_ = \
-    np.array(h, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] U_ = \
-    np.array(U, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] D_ = \
-    np.array(D, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] k = \
-    np.empty(state_dim, dtype=np.double)
-
-  amb_kf_c.update_scalar_measurement(state_dim,
-                                       <double *> &h_[0],
-                                       <double> R,
-                                       <double *> &U_[0,0],
-                                       <double *> &D_[0],
-                                       <double *> &k[0])
-  return UDU_decomposition(U_, D_), k
 
 def filter_update(KalmanFilter kf, obs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] state_mean_ = \
@@ -73,7 +30,7 @@ def filter_update(KalmanFilter kf, obs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] obs_ =  \
     np.array(obs, dtype=np.double)
 
-  amb_kf_c.kalman_filter_update(&(kf.kf), <double *> &obs_[0])
+  amb_kf_c.nkf_update(&(kf.kf), <double *> &obs_[0])
 
   memcpy(&state_mean_[0], kf.kf.state_mean, kf.state_dim * sizeof(double))
   memcpy(&state_cov_U_[0,0], kf.kf.state_cov_U, kf.state_dim * kf.state_dim * sizeof(double))
@@ -81,20 +38,15 @@ def filter_update(KalmanFilter kf, obs):
 
   return state_mean_, UDU_decomposition(state_cov_U_, state_cov_D_)
 
-class UDU_decomposition:
-  def __init__(self, U, D):
-    self.U = U
-    self.D = D
-  def reconstruct(self):
-    return reconstruct_udu(self)
+
 
 cdef class KalmanFilter:
   def __init__(self,
                amb_drift_var,
-               np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx, 
-               np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx, 
+               np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx,
+               np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx,
                np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov,
-               np.ndarray[np.double_t, ndim=2, mode="c"] null_basis_Q, 
+               np.ndarray[np.double_t, ndim=2, mode="c"] null_basis_Q,
                np.ndarray[np.double_t, ndim=1, mode="c"] state_mean,
                np.ndarray[np.double_t, ndim=2, mode="c"] state_cov_U,
                np.ndarray[np.double_t, ndim=1, mode="c"] state_cov_D,
@@ -185,22 +137,6 @@ cdef class KalmanFilter:
     def __set__(self, amb_drift_var):
       self.kf.amb_drift_var = amb_drift_var
 
-  # property num_sats:
-  #   def __get__(self):
-  #     return self.kf.num_sats
-  #   def __set__(self, num_sats):
-  #     self.kf.num_sats = num_sats
-
-  # property prns_with_ref_first:
-  #   def __get__(self):
-  #     cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns =\
-  #       np.empty(self.num_sats, dtype=np.uint8)
-  #     memcpy(&prns[0], self.kf.prns_with_ref_first, self.num_sats * sizeof(u8))
-  #     return prns
-  #   def __set__(self, np.ndarray[np.uint8_t, ndim=1, mode="c"] prns_with_ref_first):
-  #     self.num_sats = len(prns_with_ref_first)
-  #     memcpy(self.kf.prns_with_ref_first, &prns_with_ref_first[0], self.num_sats * sizeof(u8))
-
   property decor_mtx:
     def __get__(self):
       print 11
@@ -287,179 +223,6 @@ cdef class KalmanFilter:
     def __set__(self, np.ndarray[np.double_t, ndim=1, mode="c"] state_cov_D):
       memcpy(self.kf.state_cov_D, &state_cov_D[0], self.state_dim * sizeof(double))
 
-  
-
-# def get_transition_mtx(num_sats, dt):
-#   state_dim = num_sats + 5
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx = \
-#         np.empty((state_dim, state_dim), dtype=np.double)
-#   amb_kf_c.assign_transition_mtx(state_dim, dt, &transition_mtx[0,0])
-#   return transition_mtx
-
-def get_d_mtx(num_sats):
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] D = \
-        np.empty((num_sats - 1, num_sats), dtype=np.double)
-  amb_kf_c.assign_d_mtx(num_sats, &D[0,0])
-  return D
-
-def get_e_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
-  n = len(alms)
-  cdef almanac_t al[32]
-  cdef almanac_t a_
-  for i, a in enumerate(alms):
-    a_ = (<Almanac> a).almanac
-    memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-    np.array(ref_ecef, dtype=np.double)
-
-  cdef gps_time_t timestamp_ = timestamp.gps_time
-
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] e_mtx = \
-        np.empty((len(alms), 3), dtype=np.double)
-
-  amb_kf_c.assign_e_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0], &e_mtx[0,0])
-
-  return e_mtx
-
-def get_de_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
-  n = len(alms)
-  cdef almanac_t al[32]
-  cdef almanac_t a_
-  for i, a in enumerate(alms):
-    a_ = (<Almanac> a).almanac
-    memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-    np.array(ref_ecef, dtype=np.double)
-
-  cdef gps_time_t timestamp_ = timestamp.gps_time
-
-  cdef np.ndarray[np.double_t, ndim=2, mode="c"] de_mtx = \
-        np.empty((len(alms) - 1, 3), dtype=np.double)
-
-  amb_kf_c.assign_de_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0], &de_mtx[0,0])
-
-  return de_mtx
-
-# def get_obs_mtx_from_alms_using_sdiffs(alms, GpsTime timestamp, ref_ecef):
-#   n = len(alms)
-#   state_dim = n + 5
-#   obs_dim = 2 * (n-1)
-
-#   cdef almanac_t al[32]
-#   cdef almanac_t a_
-#   for i, a in enumerate(alms):
-#     a_ = (<Almanac> a).almanac
-#     memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-#     np.array(ref_ecef, dtype=np.double)
-
-#   cdef gps_time_t timestamp_ = timestamp.gps_time
-
-#   cdef sdiff_t sdiffs[32]
-#   almanacs_to_single_diffs(len(alms), &al[0], timestamp_, sdiffs)
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_mtx = \
-#         np.empty((obs_dim, state_dim), dtype=np.double)
-
-#   amb_kf_c.assign_obs_mtx(len(alms), &sdiffs[0], &ref_ecef_[0], &obs_mtx[0,0])
-
-#   return obs_mtx
-
-# def get_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef):
-#   n = len(alms)
-#   state_dim = n + 5
-#   obs_dim = 2 * (n-1)
-
-#   cdef almanac_t al[32]
-#   cdef almanac_t a_
-#   for i, a in enumerate(alms):
-#     a_ = (<Almanac> a).almanac
-#     memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-#     np.array(ref_ecef, dtype=np.double)
-
-#   cdef gps_time_t timestamp_ = timestamp.gps_time
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_mtx = \
-#         np.empty((obs_dim, state_dim), dtype=np.double)
-
-#   amb_kf_c.assign_obs_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0], &obs_mtx[0,0])
-
-#   return obs_mtx
-
-# def get_decor_obs_cov(num_diffs, phase_var, code_var):
-  
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov = \
-#     np.empty(2 * num_diffs, dtype=np.double)
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx = \
-#         np.empty((num_diffs, num_diffs), dtype=np.double)
-
-#   amb_kf_c.assign_decor_obs_cov(num_diffs, phase_var, code_var, &decor_mtx[0,0], &decor_obs_cov[0])
-
-#   return decor_mtx, decor_obs_cov
-
-# def get_decor_obs_mtx_from_alms_using_sdiffs(alms, GpsTime timestamp, ref_ecef, decor_mtx):
-#   n = len(alms)
-#   state_dim = n + 5
-#   obs_dim = 2 * (n-1)
-
-#   cdef almanac_t al[32]
-#   cdef almanac_t a_
-#   for i, a in enumerate(alms):
-#     a_ = (<Almanac> a).almanac
-#     memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-#     np.array(ref_ecef, dtype=np.double)
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx_ = \
-#     np.array(decor_mtx, dtype=np.double)
-
-#   cdef gps_time_t timestamp_ = timestamp.gps_time
-
-#   cdef sdiff_t sdiffs[32]
-#   almanacs_to_single_diffs(len(alms), &al[0], timestamp_, sdiffs)
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_mtx = \
-#         np.empty((obs_dim, state_dim), dtype=np.double)
-
-#   amb_kf_c.assign_decor_obs_mtx(len(alms), &sdiffs[0], &ref_ecef_[0],
-#                                             &decor_mtx_[0,0], &obs_mtx[0,0])
-
-#   return obs_mtx
-
-# def get_decor_obs_mtx_from_alms(alms, GpsTime timestamp, ref_ecef, decor_mtx):
-#   n = len(alms)
-#   state_dim = n + 5
-#   obs_dim = 2 * (n-1)
-
-#   cdef almanac_t al[32]
-#   cdef almanac_t a_
-#   for i, a in enumerate(alms):
-#     a_ = (<Almanac> a).almanac
-#     memcpy(&al[i], &a_, sizeof(almanac_t))
-  
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-#     np.array(ref_ecef, dtype=np.double)
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx_ = \
-#     np.array(decor_mtx, dtype=np.double)
-
-#   cdef gps_time_t timestamp_ = timestamp.gps_time
-
-#   cdef np.ndarray[np.double_t, ndim=2, mode="c"] obs_mtx = \
-#         np.empty((obs_dim, state_dim), dtype=np.double)
-
-#   amb_kf_c.assign_decor_obs_mtx_from_alms(len(alms), &al[0], timestamp_, &ref_ecef_[0],
-#                                             &decor_mtx_[0,0], &obs_mtx[0,0])
-
-#   return obs_mtx
-
 
 def get_kf_from_alms_using_sdiffs(phase_var, code_var,
                                   pos_trans_var, vel_trans_var, int_trans_var,
@@ -499,62 +262,3 @@ def get_kf_from_alms_using_sdiffs(phase_var, code_var,
   memcpy(&(pykf.kf), &kf, sizeof(amb_kf_c.nkf_t))
 
   return pykf
-  
-# def get_kf_from_alms(phase_var, code_var,
-#                      pos_trans_var, vel_trans_var, int_trans_var,
-#                      alms, GpsTime timestamp, ref_ecef, dt):
-#   n = len(alms)
-#   state_dim = n + 5
-#   obs_dim = 2 * (n-1)
-
-#   cdef almanac_t al[32]
-#   cdef almanac_t a_
-#   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
-#         np.empty(n, dtype=np.uint8)
-#   for i, a in enumerate(alms):
-#     a_ = (<Almanac> a).almanac
-#     prn_ = (<Almanac> a).prn
-#     memcpy(&al[i], &a_, sizeof(almanac_t))
-#     prns[i] = (<Almanac> a).prn
-
-#   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-#     np.array(ref_ecef, dtype=np.double)
-
-#   cdef gps_time_t timestamp_ = timestamp.gps_time
-
-#   cdef amb_kf_c.nkf_t kf = amb_kf_c.get_kf_from_alms(phase_var, code_var,
-#                                                         pos_trans_var, vel_trans_var, int_trans_var,
-#                                                         n, &al[0], timestamp_, &ref_ecef_[0], dt)
-
-#   cdef KalmanFilter pykf = KalmanFilter()
-#   memcpy(&(pykf.kf), &kf, sizeof(amb_kf_c.nkf_t))
-
-#   return pykf
-
-  # cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx = \
-  #       np.empty((state_dim, state_dim), dtype=np.double)
-
-  # cdef np.ndarray[np.double_t, ndim=2, mode="c"] transition_cov = \
-  #       np.empty((state_dim, state_dim), dtype=np.double)
-
-  # cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx = \
-  #       np.empty((n-1, n-1), dtype=np.double)
-
-  # cdef np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx = \
-  #       np.empty((obs_dim, state_dim), dtype=np.double)
-
-  # cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov = \
-  #       np.empty(obs_dim, dtype=np.double)
-
-  # memcpy(&transition_mtx[0,0], kf.transition_mtx, state_dim * state_dim * sizeof(double))
-  # memcpy(&transition_cov[0,0], kf.transition_cov, state_dim * state_dim * sizeof(double))
-  # memcpy(&decor_mtx[0,0], kf.decor_mtx, (n-1) * (n-1) * sizeof(double))
-  # memcpy(&decor_obs_mtx[0,0], kf.decor_obs_mtx, obs_dim * state_dim * sizeof(double))
-  # memcpy(&decor_obs_cov[0], kf.decor_obs_cov, obs_dim * sizeof(double))
-
-  # return KalmanFilter(prns,
-  #                     transition_mtx,
-  #                     transition_cov,
-  #                     decor_mtx,
-  #                     decor_obs_mtx,
-  #                     decor_obs_cov)

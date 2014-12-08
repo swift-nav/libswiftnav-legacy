@@ -56,20 +56,20 @@ def gpst_components2datetime(wn, tow):
   return dt + datetime.datetime(1980, 1, 6, 0, 0, 0)
 
 def gpst2datetime(GpsTime gpst):
-"""
-Convert a GpsTime into datetime. Both are assumed to be GPS times.
-(See note in gpst_components2datetime for explanation).
+  """
+  Convert a GpsTime into datetime. Both are assumed to be GPS times.
+  (See note in gpst_components2datetime for explanation).
 
-Parameters
-----------
-gpst : GpsTime
-  GPS time struct storing week number and time of week.
+  Parameters
+  ----------
+  gpst : GpsTime
+    GPS time struct storing week number and time of week.
 
-Returns
--------
-datetime
-  GPS time stored as a datetime.
-"""
+  Returns
+  -------
+  datetime
+    GPS time stored as a datetime.
+  """
   return gpst_components2datetime(gpst.wn, gpst.tow)
 
 def datetime2gpst(timestamp):

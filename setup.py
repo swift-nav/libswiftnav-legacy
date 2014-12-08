@@ -129,6 +129,7 @@ if __name__ == "__main__":
     'swiftnav.almanac',
     'swiftnav.lam',
     'swiftnav.ephemeris',
+    'swiftnav.linear_algebra',
     # 'swiftnav.float_kf',
     'swiftnav.amb_kf',
     'swiftnav.gpstime',
