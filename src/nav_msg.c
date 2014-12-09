@@ -32,7 +32,7 @@ void nav_msg_init(nav_msg_t *n)
   n->next_subframe_id = 1;
 }
 
-u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
+static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 {
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the subframe. Takes account of the offset stored in n, and the circular
@@ -72,7 +72,7 @@ u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 }
 
 
-s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
+s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   /* Called once per tracking loop update (atm fixed at 1 PRN [1 ms]). Performs
    * the necessary steps to recover the nav bit clock, store the nav bits and
@@ -82,7 +82,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
 
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
-  n->bit_phase++;
+  n->bit_phase += ms;
   n->bit_phase %= 20;
 
   if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES) {
@@ -122,8 +122,8 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
           ~(1 << (31 - (n->subframe_bit_index & 0x1F)));
       }
 
-      /* Zero the integrator for the next nav bit. */
-      n->nav_bit_integrate = 0;
+      /* Start the integrator for the next nav bit. */
+      n->nav_bit_integrate = corr_prompt_real;
 
       n->subframe_bit_index++;
       if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
