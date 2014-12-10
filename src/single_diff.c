@@ -305,5 +305,34 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
   return new_num_sdiffs;
 }
 
+/** Prints an sdiff_t
+ */
+void print_sdiff(sdiff_t sd)
+{
+  printf("sdiff_t:\n"
+    "\tprn = %u\n"
+    "\tsnr = %f\n"
+    "\tpseudorange   = %f\n"
+    "\tcarrier_phase = %f\n"
+    "\tdoppler       = %f\n"
+    "\tsat_pos = [%f, %f, %f]\n"
+    "\tsat_vel = [%f, %f, %f]\n",
+    sd.prn, sd.snr,
+    sd.pseudorange, sd.carrier_phase, sd.doppler,
+    sd.sat_pos[0], sd.sat_pos[1], sd.sat_pos[2],
+    sd.sat_vel[0], sd.sat_vel[1], sd.sat_vel[2]);
+}
+
+/** Prints an array of sdiffs
+ */
+void print_sdiffs(u8 n, sdiff_t *sds)
+{
+  printf("[\n");
+  for (u8 i=0; i<n; i++) {
+    print_sdiff(sds[i]);
+  }
+  printf("]\n");
+}
+
 /** \} */
 
