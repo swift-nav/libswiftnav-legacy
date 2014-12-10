@@ -306,6 +306,7 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
 }
 
 /** Prints an sdiff_t
+ * \param sd    the sdiff_t to print.
  */
 void print_sdiff(sdiff_t sd)
 {
@@ -324,6 +325,8 @@ void print_sdiff(sdiff_t sd)
 }
 
 /** Prints an array of sdiffs
+ * \param n     The number of sdiffs to print.
+ * \param sds   A pointer to the head of the array of sdiffs to print.
  */
 void print_sdiffs(u8 n, sdiff_t *sds)
 {

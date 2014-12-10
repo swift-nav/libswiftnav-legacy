@@ -55,5 +55,6 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
 
 void print_sdiff(sdiff_t sd);
 void print_sdiffs(u8 n, sdiff_t *sds);
+
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
 
