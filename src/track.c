@@ -32,90 +32,82 @@
 
 /** Calculate coefficients for a 2nd order digital PLL / DLL loop filter.
  *
- * A second order digital PLL consists of a first-order filter and a
- * Numerically Controlled Oscillator (NCO). A linearised model of a digital
+ * A second order PLL consists of a phase detector, first-order filter and a
+ * Numerically Controlled Oscillator (NCO). A linearised model of a
  * second order PLL is shown below:
  *
- * \image html 2nd_order_dpll.png Linearised digital second order PLL model.
+ * \image html 2nd_order_dpll.png Linearised second order PLL model.
  *
- * Where \f$K_d\f$ is the discriminator gain and \f$F[z]\f$ and \f$N[z]\f$ are
- * the loop filter and NCO transfer functions. The NCO is essentially an
- * accumulator and hence has a transfer function:
- *
- * \f[
- *   N[z] = \frac{K_0 z^{-1}}{1 - z^{-1}}
- * \f]
- *
- * The first-order loop filter is shown below:
- *
- * \image html 1st_order_loop_filter.png Digital loop filter block diagram.
- *
- * and has transfer function:
+ * Where \f$K_d\f$ is the discriminator gain and \f$F(s)\f$ and \f$N(s)\f$ are
+ * the loop filter and VCO transfer functions. The VCO is essentially an
+ * integrator and hence has a transfer function:
  *
  * \f[
- *   F[z] = \frac{(k_p+k_i) - k_p z^{-1}}{1 - z^{-1}}
+ *   N(s) = \frac{K_0}{s}
  * \f]
  *
- * It is useful to be able to calculate the loop filter coefficients, \f$k_p\f$
- * and \f$k_i\f$ by comparison to the parameters used in analog PLL design. By
- * comparison between the digital and analog PLL transfer functions we can show
- * the digital loop filter coefficients are related to the analog PLL natural
- * frequency, \f$\omega_n\f$ and damping ratio, \f$\zeta\f$ by:
- *
+ * The first-order loop filter is of the form:
  * \f[
- *   k_p = \frac{1}{k} \frac{8 \zeta \omega_n T}
- *         {4 + 4 \zeta \omega_n T + \omega_n^2 T^2}
+ *   F(s) = \frac{s\tau_2 + 1}{s\tau_1}
  * \f]
+ * Where \f$\tau_1\f$ and \f$\tau_2\f$ are time constants.
+ *
+ * The closed loop transfer function for the above PLL is:
  * \f[
- *   k_i = \frac{1}{k} \frac{4 \omega_n^2 T^2}
- *         {4 + 4 \zeta \omega_n T + \omega_n^2 T^2}
+ *   H(s) = \frac{k_0\tau_2 s + k_0}
+ *               {s^2 + \frac{k_0\tau_2}{\tau_1} s + \frac{k_0}{\tau_1}}
  * \f]
  *
- * Where \f$T\f$ is the loop update period and the overall loop gain, \f$k\f$,
- * is the product of the NCO and discriminator gains, \f$ k = K_0 K_d \f$. The
- * natural frequency is related to the loop noise bandwidth, \f$B_L\f$ by the
- * following relationship:
- *
+ * Comparing the denominator above to the standard form for a second order
+ * system \f$s^2 + 2\omega_n\zeta s + \omega_n^2\f$, we find find the
+ * critical frequency and damping ration:
  * \f[
- *   \omega_n = \frac{8 \zeta B_L}{4 \zeta^2 + 1}
+ *   \omega_n = \sqrt{\frac{k_0}{\tau_1}} \\
+ *   \zeta = \frac{\omega_n\tau_2}{2}
  * \f]
  *
- * These coefficients are applicable to both the Carrier phase Costas loop and
- * the Code phase DLL.
+ * To design our digital implementation of the loop filter, we apply the
+ * bilinear transfrom to the loop filter transfer function above
+ * \f[
+ *   H(z) = \left[\frac{k_0\tau_2 s + k_0}
+ *               {s^2 + \frac{k_0\tau_2}{\tau_1} s + \frac{k_0}{\tau_1}}
+ *          \right]_{s \leftarrow \frac{2(z-1)}{T(z + 1)}} \\
+ *        = \frac{\frac{2\tau_2+T}{2\tau_1} + \frac{T-2\tau_2}{2\tau_1}z^{-1}}
+ *               {1 - z^{-1}}
+ * \f]
  *
- * References:
- *  -# Performance analysis of an all-digital BPSK direct-sequence
- *     spread-spectrum IF receiver architecture.
- *     B-Y. Chung, C. Chien, H. Samueli, and R. Jain.
- *     IEEE Journal on Selected Areas in Communications, 11:1096–1107, 1993.
- *
- * \todo This math is all wrong, these slides show the analysis we want:
- *       http://www.compdsp.com/presentations/Jacobsen/abineau_dpll_analysis.pdf
+ * The denominator coefficients \f$a_n\f$ are undependent of the loop
+ * characteristics.  The numerator coefficients \f$b_n\f$ given by
+ * \f[
+ *   b_0 = \frac{2\tau_2 + T}{2\tau_1} \\
+ *   b_1 = \frac{T - 2\tau_2}{2\tau_1}
+ * \f]
+ * where
+ * \f[
+ *   \tau_1 = \frac{k_0}{\omega_n^2} \\
+ *   \tau_2 = \frac{2\zeta}{\omega_n}
+ * \f]
  *
  * \param bw        The loop noise bandwidth, \f$B_L\f$.
  * \param zeta      The damping ratio, \f$\zeta\f$.
  * \param k         The loop gain, \f$k\f$.
  * \param loop_freq The loop update frequency, \f$1/T\f$.
- * \param pgain     Where to store the calculated proportional gain,
- *                  \f$k_p\f$.
- * \param igain     Where to store the calculated integral gain, \f$k_i\f$.
+ * \param b0        First filter coefficient, \f$b_0\f$.
+ * \param b1        Second filter coefficient, \f$b_1\f$.
  */
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
-                     float *pgain, float *igain)
+                     float *b0, float *b1)
 {
+  float T = 1/loop_freq;
   /* Find the natural frequency. */
   float omega_n = 8.f*bw*zeta / (4.f*zeta*zeta + 1.f);
 
   /* Some intermmediate values. */
-/*
-  float T = 1. / loop_freq;
-  float denominator = k*(4 + 4*zeta*omega_n*T + omega_n*omega_n*T*T);
+  float tau_1 = k / (omega_n * omega_n);
+  float tau_2 = 2 * zeta / omega_n;
 
-  *pgain = 8*zeta*omega_n*T / denominator;
-  *igain = 4*omega_n*omega_n*T*T / denominator;
-*/
-  *igain = omega_n * omega_n / (k * loop_freq);
-  *pgain = 2.f * zeta * omega_n / k;
+  *b0 = (2*tau_2 + T) / (2*tau_1);
+  *b1 = (T - 2*tau_2) / (2*tau_1);
 }
 
 /** Phase discriminator for a Costas loop.
@@ -142,7 +134,7 @@ float costas_discriminator(float I, float Q)
     // Technically, it should be +/- 0.25, but then we'd have to keep track
     //  of the previous sign do it right, so it's simple enough to just return
     //  the average of 0.25 and -0.25 in the face of that ambiguity, so zero.
-    return 0; 
+    return 0;
   }
   return atanf(Q / I) * (float)(1/(2*M_PI));
 }
@@ -156,8 +148,8 @@ float costas_discriminator(float I, float Q)
  * So why do those unnecessary operations at all?
  *
  * \f[
- *    dot_k = abs(I_k * I_{k-1}) + abs(Q_k * Q_{k-1})
- *    cross_k = I_{k-1} * Q_k - I_k * Q_{k-1}
+ *    dot_k = abs(I_k * I_{k-1}) + abs(Q_k * Q_{k-1})\\
+ *    cross_k = I_{k-1} * Q_k - I_k * Q_{k-1}\\
  *    \varepsilon_k = atan2 \left(cross_k, dot_k\right) / \pi
  * \f]
  *
@@ -218,18 +210,18 @@ float dll_discriminator(correlation_t cs[3])
  *
  * \param s The loop filter state struct to initialize.
  * \param y0 The initial value of the output variable, \f$y_0\f$.
- * \param pgain The proportional gain of the PI error term, \f$k_p\f$.
- * \param igain The integral gain of the PI error term, \f$k_i\f$.
+ * \param b0 The proportional gain of the PI error term, \f$b_0\f$.
+ * \param b1 The integral gain of the PI error term, \f$b_1\f$.
  * \param aiding_igain The integral gain of the aiding error term, \f$k_{ia}\f$.
  */
 void aided_lf_init(aided_lf_state_t *s, float y0,
-                   float pgain, float igain,
+                   float b0, float b1,
                    float aiding_igain)
 {
   s->y = y0;
   s->prev_error = 0.f;
-  s->pgain = pgain;
-  s->igain = igain;
+  s->b0 = b0;
+  s->b1 = b1;
   s->aiding_igain = aiding_igain;
 }
 
@@ -244,8 +236,7 @@ void aided_lf_init(aided_lf_state_t *s, float y0,
  */
 float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
 {
-  s->y += s->pgain * (p_i_error - s->prev_error) + \
-          s->igain * p_i_error + \
+  s->y += (s->b0 * p_i_error) + (s->b1 * s->prev_error) +
           s->aiding_igain * aiding_error;
   s->prev_error = p_i_error;
 
@@ -257,16 +248,16 @@ float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
  *
  * \param s The loop filter state struct to initialise.
  * \param y0 The initial value of the output variable, \f$y_0\f$.
- * \param pgain The proportional gain, \f$k_p\f$.
- * \param igain The integral gain, \f$k_i\f$.
+ * \param b0 First filter coefficient, \f$b_0\f$.
+ * \param b1 Second filter coefficient, \f$b_1\f$.
  */
 void simple_lf_init(simple_lf_state_t *s, float y0,
-                    float pgain, float igain)
+                    float b0, float b1)
 {
   s->y = y0;
   s->prev_error = 0.f;
-  s->pgain = pgain;
-  s->igain = igain;
+  s->b0 = b0;
+  s->b1 = b1;
 }
 
 /** Update step for the simple first-order loop filter.
@@ -278,17 +269,16 @@ void simple_lf_init(simple_lf_state_t *s, float y0,
  * with transfer function:
  *
  * \f[
- *   F[z] = \frac{(k_p+k_i) - k_p z^{-1}}{1 - z^{-1}}
+ *   F[z] = \frac{b_0 + b_1 z^{-1}}{1 - z^{-1}}
  * \f]
  *
  * \param s The loop filter state struct.
- * \param error The error output from the discriminator, \f$\varepsilon_k\f$.
- * \return The updated output variable, \f$y_k\f$.
+ * \param error The error output from the discriminator, \f$x_n\f$.
+ * \return The updated output variable, \f$y_n\f$.
  */
 float simple_lf_update(simple_lf_state_t *s, float error)
 {
-  s->y += s->pgain * (error - s->prev_error) + \
-          s->igain * error;
+  s->y += (s->b0 * error) + (s->b1 * s->prev_error);
   s->prev_error = error;
 
   return s->y;
@@ -315,19 +305,19 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
                    float code_zeta, float code_k,
                    float carr_freq, float carr_bw,
                    float carr_zeta, float carr_k,
-                   float carr_freq_igain)
+                   float carr_freq_b1)
 {
-  float pgain, igain;
+  float b0, b1;
 
   s->carr_freq = carr_freq;
   s->prev_I = 1.0f; // This works, but is it a really good way to do it?
   s->prev_Q = 0.0f;
-  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
-  aided_lf_init(&(s->carr_filt), carr_freq, pgain, igain, carr_freq_igain);
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &b0, &b1);
+  aided_lf_init(&(s->carr_filt), carr_freq, b0, b1, carr_freq_b1);
 
-  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &b0, &b1);
   s->code_freq = code_freq;
-  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+  simple_lf_init(&(s->code_filt), code_freq, b0, b1);
 }
 
 /** Update step for the aided tracking loop.
@@ -379,15 +369,15 @@ void simple_tl_init(simple_tl_state_t *s, float loop_freq,
                     float carr_freq, float carr_bw,
                     float carr_zeta, float carr_k)
 {
-  float pgain, igain;
+  float b0, b1;
 
-  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &b0, &b1);
   s->code_freq = code_freq;
-  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+  simple_lf_init(&(s->code_filt), code_freq, b0, b1);
 
-  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &b0, &b1);
   s->carr_freq = carr_freq;
-  simple_lf_init(&(s->carr_filt), carr_freq, pgain, igain);
+  simple_lf_init(&(s->carr_filt), carr_freq, b0, b1);
 }
 
 /** Update step for the simple tracking loop.
@@ -449,15 +439,15 @@ void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                   float tau, float cpc,
                   u32 sched)
 {
-  float pgain, igain;
+  float b0, b1;
 
-  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &pgain, &igain);
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &b0, &b1);
   s->code_freq = code_freq;
-  simple_lf_init(&(s->code_filt), code_freq, pgain, igain);
+  simple_lf_init(&(s->code_filt), code_freq, b0, b1);
 
-  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &pgain, &igain);
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &b0, &b1);
   s->carr_freq = carr_freq;
-  simple_lf_init(&(s->carr_filt), carr_freq, pgain, igain);
+  simple_lf_init(&(s->carr_filt), carr_freq, b0, b1);
 
   s->n = 0;
   s->sched = sched;
