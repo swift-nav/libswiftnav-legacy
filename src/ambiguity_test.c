@@ -43,6 +43,9 @@ void create_empty_ambiguity_test(ambiguity_test_t *amb_test)
   static memory_pool_t pool;
   amb_test->pool = &pool;
   memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
+
+  amb_test->sats.num_sats = 0;
+  amb_test->amb_check.initialized = 0;
 }
 void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
@@ -55,8 +58,6 @@ void create_ambiguity_test(ambiguity_test_t *amb_test)
   hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool);
   /* Start with ll = 0, just for the sake of argument. */
   empty_element->ll = 0;
-  amb_test->sats.num_sats = 0;
-  amb_test->amb_check.initialized = 0;
 }
 
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
