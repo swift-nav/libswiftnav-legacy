@@ -794,7 +794,20 @@ inline int matrix_ataati(u32 n, u32 m, const double *a, double *b) {
  *  \param c            Output matrix
  */
 inline void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
-                            const double *b, double *c) {
+                            const double *b, double *c)
+{
+  u32 i, j, k;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < p; j++) {
+      c[p*i + j] = 0;
+      for (k = 0; k < m; k++)
+        c[p*i + j] += a[m*i+k] * b[p*k + j];
+    }
+}
+
+inline void matrix_multiply_i(u32 n, u32 m, u32 p, const s32 *a,
+                              const s32 *b, s32 *c)
+{
   u32 i, j, k;
   for (i = 0; i < n; i++)
     for (j = 0; j < p; j++) {
