@@ -911,17 +911,18 @@ bool inside(u32 dim, double *point, s32 *lower_bounds, s32 *upper_bounds)
   return true;
 }
 
-// TODO(dsk) allocate constant size arrays inside struct?
+/* See doc string above inclusion_loop_body for info on matrices and
+ * lower/upper bounds fields.  */
 typedef struct {
   u16 intersection_size;
   double *Z;
   double *Z1;
   double *Z2;
   double *Z2_inv;
-  s32 *counter;
-  double *zimage;
-  u8 new_dim;
-  u8 old_dim;
+  s32 *counter;           /* Current position within itr_box bounds. */
+  double *zimage;         /* Current point in V1 being tested. */
+  u8 new_dim;             /* Dimension of new satellite space V2. */
+  u8 old_dim;             /* Dimension of old satellite space. */
   s32 *itr_lower_bounds;
   s32 *itr_upper_bounds;
   s32 *box_lower_bounds;
@@ -934,33 +935,34 @@ void print_Z(s8 label, u8 full_dim, u8 new_dim, double * Z)
   dmtx_printf(Z, full_dim, new_dim);
 }
 
-static void print_intersection_state(intersection_count_t *x)
-{
-  u8 full_dim = x->old_dim + x->new_dim;
-
-  printf("itr lower bounds:\n");
-  for (u8 i = 0; i < x->new_dim; i++) {
-    printf("%"PRIi32"\n", x->itr_lower_bounds[i]);
-  }
-  printf("itr upper bounds:\n");
-  for (u8 i = 0; i < x->new_dim; i++) {
-    printf("%"PRIi32"\n", x->itr_upper_bounds[i]);
-  }
-  printf("box lower bounds:\n");
-  for (u8 i = 0; i < full_dim; i++) {
-    printf("%"PRIi32"\n", x->box_lower_bounds[i]);
-  }
-  printf("box upper bounds:\n");
-  for (u8 i = 0; i < full_dim; i++) {
-    printf("%"PRIi32"\n", x->box_upper_bounds[i]);
-  }
-  printf("transformation matrix:\n");
-  print_Z(68, full_dim, x->new_dim, x->Z);
-  printf("z1:\n");
-  dmtx_printf(x->Z1, full_dim, full_dim);
-  printf("z2_inv:\n");
-  dmtx_printf(x->Z2_inv, x->new_dim, x->new_dim);
-}
+// TODO(dsk) move to print_utilities file
+//static void print_intersection_state(intersection_count_t *x)
+//{
+//  u8 full_dim = x->old_dim + x->new_dim;
+//
+//  printf("itr lower bounds:\n");
+//  for (u8 i = 0; i < x->new_dim; i++) {
+//    printf("%"PRIi32"\n", x->itr_lower_bounds[i]);
+//  }
+//  printf("itr upper bounds:\n");
+//  for (u8 i = 0; i < x->new_dim; i++) {
+//    printf("%"PRIi32"\n", x->itr_upper_bounds[i]);
+//  }
+//  printf("box lower bounds:\n");
+//  for (u8 i = 0; i < full_dim; i++) {
+//    printf("%"PRIi32"\n", x->box_lower_bounds[i]);
+//  }
+//  printf("box upper bounds:\n");
+//  for (u8 i = 0; i < full_dim; i++) {
+//    printf("%"PRIi32"\n", x->box_upper_bounds[i]);
+//  }
+//  printf("transformation matrix:\n");
+//  print_Z(68, full_dim, x->new_dim, x->Z);
+//  printf("z1:\n");
+//  dmtx_printf(x->Z1, full_dim, full_dim);
+//  printf("z2_inv:\n");
+//  dmtx_printf(x->Z2_inv, x->new_dim, x->new_dim);
+//}
 
 /* Initializes x->zimage */
 void init_intersection_count_vector(intersection_count_t *x, hypothesis_t *hyp)
@@ -1021,12 +1023,12 @@ void round_inverse(u8 dim, const double *Z, s32 *Z_inv)
 void compute_Z(u8 old_dim, u8 new_dim, const double *Z1, const double * Z2_inv, double *transform)
 {
   u8 full_dim = old_dim + new_dim;
-  double Z1_left[full_dim * new_dim];
+  double Z1_right[full_dim * new_dim];
   /* Take the right columns of Z1 */
   for (u8 i = 0; i < full_dim; i++) {
-    memcpy(&Z1_left[i*new_dim], &Z1[i*full_dim + old_dim], new_dim * sizeof(double));
+    memcpy(&Z1_right[i*new_dim], &Z1[i*full_dim + old_dim], new_dim * sizeof(double));
   }
-  matrix_multiply(full_dim, new_dim, new_dim, Z1_left, Z2_inv, transform);
+  matrix_multiply(full_dim, new_dim, new_dim, Z1_right, Z2_inv, transform);
 }
 
 typedef struct {
@@ -1036,6 +1038,7 @@ typedef struct {
   s32 *Z_new_inv;
 } generate_hypothesis_state_t2;
 
+/* TODO(dsk) Use submatrix for this instead? */
 static void remap_prns(ambiguity_test_t *amb_test, u8 ref_prn,
                        u32 num_added_dds, u8 *added_prns,
                        generate_hypothesis_state_t2 *s)
@@ -1163,41 +1166,50 @@ void add_sats(ambiguity_test_t *amb_test,
 }
 
 
-/* Decorrelating a covariance matrix for some subset of satellites' integer
- * ambiguities determines a box in the decorrelated space containing
- * potential integer ambiguity values for those satellites. When adding new
- * satellites from the kalman filter to the amb_test, we do not want to add
- * any new hypothetical values for sats already in the amb_test, and we
- * want to use the decorrelation matrix for the full set of satellites, old
- * and new, to restrict the added joint hypotheses.
+/* 
+ * The satellite inclusion algorithm considers three important vector spaces:
+ *  - The correlated space of integer ambiguities considered by the float filter (V0)
+ *  - The decorrelated space of all integer ambiguities (V1)
+ *  - The decorrelated space of integer ambiguities for only those satellites
+ *    not currently considered by the IAR hypothesis test (V2). These sats are
+ *    called "new", and the others are called "old."
  *
- * To do this, we decorrelate the new sats only, and for each existing
- * hypothesis we iterate over this box, mapping the points back to correlated
- * space.  For each potential new joint hypothesis, we check to see if it is
- * included in the full decorrelated box calculated using new and old sats.
+ *  A decorrelation matrix exists for mapping V0 to V1 (called Z1) and a
+ *  similar one exists for mapping the subspace of new ambiguities in V0 to V2
+ *  (called Z2).
  *
- * If too many hypotheses result, we repeat the calculation using fewer new
- * sats until the intersection fits in memory. If there are insufficient
- * satellites to make progress towards an RTK solution (< 4 double
- * differences) we return without adding any.
+ *  These decorrelation matrices determine a certain range of likely
+ *  ambiguities, lying inside a box in V2 (likely values for new sats) and V1
+ *  (likely values for all sats considered jointly). The V1 box considers all
+ *  joint correlations and gives a more accurate range of possibilities.
+ *  However, we do not want to add any hypotheses which conflict on old
+ *  satellites with the existing hypothesis set, so we iterate through the
+ *  current hypothesis set, combining each hypothesis with a hypothesis from
+ *  the V2 (new sat) box, and map it back to V1, keeping only those that lie
+ *  inside the V1 box.
+ *
+ *  If too many hypotheses result to fit in memory, we repeat the calculation
+ *  using fewer new sats. If it is impossible to add a sufficient number of
+ *  sats to make progress towards an RTK solution (< 4 double differences
+ *  total) we return without adding any.
  */
-/* Only num_dds_to_add is updated externally; this function updates the rest. */
-// TODO(dsk) remove debugging printfs
 static u8 inclusion_loop_body(
        u8 num_dds_to_add,
        memory_pool_t *pool, u8 state_dim, u8 num_addible_dds,
-       double *ordered_N_cov, double *ordered_N_mean,
-       double *addible_cov, double *addible_mean,
-       intersection_count_t *x,
-       s32 current_num_hyps, u32 max_num_hyps,
-       u32 *full_size_return)
+       const double *ordered_N_cov, const double *ordered_N_mean,
+       const double *addible_cov, const double *addible_mean,
+       intersection_count_t *x, u32 *full_size_return)
 {
   x->new_dim = num_dds_to_add;
+  s32 current_num_hyps = memory_pool_n_allocated(pool);
+  u32 max_num_hyps = memory_pool_n_elements(pool);
 
   u8 num_current_dds = x->old_dim;
   u8 full_dim = num_current_dds + num_dds_to_add;
 
-  /* TODO(dsk) tune this constant. */
+  /* TODO(dsk) tune this constant.
+   * This determines how many hypotheses will be examined by the intersection
+   * memory_pool fold below. */
   u32 max_iteration_size = 10000;
 
   /* Calculate the two decorrelation matrices and their related matrices. */
@@ -1205,7 +1217,8 @@ static u8 inclusion_loop_body(
     float_to_decor(ordered_N_cov, ordered_N_mean,
         state_dim, full_dim,
         x->box_lower_bounds, x->box_upper_bounds, x->Z1);
-  /* TODO(dsk) remove. */
+
+  /* Useful for debugging. */
   *full_size_return = full_size;
 
   u32 box_size =
@@ -1218,22 +1231,25 @@ static u8 inclusion_loop_body(
   compute_Z(num_current_dds, num_dds_to_add, x->Z1, x->Z2_inv, x->Z);
 
   if (full_size <= max_num_hyps) {
-    printf("BRANCH 1: full: %"PRIu32", itr: %"PRIu32" \n", full_size, box_size);
     /* TODO(dsk) remove */
     if (DEBUG_AMBIGUITY_TEST) {
-      print_intersection_state(x);
+      printf("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
     }
     /* The hypotheses generated for these double-differences fit. */
     return 1;
   } else if (box_size * current_num_hyps <= max_iteration_size) {
-    printf("num dds: %i. box size: %"PRIu32"\n", num_dds_to_add, box_size);
+    if (DEBUG_AMBIGUITY_TEST) {
+      printf("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
+    }
 
     x->intersection_size = 0;
 
     /* Do intersection */
     memory_pool_fold(pool, (void *)x, &fold_intersection_count);
 
-    printf("intersection size: %i\n", x->intersection_size);
+    if (DEBUG_AMBIGUITY_TEST) {
+      printf("intersection size: %i\n", x->intersection_size);
+    }
 
     if (x->intersection_size < max_num_hyps) {
       /* The hypotheses generated for these double-differences fit. */
@@ -1273,6 +1289,8 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
     rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
   }
+  u8 ref_prn = float_prns[0];
+
   double N_cov[state_dim * state_dim];
   memcpy(N_cov, float_cov, state_dim * state_dim * sizeof(double));
 
@@ -1354,9 +1372,6 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   x.Z2 = Z2;
   x.Z2_inv = Z2_inv;
 
-  s32 current_num_hyps = memory_pool_n_allocated(amb_test->pool);
-  u32 max_num_hyps = memory_pool_n_elements(amb_test->pool);
-
   u32 full_size = 0;
 
   /* Check to see if min_dds_to_add will not fit. If so, don't bother
@@ -1364,7 +1379,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   u8 fits = inclusion_loop_body(
       min_dds_to_add, amb_test->pool, state_dim, num_addible_dds,
       N_cov_ordered, N_mean_ordered, addible_float_cov, addible_float_mean,
-      &x, current_num_hyps, max_num_hyps, &full_size);
+      &x, &full_size);
   if (fits == 0) {
     return 0;
   }
@@ -1377,12 +1392,12 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     u8 fits = inclusion_loop_body(
         num_dds_to_add, amb_test->pool, state_dim, num_addible_dds,
         N_cov_ordered, N_mean_ordered, addible_float_cov, addible_float_mean,
-        &x, current_num_hyps, max_num_hyps, &full_size);
+        &x, &full_size);
 
     if (fits == 1) {
       /* Sats should be added. The struct x contains new_dim, the correct
        * number to add, along with the matrices needed to do so . */
-      add_sats(amb_test, float_prns[0], new_dd_prns, x.Z2, &x);
+      add_sats(amb_test, ref_prn, new_dd_prns, x.Z2, &x);
       return 1;
     }
   }
@@ -1391,6 +1406,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   return 0;
 }
 
+/* TODO(dsk) remove dead code. */
 u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
                                sats_management_t *float_sats, double *float_mean,
                                double *float_cov_U, double *float_cov_D)
@@ -1694,6 +1710,7 @@ u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, 
   return k;
 }
 
+/* TODO(dsk) remove dead code. */
 typedef struct {
   s32 upper_bounds[MAX_CHANNELS-1];
   s32 lower_bounds[MAX_CHANNELS-1];
@@ -1841,6 +1858,7 @@ void print_hyp(void *arg, element_t *elem)
   printf("]: %f\n", hyp->ll);
 }
 
+/* TODO(dsk) remove dead code. */
 static s8 no_init(void *x, element_t *elem) {
   (void) x; (void) elem;
   return 1;

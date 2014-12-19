@@ -200,20 +200,24 @@ START_TEST(test_amb_sat_inclusion)
   u8 flag;
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size before: %i\n", pool_size);
+  /* Include. This one should succeed. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size after 1: %i\n", pool_size);
-  /* Include again. */
+  fail_unless(flag == 1);
+  /* Include again. This one should succeed. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size after 2: %i\n", pool_size);
-  /* Include again. */
+  fail_unless(flag == 1);
+  /* Include again. This one should fail due to high covariance. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size after 3: %i\n", pool_size);
+  fail_unless(flag == 0);
 
   /* Checks */
   fail_unless(pool_size > 1);
