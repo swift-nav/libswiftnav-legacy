@@ -367,9 +367,6 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
     hypothesis_N[i] = hyp->N[i];
   }
   double q = get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
-  if (abs(hyp->ll) == 0) {
-    printf("chisq = %f\n", q*2);
-  }
   hyp->ll += q;
   x->max_ll = MAX(x->max_ll, hyp->ll);
   return (abs(q) < 20);
