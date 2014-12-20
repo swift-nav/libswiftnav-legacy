@@ -38,7 +38,8 @@ typedef struct {
 // void predict_forward(nkf_t *kf);
 void nkf_update(nkf_t *kf, double *measurements);
 
-void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE);
+void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
+                   const double ref_ecef[3], double *DE);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
@@ -60,8 +61,11 @@ void nkf_state_inclusion(nkf_t *kf,
 
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3]);
-void least_squares_solve_b_external_ambs(u8 num_dds, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3]);
+void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
+         const double *dd_measurements, const double ref_ecef[3], double b[3]);
+void least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
+         const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
+         const double ref_ecef[3], double b[3]);
 
 void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns);

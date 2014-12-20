@@ -22,6 +22,9 @@
 #include "single_diff.h"
 #include "amb_kf.h"
 #include "lambda.h"
+#include "memory_pool.h"
+#include "printing_utils.h"
+#include "sats_management.h"
 
 #define RAW_PHASE_BIAS_VAR 0
 #define DECORRELATED_PHASE_BIAS_VAR 0
@@ -30,37 +33,24 @@
 
 #define DEBUG_AMBIGUITY_TEST 0
 
-
 /** \defgroup ambiguity_test Integer Ambiguity Resolution
  * Integer ambiguity resolution using bayesian hypothesis testing.
  * \{ */
 
-void create_ambiguity_test(ambiguity_test_t *amb_test)
+void create_empty_ambiguity_test(ambiguity_test_t *amb_test)
 {
   static u8 pool_buff[MAX_HYPOTHESES*(sizeof(hypothesis_t) + sizeof(void *))];
   static memory_pool_t pool;
   amb_test->pool = &pool;
   memory_pool_init(amb_test->pool, MAX_HYPOTHESES, sizeof(hypothesis_t), pool_buff);
+
   amb_test->sats.num_sats = 0;
   amb_test->amb_check.initialized = 0;
 }
-
-/** A memory pool filter for clearing out all elements of a pool.
- */
-s8 filter_all(void *arg, element_t *elem)
+void create_ambiguity_test(ambiguity_test_t *amb_test)
 {
-  (void) arg; (void) elem;
-  return false;
-}
+  create_empty_ambiguity_test(amb_test);
 
-
-void reset_ambiguity_test(ambiguity_test_t *amb_test) //TODO is this even necessary? we may only need create_ambiguity_test
-{
-  if (DEBUG_AMBIGUITY_TEST) {
-      printf("<RESET_AMBIGUITY_TEST>\n");
-  }
-  u8 x = 0;
-  memory_pool_filter(amb_test->pool, (void *) &x, &filter_all);
   /* Initialize pool with single element with num_dds = 0, i.e.
    * zero length N vector, i.e. no satellites. When we take the
    * product of this single element with the set of new satellites
@@ -68,123 +58,11 @@ void reset_ambiguity_test(ambiguity_test_t *amb_test) //TODO is this even necess
   hypothesis_t *empty_element = (hypothesis_t *)memory_pool_add(amb_test->pool);
   /* Start with ll = 0, just for the sake of argument. */
   empty_element->ll = 0;
-  amb_test->sats.num_sats = 0;
-  amb_test->amb_check.initialized = 0;
-  if (DEBUG_AMBIGUITY_TEST) {
-      printf("</RESET_AMBIGUITY_TEST>\n");
-  }
 }
-
 
 void destroy_ambiguity_test(ambiguity_test_t *amb_test)
 {
   memory_pool_destroy(amb_test->pool);
-}
-
-
-/** Prints a matrix of doubles.
- *
- * Used primarily for printing matrices in a gdb session.
- * Assumes row-major (C-style) storage.
- *
- * \param m     The matrix to be printed.
- * \param _r    The number of rows to be printed.
- * \param _c    The number of columns in the matrix.
- */
-void print_double_mtx(double *m, u32 _r, u32 _c) {
-    for (u32 _i = 0; _i < (_r); _i++) {
-      printf(" [% 12lf", (m)[_i*(_c) + 0]);
-      for (u32 _j = 1; _j < (_c); _j++)
-        printf(" % 12lf", (m)[_i*(_c) + _j]);
-      printf("]\n");
-    }
-}
-
-
-/** Prints the matrix of Pearson correlation coefficients of a covariance matrix.
- *
- * Takes in a double valued covariance matrix and prints the pearson correlation
- * coefficients of each pair of variables:
- *
- * \f[
- *    \rho_{ij} = \frac{cov_{ij}}{\sigma_i \sigma_j}
- * \f]
- *
- * \param m     The covariance matrix to be transformed.
- * \param dim   The dimension of the covariance matrix.
- */
-void print_pearson_mtx(double *m, u32 dim) {
-    for (u32 _i = 0; _i < dim; _i++) {
-      printf(" [% 12lf", m[_i*dim + 0] / sqrt(m[_i*dim + _i]) / sqrt(m[0]));
-      for (u32 _j = 1; _j < dim; _j++)
-        printf(" % 12lf", m[_i*dim + _j] / sqrt(m[_i*dim + _i]) / sqrt(m[_j * dim + _j]));
-      printf("]\n");
-    }
-}
-
-
-/** Prints the difference between two s32 valued matrices.
- *
- * Given two s32 valued matrices of the same shape, prints their difference
- * (first matrix minus second).
- *
- * \param m     The number of rows in the matrices.
- * \param n     The number of columns in the matrices.
- * \param mat1  The matrix to be subtracted from.
- * \param mat2  The matrix to be subtracted.
- */
-void print_s32_mtx_diff(u32 m, u32 n, s32 *mat1, s32 *mat2)
-{
-  for (u32 i=0; i < m; i++) {
-    for (u32 j=0; j < n; j++) {
-      printf("%"PRId32", ", mat1[i*n + j] - mat2[i*n + j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
-/** Prints a s32 valued matrix.
- *
- * \param m     The number of rows to be printed in the matrices.
- * \param n     The number of columns in the matrix.
- * \param mat1  The matrix to be printed.
- */
-void print_s32_mtx(u32 m, u32 n, s32 *mat)
-{
-  for (u32 i=0; i < m; i++) {
-    for (u32 j=0; j < n; j++) {
-      printf("%"PRId32", ", mat[i*n + j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
-/** Prints the result of a matrix-vector product of s32's.
- * Given a matrix M and vector v of s32's, prints the result of M*v.
- *
- * \param m   The number of rows in the matrix M.
- * \param n   The number of columns in the matrix M and elements of v.
- * \param M   The matrix M to be multiplied.
- * \param v   The vector v to be multiplied.
- */
-void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
-{
-  s32 mv[m];
-  memset(mv, 0, m * sizeof(s32));
-  printf("[");
-  for (u32 i=0; i < m; i++) {
-    for (u32 j=0; j < n; j++) {
-      mv[i] += M[i*n + j] * v[j];
-    }
-    if (i+1 == m) {
-      printf("%"PRId32" ]\n", mv[i]);
-    }
-    else {
-      printf("%"PRId32", ", mv[i]);
-    }
-  }
 }
 
 /** Gets the hypothesis out of an ambiguity test struct, if there is only one.
@@ -297,7 +175,7 @@ void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
 {
   fold_mle_t mle;
   mle.started = 0;
-  mle.num_dds = MAX(1,amb_test->sats.num_sats)-1;
+  mle.num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   memory_pool_fold(amb_test->pool, (void *) &mle, &fold_mle);
   memcpy(ambs, mle.N, mle.num_dds * sizeof(s32));
 }
@@ -583,14 +461,12 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
   hyp_filter_t x;
   x.num_dds = amb_test->sats.num_sats-1;
   assign_r_vec(&amb_test->res_mtxs, x.num_dds, dd_measurements, x.r_vec);
-  // VEC_PRINTF(x.r_vec, amb_test->res_mtxs.res_dim);
   x.max_ll = -1e20; //TODO get the first element, or use this as threshold to restart test
   x.res_mtxs = &amb_test->res_mtxs;
   x.unanimous_amb_check = &amb_test->amb_check;
   x.unanimous_amb_check->initialized = 0;
 
   memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
-  /*memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);*/
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   if (memory_pool_empty(amb_test->pool)) {
       /* Initialize pool with single element with num_dds = 0, i.e.
@@ -832,7 +708,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
   }
   u8 ref_prn = amb_test->sats.prns[0];
   u8 *non_ref_prns = &amb_test->sats.prns[1];
-  u8 num_dds = MAX(1, amb_test->sats.num_sats)-1;
+  u8 num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
                                   ambiguity_dd_measurements, amb_sdiffs);
@@ -959,7 +835,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t
 
 typedef struct {
   u8 num_ndxs;
-  u8 intersection_ndxs[MAX_CHANNELS-1];
+  u8 intersection_ndxs[MAX_CHANNELS - 1];
 } intersection_ndxs_t;
 
 s32 projection_comparator(void *arg, element_t *a, element_t *b)
@@ -1013,7 +889,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_SAT_PROJECTION>\n");
   }
-  u8 num_dds_before_proj = MAX(1, amb_test->sats.num_sats) - 1;
+  u8 num_dds_before_proj = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   if (num_dds_before_proj == num_dds_in_intersection) {
     if (DEBUG_AMBIGUITY_TEST) {
       printf("no need for projection\n</AMBIGUITY_SAT_PROJECTION>\n");
@@ -1026,13 +902,11 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersecti
 
 
   printf("IAR: %"PRIu32" hypotheses before projection\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &num_dds_before_proj, &print_hyp);*/
   memory_pool_group_by(amb_test->pool,
                        &intersection, &projection_comparator,
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
   printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
-  /*memory_pool_map(amb_test->pool, &num_dds_in_intersection, &print_hyp);*/
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
@@ -1221,7 +1095,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
                            s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
                            s32 *Z_inv)
 {
-  u8 num_current_dds = MAX(1, amb_test->sats.num_sats) - 1;
+  u8 num_current_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds); // num_current_dds + min_dds_to_add = 4 so that we have a nullspace projector
 
   u32 max_new_hyps_cardinality;
@@ -1264,16 +1138,19 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 }
 
 
-// input/output: amb_test
-// input:        num_sdiffs
-// input:        sdiffs
-// input:        float_sats
-// input:        float_mean
-// input:        float_cov_U
-// input:        float_cov_D
-// INVALIDATES unanimous ambiguities
+/* input/output: amb_test
+ * input:        num_sdiffs
+ * input:        sdiffs
+ * input:        float_sats
+ * input:        float_mean
+ * input:        float_cov_U
+ * input:        float_cov_D
+ * INVALIDATES unanimous ambiguities
+ * ^ TODO record this in the amb_test state?
+ */
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                         sats_management_t *float_sats, double *float_mean, double *float_cov_U, double *float_cov_D)
+                         sats_management_t *float_sats, double *float_mean,
+                         double *float_cov_U, double *float_cov_D)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_SATS>\n");
@@ -1510,18 +1387,6 @@ void recorrelate_added_sats(void *arg, element_t *elem_)
   memcpy(&elem->N[params->num_old_dds], recorrelated_N, params->num_added_dds * sizeof(s32));
 }
 
-void print_hyp(void *arg, element_t *elem)
-{
-  u8 num_dds = *( (u8 *) arg );
-
-  hypothesis_t *hyp = (hypothesis_t *)elem;
-  printf("[");
-  for (u8 i=0; i< num_dds; i++) {
-    printf("%"PRId32", ", hyp->N[i]);
-  }
-  printf("]: %f\n", hyp->ll);
-}
-
 void add_sats(ambiguity_test_t *amb_test,
               u8 ref_prn,
               u32 num_added_dds, u8 *added_prns,
@@ -1545,7 +1410,7 @@ void add_sats(ambiguity_test_t *amb_test,
   // printf("]\n");
 
   x0.num_added_dds = num_added_dds;
-  x0.num_old_dds = MAX(1,amb_test->sats.num_sats)-1;
+  x0.num_old_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
 
   //then construct the mapping from the old prn indices into the new, and from the added prn indices into the new
   u8 i = 0;
@@ -1604,8 +1469,8 @@ void add_sats(ambiguity_test_t *amb_test,
 
 void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mtx, double *obs_cov)
 {
-  res_mtxs->res_dim = num_dds + MAX(3, num_dds) - 3;
-  res_mtxs->null_space_dim = MAX(3, num_dds) - 3;
+  res_mtxs->res_dim = num_dds + CLAMP_DIFF(num_dds, 3);
+  res_mtxs->null_space_dim = CLAMP_DIFF(num_dds, 3);
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
   assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->half_res_cov_inv);
   // MAT_PRINTF(res_mtxs->null_projector, res_mtxs->null_space_dim, num_dds);
@@ -1678,8 +1543,8 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {
   integer dd_dim = 2*num_dds;
-  integer res_dim = num_dds + MAX(3, num_dds) - 3;
-  u32 nullspace_dim = MAX(3, num_dds) - 3;
+  integer res_dim = num_dds + CLAMP_DIFF(num_dds, 3);
+  u32 nullspace_dim = CLAMP_DIFF(num_dds, 3);
   double q_tilde[res_dim * dd_dim];
   memset(q_tilde, 0, res_dim * dd_dim * sizeof(double));
   // MAT_PRINTF(obs_cov, dd_dim, dd_dim);

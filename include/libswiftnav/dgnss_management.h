@@ -45,7 +45,7 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double phase_var_kf, double code_var_kf,
                         double amb_drift_var, double amb_init_var,
                         double new_int_var);
-void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements);
+void make_measurements(u8 num_diffs, const sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
@@ -62,22 +62,18 @@ void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_float_baseline(u8 *num_used, double b[3]);
 void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3]);
-void dgnss_fixed_baseline(u8 n, sdiff_t *sdiffs, double ref_ecef[3],
-                          u8 *num_used, double b[3]);
-s8 dgnss_fixed_baseline2(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
-                         u8 *num_used, double b[3]);
+s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
+                        u8 *num_used, double b[3]);
 s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                double ref_ecef[3], u8 *num_used, double b[3]);
-void measure_amb_kf_b(double reciever_ecef[3],
-                      u8 num_sdiffs, sdiff_t *sdiffs,
-                      double *b);
-void measure_b_with_external_ambs(double reciever_ecef[3],
+void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
+                      const double receiver_ecef[3], double *b);
+void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,
                                   u8 num_sdiffs, sdiff_t *sdiffs,
-                                  double *ambs,
-                                  double *b);
-void measure_iar_b_with_external_ambs(double reciever_ecef[3],
+                                  const double receiver_ecef[3], double *b);
+void measure_iar_b_with_external_ambs(double *state_mean,
                                       u8 num_sdiffs, sdiff_t *sdiffs,
-                                      double *ambs,
+                                      double receiver_ecef[3],
                                       double *b);
 u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                            double ref_ecef[3],

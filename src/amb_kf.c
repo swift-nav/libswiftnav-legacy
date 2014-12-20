@@ -18,9 +18,9 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include <cblas.h>
 #include <clapack.h>
-// #include <lapacke.h>
 #include <math.h>
 #include <linear_algebra.h>
 #include "constants.h"
@@ -55,15 +55,16 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     }
   }
 
-  double f[state_dim]; // f = U^T * h
+  double f[state_dim]; /*  f = U^T * h. */
   memcpy(f, h, state_dim * sizeof(double));
-  cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit, //CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG
-              state_dim, U, //int N, double *A
-              state_dim, f, 1); // int lda, double *X, int incX
+  cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit,
+              /* ^ CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG. */
+              state_dim, U,     /* int N, double *A. */
+              state_dim, f, 1); /*  int lda, double *X, int incX. */
 
 
-  double g[state_dim]; // g = diag(D) * f
-  double alpha = R; // alpha = f * g + R = f^T * diag(D) * f + R
+  double g[state_dim]; /*  g = diag(D) * f. */
+  double alpha = R;    /*  alpha = f * g + R = f^T * diag(D) * f + R. */
   for (u32 i=0; i<state_dim; i++) {
     g[i] = D[i] * f[i];
     alpha += f[i] * g[i];
@@ -91,7 +92,9 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
 
   gamma[0] = R + g[0] * f[0];
   if (D[0] == 0 || R == 0) {
-    D_bar[0] = 0; // this is just an expansion of the other branch with the proper 0 `div` 0 definitions
+    /*  This is just an expansion of the other branch with the proper
+     *  0 `div` 0 definitions. */
+    D_bar[0] = 0;
   }
   else {
     D_bar[0] = D[0] * R / gamma[0];
@@ -111,7 +114,9 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   for (u32 j=1; j<state_dim; j++) {
     gamma[j] = gamma[j-1] + g[j] * f[j];
     if (D[j] == 0 || gamma[j-1] == 0) {
-      D_bar[j] = 0; // this is just an expansion of the other branch with the proper 0 `div` 0 definitions
+      /* This is just an expansion of the other branch with the proper
+       * 0 `div` 0 definitions. */
+      D_bar[j] = 0;
     }
     else {
       D_bar[j] = D[j] * gamma[j-1] / gamma[j];
@@ -119,12 +124,15 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     double f_over_gamma = f[j] / gamma[j-1];
     for (u32 i=0; i<=j; i++) {
       if (k[i] == 0) {
-        U_bar[i*state_dim + j] = U[i*state_dim + j]; // same as other branch with correct 0 `div` 0 definitions
+      /* This is just an expansion of the other branch with the proper
+       * 0 `div` 0 definitions. */
+        U_bar[i*state_dim + j] = U[i*state_dim + j];
       }
       else {
-        U_bar[i*state_dim + j] = U[i*state_dim + j] - f_over_gamma * k[i]; // U_bar[:,j] = U[:,j] - f[j]/gamma[j-1] * k
+        /*  U_bar[:,j] = U[:,j] - f[j]/gamma[j-1] * k. */
+        U_bar[i*state_dim + j] = U[i*state_dim + j] - f_over_gamma * k[i];
       }
-      k[i] += g[j] * U[i*state_dim + j]; // k = k + g[j] * U[:,j]
+      k[i] += g[j] * U[i*state_dim + j]; /*  k = k + g[j] * U[:,j]. */
     }
     if (DEBUG_AMB_KF) {
       printf("gamma[%"PRIu32"] = %f\n", j, gamma[j]);
@@ -158,43 +166,38 @@ void incorporate_obs(nkf_t *kf, double *decor_obs)
     printf("<INCORPORATE_OBS>\n");
   }
   for (u32 i=0; i<kf->obs_dim; i++) {
-    double *h = &kf->decor_obs_mtx[kf->state_dim * i]; //vector of length kf->state_dim
-    double R = kf->decor_obs_cov[i]; //scalar
-    double k[kf->state_dim]; // vector of length kf->state_dim
-    // printf("i=%i\n", i);
-    // VEC_PRINTF(h, kf->state_dim);
+    double *h = &kf->decor_obs_mtx[kf->state_dim * i]; /* vector of length kf->state_dim. */
+    double R = kf->decor_obs_cov[i]; /* scalar. */
+    double k[kf->state_dim]; /*  vector of length kf->state_dim. */
 
-    incorporate_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]); //updates cov and sets k
-    // VEC_PRINTF(k, kf->state_dim);
+    /* updates cov and sets k. */
+    incorporate_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]);
 
     double predicted_obs = 0;
-    for (u32 j=0; j<kf->state_dim; j++) {//TODO take advantage of sparsity of h
+    /* TODO take advantage of sparsity of h. */
+    for (u32 j=0; j<kf->state_dim; j++) {
       predicted_obs += h[j] * kf->state_mean[j];
     }
     double obs_minus_predicted_obs = decor_obs[i] - predicted_obs;
-    // printf("decor_obs = %f\n", decor_obs[i]);
-    // printf("predi_obs = %f\n", predicted_obs);
-    // printf(" diff_obs = %f\n", obs_minus_predicted_obs);
 
     for (u32 j=0; j<kf->state_dim; j++) {
-      kf->state_mean[j] += k[j] * obs_minus_predicted_obs; // uses k to update mean
+      kf->state_mean[j] += k[j] * obs_minus_predicted_obs; /* uses k to update mean. */
     }
-    // VEC_PRINTF(intermediate_mean, kf->state_dim);
   }
   if (DEBUG_AMB_KF) {
     printf("</INCORPORATE_OBS>\n");
   }
 }
 
-// turns (phi, rho) into Q_tilde * (phi, rho)
+/*  Turns (phi, rho) into Q_tilde * (phi, rho). */
 void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
 {
-  u8 constraint_dim = MAX(kf->state_dim, 3) - 3;
-  cblas_dgemv (CblasRowMajor, CblasNoTrans, //Order, TransA
-               constraint_dim, kf->state_dim, // M, N
-               1, kf->null_basis_Q, kf->state_dim, // alpha A, lda
-               measurements, 1, // X, incX
-               0, resid_measurements, 1); // beta, Y, incY
+  u8 constraint_dim = CLAMP_DIFF(kf->state_dim, 3);
+  cblas_dgemv (CblasRowMajor, CblasNoTrans, /* Order, TransA. */
+               constraint_dim, kf->state_dim, /*  M, N. */
+               1, kf->null_basis_Q, kf->state_dim, /*  alpha A, lda. */
+               measurements, 1, /*  X, incX. */
+               0, resid_measurements, 1); /*  beta, Y, incY. */
   for (u8 i=0; i< kf->state_dim; i++) {
     resid_measurements[i+constraint_dim] = measurements[i] - measurements[i+kf->state_dim] / GPS_L1_LAMBDA_NO_VAC;
   }
@@ -203,7 +206,8 @@ void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_m
 void diffuse_state(nkf_t *kf)
 {
   for (u8 i=0; i< kf->state_dim; i++) {
-    kf->state_cov_D[i] += kf->amb_drift_var; //TODO make this a tunable parameter defined at the right time
+    /* TODO make this a tunable parameter defined at the right time. */
+    kf->state_cov_D[i] += kf->amb_drift_var;
   }
 }
 
@@ -212,23 +216,20 @@ void diffuse_state(nkf_t *kf)
  */
 void nkf_update(nkf_t *kf, double *measurements)
 {
-  if (DEBUG_AMB_KF) {
-    printf("<NKF_UPDATE>\n");
-  }
+  DEBUG_ENTRY(DEBUG_AMB_KF);
+
   double resid_measurements[kf->obs_dim];
   make_residual_measurements(kf, measurements, resid_measurements);
-  // VEC_PRINTF(measurements, kf->obs_dim);
-  // MAT_PRINTF(kf->decor_obs_mtx, kf->obs_dim, kf->state_dim);
-  // MAT_PRINTF(kf->obs_cov_root_inv, kf->obs_dim, kf->obs_dim);
 
-  // replaces residual measurements by their decorrelated version
-  cblas_dtrmv(CblasRowMajor, CblasUpper, CblasNoTrans, CblasUnit, // Order, Uplo, TransA, Diag
-              kf->obs_dim, kf->decor_mtx, kf->obs_dim, // N, A, lda
-              resid_measurements, 1); // X, incX
+  /* Replaces residual measurements by their decorrelated version. */
+  cblas_dtrmv(CblasRowMajor, CblasUpper, CblasNoTrans, CblasUnit, /*  Order, Uplo, TransA, Diag. */
+              kf->obs_dim, kf->decor_mtx, kf->obs_dim, /*  N, A, lda. */
+              resid_measurements, 1); /*  X, incX. */
 
-  // predict_forward(kf);
+  /*  predict_forward(kf);. */
   diffuse_state(kf);
   incorporate_obs(kf, resid_measurements);
+
   if (DEBUG_AMB_KF) {
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
     VEC_PRINTF(kf->state_cov_D, kf->state_dim);
@@ -237,8 +238,9 @@ void nkf_update(nkf_t *kf, double *measurements)
   }
 }
 
-// presumes that the first alm entry is the reference sat
-void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3], double *DE)
+/*  Presumes that the first alm entry is the reference sat. */
+void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
+                   const double ref_ecef[3], double *DE)
 {
   if (DEBUG_AMB_KF) {
     printf("<ASSIGN_DE_MTX>\nnum_sats = %u\nsdiff prns&positions = {\n", num_sats);
@@ -252,6 +254,10 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
     }
     printf("}\nref_ecef = {%f, \t%f, \t%f}\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
   }
+
+  assert(num_sats > 1);
+  u8 de_length = num_sats - 1;
+
   if (num_sats <= 1) {
     if (DEBUG_AMB_KF) {
       printf("not enough sats\n</ASSIGN_DE_MTX>\n");
@@ -259,7 +265,7 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
     return;
   }
 
-  memset(DE, 0, (num_sats - 1) * 3 * sizeof(double));
+  memset(DE, 0, de_length * 3 * sizeof(double));
   double e0[3];
   double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
   double y0 = sats_with_ref_first[0].sat_pos[1] - ref_ecef[1];
@@ -268,7 +274,6 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
   e0[0] = x0 / norm0;
   e0[1] = y0 / norm0;
   e0[2] = z0 / norm0;
-  // VEC_PRINTF(ref_ecef, 3);
   for (u8 i=1; i<num_sats; i++) {
     double x = sats_with_ref_first[i].sat_pos[0] - ref_ecef[0];
     double y = sats_with_ref_first[i].sat_pos[1] - ref_ecef[1];
@@ -348,17 +353,16 @@ void assign_de_mtx(u8 num_sats, sdiff_t *sats_with_ref_first, double ref_ecef[3]
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
  */
-void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
-                      double *dd_measurements, double ref_ecef[3], double b[3])
+void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
+         const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
+         const double ref_ecef[3], double b[3])
 {
-  if (DEBUG_AMB_KF) {
-    printf("<LEAST_SQUARES_SOLVE_B>\n");
-  }
-  integer num_dds = kf->state_dim;
+  integer num_dds = num_dds_u8;
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
   double DET[num_dds * 3];
-  for (u8 i=0; i<num_dds; i++) { //TODO this transposition is stupid and unnecessary
+   /* TODO this transposition is stupid and unnecessary */
+  for (u8 i=0; i<num_dds; i++) {
     DET[              i] = DE[i*3 + 0];
     DET[    num_dds + i] = DE[i*3 + 1];
     DET[2 * num_dds + i] = DE[i*3 + 2];
@@ -366,13 +370,14 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
 
   double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
-    phase_ranges[i] = dd_measurements[i] - kf->state_mean[i];
+    phase_ranges[i] = dd_measurements[i] - state_mean[i];
   }
 
   if (DEBUG_AMB_KF) {
+    printf("<LEAST_SQUARES_SOLVE_B>\n");
     printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], kf->state_mean[i], phase_ranges[i]);
+      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], state_mean[i], phase_ranges[i]);
     }
     printf("\t}\n");
   }
@@ -383,114 +388,66 @@ void least_squares_solve_b(nkf_t *kf, sdiff_t *sdiffs_with_ref_first,
   double s[3];
   double rcond = 1e-12;
   s32 rank;
-  double w[1]; //try 25 + 10*num_sats
+  double w[1]; /* try 25 + 10*num_sats. */
   s32 lwork = -1;
   s32 info;
   s32 three = 3;
   s32 one = 1;
-  dgelss_(&num_dds, &three, &one, //M, N, NRHS
-          DET, &num_dds, //A, LDA
-          phase_ranges, &ldb, //B, LDB
-          s, &rcond, // S, RCOND
-          &rank, //RANK
-          w, &lwork, // WORK, LWORK
-          &info); //INFO
+  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
+          DET, &num_dds,          /* A, LDA. */
+          phase_ranges, &ldb,     /* B, LDB. */
+          s, &rcond,              /* S, RCOND. */
+          &rank,                  /* RANK. */
+          w, &lwork,              /* WORK, LWORK. */
+          &info);                 /* INFO. */
   lwork = round(w[0]);
 
   double work[lwork];
-  dgelss_(&num_dds, &three, &one, //M, N, NRHS
-          DET, &num_dds, //A, LDA
-          phase_ranges, &ldb, //B, LDB
-          s, &rcond, // S, RCOND
-          &rank, //RANK
-          work, &lwork, // WORK, LWORK
-          &info); //INFO
+  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
+          DET, &num_dds,          /* A, LDA. */
+          phase_ranges, &ldb,     /* B, LDB. */
+          s, &rcond,              /* S, RCOND. */
+          &rank,                  /* RANK. */
+          work, &lwork,           /* WORK, LWORK. */
+          &info);                 /* INFO. */
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
   if (DEBUG_AMB_KF) {
-    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); // units --> cm
+    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); /*  units --> cm. */
     printf("</LEAST_SQUARES_SOLVE_B>\n");
   }
 }
 
-
-/* presumes that the first alm entry is the reference sat.
- *TODO use the state covariance matrix for a better estimate:
- *  That is, decorrelate and scale the LHS of y = A * x before solving for x
- *TODO consolidate this with the one using the float solution
- */
-void least_squares_solve_b_external_ambs(u8 num_dds_u8, double *ambs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3], double b[3])
+void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
+                      const double *dd_measurements, const double ref_ecef[3],
+                      double b[3])
 {
-  integer num_dds = num_dds_u8;
-  double DE[num_dds * 3];
-  assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
-  double DET[num_dds * 3];
-  for (u8 i=0; i<num_dds; i++) { //TODO this transposition is stupid and unnecessary
-    DET[              i] = DE[i*3 + 0];
-    DET[    num_dds + i] = DE[i*3 + 1];
-    DET[2 * num_dds + i] = DE[i*3 + 2];
-  }
-
-  // double fake_ints[num_dds];
-  // for (u8 i=0; i< num_dds; i++) {
-  //   fake_ints[i] = (i+1)*10; //TODO REMOVE THIS version
-  // }
-  // double resid[num_dds];
-  // lesq_solution_b(kf->state_dim, dd_measurements, kf->state_mean, DE, b, resid);
-  // lesq_solution_b(kf->state_dim, dd_measurements, fake_ints, DE, b, resid);
-
-  double phase_ranges[MAX(num_dds,3)];
-  for (u8 i=0; i< num_dds; i++) {
-    phase_ranges[i] = dd_measurements[i] - ambs[i];
-    // phase_ranges[i] = dd_measurements[i] - (i+1)*10;
-  }
-
-  //TODO could use plain old DGELS here
-
-  s32 ldb = (s32) MAX(num_dds,3);
-  double s[3];
-  double rcond = 1e-12;
-  s32 rank;
-  double w[1]; //try 25 + 10*num_sats
-  s32 lwork = -1;
-  s32 info;
-  s32 three = 3;
-  s32 one = 1;
-  dgelss_(&num_dds, &three, &one, //M, N, NRHS
-          DET, &num_dds, //A, LDA
-          phase_ranges, &ldb, //B, LDB
-          s, &rcond, // S, RCOND
-          &rank, //RANK
-          w, &lwork, // WORK, LWORK
-          &info); //INFO
-  lwork = round(w[0]);
-
-  double work[lwork];
-  dgelss_(&num_dds, &three, &one, //M, N, NRHS
-          DET, &num_dds, //A, LDA
-          phase_ranges, &ldb, //B, LDB
-          s, &rcond, // S, RCOND
-          &rank, //RANK
-          work, &lwork, // WORK, LWORK
-          &info); //INFO
-
-  memcpy(b, phase_ranges, 3 * sizeof(double));
-  b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
-  b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
-  b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
+  return _least_squares_solve_b(kf->state_dim, kf->state_mean,
+      sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
 }
 
+/* Presumes that the first alm entry is the reference sat.
+ * TODO use the state covariance matrix for a better estimate:
+ *   That is, decorrelate and scale the LHS of y = A * x before solving for x
+ */
+void least_squares_solve_b_external_ambs(
+         u8 num_dds_u8, const double *ambs, const sdiff_t *sdiffs_with_ref_first,
+         const double *dd_measurements, const double ref_ecef[3], double b[3])
+{
+  return _least_squares_solve_b(num_dds_u8, ambs, sdiffs_with_ref_first,
+      dd_measurements, ref_ecef, b);
+}
 
-// initializes the ambiguity means and variances.
-// Note that the covariance is  in UDU form, and U starts as identity.
+/* Initializes the ambiguity means and variances.
+ * Note that the covariance is  in UDU form, and U starts as identity. */
 void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
-    // N = Expectation of [phi - rho / lambda]
+    /*  N = Expectation of [phi - rho / lambda]. */
     kf->state_mean[i] = dd_measurements[i] - dd_measurements[i + num_dds] / GPS_L1_LAMBDA_NO_VAC;
-    // Sigma begins as a diagonal
+    /*  Sigma begins as a diagonal. */
     kf->state_cov_D[i] = init_var;
   }
   matrix_eye(num_dds, kf->state_cov_U);
@@ -514,7 +471,7 @@ void QR_part1(integer m, integer n, double *A, double *tau)
           A, &m,
           jpvt,
           tau,
-          work, &lwork, &info); //set A = QR(A)
+          work, &lwork, &info); /* set A = QR(A). */
 }
 
 void QR_part2(integer m, integer n, double *A, double *tau)
@@ -536,18 +493,11 @@ void QR_part2(integer m, integer n, double *A, double *tau)
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
 {
-  // use either GEQRF or GEQP3. GEQP3 is the version with pivoting
-  // int dgeqrf_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-  //       lda, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork, __CLPK_integer *info)
-  // int dgeqp3_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-  //       lda, __CLPK_integer *jpvt, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork,
-  //        __CLPK_integer *info)
-
-  //DE is num_sats-1 by 3, need to transpose it to column major
+  /* DE is num_sats-1 by 3, need to transpose it to column major. */
   double A[num_dds * num_dds];
   for (u8 i=0; i < num_dds; i++) {
     for (u8 j=0; j<3; j++) {
-      A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
+      A[j*num_dds + i] = DE_mtx[i*3 + j]; /* set A = Transpose(DE_mtx). */
     }
   }
   integer m = num_dds;
@@ -555,10 +505,11 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
   double tau[3];
   QR_part1(m, n, A, tau);
   QR_part2(m, n, A, tau);
-  memcpy(q, &A[3*num_dds], (MAX(3, num_dds) - 3) * num_dds * sizeof(double));
+  memcpy(q, &A[3*num_dds], CLAMP_DIFF(num_dds, 3) * num_dds * sizeof(double));
 }
 
-void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd_obs_cov) //TODO this could be made more efficient, if it matters
+/* TODO this could be made more efficient, if it matters. */
+void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd_obs_cov)
 {
   for (u8 i = 0; i < num_dds; i++) {
     for (u8 j = 0; j < num_dds; j++) {
@@ -576,50 +527,46 @@ void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd
   }
 }
 
-void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, double *q, double *r_cov) //TODO make this more efficient (e.g. via pages 3/6.2-3/2014 of ian's notebook)
+/* TODO make this more efficient (e.g. via pages 3/6.2-3/2014 of ian's notebook). */
+void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, double *q, double *r_cov)
 {
   double dd_obs_cov[4 * num_dds * num_dds];
   assign_dd_obs_cov(num_dds, phase_var, code_var, dd_obs_cov);
-  integer nullspace_dim = MAX(num_dds, 3) - 3;;
+  integer nullspace_dim = CLAMP_DIFF(num_dds, 3);
   integer dd_dim = 2*num_dds;
   integer res_dim = num_dds + nullspace_dim;
   double q_tilde[res_dim * dd_dim];
   memset(q_tilde, 0, res_dim * dd_dim * sizeof(double));
-  // MAT_PRINTF(obs_cov, dd_dim, dd_dim);
 
-  // MAT_PRINTF(q, nullspace_dim, num_dds);
   for (u8 i=0; i<nullspace_dim; i++) {
     memcpy(&q_tilde[i*dd_dim], &q[i*num_dds], num_dds * sizeof(double));
   }
-  // MAT_PRINTF(q_tilde, res_dim, dd_dim);
   for (u8 i=0; i<num_dds; i++) {
     q_tilde[(i+nullspace_dim)*dd_dim + i] = 1;
     q_tilde[(i+nullspace_dim)*dd_dim + i+num_dds] = -1 / GPS_L1_LAMBDA_NO_VAC;
   }
-  // MAT_PRINTF(q_tilde, res_dim, dd_dim);
 
-  //TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx
+  /* TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx. */
   double QC[res_dim * dd_dim];
-  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
-              res_dim, dd_dim, // int M, int N
-              1, dd_obs_cov, dd_dim, // double alpha, double *A, int lda
-              q_tilde, dd_dim, // double *B, int ldb
-              0, QC, dd_dim); // double beta, double *C, int ldc
-  // MAT_PRINTF(QC, res_dim, dd_dim);
+  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, /* CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO. */
+              res_dim, dd_dim,                       /* int M, int N. */
+              1, dd_obs_cov, dd_dim,                 /* double alpha, double *A, int lda. */
+              q_tilde, dd_dim,                       /* double *B, int ldb. */
+              0, QC, dd_dim);                        /* double beta, double *C, int ldc. */
 
-  //TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
-              res_dim, res_dim, dd_dim, // int M, int N, int K
-              1, QC, dd_dim, // double alpha, double *A, int lda
-              q_tilde, dd_dim, //double *B, int ldb
-              0, r_cov, res_dim); //beta, double *C, int ldc
-  // MAT_PRINTF(r_cov_inv, res_dim, res_dim);
+  /* TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx. */
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, /*  CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB. */
+              res_dim, res_dim, dd_dim,                /* int M, int N, int K. */
+              1, QC, dd_dim,                           /* double alpha, double *A, int lda. */
+              q_tilde, dd_dim,                         /* double *B, int ldb. */
+              0, r_cov, res_dim);                      /* beta, double *C, int ldc. */
 }
 
-void invert_U(u8 res_dim, double *U) // in place inversion of U
+/*  In place inversion of U. */
+void invert_U(u8 res_dim, double *U)
 {
-  char uplo = 'U'; //upper triangular
-  char diag = 'U'; //unit triangular
+  char uplo = 'U'; /* upper triangular. */
+  char diag = 'U'; /* unit triangular. */
   integer dim = res_dim;
   integer lda = res_dim;
   integer info;
@@ -641,47 +588,51 @@ void assign_simple_sig(u8 num_dds, double var, double *simple_cov)
   }
 }
 
-// from get_kf_matrices:
-// U^-1 * y == y'
-//           = U^-1 * H * x
-//          == H' * x
-//
-// H = ( Q )
-//     ( I )
-// where Q's rows form a basis for the left null space for DE
+/* From get_kf_matrices:
+ * U^-1 * y == y'
+ *           = U^-1 * H * x
+ *          == H' * x
+ *
+ * H = ( Q )
+ *     ( I )
+ * where Q's rows form a basis for the left null space for DE
+ */
 void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
                     double *Q, double *U_inv, double *H_prime)
 {
-  // set the H_prime variable to equal H
+  /*  set the H_prime variable to equal H. */
   memcpy(H_prime, Q, constraint_dim * num_dds * sizeof(double));
   matrix_eye(num_dds, &H_prime[constraint_dim * num_dds]);
 
-  // multiply H_prime by U_inv to make it the actual H_prime
-  cblas_dtrmm(CblasRowMajor, CblasLeft, CblasUpper, CblasNoTrans, CblasUnit, // CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG
-              res_dim, num_dds, //M, N
-              1, U_inv, res_dim, //alpha, A, lda
-              H_prime, num_dds); //B, ldb
+  /*  multiply H_prime by U_inv to make it the actual H_prime. */
+  cblas_dtrmm(CblasRowMajor, CblasLeft, CblasUpper, CblasNoTrans, CblasUnit,
+              /* ^ CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO, CBLAS_TRANSPOSE, CBLAS_DIAG. */
+              res_dim, num_dds,  /* M, N. */
+              1, U_inv, res_dim, /* alpha, A, lda. */
+              H_prime, num_dds); /* B, ldb. */
 }
 
-// y = H * x
-// Var[y] = Sig = U * D * U^T
-// ==> Var[U^-1 * y] = D
-// U^-1 * y == y'
-//           = U^-1 * H * x
-//          == H' * x
-//
-// H = ( Q )
-//     ( I )
-// where Q's rows form a basis for the left null space for DE
-//
-// Sig = Q~ * Sig_v * Q~^T
-//   where    Q~ = ( Q   0        )
-//                 ( I  -I/lambda )
-//     and Sig_v = ( D*D^T * var_phi   0               )
-//                 ( 0                 D*D^T * var_rho )
-//     and D*D^T = 1*1^T + I
-//
-// This function constructs D, U^-1, and H'
+/* REQUIRES num_sdiffs > 0 */
+/* y = H * x
+ * Var[y] = Sig = U * D * U^T
+ * ==> Var[U^-1 * y] = D
+ * U^-1 * y == y'
+ *           = U^-1 * H * x
+ *          == H' * x
+ *
+ * H = ( Q )
+ *     ( I )
+ * where Q's rows form a basis for the left null space for DE
+ *
+ * Sig = Q~ * Sig_v * Q~^T
+ *   where    Q~ = ( Q   0        )
+ *                 ( I  -I/lambda )
+ *     and Sig_v = ( D*D^T * var_phi   0               )
+ *                 ( 0                 D*D^T * var_rho )
+ *     and D*D^T = 1*1^T + I
+ *
+ * This function constructs D, U^-1, and H'
+ */
 void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double ref_ecef[3],
                      double phase_var, double code_var,
@@ -689,72 +640,66 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
                      double *U_inv, double *D,
                      double *H_prime)
 {
-  u8 num_dds = MAX(1, num_sdiffs) - 1;
-  u8 constraint_dim = MAX(num_dds, 3) - 3;;
+  assert (num_sdiffs > 0);
+
+  u8 num_dds = num_sdiffs - 1;
+  u8 constraint_dim = CLAMP_DIFF(num_dds, 3);
   u8 res_dim = num_dds + constraint_dim;
 
   double Sig[res_dim * res_dim];
 
-  //assign Sig and H
+  /* assign Sig and H. */
   if (constraint_dim > 0) {
     double DE[num_dds * 3];
     assign_de_mtx(num_sdiffs, sdiffs_with_ref_first, ref_ecef, DE);
     assign_phase_obs_null_basis(num_dds, DE, null_basis_Q);
     assign_residual_obs_cov(num_dds, phase_var, code_var, null_basis_Q, Sig);
-    //TODO U seems to have that fancy blockwise structure we love so much. Use it
-    matrix_udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
+    /* TODO U seems to have that fancy blockwise structure we love so much. Use it. */
+    matrix_udu(res_dim, Sig, U_inv, D); /* U_inv holds U after this. */
     invert_U(res_dim, U_inv);
-    //TODO this also has fancy structure
+    /* TODO this also has fancy structure. */
     assign_H_prime(res_dim, constraint_dim, num_dds, null_basis_Q, U_inv, H_prime);
   }
   else {
     assign_simple_sig(num_dds,
                       phase_var + code_var / (GPS_L1_LAMBDA_NO_VAC * GPS_L1_LAMBDA_NO_VAC),
                       Sig);
-    matrix_udu(res_dim, Sig, U_inv, D); //U_inv holds U after this
+    matrix_udu(res_dim, Sig, U_inv, D); /* U_inv holds U after this. */
     invert_U(res_dim, U_inv);
 
-    // H = I in this case, so H' = U^-1 * H = U^-1
+    /* H = I in this case, so H' = U^-1 * H = U^-1. */
     memcpy(H_prime, U_inv, num_dds * num_dds * sizeof(double));
   }
 
 }
 
 
+/* REQUIRES num_sats > 1 */
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
   if (DEBUG_AMB_KF) {
-      printf("<SET_NKF>\n");
+    printf("<SET_NKF>\n");
   }
-  u32 state_dim = num_sdiffs - 1;
-  u32 num_diffs = num_sdiffs - 1;
-  kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(3, num_sdiffs) - 3;
-  kf->obs_dim = num_diffs + constraint_dim;
+
   kf->amb_drift_var = amb_drift_var;
-
-  get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
-                  ref_ecef,
-                  phase_var, code_var,
-                  kf->null_basis_Q,
-                  kf->decor_mtx, kf->decor_obs_cov,
-                  kf->decor_obs_mtx);
-
-  // given plain old measurements, initialize the state
+  set_nkf_matrices(kf, phase_var, code_var, num_sdiffs, sdiffs_with_ref_first, ref_ecef);
+  /* Given plain old measurements, initialize the state. */
   initialize_state(kf, dd_measurements, amb_init_var);
+
   if (DEBUG_AMB_KF) {
-      printf("</SET_NKF>\n");
+    printf("</SET_NKF>\n");
   }
 }
 
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3])
 {
-  u32 state_dim = MAX(1, num_sdiffs) - 1;
-  u32 num_diffs = MAX(1, num_sdiffs) - 1;
-  kf->state_dim = state_dim;
-  u32 constraint_dim = MAX(3, num_diffs) - 3;
+  assert(num_sdiffs > 1);
+
+  u32 num_diffs = num_sdiffs - 1;
+  kf->state_dim = num_sdiffs - 1;
+  u32 constraint_dim = CLAMP_DIFF(num_diffs, 3);
   kf->obs_dim = num_diffs + constraint_dim;
 
   get_kf_matrices(num_sdiffs, sdiffs_with_ref_first,
@@ -775,15 +720,19 @@ s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
   return -1;
 }
 
+/* REQUIRES num_sats > 1 */
 void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
+  u8 state_dim = num_sats - 1;
+
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  double new_mean[num_sats-1];
+  double new_mean[state_dim];
   s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats, new_ref, &old_prns[1]);
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
-  for (u8 i=0; i<num_sats-1; i++) {
+  for (u8 i=0; i<state_dim; i++) {
     u8 new_prn = new_prns[1+i];
     if (new_prn == old_ref) {
       new_mean[i] = - val_for_new_ref_in_old_basis;
@@ -793,56 +742,61 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
       new_mean[i] = mean[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
   }
-  memcpy(mean, new_mean, (num_sats-1) * sizeof(double));
+  memcpy(mean, new_mean, (state_dim) * sizeof(double));
 }
 
+/* REQUIRES num_sats > 1 */
 void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
 {
+  assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
+
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
-  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(state_dim, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(state_dim, old_ref, &new_prns[1]);
   for (u8 i=0; i<state_dim; i++) {
     rebase_mtx[i*state_dim + index_of_new_ref_in_old] = -1;
     if (i != (u8) index_of_old_ref_in_new) {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(state_dim, new_prns[i+1], &old_prns[1]);
       rebase_mtx[i*state_dim + index_of_this_sat_in_old_basis] = 1;
     }
   }
-  // MAT_PRINTF(rebase_mtx, state_dim, state_dim);
 }
 
-
+/* REQUIRES num_sats > 1 */
 void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
+
   double rebase_mtx[state_dim * state_dim];
   assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
 
   double intermediate_cov[state_dim * state_dim];
-  //TODO make more efficient via structure of rebase_mtx
-  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, //CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO
-              state_dim, state_dim, // int M, int N
-              1, state_cov, state_dim, // double alpha, double *A, int lda
-              rebase_mtx, state_dim, // double *B, int ldb
-              0, intermediate_cov, state_dim); // double beta, double *C, int ldc
-  // MAT_PRINTF(intermediate_cov, state_dim, state_dim);
+  /* TODO make more efficient via structure of rebase_mtx. */
+  cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, /* CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO. */
+              state_dim, state_dim,                  /* int M, int N. */
+              1, state_cov, state_dim,               /* double alpha, double *A, int lda. */
+              rebase_mtx, state_dim,                 /* double *B, int ldb. */
+              0, intermediate_cov, state_dim);       /* double beta, double *C, int ldc. */
 
-  //TODO make more efficient via the structure of rebase_mtx
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, // CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB
-              state_dim, state_dim, state_dim, // int M, int N, int K
-              1, intermediate_cov, state_dim, // double alpha, double *A, int lda
-              rebase_mtx, state_dim, //double *B, int ldb
-              0, state_cov, state_dim); //beta, double *C, int ldc
-  // MAT_PRINTF(state_cov, state_dim, state_dim);
+  /* TODO make more efficient via the structure of rebase_mtx. */
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, /* CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB. */
+              state_dim, state_dim, state_dim,         /* int M, int N, int K. */
+              1, intermediate_cov, state_dim,          /* double alpha, double *A, int lda. */
+              rebase_mtx, state_dim,                   /* double *B, int ldb. */
+              0, state_cov, state_dim);                /* beta, double *C, int ldc. */
 }
 
+/* REQUIRES num_sats > 1 */
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
+
   double state_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
   rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);
@@ -850,8 +804,10 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 }
 
 
+/* REQUIRES num_sats > 1 */
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
 {
+  assert(num_sats > 1);
   rebase_mean_N(kf->state_mean, num_sats, old_prns, new_prns);
   rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
@@ -864,7 +820,6 @@ void nkf_state_projection(nkf_t *kf,
   u8 old_state_dim = num_old_non_ref_sats;
   double old_cov[old_state_dim * old_state_dim];
   matrix_reconstruct_udu(old_state_dim, kf->state_cov_U, kf->state_cov_D, old_cov);
-  /*MAT_PRINTF(old_cov, old_state_dim, old_state_dim);*/
 
   u8 new_state_dim = num_new_non_ref_sats;
   double new_cov[new_state_dim * new_state_dim];
@@ -878,12 +833,11 @@ void nkf_state_projection(nkf_t *kf,
       new_cov[i*new_state_dim + j] = old_cov[ndxi*old_state_dim + ndxj];
     }
   }
-  /*MAT_PRINTF(new_cov, new_state_dim, new_state_dim);*/
 
-  //put it all back into the kf
+  /* Put it all back into the kf. */
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
   matrix_udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
-  //NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE
+  /* NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE. */
 }
 
 void nkf_state_inclusion(nkf_t *kf,
@@ -900,7 +854,6 @@ void nkf_state_inclusion(nkf_t *kf,
   double new_cov[new_state_dim * new_state_dim];
   memset(new_cov, 0, new_state_dim * new_state_dim * sizeof(double));
   double new_mean[new_state_dim];
-  // initialize_state(kf, dd_measurements, amb_init_var); //TODO do we really want to initialize new states this way?
   memset(new_mean, 0, new_state_dim * sizeof(double));
   for (u8 i=0; i<num_new_non_ref_sats; i++) {
     new_cov[i*new_state_dim + i] = int_init_var;

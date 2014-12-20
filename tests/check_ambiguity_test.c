@@ -5,11 +5,12 @@
 #include <math.h>
 
 #include <ambiguity_test.h>
+#include <printing_utils.h>
 
 #include "check_utils.h"
 
 
-// assure that when the sdiffs match amb_test's sats, amb_test's sats are unchanged
+/* Assure that when the sdiffs match amb_test's sats, amb_test's sats are unchanged. */
 START_TEST(test_update_sats_same_sats)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 4,
@@ -29,11 +30,11 @@ START_TEST(test_update_sats_same_sats)
 }
 END_TEST
 
-//assure that when we've lost the reference, we choose a new one and rebase everything
+/* Assure that when we've lost the reference, we choose a new one and rebase everything. */
 START_TEST(test_update_sats_rebase)
 {
   ambiguity_test_t amb_test;
-  create_ambiguity_test(&amb_test);
+  create_empty_ambiguity_test(&amb_test);
 
   amb_test.sats.num_sats = 4;
   amb_test.sats.prns[0] = 3;
@@ -59,19 +60,21 @@ START_TEST(test_update_sats_rebase)
   fail_unless(amb_test.sats.prns[0] == 4);
   fail_unless(amb_test.sats.prns[1] == 1);
   fail_unless(amb_test.sats.prns[2] == 2);
+  printf("N0: %i\n", hyp->N[0]);
+  printf("N1: %i\n", hyp->N[1]);
+  printf("N2: %i\n", hyp->N[2]);
   fail_unless(hyp->N[0] == -2);
   fail_unless(hyp->N[1] == -1);
 }
 END_TEST
 
-//void ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 START_TEST(test_ambiguity_update_reference)
 {
   srandom(1);
 
   ambiguity_test_t amb_test = {.sats = {.num_sats = 4, 
                                         .prns = {3,1,2,4}}};
-  create_ambiguity_test(&amb_test);
+  create_empty_ambiguity_test(&amb_test);
 
   sdiff_t sdiffs[4] = {{.prn = 1, .snr = 0},
                        {.prn = 2, .snr = 0}, 
@@ -100,7 +103,6 @@ START_TEST(test_ambiguity_update_reference)
 }
 END_TEST
 
-//s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 START_TEST(test_sats_match)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 3,
