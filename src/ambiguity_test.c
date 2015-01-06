@@ -30,6 +30,7 @@
 #define DECORRELATED_PHASE_BIAS_VAR 0
 #define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
+#define SINGLE_OBS_CHISQ_THRESHOLD 20
 
 #define DEBUG_AMBIGUITY_TEST 0
 
@@ -369,7 +370,9 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
   double q = get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
   hyp->ll += q;
   x->max_ll = MAX(x->max_ll, hyp->ll);
-  return (abs(q) < 20);
+  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD); 
+  /* Doesn't appear to need a dependence on d.o.f. to be effective.
+   * We should revisit SINGLE_OBS_CHISQ_THRESHOLD when our noise model is tighter. */
 }
 
 /** Keeps track of which integer ambiguities are uninimously agreed upon in the pool.
