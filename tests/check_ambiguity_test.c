@@ -178,7 +178,7 @@ START_TEST(test_amb_sat_inclusion)
   resize_matrix(state_dim, state_dim, dim, dim, cov_mat, block);
 
   printf("test covariance matrix:\n");
-  dmtx_printf(block, dim, dim);
+  print_double_mtx(block, dim, dim);
 
   double u[dim * dim];
   double d[dim * dim];

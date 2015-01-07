@@ -79,7 +79,6 @@ void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
-void print_hyp(void *arg, element_t *elem);
 s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,

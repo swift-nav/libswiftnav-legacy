@@ -59,26 +59,6 @@
  *  Routines for working with matrices.
  * \{ */
 
-void dmtx_printf(double *mtx, u32 m, u32 n)
-{
-  for (u32 i = 0; i < m; i++) {
-    printf(" [% 12lf", mtx[i*n + 0]);
-    for (u32 j = 1; j < n; j++)
-      printf(" % 12lf", mtx[i*n + j]);
-    printf("]\n");
-  }
-}
-
-void dmtx_printi(s32 *mtx, u32 m, u32 n)
-{
-  for (u32 i = 0; i < m; i++) {
-    printf(" [%"PRIi32"", mtx[i*n + 0]);
-    for (u32 j = 1; j < n; j++)
-      printf(" %"PRIi32"", mtx[i*n + j]);
-    printf("]\n");
-  }
-}
-
 void submatrix(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
                const u32 *new_row_to_old, const u32 *new_col_to_old,
                double *new)

@@ -910,42 +910,6 @@ bool inside(u32 dim, z_t *point, s32 *lower_bounds, s32 *upper_bounds)
   return true;
 }
 
-//TODO(dsk) uncomment
-//void print_Z(s8 label, u8 full_dim, u8 new_dim, z_t * Z)
-//{
-//  printf("Z %i:\n", label);
-//  dmtx_printf(Z, full_dim, new_dim);
-//}
-
-// TODO(dsk) move to print_utilities file
-//static void print_intersection_state(intersection_count_t *x)
-//{
-//  u8 full_dim = x->old_dim + x->new_dim;
-//
-//  printf("itr lower bounds:\n");
-//  for (u8 i = 0; i < x->new_dim; i++) {
-//    printf("%"PRIi32"\n", x->itr_lower_bounds[i]);
-//  }
-//  printf("itr upper bounds:\n");
-//  for (u8 i = 0; i < x->new_dim; i++) {
-//    printf("%"PRIi32"\n", x->itr_upper_bounds[i]);
-//  }
-//  printf("box lower bounds:\n");
-//  for (u8 i = 0; i < full_dim; i++) {
-//    printf("%"PRIi32"\n", x->box_lower_bounds[i]);
-//  }
-//  printf("box upper bounds:\n");
-//  for (u8 i = 0; i < full_dim; i++) {
-//    printf("%"PRIi32"\n", x->box_upper_bounds[i]);
-//  }
-//  printf("transformation matrix:\n");
-//  print_Z(68, full_dim, x->new_dim, x->Z);
-//  printf("z1:\n");
-//  dmtx_printf(x->Z1, full_dim, full_dim);
-//  printf("z2_inv:\n");
-//  dmtx_printf(x->Z2_inv, x->new_dim, x->new_dim);
-//}
-
 /* Initializes x->zimage */
 void init_intersection_count_vector(intersection_count_t *x, hypothesis_t *hyp)
 {
@@ -1201,8 +1165,6 @@ static u8 inclusion_loop_body(
     float_to_decor(addible_cov, addible_mean,
       num_addible_dds, num_dds_to_add,
       x->itr_lower_bounds, x->itr_upper_bounds, x->Z2, x->Z2_inv);
-
-  //matrix_inverse(num_dds_to_add, x->Z2, x->Z2_inv);
 
   compute_Z(num_current_dds, num_dds_to_add, x->Z1, x->Z2_inv, x->Z);
 
@@ -1617,7 +1579,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
 
     if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
       printf("1\n");
-      create_ambiguity_test(amb_test); //TODO is create_ambiguity_test any better than reset_ambiguity_test here? does reset even need to exist
+      create_ambiguity_test(amb_test); 
     }
 
     // u8 num_dds_in_intersection = ambiguity_order_sdiffs_with_intersection(amb_test, sdiffs, float_cov, intersection_ndxs);
@@ -1826,18 +1788,6 @@ void recorrelate_added_sats(void *arg, element_t *elem_)
     }
   }
   memcpy(&elem->N[params->num_old_dds], recorrelated_N, params->num_added_dds * sizeof(s32));
-}
-
-void print_hyp(void *arg, element_t *elem)
-{
-  u8 num_dds = *( (u8 *) arg );
-
-  hypothesis_t *hyp = (hypothesis_t *)elem;
-  printf("[");
-  for (u8 i=0; i< num_dds; i++) {
-    printf("%"PRId32", ", hyp->N[i]);
-  }
-  printf("]: %f\n", hyp->ll);
 }
 
 /* TODO(dsk) remove dead code. */
