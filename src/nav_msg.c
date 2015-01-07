@@ -32,7 +32,7 @@ void nav_msg_init(nav_msg_t *n)
   n->next_subframe_id = 1;
 }
 
-u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
+static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 {
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the subframe. Takes account of the offset stored in n, and the circular
@@ -72,17 +72,16 @@ u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 }
 
 
-s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
+s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
-  /* Called once per tracking loop update (atm fixed at 1 PRN [1 ms]). Performs
-   * the necessary steps to recover the nav bit clock, store the nav bits and
-   * decode them. */
+  /* Called once per tracking loop update. Performs the necessary steps to
+   * recover the nav bit clock, store the nav bits and decode them. */
 
   s32 TOW_ms = -1;
 
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
-  n->bit_phase++;
+  n->bit_phase += ms;
   n->bit_phase %= 20;
 
   if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES) {
@@ -90,90 +89,89 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
     /* No bit phase lock yet. */
     if ((n->nav_bit_integrate > 0) != (corr_prompt_real > 0)) {
       /* Edge detected. */
-      if (n->bit_phase == n->bit_phase_ref)
+      if ((n->bit_phase - 1) % 20 == n->bit_phase_ref)
         /* This edge came N*20 ms after the last one. */
         n->bit_phase_count++;
       else {
         /* Store the bit phase hypothesis. */
-        n->bit_phase_ref = n->bit_phase;
+        n->bit_phase_ref = (n->bit_phase - 1) % 20;
         n->bit_phase_count = 1;
       }
     }
     /* Store the correlation for next time. */
     n->nav_bit_integrate = corr_prompt_real;
+    return -1;
+  }
 
+  /* We have bit phase lock. */
+  n->nav_bit_integrate += corr_prompt_real;
+
+  if (n->bit_phase != n->bit_phase_ref)
+    return -1;
+
+  /* Dump the nav bit, i.e. determine the sign of the correlation over the
+   * nav bit period. */
+
+  /* Is bit 1? */
+  if (n->nav_bit_integrate > 0) {
+    n->subframe_bits[n->subframe_bit_index >> 5] |= \
+      1 << (31 - (n->subframe_bit_index & 0x1F));
   } else {
+    /* Integrated correlation is negative, so bit is 0. */
+    n->subframe_bits[n->subframe_bit_index >> 5] &= \
+      ~(1 << (31 - (n->subframe_bit_index & 0x1F)));
+  }
 
-    /* We have bit phase lock. */
-    if (n->bit_phase != n->bit_phase_ref) {
-      /* Sum the correlations over the 20 ms bit period. */
-      n->nav_bit_integrate += corr_prompt_real;
-    } else {
-      /* Dump the nav bit, i.e. determine the sign of the correlation over the
-       * nav bit period. */
+  /* Zero the integrator for the next nav bit. */
+  n->nav_bit_integrate = 0;
 
-      /* Is bit 1? */
-      if (n->nav_bit_integrate > 0) {
-        n->subframe_bits[n->subframe_bit_index >> 5] |= \
-          1 << (31 - (n->subframe_bit_index & 0x1F));
-      } else {
-        /* Integrated correlation is negative, so bit is 0. */
-        n->subframe_bits[n->subframe_bit_index >> 5] &= \
-          ~(1 << (31 - (n->subframe_bit_index & 0x1F)));
-      }
+  n->subframe_bit_index++;
+  if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
+    n->subframe_bit_index = 0;
 
-      /* Zero the integrator for the next nav bit. */
-      n->nav_bit_integrate = 0;
+  /* Yo dawg, are we still looking for the preamble? */
+  if (!n->subframe_start_index) {
+    /* We're going to look for the preamble at a time 360 nav bits ago,
+     * then again 60 nav bits ago. */
+    #define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN*32 - 360)
 
-      n->subframe_bit_index++;
-      if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
-        n->subframe_bit_index = 0;
+    /* Check whether there's a preamble at the start of the circular
+     * subframe_bits buffer. */
+    u8 preamble_candidate = extract_word(n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8, 0);
 
-      /* Yo dawg, are we still looking for the preamble? */
-      if (!n->subframe_start_index) {
-        /* We're going to look for the preamble at a time 360 nav bits ago,
-         * then again 60 nav bits ago. */
-        #define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN*32 - 360)
+    if (preamble_candidate == 0x8B) {
+       n->subframe_start_index = n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
+    }
+    else if (preamble_candidate == 0x74) {
+       n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
+    }
 
-        /* Check whether there's a preamble at the start of the circular
-         * subframe_bits buffer. */
-        u8 preamble_candidate = extract_word(n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8, 0);
+    if (n->subframe_start_index) {
+      // Looks like we found a preamble, but let's confirm.
+      if (extract_word(n, 300, 8, 0) == 0x8B) {
+        // There's another preamble in the following subframe.  Looks good so far.
+        // Extract the TOW:
 
-        if (preamble_candidate == 0x8B) {
-           n->subframe_start_index = n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
-        }
-        else if (preamble_candidate == 0x74) {
-           n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
-        }
+        unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0)); // bit 29 is D30* for the second word, where the TOW resides.
+        TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
+        if (TOW_trunc >= 7*24*60*10)  // Handle end of week rollover
+          TOW_trunc = 0;
 
-        if (n->subframe_start_index) {
-          // Looks like we found a preamble, but let's confirm.
-          if (extract_word(n, 300, 8, 0) == 0x8B) {
-            // There's another preamble in the following subframe.  Looks good so far.
-            // Extract the TOW:
+        if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
+          // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
 
-            unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0)); // bit 29 is D30* for the second word, where the TOW resides.
-            TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
-            if (TOW_trunc >= 7*24*60*10)  // Handle end of week rollover
-              TOW_trunc = 0;
+          // The TOW in the message is for the start of the NEXT subframe.
+          // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
+          if (TOW_trunc)
+            TOW_ms = TOW_trunc * 6000 - (300-60)*20;
+          else  // end of week special case
+            TOW_ms = 7*24*60*60*1000 - (300-60)*20;
+          //printf("TOW = hh:%02d:%02d.%03d\n", (int) (TOW_ms / 60000 % 60), (int)(TOW_ms / 1000 % 60), (int)(TOW_ms % 1000));
 
-            if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
-              // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
-
-              // The TOW in the message is for the start of the NEXT subframe.
-              // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
-              if (TOW_trunc)
-                TOW_ms = TOW_trunc * 6000 - (300-60)*20;
-              else  // end of week special case
-                TOW_ms = 7*24*60*60*1000 - (300-60)*20;
-              //printf("TOW = hh:%02d:%02d.%03d\n", (int) (TOW_ms / 60000 % 60), (int)(TOW_ms / 1000 % 60), (int)(TOW_ms % 1000));
-
-            } else
-              n->subframe_start_index = 0;  // the TOW counts didn't match - disregard.
-          } else
-            n->subframe_start_index = 0;    // didn't find a second preamble in the right spot - disregard.
-        }
-      }
+        } else
+          n->subframe_start_index = 0;  // the TOW counts didn't match - disregard.
+      } else
+        n->subframe_start_index = 0;    // didn't find a second preamble in the right spot - disregard.
     }
   }
   return TOW_ms;
