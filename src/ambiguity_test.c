@@ -1268,7 +1268,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
 
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds);
 
-  /* Reorder the covariance matrix basis so that new sats come first: */
+  /* Reorder the covariance matrix basis so that old sats come first: */
   /* [ old_sats | new_sats ] */
   u32 reordering[state_dim];
   memcpy(reordering, ndxs_of_old_dds_in_float, num_old_dds * sizeof(u32));
@@ -1300,6 +1300,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
   x.new_dim = num_addible_dds;
   x.old_dim = num_current_dds;
   x.counter = counter;
+  // TODO(dsk) clarify name in struct
   x.box_lower_bounds = lower_bounds1;
   x.box_upper_bounds = upper_bounds1;
   x.itr_lower_bounds = lower_bounds2;
@@ -1340,7 +1341,9 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
       return 1;
     }
   }
-  printf("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
+  if (DEBUG_AMBIGUITY_TEST) {
+    printf("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
+  }
   /* Covariance too large, nothing added. */
   return 0;
 }
