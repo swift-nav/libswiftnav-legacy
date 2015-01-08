@@ -53,23 +53,23 @@
 #define MATRIX_EPSILON (1e-60)
 
 
-
-void dmtx_printf(double *mtx, u32 m, u32 n)
-{
-  for (u32 i = 0; i < m; i++) {
-    printf(" [% 12lf", mtx[i*n + 0]);
-    for (u32 j = 1; j < n; j++)
-      printf(" % 12lf", mtx[i*n + j]);
-    printf("]\n");
-  }
-}
-
-
 /* \} */
 
 /** \defgroup matrices Matrix Mathematics
  *  Routines for working with matrices.
  * \{ */
+
+void submatrix(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
+               const u32 *new_row_to_old, const u32 *new_col_to_old,
+               double *new)
+{
+  for (u32 i = 0; i < new_rows; i++) {
+    for (u32 j = 0; j < new_cols; j++) {
+      new[i*new_cols + j] = old[new_row_to_old[i]*old_cols + new_col_to_old[j]];
+    }
+  }
+}
+
 
 /** QR decomposition of a matrix.
  * Compute the QR decomposition of an arbitrary matrix \f$ A \in
@@ -774,7 +774,20 @@ inline int matrix_ataati(u32 n, u32 m, const double *a, double *b) {
  *  \param c            Output matrix
  */
 inline void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
-                            const double *b, double *c) {
+                            const double *b, double *c)
+{
+  u32 i, j, k;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < p; j++) {
+      c[p*i + j] = 0;
+      for (k = 0; k < m; k++)
+        c[p*i + j] += a[m*i+k] * b[p*k + j];
+    }
+}
+
+inline void matrix_multiply_i(u32 n, u32 m, u32 p, const s32 *a,
+                              const s32 *b, s32 *c)
+{
   u32 i, j, k;
   for (i = 0; i < n; i++)
     for (j = 0; j < p; j++) {

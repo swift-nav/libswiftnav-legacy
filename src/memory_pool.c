@@ -11,6 +11,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "memory_pool.h"
@@ -763,6 +764,7 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
 }
 
 s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, size_t x_size,
+                                  s8 (*init)(void *x, element_t *elem),
                                   s8 (*next)(void *x, u32 n),
                                   void (*prod)(element_t *new, void *x, u32 n, element_t *elem))
 {
@@ -779,23 +781,29 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, siz
      * of a generated element and the current element from the old list. */
     u8 x_work[x_size];
     memcpy(x_work, x0, x_size);
+
+    s8 not_empty = init(x_work, p->elem);
+
     u32 x_count = 0;
-    do {
-      if (x_count > max_xs) {
-        /* Exceded maximum number of generator iterations. */
-        return -3;
-      }
-      element_t *new = memory_pool_add(pool);
-      if (!new) {
-        /* Pool is full. */
-        return -2;
-      }
-      /* Initialize the element to the same as the original element. */
-      memcpy(new, p->elem, pool->element_size);
-      prod(new, x_work, x_count, p->elem);
-      x_count++;
-      count++;
-    } while (next(x_work, x_count));
+    /* point is false if there are no elements to produce for the current element. */
+    if (not_empty) {
+      do {
+        if (x_count > max_xs) {
+          /* Exceded maximum number of generator iterations. */
+          return -3;
+        }
+        element_t *new = memory_pool_add(pool);
+        if (!new) {
+          /* Pool is full. */
+          return -2;
+        }
+        /* Initialize the element to the same as the original element. */
+        memcpy(new, p->elem, pool->element_size);
+        prod(new, x_work, x_count, p->elem);
+        x_count++;
+        count++;
+      } while (next(x_work, x_count));
+    }
 
     /* Store pointer to next node to process. */
     node_t *next_p = p->hdr.next;

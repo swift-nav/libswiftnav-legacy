@@ -220,6 +220,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
 END_TEST
 
 
+// TODO(dsk) update these tests
 /* Check that it works with the first sdiff as the reference sat.
  * This should verify that the loop can start correctly.*/
 START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
@@ -236,7 +237,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   s32 Z_inv[16];
   matrix_eye_s32(4, Z_inv);
 
-  add_sats(&ambiguity_test,
+  add_sats_old(&ambiguity_test,
            1,
            4, prns,
            lower, upper,
@@ -281,7 +282,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   s32 Z_inv[16];
   matrix_eye_s32(4, Z_inv);
 
-  add_sats(&ambiguity_test,
+  add_sats_old(&ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,
@@ -326,7 +327,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   s32 Z_inv[16];
   matrix_eye_s32(4, Z_inv);
 
-  add_sats(&ambiguity_test,
+  add_sats_old(&ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,
@@ -371,7 +372,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   s32 Z_inv[16];
   matrix_eye_s32(4, Z_inv);
 
-  add_sats(&ambiguity_test,
+  add_sats_old(&ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,

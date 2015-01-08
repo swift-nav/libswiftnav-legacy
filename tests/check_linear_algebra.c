@@ -666,6 +666,25 @@ START_TEST(test_qrsolve_rect) {
 END_TEST
 */
 
+START_TEST(test_submatrix) {
+  printf("submatrix test\n");
+  const double A[3 * 3] = {
+    0,1,2,3,4,5,6,7,8};
+  double A2[2 * 2];
+  u32 row_map[2] = {1,2};
+  u32 col_map[2] = {0,1};
+  const double answer[2 * 2] = {
+    3,4,6,7};
+
+  submatrix(2,2,3,A,row_map, col_map, A2);
+  for (u8 i = 0; i < 2*2; i++) {
+    fail_unless(answer[i] == A2[i]);
+  }
+  printf("submatrix OK\n");
+}
+END_TEST
+
+
 Suite* linear_algebra_suite(void) {
   Suite *s = suite_create("Linear algebra");
 
@@ -696,6 +715,8 @@ Suite* linear_algebra_suite(void) {
   tcase_add_test(tc_core, test_vector_three);
   /*tcase_add_test(tc_core, test_qrsolve_consistency);*/
   /*tcase_add_test(tc_core, test_qrsolve_rect);*/
+
+  tcase_add_test(tc_core, test_submatrix);
   suite_add_tcase(s, tc_core);
 
   return s;
