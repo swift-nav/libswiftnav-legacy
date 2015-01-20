@@ -9,34 +9,39 @@
 
 \tikzstyle{mix} = [draw, circle, node distance=1cm, minimum size=0.7cm]
 \tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
 
 \begin{tikzpicture}[auto, thick, node distance=1cm, >=stealth']
 
   \node [input, name=input] {};
   \node [coordinate, right of=input, name=split] {};
-  \node [gain, right of=split] (ki) {$k_i$};
-  \node [gain, below of=ki, node distance=2.5cm] (kp) {$k_p$};
-  \node [sum, right of=ki, node distance=1.5cm] (sum1) {};
-  \node [coordinate, right of=sum1] (split2) {};
-  \node [simpleblock, below of=split2] (z) {$z^{-1}$};
-  \node [sum, right of=split2] (sum2) {};
-  \node [coordinate, right of=sum2, node distance=1.5cm] (output) {};
+  \node [simpleblock, below of=split, name=xdelay] {$z^{-1}$};
+  \node [gain, right of=split] (b0) {$b_0$};
+  \node [gain, below of=b0, node distance=2.5cm] (b1) {$b_1$};
+  \node [sum, right of=b0, node distance=1.5cm] (sum0) {};
+  \node [sum, right of=b1, node distance=1.5cm] (sum1) {};
+  \node [coordinate, right of=sum0, name=split2, node distance=2.5cm] {};
+  \node [simpleblock, below of=split2, name=ydelay] {$z^{-1}$};
+  \node [output, right of=split2] (output) {};
+  %\node [gain, shape border rotate=180, right of=sum1, node distance=1.75cm] (a1) {$-a_1$};
 
-  \draw [-] (input) edge node {$\varepsilon_k$} (split);
-  \draw [->] (split) -- (ki);
-  \draw [->] (split) |- (kp);
-  \draw [->] (ki) -- (sum1);
-  \draw [-] (sum1) -- (split2);
-  \draw [->] (split2) -- (z);
-  \draw [->] (z) -| (sum1);
-  \draw [->] (split2) -- (sum2);
-  \draw [->] (sum2) edge node {$y_k$} (output);
-  \draw [->] (kp) -| (sum2);
+  \draw [-] (input) edge node {$x_n$} (split);
+  \draw [->] (split) -- (b0);
+  \draw [->] (b0) -- (sum0);
+  \draw [->] (split) -- (xdelay);
+  \draw [->] (xdelay) |- (b1);
+  \draw [->] (b1) -- (sum1);
+  \draw [->] (sum1) -- (sum0);
+  \draw [-] (sum0) -- (split2);
+  \draw [->] (split2) edge node {$y_n$} (output);
+  \draw [->] (split2) -- (ydelay);
+  \draw [->] (ydelay) |- (sum1); %(a1);
+  %\draw [->] (a1) -- (sum1);
 
+  \draw [-,thin] (sum0.north) -- (sum0.south);
+  \draw [-,thin] (sum0.east) -- (sum0.west);
   \draw [-,thin] (sum1.north) -- (sum1.south);
   \draw [-,thin] (sum1.east) -- (sum1.west);
-  \draw [-,thin] (sum2.north) -- (sum2.south);
-  \draw [-,thin] (sum2.east) -- (sum2.west);
 
 \end{tikzpicture}
 

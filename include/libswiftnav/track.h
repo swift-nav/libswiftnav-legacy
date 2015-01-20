@@ -26,8 +26,8 @@
  * Should be initialised with aided_lf_init().
  */
 typedef struct {
-  float pgain;         /**< Proportional gain. */
-  float igain;         /**< Integral gain. */
+  float b0;            /**< Filter coefficient. */
+  float b1;            /**< Filter coefficient. */
   float aiding_igain;  /**< Aiding integral gain. */
   float prev_error;    /**< Previous error. */
   float y;             /**< Output variable. */
@@ -37,8 +37,8 @@ typedef struct {
  * Should be initialised with simple_lf_init().
  */
 typedef struct {
-  float pgain;      /**< Proportional gain. */
-  float igain;      /**< Integral gain. */
+  float b0;         /**< Filter coefficient. */
+  float b1;         /**< Filter coefficient. */
   float prev_error; /**< Previous error. */
   float y;          /**< Output variable. */
 } simple_lf_state_t;
@@ -141,7 +141,7 @@ typedef struct {
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
-                     float *pgain, float *igain);
+                     float *b0, float *b1);
 float costas_discriminator(float I, float Q);
 float frequency_discriminator(float I, float Q, float prev_I, float prev_Q);
 float dll_discriminator(correlation_t cs[3]);
