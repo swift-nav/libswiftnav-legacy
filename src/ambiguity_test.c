@@ -31,7 +31,6 @@
 #define DECORRELATED_PHASE_BIAS_VAR 0
 #define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
-#define SINGLE_OBS_CHISQ_THRESHOLD 20
 
 #define DEBUG_AMBIGUITY_TEST 0
 
@@ -292,15 +291,12 @@ typedef struct {
  * of each hypothesis, while performing a fold on those updated log likelihoods
  * to find the likelihood of the MLE hypothesis.
  *
- * If a single observation was sufficiently unlikely to come from this hypothesis, we reject
- * the hypothesis. (In addition to the accumulated relative likelihood that is filtered upon later).
- *
  * To be given to memory_pool_fold().
  *
  * \param x     Points to a hyp_filter_t containing the accumulator and everything needed for the map.
  * \param elem  The hypothesis to be mapAccum'd.
  */
-s8 update_and_get_max_ll(void *x_, element_t *elem) {
+void update_and_get_max_ll(void *x_, element_t *elem) {
   hyp_filter_t *x = (hyp_filter_t *) x_;
   hypothesis_t *hyp = (hypothesis_t *) elem;
   double hypothesis_N[x->num_dds];
@@ -308,12 +304,9 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
   for (u8 i=0; i < x->num_dds; i++) {
     hypothesis_N[i] = hyp->N[i];
   }
-  double q = get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
-  hyp->ll += q;
+
+  hyp->ll += get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
   x->max_ll = MAX(x->max_ll, hyp->ll);
-  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD); 
-  /* Doesn't appear to need a dependence on d.o.f. to be effective.
-   * We should revisit SINGLE_OBS_CHISQ_THRESHOLD when our noise model is tighter. */
 }
 
 /** Keeps track of which integer ambiguities are uninimously agreed upon in the pool.
@@ -414,7 +407,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
   x.unanimous_amb_check = &amb_test->amb_check;
   x.unanimous_amb_check->initialized = 0;
 
-  memory_pool_filter(amb_test->pool, (void *) &x, &update_and_get_max_ll);
+  memory_pool_fold(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   if (memory_pool_empty(amb_test->pool)) {
       /* Initialize pool with single element with num_dds = 0, i.e.
