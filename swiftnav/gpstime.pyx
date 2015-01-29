@@ -31,3 +31,11 @@ cdef class GpsTime:
       return self.gps_time.tow
     def __set__(self, tow):
       self.gps_time.tow = tow
+
+def gpst_components2datetime(wn, tow):
+  dt = datetime.timedelta(weeks=wn, seconds=tow)
+  return dt + datetime.datetime(1980, 1, 6, 0, 0, 0) + \
+      datetime.timedelta(seconds=16)
+
+def gpst2datetime(GpsTime gpst):
+  return gpst_components2datetime(gpst.wn, gpst.tow)
