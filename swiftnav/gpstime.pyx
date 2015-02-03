@@ -8,6 +8,7 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 cimport gpstime_c
+import datetime
 
 cdef class GpsTime:
   #cdef gpstime_c.gps_time_t gps_time
