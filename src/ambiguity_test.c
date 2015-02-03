@@ -12,6 +12,10 @@
 
 #include <assert.h>
 #include <clapack.h>
+#ifdef __WIN32
+  /*Avoid error of this being redefined in math.h*/
+  #undef abs
+#endif
 #include <inttypes.h>
 #include <cblas.h>
 #include <stdio.h>

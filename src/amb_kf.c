@@ -21,6 +21,10 @@
 #include <assert.h>
 #include <cblas.h>
 #include <clapack.h>
+#ifdef __WIN32
+  /*Avoid error of this being redefined in math.h*/
+  #undef abs
+#endif
 #include <math.h>
 #include <linear_algebra.h>
 #include "constants.h"
