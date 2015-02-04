@@ -8,6 +8,11 @@ if (NOT CMAKE_CROSSCOMPILING)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif ()
 
+if (WIN32)
+  set(CMAKE_C_FLAGS "-DUSE_CLOCK")
+  # So USE_CLOCK is defined and headers Windows doesn't have aren't included.
+endif ()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/INCLUDE)
 # Oh dear, f2c what are you doing?
 set(F2C_FAIL_FLAGS "-Wno-parentheses -Wno-unused-parameter -Wno-sign-compare -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format -Wno-format-security -Wno-uninitialized -Wno-self-assign")

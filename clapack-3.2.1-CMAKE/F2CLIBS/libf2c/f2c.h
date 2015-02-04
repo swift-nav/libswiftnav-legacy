@@ -157,8 +157,12 @@ struct Namelist {
 	};
 typedef struct Namelist Namelist;
 
+#ifndef _WIN32
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define dabs(x) (doublereal)abs(x)
+#else
+#define dabs(x) ((x) >= 0 ? (x) : -(x))
+#endif
 #define min(a,b) ((a) <= (b) ? (a) : (b))
 #define max(a,b) ((a) >= (b) ? (a) : (b))
 #define dmin(a,b) (doublereal)min(a,b)
