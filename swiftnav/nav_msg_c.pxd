@@ -16,7 +16,7 @@ cdef extern from "libswiftnav/nav_msg.h":
     pass
 
   void nav_msg_init(nav_msg_t *n)
-  s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real)
+  s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   bool subframe_ready(nav_msg_t *n)
   void process_subframe(nav_msg_t *n, ephemeris_t *e)
 

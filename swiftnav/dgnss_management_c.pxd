@@ -31,10 +31,9 @@ cdef extern from "libswiftnav/dgnss_management.h":
   void measure_amb_kf_b(double reciever_ecef[3], 
                   		u8 num_sdiffs, sdiff_t *sdiffs,
                   		double *b)
-  void measure_b_with_external_ambs(double reciever_ecef[3],
+  void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,
                                   u8 num_sdiffs, sdiff_t *sdiffs,
-                                  double *ambs,
-                                  double *b)
+                                  const double receiver_ecef[3], double *b)
   void measure_iar_b_with_external_ambs(double reciever_ecef[3],
                                       u8 num_sdiffs, sdiff_t *sdiffs,
                                       double *ambs,

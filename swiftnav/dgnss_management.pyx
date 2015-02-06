@@ -239,10 +239,9 @@ def measure_b_with_external_ambs(sdiffs, ambs, reciever_ecef): #TODO eventually,
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
 
-  dgnss_management_c.measure_b_with_external_ambs(&ref_ecef_[0],
-                                                  num_sdiffs, &sdiffs_[0],
-                                                  &ambs_[0],
-                                                  &b[0])
+  dgnss_management_c.measure_b_with_external_ambs(len(ambs), &ambs_[0],
+                                num_sdiffs, &sdiffs_[0],
+                                &ref_ecef_[0], &b[0])
   return b
 
 def alm_measure_b_with_external_ambs(alms, GpsTime timestamp,
@@ -276,11 +275,9 @@ def alm_measure_b_with_external_ambs(alms, GpsTime timestamp,
   
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
-
-  dgnss_management_c.measure_b_with_external_ambs(&ref_ecef_[0],
-                                                  n, &sdiffs[0],
-                                                  &ambs_[0],
-                                                  &b[0])
+  dgnss_management_c.measure_b_with_external_ambs(len(ambs), &ambs_[0],
+                                  n, &sdiffs[0],
+                                  &ref_ecef_[0], &b[0])
   return b
 
 def measure_iar_b_with_external_ambs(sdiffs, ambs, reciever_ecef): #TODO eventually, want to get reciever_ecef from data
