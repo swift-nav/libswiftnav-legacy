@@ -465,7 +465,7 @@ def alm_get_iar_de_and_phase(alms, GpsTime timestamp,
 def dgnss_iar_pool_contains(ambs):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs_ = \
     np.array(ambs, dtype=np.double)
-  return dgnss_management_c.dgnss_iar_pool_contains(&ambs_[0])
+  return dgnss_management_c.dgnss_iar_pool_contains(&ambs_[0]) == 1
 
 def get_amb_kf_mean():
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs = \
