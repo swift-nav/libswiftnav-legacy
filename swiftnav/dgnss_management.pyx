@@ -139,6 +139,9 @@ def alm_dgnss_update(alms, GpsTime timestamp,
   memcpy(&b[0],b_, 3*sizeof(double))
   return b
 
+def dgnss_iar_resolved():
+  return dgnss_management_c.dgnss_iar_resolved() > 0
+
 def dgnss_iar_num_hyps():
   return dgnss_management_c.dgnss_iar_num_hyps()
   
