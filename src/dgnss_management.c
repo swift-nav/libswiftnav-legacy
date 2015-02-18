@@ -306,6 +306,12 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
   if (DEBUG_DGNSS_MANAGEMENT) {
     if (num_sats >=4) {
+      double b3[3];
+      least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b3);
+
+      ref_ecef[0] = reciever_ecef[0] + 0.5 * b3[0];
+      ref_ecef[1] = reciever_ecef[1] + 0.5 * b3[1];
+      ref_ecef[2] = reciever_ecef[2] + 0.5 * b3[2];
       double bb[3];
       u8 num_used;
       dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
