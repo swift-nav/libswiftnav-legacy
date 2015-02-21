@@ -199,7 +199,7 @@ void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_m
                measurements, 1, /*  X, incX. */
                0, resid_measurements, 1); /*  beta, Y, incY. */
   for (u8 i=0; i< kf->state_dim; i++) {
-    resid_measurements[i+constraint_dim] = measurements[i] - measurements[i+kf->state_dim] / GPS_L1_LAMBDA_NO_VAC;
+    resid_measurements[i+constraint_dim] = measurements[i] + measurements[i+kf->state_dim] / GPS_L1_LAMBDA_NO_VAC;
   }
 }
 
@@ -445,8 +445,8 @@ void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
-    /*  N = Expectation of [phi - rho / lambda]. */
-    kf->state_mean[i] = dd_measurements[i] - dd_measurements[i + num_dds] / GPS_L1_LAMBDA_NO_VAC;
+    /*  N = Expectation of [ phi + rho / lambda]. */
+    kf->state_mean[i] = dd_measurements[i] + dd_measurements[i + num_dds] / GPS_L1_LAMBDA_NO_VAC;
     /*  Sigma begins as a diagonal. */
     kf->state_cov_D[i] = init_var;
   }
