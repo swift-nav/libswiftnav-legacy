@@ -311,7 +311,7 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
   double q = get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
   hyp->ll += q;
   x->max_ll = MAX(x->max_ll, hyp->ll);
-  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD); 
+  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD);
   /* Doesn't appear to need a dependence on d.o.f. to be effective.
    * We should revisit SINGLE_OBS_CHISQ_THRESHOLD when our noise model is tighter. */
 }
@@ -532,12 +532,12 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     }
     else if (non_ref_prns[i] > sdiffs[j].prn) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
-       * i prn is higher than the j one, it means that the i one might be in the 
+       * i prn is higher than the j one, it means that the i one might be in the
        * j set for higher j, and that the current j prn isn't in the i set. */
       j++;
     } else {
       /* if both sets are ordered, and we increase j (and possibly i), and the
-       * j prn is higher than the i one, it means that the j one might be in the 
+       * j prn is higher than the i one, it means that the j one might be in the
        * i set for higher i, and that the current i prn isn't in the j set.
        * This means a sat in the IAR's sdiffs isn't in the sdiffs.
        * */
@@ -1106,7 +1106,7 @@ void add_sats(ambiguity_test_t *amb_test,
 }
 
 
-/* 
+/*
  * The satellite inclusion algorithm considers three important vector spaces:
  *  - The correlated space of integer ambiguities considered by the float filter (V0)
  *  - The decorrelated space of all integer ambiguities (V1)
@@ -1558,7 +1558,6 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
     printf("<AMBIGUITY_UPDATE_SATS>\n");
   }
   if (num_sdiffs < 2) {
-    printf("3\n");
     create_ambiguity_test(amb_test);
     if (DEBUG_AMBIGUITY_TEST) {
       printf("< 2 sdiffs, starting over\n</AMBIGUITY_UPDATE_SATS>\n");
@@ -1581,8 +1580,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
     u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
 
     if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
-      printf("1\n");
-      create_ambiguity_test(amb_test); 
+      create_ambiguity_test(amb_test);
     }
 
     // u8 num_dds_in_intersection = ambiguity_order_sdiffs_with_intersection(amb_test, sdiffs, float_cov, intersection_ndxs);
