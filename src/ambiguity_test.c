@@ -668,7 +668,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
 }
 
 
-s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs)
+s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<SATS_MATCH>\namb_test.sats.prns = {");
@@ -687,8 +687,8 @@ s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs)
     }
     return 0;
   }
-  u8 *prns = amb_test->sats.prns;
-  u8 amb_ref = amb_test->sats.prns[0];
+  const u8 *prns = amb_test->sats.prns;
+  const u8 amb_ref = amb_test->sats.prns[0];
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
@@ -751,7 +751,7 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
   memcpy(hypothesis->N, new_N, (num_sats-1) * sizeof(s32));
 }
 
-u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_REFERENCE>\n");
@@ -833,7 +833,7 @@ void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 
 }
 
-u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs)
+u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection, const u8 *dd_intersection_ndxs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_SAT_PROJECTION>\n");
@@ -1198,9 +1198,9 @@ static u8 inclusion_loop_body(
   return 0;
 }
 
-u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
-                           sats_management_t *float_sats, double *float_mean,
-                           double *float_cov_U, double *float_cov_D)
+u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection,
+                           const sats_management_t *float_sats, const double *float_mean,
+                           const double *float_cov_U, const double *float_cov_D)
 {
   if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
     /* Nothing added. */
@@ -1550,9 +1550,23 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
  * INVALIDATES unanimous ambiguities
  * ^ TODO record this in the amb_test state?
  */
-u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                         sats_management_t *float_sats, double *float_mean,
-                         double *float_cov_U, double *float_cov_D)
+/** Add/drop satellites from the ambiguity test, changing reference if needed.
+ * INVALIDATES unanimous ambiguities
+ * \param amb_test    An ambiguity test whose tests to update.
+ * \param num_sdiffs  The length of the sdiffs array.
+ * \param sdiffs      The single differenced observations. Sorted by PRN.
+ * \param float_sats  The satellites to correspond to the KF mean and cov.
+ * \param float_mean  The KF state estimate.
+ * \param float_cov_U The KF state estimate covariance U in UDU decomposiiton.
+ * \param float_cov_D The KF state estimate covariance D in UDU decomposiiton.
+ * \return  0 if we didn't change the sats
+ *          1 if we did change the sats
+ *          2 if we need to reset IAR TODO maybe do that in here?
+ */
+u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
+                         const sdiff_t *sdiffs, const sats_management_t *float_sats,
+                         const double *float_mean, const double *float_cov_U,
+                         const double *float_cov_D)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_SATS>\n");
@@ -1600,7 +1614,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
   /* TODO: Should we order by 'goodness'? Perhaps by volume of hyps? */
 }
 
-u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)
+u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<FIND_INDICES_OF_INTERSECTION_SATS>\n");

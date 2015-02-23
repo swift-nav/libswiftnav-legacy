@@ -710,7 +710,7 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                   kf->decor_obs_mtx);
 }
 
-s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
+s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list)
 {
   for (u32 i=0; i<num_elements; i++) {
     if (x == list[i]) {
@@ -721,7 +721,7 @@ s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -746,7 +746,7 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 }
 
 /* REQUIRES num_sats > 1 */
-void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns, const u8 *new_prns, double *rebase_mtx)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -767,7 +767,7 @@ void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *re
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
