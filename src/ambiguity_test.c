@@ -1540,18 +1540,9 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
   return -1;
 }
 
-/* input/output: amb_test
- * input:        num_sdiffs
- * input:        sdiffs
- * input:        float_sats
- * input:        float_mean
- * input:        float_cov_U
- * input:        float_cov_D
- * INVALIDATES unanimous ambiguities
- * ^ TODO record this in the amb_test state?
- */
 /** Add/drop satellites from the ambiguity test, changing reference if needed.
  * INVALIDATES unanimous ambiguities
+ * ^ TODO record this in the amb_test state?
  * \param amb_test    An ambiguity test whose tests to update.
  * \param num_sdiffs  The length of the sdiffs array.
  * \param sdiffs      The single differenced observations. Sorted by PRN.
