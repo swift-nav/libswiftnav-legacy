@@ -1085,7 +1085,7 @@ static void intersection_hypothesis_prod(element_t *new_, void *x_, u32 n, eleme
   }
 }
 
-void add_sats(ambiguity_test_t *amb_test,
+s32 add_sats(ambiguity_test_t *amb_test,
                u8 ref_prn, u8 *added_prns,
                intersection_count_t *x)
 {
@@ -1101,8 +1101,10 @@ void add_sats(ambiguity_test_t *amb_test,
                   &intersection_generate_next_hypothesis1,
                   &intersection_hypothesis_prod);
   (void) count;
-  printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
+  s32 num_hyps = memory_pool_n_allocated(amb_test->pool);
+  printf("IAR: updates to %"PRIu32"\n", num_hyps);
   printf("add_sats. num sats: %i\n", amb_test->sats.num_sats);
+  return num_hyps;
 }
 
 
@@ -1198,6 +1200,23 @@ static u8 inclusion_loop_body(
   return 0;
 }
 
+/** Perform the inclusion step of adding satellites to the amb test (as we can).
+ * Using the Kalman filter's state estimates, add new satellites to the
+ * hypotheses being tracked. There's a chance the KF has drifted away from
+ * EVERYTHING in the hypothesis pool, so then we have to return an indication
+ * of that.
+ *
+ * \param amb_test                The amb_test struct whose sats we are updating.
+ * \param num_dds_in_intersection The number of DD measurements common between
+ *                                the float filter and the amb_test last timestep.
+ * \param float_sats              The sats for the KF.
+ * \param float_mean              The KF estimate
+ * \param float_cov_U             The KF covariance U (from UDU decomposition)
+ * \param float_cov_D             The KF covariance D (from UDU decomposition)
+ * \returns 0 if we didn't change amb_test's sats
+ *          1 if we changed the sats, but don't need to start over.
+ *          2 if we need to start over (e.g. we have no hypotheses left).
+ */
 u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection,
                            const sats_management_t *float_sats, const double *float_mean,
                            const double *float_cov_U, const double *float_cov_D)
@@ -1337,8 +1356,12 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
     if (fits == 1) {
       /* Sats should be added. The struct x contains new_dim, the correct
        * number to add, along with the matrices needed to do so . */
-      add_sats(amb_test, ref_prn, new_dd_prns, &x);
-      return 1;
+      s32 num_hyps = add_sats(amb_test, ref_prn, new_dd_prns, &x);
+      if (num_hyps == 0) {
+        return 2;
+      } else {
+        return 1;
+      }
     }
   }
   if (DEBUG_AMBIGUITY_TEST) {
@@ -1592,8 +1615,11 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
     if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
       changed_sats = 1;
     }
-    if (ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
-                                float_sats, float_mean, float_cov_U, float_cov_D)) {
+    u8 incl = ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
+                float_sats, float_mean, float_cov_U, float_cov_D);
+    if (incl == 2) {
+      create_ambiguity_test(amb_test);
+    } else if (incl == 1) {
       changed_sats = 1;
     }
   }
