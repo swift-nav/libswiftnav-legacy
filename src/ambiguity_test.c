@@ -2035,7 +2035,9 @@ void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements
               dd_measurements, 1,
               0, r_vec, 1);
   for (u8 i=0; i< num_dds; i++) {
-    r_vec[i + res_mtxs->null_space_dim] = dd_measurements[i] + dd_measurements[i+num_dds] / GPS_L1_LAMBDA_NO_VAC;
+    r_vec[i + res_mtxs->null_space_dim] =
+      simple_amb_measurement(dd_measurements[i],
+                             dd_measurements[i+num_dds]);
   }
 }
 
