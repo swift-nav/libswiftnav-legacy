@@ -35,6 +35,7 @@ typedef struct {
   double state_cov_D[MAX_STATE_DIM];
 } nkf_t;
 
+double simple_amb_measurement(double carrier, double code);
 // void predict_forward(nkf_t *kf);
 void nkf_update(nkf_t *kf, double *measurements);
 
@@ -46,7 +47,7 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3]);
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3]);
-s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list);
+s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list);
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 
 void nkf_state_projection(nkf_t *kf,
@@ -67,8 +68,8 @@ void least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3]);
 
-void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns);
+void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
 
 #endif /* LIBSWIFTNAV_AMBFLOAT_KF_H */
 

@@ -311,7 +311,7 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
   double q = get_quadratic_term(x->res_mtxs, x->num_dds, hypothesis_N, x->r_vec);
   hyp->ll += q;
   x->max_ll = MAX(x->max_ll, hyp->ll);
-  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD); 
+  return (abs(q) < SINGLE_OBS_CHISQ_THRESHOLD);
   /* Doesn't appear to need a dependence on d.o.f. to be effective.
    * We should revisit SINGLE_OBS_CHISQ_THRESHOLD when our noise model is tighter. */
 }
@@ -532,12 +532,12 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     }
     else if (non_ref_prns[i] > sdiffs[j].prn) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
-       * i prn is higher than the j one, it means that the i one might be in the 
+       * i prn is higher than the j one, it means that the i one might be in the
        * j set for higher j, and that the current j prn isn't in the i set. */
       j++;
     } else {
       /* if both sets are ordered, and we increase j (and possibly i), and the
-       * j prn is higher than the i one, it means that the j one might be in the 
+       * j prn is higher than the i one, it means that the j one might be in the
        * i set for higher i, and that the current i prn isn't in the j set.
        * This means a sat in the IAR's sdiffs isn't in the sdiffs.
        * */
@@ -668,7 +668,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
 }
 
 
-s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs)
+s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<SATS_MATCH>\namb_test.sats.prns = {");
@@ -687,8 +687,8 @@ s8 sats_match(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs)
     }
     return 0;
   }
-  u8 *prns = amb_test->sats.prns;
-  u8 amb_ref = amb_test->sats.prns[0];
+  const u8 *prns = amb_test->sats.prns;
+  const u8 amb_ref = amb_test->sats.prns[0];
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
@@ -751,7 +751,7 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
   memcpy(hypothesis->N, new_N, (num_sats-1) * sizeof(s32));
 }
 
-u8 ambiguity_update_reference(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_REFERENCE>\n");
@@ -833,7 +833,7 @@ void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 
 }
 
-u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, u8 num_dds_in_intersection, u8 *dd_intersection_ndxs)
+u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection, const u8 *dd_intersection_ndxs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_SAT_PROJECTION>\n");
@@ -1085,7 +1085,7 @@ static void intersection_hypothesis_prod(element_t *new_, void *x_, u32 n, eleme
   }
 }
 
-void add_sats(ambiguity_test_t *amb_test,
+s32 add_sats(ambiguity_test_t *amb_test,
                u8 ref_prn, u8 *added_prns,
                intersection_count_t *x)
 {
@@ -1101,12 +1101,14 @@ void add_sats(ambiguity_test_t *amb_test,
                   &intersection_generate_next_hypothesis1,
                   &intersection_hypothesis_prod);
   (void) count;
-  printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
+  s32 num_hyps = memory_pool_n_allocated(amb_test->pool);
+  printf("IAR: updates to %"PRIu32"\n", num_hyps);
   printf("add_sats. num sats: %i\n", amb_test->sats.num_sats);
+  return num_hyps;
 }
 
 
-/* 
+/*
  * The satellite inclusion algorithm considers three important vector spaces:
  *  - The correlated space of integer ambiguities considered by the float filter (V0)
  *  - The decorrelated space of all integer ambiguities (V1)
@@ -1198,9 +1200,26 @@ static u8 inclusion_loop_body(
   return 0;
 }
 
-u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
-                           sats_management_t *float_sats, double *float_mean,
-                           double *float_cov_U, double *float_cov_D)
+/** Perform the inclusion step of adding satellites to the amb test (as we can).
+ * Using the Kalman filter's state estimates, add new satellites to the
+ * hypotheses being tracked. There's a chance the KF has drifted away from
+ * EVERYTHING in the hypothesis pool, so then we have to return an indication
+ * of that.
+ *
+ * \param amb_test                The amb_test struct whose sats we are updating.
+ * \param num_dds_in_intersection The number of DD measurements common between
+ *                                the float filter and the amb_test last timestep.
+ * \param float_sats              The sats for the KF.
+ * \param float_mean              The KF estimate
+ * \param float_cov_U             The KF covariance U (from UDU decomposition)
+ * \param float_cov_D             The KF covariance D (from UDU decomposition)
+ * \returns 0 if we didn't change amb_test's sats
+ *          1 if we changed the sats, but don't need to start over.
+ *          2 if we need to start over (e.g. we have no hypotheses left).
+ */
+u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection,
+                           const sats_management_t *float_sats, const double *float_mean,
+                           const double *float_cov_U, const double *float_cov_D)
 {
   if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
     /* Nothing added. */
@@ -1337,8 +1356,12 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, u8 num_dds_in_intersectio
     if (fits == 1) {
       /* Sats should be added. The struct x contains new_dim, the correct
        * number to add, along with the matrices needed to do so . */
-      add_sats(amb_test, ref_prn, new_dd_prns, &x);
-      return 1;
+      s32 num_hyps = add_sats(amb_test, ref_prn, new_dd_prns, &x);
+      if (num_hyps == 0) {
+        return 2;
+      } else {
+        return 1;
+      }
     }
   }
   if (DEBUG_AMBIGUITY_TEST) {
@@ -1540,25 +1563,29 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
   return -1;
 }
 
-/* input/output: amb_test
- * input:        num_sdiffs
- * input:        sdiffs
- * input:        float_sats
- * input:        float_mean
- * input:        float_cov_U
- * input:        float_cov_D
+/** Add/drop satellites from the ambiguity test, changing reference if needed.
  * INVALIDATES unanimous ambiguities
  * ^ TODO record this in the amb_test state?
+ * \param amb_test    An ambiguity test whose tests to update.
+ * \param num_sdiffs  The length of the sdiffs array.
+ * \param sdiffs      The single differenced observations. Sorted by PRN.
+ * \param float_sats  The satellites to correspond to the KF mean and cov.
+ * \param float_mean  The KF state estimate.
+ * \param float_cov_U The KF state estimate covariance U in UDU decomposiiton.
+ * \param float_cov_D The KF state estimate covariance D in UDU decomposiiton.
+ * \return  0 if we didn't change the sats
+ *          1 if we did change the sats
+ *          2 if we need to reset IAR TODO maybe do that in here?
  */
-u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                         sats_management_t *float_sats, double *float_mean,
-                         double *float_cov_U, double *float_cov_D)
+u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
+                         const sdiff_t *sdiffs, const sats_management_t *float_sats,
+                         const double *float_mean, const double *float_cov_U,
+                         const double *float_cov_D)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<AMBIGUITY_UPDATE_SATS>\n");
   }
   if (num_sdiffs < 2) {
-    printf("3\n");
     create_ambiguity_test(amb_test);
     if (DEBUG_AMBIGUITY_TEST) {
       printf("< 2 sdiffs, starting over\n</AMBIGUITY_UPDATE_SATS>\n");
@@ -1581,16 +1608,19 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
     u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
 
     if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
-      printf("1\n");
-      create_ambiguity_test(amb_test); 
+      create_ambiguity_test(amb_test);
     }
 
     // u8 num_dds_in_intersection = ambiguity_order_sdiffs_with_intersection(amb_test, sdiffs, float_cov, intersection_ndxs);
     if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
       changed_sats = 1;
     }
-    if (ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
-                                float_sats, float_mean, float_cov_U, float_cov_D)) {
+    u8 incl = ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
+                float_sats, float_mean, float_cov_U, float_cov_D);
+    if (incl == 2) {
+      create_ambiguity_test(amb_test);
+      changed_sats = 1;
+    } else if (incl == 1) {
       changed_sats = 1;
     }
   }
@@ -1602,7 +1632,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdi
   /* TODO: Should we order by 'goodness'? Perhaps by volume of hyps? */
 }
 
-u8 find_indices_of_intersection_sats(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)
+u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)
 {
   if (DEBUG_AMBIGUITY_TEST) {
     printf("<FIND_INDICES_OF_INTERSECTION_SATS>\n");
@@ -2006,7 +2036,9 @@ void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements
               dd_measurements, 1,
               0, r_vec, 1);
   for (u8 i=0; i< num_dds; i++) {
-    r_vec[i + res_mtxs->null_space_dim] = dd_measurements[i] - dd_measurements[i+num_dds] / GPS_L1_LAMBDA_NO_VAC;
+    r_vec[i + res_mtxs->null_space_dim] =
+      simple_amb_measurement(dd_measurements[i],
+                             dd_measurements[i+num_dds]);
   }
 }
 

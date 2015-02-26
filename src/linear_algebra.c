@@ -899,7 +899,7 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
  * \param D Pointer to the diagonal vector.
  * \param M Pointer to the output matrix.
  */
-void matrix_reconstruct_udu(u32 n, double *U, double *D, double *M)
+void matrix_reconstruct_udu(const u32 n, const double *U, const double *D, double *M)
 {
   memset(M, 0, n * n * sizeof(double));
   /* TODO: M will be symmetric, only need to bother populating part of it */

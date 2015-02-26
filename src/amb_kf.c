@@ -31,6 +31,16 @@
 
 #define DEBUG_AMB_KF 0
 
+/** Measure the integer ambiguity just from the code and carrier measurements.
+ * The expectation value of carrier + code / lambda is
+ * integer ambiguity + bias. Regardless of bias, this is an
+ * important measurement.
+ */
+double simple_amb_measurement(double carrier, double code)
+{
+  return carrier + code / GPS_L1_LAMBDA_NO_VAC;
+}
+
 /** \defgroup amb_kf Float Ambiguity Resolution
  * Preliminary integer ambiguity estimation with a Kalman Filter.
  * \{ */
@@ -199,7 +209,9 @@ void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_m
                measurements, 1, /*  X, incX. */
                0, resid_measurements, 1); /*  beta, Y, incY. */
   for (u8 i=0; i< kf->state_dim; i++) {
-    resid_measurements[i+constraint_dim] = measurements[i] - measurements[i+kf->state_dim] / GPS_L1_LAMBDA_NO_VAC;
+    resid_measurements[i+constraint_dim] =
+      simple_amb_measurement(measurements[i],
+                             measurements[i+kf->state_dim]);
   }
 }
 
@@ -445,8 +457,9 @@ void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
-    /*  N = Expectation of [phi - rho / lambda]. */
-    kf->state_mean[i] = dd_measurements[i] - dd_measurements[i + num_dds] / GPS_L1_LAMBDA_NO_VAC;
+    kf->state_mean[i] =
+      simple_amb_measurement(dd_measurements[i],
+                             dd_measurements[i + num_dds]);
     /*  Sigma begins as a diagonal. */
     kf->state_cov_D[i] = init_var;
   }
@@ -710,7 +723,7 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                   kf->decor_obs_mtx);
 }
 
-s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
+s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list)
 {
   for (u32 i=0; i<num_elements; i++) {
     if (x == list[i]) {
@@ -721,7 +734,7 @@ s32 find_index_of_element_in_u8s(u32 num_elements, u8 x, u8 *list)
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -746,7 +759,7 @@ void rebase_mean_N(double *mean, u8 num_sats, u8 *old_prns, u8 *new_prns)
 }
 
 /* REQUIRES num_sats > 1 */
-void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *rebase_mtx)
+void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns, const u8 *new_prns, double *rebase_mtx)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -767,7 +780,7 @@ void assign_state_rebase_mtx(u8 num_sats, u8 *old_prns, u8 *new_prns, double *re
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_sigma(double *state_cov, u8 num_sats, u8 *old_prns, u8 *new_prns)
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;

@@ -19,7 +19,7 @@
 
 #define DEBUG_SATS_MAN 0
 
-u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
+u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
@@ -44,7 +44,7 @@ u8 choose_reference_sat(u8 num_sats, sdiff_t *sats)
 // }
 
 //assumes both sets are ordered
-u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
+u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, const sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
 {
   u8 i, j, n = 0;
@@ -118,7 +118,7 @@ u8 intersect_sats(u8 num_sats1, u8 num_sdiffs, u8 *sats1, sdiff_t *sdiffs,
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
  */
-void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns)
+void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 {
   u8 old_ref = prns[0];
   u8 j;
@@ -151,9 +151,9 @@ void set_reference_sat_of_prns(u8 ref_prn, u8 num_sats, u8 *prns)
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
  */
-void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
-                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
-{  
+void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
+                       const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+{
   u8 old_ref = sats_management->prns[0];
   if (DEBUG_SATS_MAN) {
     printf("<SET_REFERENCE_SAT>\n");
@@ -205,8 +205,8 @@ void set_reference_sat(u8 ref_prn, sats_management_t *sats_management,
   }
 }
 
-void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
-                                u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
+                                const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
   sats_management->prns[0] = ref_prn;
@@ -227,7 +227,7 @@ void set_reference_sat_and_prns(u8 ref_prn, sats_management_t *sats_management,
 }
 
 void init_sats_management(sats_management_t *sats_management,
-                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+                          const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_SATS_MAN) {
     printf("<INIT_SATS_MANAGEMENT>\n");
@@ -269,7 +269,7 @@ void print_sats_management_short(sats_management_t *sats_man) {
 /** Updates sats to the new measurements' sat set
  */
 s8 rebase_sats_management(sats_management_t *sats_management,
-                          u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+                          const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   s8 return_code;
   u8 ref_prn;
@@ -309,7 +309,6 @@ s8 rebase_sats_management(sats_management_t *sats_management,
           printf("%u, ", sats_management->prns[so_fetch]);
         }
         printf("}\n");
-        
         printf("num intersect_sats= %u\nintersection= {", num_intersection);
         for (u8 bork=0; bork<num_intersection; bork++) {
           printf("%u, ", intersection_sats[bork].prn);
