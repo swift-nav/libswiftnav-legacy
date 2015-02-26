@@ -1619,6 +1619,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                 float_sats, float_mean, float_cov_U, float_cov_D);
     if (incl == 2) {
       create_ambiguity_test(amb_test);
+      changed_sats = 1;
     } else if (incl == 1) {
       changed_sats = 1;
     }
