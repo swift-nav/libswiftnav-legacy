@@ -173,10 +173,8 @@ double predict_range(double rx_pos[3],
  */
 u8 ephemeris_good(ephemeris_t eph, gps_time_t t)
 {
-
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double tdiff = gpsdifftime(t, eph.toe);
 
-  /* \TODO: this doesn't exclude ephemerides older than a week so could be made better. */
-  return (eph.valid && fabs(tdiff) < 4*3600);
+  return (eph.valid  && eph.healthy && fabs(tdiff) < 4*3600);
 }
