@@ -1235,8 +1235,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
                            const sats_management_t *float_sats, const double *float_mean,
                            const double *float_cov_U, const double *float_cov_D)
 {
-  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    /* Nothing added. */
+  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 5) {
+    /* Nothing added if we alread have all the sats or the KF has too few sats
+     * such that we couldn't test anyways. Changing the < 5 can allow code to
+     * run below that needs to add to no less than 4 DD's.  */
     return 0;
   }
 
@@ -1300,6 +1302,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
   assert(state_dim == num_old_dds + num_addible_dds);
 
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds);
+
+  if (min_dds_to_add > num_addible_dds) {
+    return 0;
+  }
 
   /* Reorder the covariance matrix basis so that old sats come first: */
   /* [ old_sats | new_sats ] */
