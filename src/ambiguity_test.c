@@ -751,6 +751,20 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
   memcpy(hypothesis->N, new_N, (num_sats-1) * sizeof(s32));
 }
 
+/** Update an ambiguity test's reference satellite.
+ * Given a set of sdiffs, choose a new reference that is hopefully already
+ * tracked. If that's impossible, just choose a reference.
+ * If the ambiguity test has the new reference, rebase the old hypotheses.
+ * Otherwise trash the test and start over.
+ * On return, the reference sat should be in the sdiffs.
+ *
+ * \param amb_test              The ambiguity test to update
+ * \param num_sdiffs            The length of the sdiffs array.
+ * \param sdiffs                sdiffs, sorted by PRN.
+ * \param sdiffs_with_ref_first sdiffs, sorted by PRN after the first element,
+ *                              which is the reference.
+ * \return Whether the reference sat has changed.
+ */
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_AMBIGUITY_TEST) {
