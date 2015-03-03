@@ -1303,6 +1303,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
 
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds);
 
+  if (min_dds_to_add > num_addible_dds) {
+    return 0;
+  }
+
   /* Reorder the covariance matrix basis so that old sats come first: */
   /* [ old_sats | new_sats ] */
   u32 reordering[state_dim];
