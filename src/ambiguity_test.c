@@ -1235,8 +1235,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
                            const sats_management_t *float_sats, const double *float_mean,
                            const double *float_cov_U, const double *float_cov_D)
 {
-  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    /* Nothing added. */
+  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 5) {
+    /* Nothing added if we alread have all the sats or the KF has too few sats
+     * such that we couldn't test anyways. Changing the < 5 can allow code to
+     * run below that needs to add to no less than 4 DD's.  */
     return 0;
   }
 
