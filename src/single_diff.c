@@ -261,7 +261,7 @@ void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx)
   }
 }
 
-s8 copy_sdiffs_put_ref_first(u8 ref_prn, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   s8 not_found = -1;
   u8 j = 1;
