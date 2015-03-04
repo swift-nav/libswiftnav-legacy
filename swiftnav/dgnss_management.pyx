@@ -482,6 +482,15 @@ def get_amb_kf_cov(num_dds):
   else:
     raise ValueError("Was given the wrong num_dds.")
 
+def get_amb_kf_cov2():
+  cdef np.ndarray[np.double_t, ndim=2, mode="c"] cov = \
+    np.empty((32*32, 1), dtype=np.double)
+  num_dds = dgnss_management_c.get_amb_kf_cov(&cov[0,0])
+  return cov[:num_dds*num_dds,0].reshape((num_dds,num_dds))
+  # if num_dds == num_dds2:
+  #   return cov
+  # else:
+  #   raise ValueError("Was given the wrong num_dds.")
 
 def get_amb_kf_prns():
   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
