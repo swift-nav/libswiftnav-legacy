@@ -20,7 +20,11 @@
 
 void sbp_make_gps_time(sbp_gps_time_t *t_out, gps_time_t *t_in, u8 flags);
 void sbp_make_pos_llh(sbp_pos_llh_t *pos_llh, gnss_solution *soln, u8 flags);
+void sbp_make_pos_llh_vect(sbp_pos_llh_t *pos_llh, double llh[3],
+                           gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_pos_ecef(sbp_pos_ecef_t *pos_ecef, gnss_solution *soln, u8 flags);
+void sbp_make_pos_ecef_vect(sbp_pos_ecef_t *pos_ecef, double ecef[3],
+                            gps_time_t *gps_t, u8 n_used, u8 flags);
 void sbp_make_vel_ned(sbp_vel_ned_t *vel_ned, gnss_solution *soln, u8 flags);
 void sbp_make_vel_ecef(sbp_vel_ecef_t *vel_ecef, gnss_solution *soln, u8 flags);
 void sbp_make_dops(sbp_dops_t *dops_out, dops_t *dops_in);
