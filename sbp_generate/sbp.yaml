@@ -139,7 +139,8 @@
                   desc: Fix mode
                   values:
                       - 0: Single Point Positioning (SPP)
-                      - 1: RTK
+                      - 1: Fixed RTK
+                      - 2: Float RTK
 
  - POS_LLH:
     id: 0x0201
@@ -189,7 +190,8 @@
                   desc: Fix mode
                   values:
                       - 0: Single Point Positioning (SPP)
-                      - 1: RTK
+                      - 1: Fixed RTK
+                      - 2: Float RTK
 
  - BASELINE_ECEF:
     id: 0x0202
@@ -229,7 +231,7 @@
                 - 0-2:
                     desc: Fix mode
                     values:
-                        - 0: Float
+                        - 0: Float RTK
                         - 1: Fixed RTK
 
  - BASELINE_NED:
@@ -274,7 +276,7 @@
                 - 0-2:
                     desc: Fix mode
                     values:
-                        - 0: Float
+                        - 0: Float RTK
                         - 1: Fixed RTK
 
  - VEL_ECEF:
