@@ -782,13 +782,18 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
       printf("updating iar reference sat\n");
     }
     changed_ref = 1;
-    u8 new_prns[amb_test->sats.num_sats];
-    memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
+    if (sats_management_code == NEW_REF_START_OVER) {
+      create_ambiguity_test(amb_test);
+    }
+    else {
+      u8 new_prns[amb_test->sats.num_sats];
+      memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
 
-    rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
-    memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(u8));
-    memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(u8));
-    memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
+      rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
+      memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(u8));
+      memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(u8));
+      memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
+    }
   }
   if (DEBUG_AMBIGUITY_TEST) {
     printf("</AMBIGUITY_UPDATE_REFERENCE>\n");
