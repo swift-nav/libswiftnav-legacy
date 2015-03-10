@@ -28,10 +28,10 @@ typedef struct {
 } ephemeris_t;
 
 
-int calc_sat_pos(double pos[3], double vel[3],
-                 double *clock_err, double *clock_rate_err,
-                 const ephemeris_t *ephemeris,
-                 gps_time_t tot);
+s8 calc_sat_pos(double pos[3], double vel[3],
+                double *clock_err, double *clock_rate_err,
+                const ephemeris_t *ephemeris,
+                gps_time_t tot);
 
 double predict_range(double rx_pos[3],
                      gps_time_t tot,

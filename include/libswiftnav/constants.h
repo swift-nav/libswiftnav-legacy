@@ -46,9 +46,12 @@
  * \note This is actually not identical to the usual WGS84 definition. */
 #define GPS_GM 3.986005e14
 
-/** The official GPS value of the speed of light in m / s. 
+/** The official GPS value of the speed of light in m / s.
  * \note This is the exact value of the speed of light in vacuum (by the definition of meters). */
 #define GPS_C 299792458.0
+
+/** The official GPS value of the relativistic clock correction coefficient F. */
+#define GPS_F -4.442807633e-10
 
 /** The speed of light in air at standard temperature and pressure.
  * \note This is GPS_C / mu where mu is 1.0002926 */

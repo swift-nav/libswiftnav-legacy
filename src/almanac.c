@@ -73,6 +73,7 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
 
   /* TODO: Implement convergence test using integer difference of doubles,
    * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
+  /* TODO: Bound number of iterations. */
   do {
     ea_old = ea;
     temp = 1.0 - ecc * cos(ea_old);
