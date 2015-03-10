@@ -173,7 +173,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       j--;
     else if (m_local[i].prn > m_remote[j].prn)
       i--;
-    else if (ephemeris_good(es[m_local[i].prn], t)) {
+    else if (ephemeris_good(&es[m_local[i].prn], t)) {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];

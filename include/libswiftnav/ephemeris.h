@@ -37,7 +37,7 @@ double predict_range(double rx_pos[3],
                      gps_time_t tot,
                      ephemeris_t *ephemeris);
 
-u8 ephemeris_good(ephemeris_t eph, gps_time_t t);
+u8 ephemeris_good(ephemeris_t *eph, gps_time_t t);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */
 
