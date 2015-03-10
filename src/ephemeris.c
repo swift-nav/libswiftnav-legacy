@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2010 Swift Navigation Inc.
  * Contact: Henry Hallam <henry@swift-nav.com>
+ *          Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -23,24 +24,21 @@
  * References:
  *   -# IS-GPS-200D, Section 20.3.3.3.3.1 and Table 20-IV
  *
- * \todo Change to follow convention of return values last
- * \todo Rename to calc_sat_param?
- *
+ * \param t GPS time at which to calculate the satellite state
+ * \param ephemeris Ephemeris struct
  * \param pos Array into which to write calculated satellite position [m]
  * \param vel Array into which to write calculated satellite velocity [m/s]
  * \param clock_err Pointer to where to store the calculated satellite clock
  *                  error [s]
  * \param clock_rate_err Pointer to where to store the calculated satellite
  *                       clock error [s/s]
- * \param ephemeris Ephemeris struct
- * \param t GPS time at which to calculate the satellite parameters
+ *
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-s8 calc_sat_pos(double pos[3], double vel[3],
-                double *clock_err, double *clock_rate_err,
-                const ephemeris_t *ephemeris,
-                gps_time_t t)
+s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
+                  double pos[3], double vel[3],
+                  double *clock_err, double *clock_rate_err)
 {
   assert(pos != NULL);
   assert(vel != NULL);
@@ -162,7 +160,7 @@ double predict_range(double rx_pos[3],
   double temp[3];
   double clock_err, clock_rate_err;
 
-  calc_sat_pos(sat_pos, sat_vel, &clock_err, &clock_rate_err, ephemeris, t);
+  calc_sat_state(ephemeris, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
 
   vector_subtract(3, sat_pos, rx_pos, temp); /* temp = sat_pos - rx_pos */
   return vector_norm(3, temp);

@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2010 Swift Navigation Inc.
  * Contact: Henry Hallam <henry@swift-nav.com>
+ *          Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -28,10 +29,9 @@ typedef struct {
 } ephemeris_t;
 
 
-s8 calc_sat_pos(double pos[3], double vel[3],
-                double *clock_err, double *clock_rate_err,
-                const ephemeris_t *ephemeris,
-                gps_time_t tot);
+s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
+                  double pos[3], double vel[3],
+                  double *clock_err, double *clock_rate_err);
 
 double predict_range(double rx_pos[3],
                      gps_time_t tot,
