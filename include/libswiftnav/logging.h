@@ -13,6 +13,10 @@
 #ifndef LIBSWIFTNAV_LOGGING_H
 #define LIBSWIFTNAV_LOGGING_H
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 /** \defgroup logging Logging
  * Logging
  * \{ */
@@ -35,8 +39,38 @@
 /** Log a debugging message.
  * \param args `printf` style format and arguments.
  */
-#define log_debug(args...) printf("DEBUG: " args)
+#define log_debug(args...)  \
+do {                        \
+  if (DEBUG) {              \
+    printf("DEBUG: " args); \
+  }                         \
+} while (0)
+
+/** Log a debug message indicating entry to a function.
+ * Logs a debug message of the form `<function_name>` to indicate entry to a
+ * function. `function_name` is automatically filled in with the name of the
+ * current function by GCC magic.
+ */
+#define DEBUG_ENTRY()              \
+do {                               \
+  if (DEBUG) {                     \
+    log_debug("<%s>\n", __func__); \
+  }                                \
+} while (0)
+
+/** Log a debug message indicating exit to a function.
+ * Logs a debug message of the form `</function_name>` to indicate exit from a
+ * function. `function_name` is automatically filled in with the name of the
+ * current function by GCC magic.
+ */
+#define DEBUG_EXIT()                \
+do {                                \
+  if (DEBUG) {                      \
+    log_debug("</%s>\n", __func__); \
+  }                                 \
+} while (0)
 
 /** \} */
 
 #endif /* LIBSWIFTNAV_LOGGING_H */
+

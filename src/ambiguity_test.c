@@ -16,6 +16,7 @@
 #include <cblas.h>
 #include <stdio.h>
 #include <string.h>
+#include "logging.h"
 #include "ambiguity_test.h"
 #include "common.h"
 #include "constants.h"
@@ -32,8 +33,6 @@
 #define NUM_SEARCH_STDS 5
 #define LOG_PROB_RAT_THRESHOLD -90
 #define SINGLE_OBS_CHISQ_THRESHOLD 20
-
-#define DEBUG_AMBIGUITY_TEST 0
 
 /** \defgroup ambiguity_test Integer Ambiguity Resolution
  * Integer ambiguity resolution using bayesian hypothesis testing.
@@ -206,13 +205,13 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
                            ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
                            u8 changed_sats)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<UPDATE_AMBIGUITY_TEST>\n");
   }
   u8 num_sdiffs = state_dim + 1;
 
   if (amb_test->sats.num_sats < 5) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("</UPDATE_AMBIGUITY_TEST>\n");
     }
     return;
@@ -261,7 +260,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 
   test_ambiguities(amb_test, ambiguity_dd_measurements);
 
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</UPDATE_AMBIGUITY_TEST>\n");
   }
 }
@@ -403,7 +402,7 @@ void update_unanimous_ambiguities(ambiguity_test_t *amb_test)
  */
 void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<TEST_AMBIGUITIES>\n");
   }
   hyp_filter_t x;
@@ -428,7 +427,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
     amb_test->sats.num_sats = 0;
     amb_test->amb_check.initialized = 0;
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     memory_pool_map(amb_test->pool, &x.num_dds, &print_hyp);
     printf("num_unanimous_ndxs=%u\n</TEST_AMBIGUITIES>\n", x.unanimous_amb_check->num_matching_ndxs);
   }
@@ -484,7 +483,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
                                    u8 num_sdiffs, sdiff_t *sdiffs,
                                    double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<MAKE_DD_MEASUREMENTS_AND_SDIFFS>\n");
     printf("ref_prn = %u\nnon_ref_prns = {", ref_prn);
     for (u8 i=0; i < num_dds; i++) {
@@ -565,7 +564,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
     ambiguity_dd_measurements[i] -= ref_phase;
     ambiguity_dd_measurements[i+num_dds] -= ref_pseudorange;
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("amb_sdiff_prns = {");
     for (i = 0; i < num_dds; i++) {
       printf("%u, ", amb_sdiffs[i].prn);
@@ -604,7 +603,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
             ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<MAKE_AMBIGUITY_RESOLVED_DD_MEASUREMENTS_AND_SDIFFS>\n");
     printf("amb_test->sats.prns = {");
     for (u8 i=0; i < amb_test->sats.num_sats; i++) {
@@ -618,7 +617,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
   u8 non_ref_prns[num_dds];
   for (u8 i=0; i < num_dds; i++) {
     non_ref_prns[i] = amb_test->sats.prns[1 + amb_test->amb_check.matching_ndxs[i]];
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %"PRId32"\n",
              i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i],
              i, amb_test->amb_check.ambs[i]);
@@ -628,7 +627,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
     make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds, num_sdiffs,
                                     sdiffs, ambiguity_dd_measurements,
                                     amb_sdiffs);
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</MAKE_AMBIGUITY_RESOLVED_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
   return valid_sdiffs;
@@ -652,7 +651,7 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
 s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
   u8 ref_prn = amb_test->sats.prns[0];
@@ -661,7 +660,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
                                   ambiguity_dd_measurements, amb_sdiffs);
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</MAKE_AMBIGUITY_DD_MEASUREMENTS_AND_SDIFFS>\n");
   }
   return valid_sdiffs;
@@ -670,7 +669,7 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
 
 s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<SATS_MATCH>\namb_test.sats.prns = {");
     for (u8 i=0; i< amb_test->sats.num_sats; i++) {
       printf("%u, ", amb_test->sats.prns[i]);
@@ -682,7 +681,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     printf("}\n");
   }
   if (amb_test->sats.num_sats != num_sdiffs) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("sats don't match (different length)\n</SATS_MATCH>\n");
     }
     return 0;
@@ -692,7 +691,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
-      if (DEBUG_AMBIGUITY_TEST) {
+      if (DEBUG) {
         printf("sats don't match\n</SATS_MATCH>\n");
       }
       return 0;
@@ -705,13 +704,13 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       i--;
     }
     else {
-      if (DEBUG_AMBIGUITY_TEST) {
+      if (DEBUG) {
         printf("sats don't match\n</SATS_MATCH>\n");
       }
       return 0;
     }
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("sats match\n</SATS_MATCH>\n");
   }
   return 1;
@@ -767,7 +766,7 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
  */
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<AMBIGUITY_UPDATE_REFERENCE>\n");
   }
   u8 changed_ref = 0;
@@ -778,7 +777,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   // print_sats_management_short(&amb_test->sats);
   if (sats_management_code != OLD_REF) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("updating iar reference sat\n");
     }
     changed_ref = 1;
@@ -795,7 +794,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
       memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
     }
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</AMBIGUITY_UPDATE_REFERENCE>\n");
   }
   return changed_ref;
@@ -854,12 +853,12 @@ void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection, const u8 *dd_intersection_ndxs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<AMBIGUITY_SAT_PROJECTION>\n");
   }
   u8 num_dds_before_proj = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   if (num_dds_before_proj == num_dds_in_intersection) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("no need for projection\n</AMBIGUITY_SAT_PROJECTION>\n");
     }
     return 0;
@@ -882,7 +881,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
     amb_test->sats.prns[i+1] = work_prns[dd_intersection_ndxs[i]+1];
   }
   amb_test->sats.num_sats = num_dds_in_intersection+1;
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</AMBIGUITY_SAT_PROJECTION>\n");
   }
   return 1;
@@ -1191,13 +1190,13 @@ static u8 inclusion_loop_body(
   compute_Z(num_current_dds, num_dds_to_add, x->Z1, x->Z2_inv, x->Z);
 
   if (full_size <= max_num_hyps) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
     }
     /* The hypotheses generated for these double-differences fit. */
     return 1;
   } else if (box_size * current_num_hyps <= max_iteration_size) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
     }
 
@@ -1206,7 +1205,7 @@ static u8 inclusion_loop_body(
     /* Do intersection */
     memory_pool_fold(pool, (void *)x, &fold_intersection_count);
 
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("intersection size: %i\n", x->intersection_size);
     }
 
@@ -1390,7 +1389,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
       }
     }
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
   }
   /* Covariance too large, nothing added. */
@@ -1402,11 +1401,11 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
                                sats_management_t *float_sats, double *float_mean,
                                double *float_cov_U, double *float_cov_D)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<AMBIGUITY_SAT_INCLUSION>\n");
   }
   if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("no need for inclusion\n</AMBIGUITY_SAT_INCLUSION>\n");
     }
     return 0;
@@ -1470,12 +1469,12 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
                                             Z_inv);
   if (add_any_sats == 1) {
     add_sats_old(amb_test, float_prns[0], num_dds_to_add, new_dd_prns, lower_bounds, upper_bounds, Z_inv);
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("adding sats\n<AMBIGUITY_SAT_INCLUSION>\n");
     }
     return 1;
   } else {
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("not adding sats\n<AMBIGUITY_SAT_INCLUSION>\n");
     }
     return 0;
@@ -1608,12 +1607,12 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const double *float_mean, const double *float_cov_U,
                          const double *float_cov_D)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<AMBIGUITY_UPDATE_SATS>\n");
   }
   if (num_sdiffs < 2) {
     create_ambiguity_test(amb_test);
-    if (DEBUG_AMBIGUITY_TEST) {
+    if (DEBUG) {
       printf("< 2 sdiffs, starting over\n</AMBIGUITY_UPDATE_SATS>\n");
     }
     return 0; // I chose 0 because it doesn't lead to anything dynamic
@@ -1650,7 +1649,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
       changed_sats = 1;
     }
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("changed_sats = %u\n</AMBIGUITY_UPDATE_SATS>\n", changed_sats);
   }
 
@@ -1660,7 +1659,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
 
 u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs)
 {
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("<FIND_INDICES_OF_INTERSECTION_SATS>\n");
     printf("amb_test->sats.prns          = {");
     for (u8 i = 0; i < amb_test->sats.num_sats; i++) {
@@ -1683,7 +1682,7 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
   u8 k = 0;
   while (i < amb_test->sats.num_sats && j < num_sdiffs) {
     if (amb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn) {
-      if (DEBUG_AMBIGUITY_TEST) {
+      if (DEBUG) {
         printf("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn; i,j,k++\n",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       }
@@ -1693,21 +1692,21 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
       k++;
     }
     else if (amb_test->sats.prns[i] < sdiffs_with_ref_first[j].prn) {
-      if (DEBUG_AMBIGUITY_TEST) {
+      if (DEBUG) {
         printf("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] <  sdiffs_with_ref_first[j].prn; i++\n",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       }
       i++;
     }
     else {
-      if (DEBUG_AMBIGUITY_TEST) {
+      if (DEBUG) {
         printf("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] >  sdiffs_with_ref_first[j].prn; j++\n",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       }
       j++;
     }
   }
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     printf("</FIND_INDICES_OF_INTERSECTION_SATS>\n");
   }
   return k;
@@ -1912,7 +1911,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
   }
 
   printf("IAR: %"PRIu32" hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
   }
   memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
@@ -1920,7 +1919,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &no_init, &generate_next_hypothesis, &hypothesis_prod);
   printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
-  if (DEBUG_AMBIGUITY_TEST) {
+  if (DEBUG) {
     memory_pool_map(amb_test->pool, &k, &print_hyp);
   }
 }

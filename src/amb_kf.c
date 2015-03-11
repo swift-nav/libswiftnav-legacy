@@ -22,14 +22,14 @@
 #include <cblas.h>
 #include <clapack.h>
 #include <math.h>
-#include <linear_algebra.h>
+
+#include "logging.h"
+#include "linear_algebra.h"
 #include "constants.h"
 #include "track.h"
 #include "almanac.h"
 #include "gpstime.h"
 #include "amb_kf.h"
-
-#define DEBUG_AMB_KF 0
 
 /** Measure the integer ambiguity just from the code and carrier measurements.
  * The expectation value of carrier + code / lambda is
@@ -53,7 +53,7 @@ double simple_amb_measurement(double carrier, double code)
 void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("<INCORPORATE_SCALAR_MEASUREMENT>\n");
     VEC_PRINTF(h, state_dim);
     printf("R = %.16f", R);
@@ -79,7 +79,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     g[i] = D[i] * f[i];
     alpha += f[i] * g[i];
   }
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     VEC_PRINTF(f, state_dim);
     VEC_PRINTF(g, state_dim);
     printf("alpha = %.16f", alpha);
@@ -111,7 +111,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   }
   k[0] = g[0];
   U_bar[0] = 1;
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("gamma[0] = %f\n", gamma[0]);
     printf("D_bar[0] = %f\n", D_bar[0]);
     VEC_PRINTF(k, state_dim);
@@ -144,7 +144,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
       }
       k[i] += g[j] * U[i*state_dim + j]; /*  k = k + g[j] * U[:,j]. */
     }
-    if (DEBUG_AMB_KF) {
+    if (DEBUG) {
       printf("gamma[%"PRIu32"] = %f\n", j, gamma[j]);
       printf("D_bar[%"PRIu32"] = %f\n", j, D_bar[j]);
       VEC_PRINTF(k, state_dim);
@@ -160,7 +160,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   }
   memcpy(U, U_bar, state_dim * state_dim * sizeof(double));
   memcpy(D, D_bar,             state_dim * sizeof(double));
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     MAT_PRINTF(U, state_dim, state_dim);
     VEC_PRINTF(D, state_dim);
     printf("</INCORPORATE_SCALAR_MEASUREMENT>\n");
@@ -172,7 +172,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
  */
 void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("<INCORPORATE_OBS>\n");
   }
   for (u32 i=0; i<kf->obs_dim; i++) {
@@ -194,7 +194,7 @@ void incorporate_obs(nkf_t *kf, double *decor_obs)
       kf->state_mean[j] += k[j] * obs_minus_predicted_obs; /* uses k to update mean. */
     }
   }
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("</INCORPORATE_OBS>\n");
   }
 }
@@ -228,7 +228,7 @@ void diffuse_state(nkf_t *kf)
  */
 void nkf_update(nkf_t *kf, double *measurements)
 {
-  DEBUG_ENTRY(DEBUG_AMB_KF);
+  DEBUG_ENTRY();
 
   double resid_measurements[kf->obs_dim];
   make_residual_measurements(kf, measurements, resid_measurements);
@@ -242,7 +242,7 @@ void nkf_update(nkf_t *kf, double *measurements)
   diffuse_state(kf);
   incorporate_obs(kf, resid_measurements);
 
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
     VEC_PRINTF(kf->state_cov_D, kf->state_dim);
     VEC_PRINTF(kf->state_mean, kf->state_dim);
@@ -254,7 +254,7 @@ void nkf_update(nkf_t *kf, double *measurements)
 void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
                    const double ref_ecef[3], double *DE)
 {
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("<ASSIGN_DE_MTX>\nnum_sats = %u\nsdiff prns&positions = {\n", num_sats);
     for (u8 i=0; i < num_sats; i++) {
       printf("i = %u, prn = %u, \tpos = [%f, \t%f, \t%f]\n",
@@ -271,7 +271,7 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   u8 de_length = num_sats - 1;
 
   if (num_sats <= 1) {
-    if (DEBUG_AMB_KF) {
+    if (DEBUG) {
       printf("not enough sats\n</ASSIGN_DE_MTX>\n");
     }
     return;
@@ -295,7 +295,7 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
     DE[3*(i-1) + 1] = y / norm - e0[1];
     DE[3*(i-1) + 2] = z / norm - e0[2];
   }
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     MAT_PRINTF(DE, (num_sats-1), 3);
     printf("</ASSIGN_DE_MTX>\n");
   }
@@ -385,7 +385,7 @@ void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
     phase_ranges[i] = dd_measurements[i] - state_mean[i];
   }
 
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("<LEAST_SQUARES_SOLVE_B>\n");
     printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
@@ -425,7 +425,7 @@ void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); /*  units --> cm. */
     printf("</LEAST_SQUARES_SOLVE_B>\n");
   }
@@ -691,7 +691,7 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("<SET_NKF>\n");
   }
 
@@ -700,7 +700,7 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
   /* Given plain old measurements, initialize the state. */
   initialize_state(kf, dd_measurements, amb_init_var);
 
-  if (DEBUG_AMB_KF) {
+  if (DEBUG) {
     printf("</SET_NKF>\n");
   }
 }

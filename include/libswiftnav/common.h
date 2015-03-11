@@ -22,17 +22,6 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define CLAMP_DIFF(a,b) (MAX((a),(b)) - (b))
 
-#define DEBUG_ENTRY(cond) \
-  if (cond) { \
-    printf("<%s>\n", __func__); \
-  }
-
-#define DEBUG_EXIT(cond) \
-  if (cond) { \
-    printf("</%s>\n", __func__); \
-  }
-
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <inttypes.h>
