@@ -53,8 +53,9 @@ double simple_amb_measurement(double carrier, double code)
 void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                double *U, double *D, double *k)
 {
+  DEBUG_ENTRY();
+
   if (DEBUG) {
-    printf("<INCORPORATE_SCALAR_MEASUREMENT>\n");
     VEC_PRINTF(h, state_dim);
     printf("R = %.16f", R);
     if (abs(R) == 0) {
@@ -163,8 +164,9 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   if (DEBUG) {
     MAT_PRINTF(U, state_dim, state_dim);
     VEC_PRINTF(D, state_dim);
-    printf("</INCORPORATE_SCALAR_MEASUREMENT>\n");
   }
+
+  DEBUG_EXIT();
 }
 
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
@@ -172,9 +174,8 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
  */
 void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
-  if (DEBUG) {
-    printf("<INCORPORATE_OBS>\n");
-  }
+  DEBUG_ENTRY();
+
   for (u32 i=0; i<kf->obs_dim; i++) {
     double *h = &kf->decor_obs_mtx[kf->state_dim * i]; /* vector of length kf->state_dim. */
     double R = kf->decor_obs_cov[i]; /* scalar. */
@@ -194,9 +195,8 @@ void incorporate_obs(nkf_t *kf, double *decor_obs)
       kf->state_mean[j] += k[j] * obs_minus_predicted_obs; /* uses k to update mean. */
     }
   }
-  if (DEBUG) {
-    printf("</INCORPORATE_OBS>\n");
-  }
+
+  DEBUG_EXIT();
 }
 
 /*  Turns (phi, rho) into Q_tilde * (phi, rho). */
@@ -246,16 +246,19 @@ void nkf_update(nkf_t *kf, double *measurements)
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
     VEC_PRINTF(kf->state_cov_D, kf->state_dim);
     VEC_PRINTF(kf->state_mean, kf->state_dim);
-    printf("</NKF_UPDATE>\n");
   }
+
+  DEBUG_EXIT();
 }
 
 /*  Presumes that the first alm entry is the reference sat. */
 void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
                    const double ref_ecef[3], double *DE)
 {
+  DEBUG_ENTRY();
+
   if (DEBUG) {
-    printf("<ASSIGN_DE_MTX>\nnum_sats = %u\nsdiff prns&positions = {\n", num_sats);
+    printf("num_sats = %u\nsdiff prns&positions = {\n", num_sats);
     for (u8 i=0; i < num_sats; i++) {
       printf("i = %u, prn = %u, \tpos = [%f, \t%f, \t%f]\n",
              i,
@@ -272,8 +275,9 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
 
   if (num_sats <= 1) {
     if (DEBUG) {
-      printf("not enough sats\n</ASSIGN_DE_MTX>\n");
+      printf("not enough sats\n");
     }
+    DEBUG_EXIT();
     return;
   }
 
@@ -297,8 +301,8 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   }
   if (DEBUG) {
     MAT_PRINTF(DE, (num_sats-1), 3);
-    printf("</ASSIGN_DE_MTX>\n");
   }
+  DEBUG_EXIT();
 }
 
 
@@ -369,6 +373,8 @@ void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3])
 {
+  DEBUG_ENTRY();
+
   integer num_dds = num_dds_u8;
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
@@ -386,7 +392,6 @@ void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
   }
 
   if (DEBUG) {
-    printf("<LEAST_SQUARES_SOLVE_B>\n");
     printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
     for (u8 i=0; i< num_dds; i++) {
       printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], state_mean[i], phase_ranges[i]);
@@ -427,8 +432,9 @@ void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
   if (DEBUG) {
     printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); /*  units --> cm. */
-    printf("</LEAST_SQUARES_SOLVE_B>\n");
   }
+
+  DEBUG_EXIT();
 }
 
 void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
@@ -691,18 +697,14 @@ void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
 {
-  if (DEBUG) {
-    printf("<SET_NKF>\n");
-  }
+  DEBUG_ENTRY();
 
   kf->amb_drift_var = amb_drift_var;
   set_nkf_matrices(kf, phase_var, code_var, num_sdiffs, sdiffs_with_ref_first, ref_ecef);
   /* Given plain old measurements, initialize the state. */
   initialize_state(kf, dd_measurements, amb_init_var);
 
-  if (DEBUG) {
-    printf("</SET_NKF>\n");
-  }
+  DEBUG_EXIT();
 }
 
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
