@@ -13,12 +13,20 @@
 #ifndef LIBSWIFTNAV_LOGGING_H
 #define LIBSWIFTNAV_LOGGING_H
 
+/* DEBUG off by default, enable it on a per-file basis. */
 #ifndef DEBUG
 #define DEBUG 0
 #endif
 
 /** \defgroup logging Logging
  * Logging
+ *
+ * Logging at the `DEBUG` level is turned off by default and should be enabled
+ * on a per-file basis by adding the following line to the source file *before*
+ * including `logging.h`:
+ *
+ *    #define DEBUG 1
+ *
  * \{ */
 
 /** Log an error.
