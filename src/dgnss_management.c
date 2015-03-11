@@ -459,9 +459,7 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
 {
   DEBUG_ENTRY();
   if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
-    if (DEBUG) {
-      printf("too few sats or too few sdiffs\n");
-    }
+    log_debug("too few sats or too few sdiffs\n");
     DEBUG_EXIT();
     return -1;
   }
@@ -472,9 +470,7 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
              num_sdiffs, sdiffs,
              float_dd_measurements, float_sdiffs);
   if (can_make_obs == -1) {
-    if (DEBUG) {
-      printf("make_float_dd_measurements_and_sdiffs has error code -1\n");
-    }
+    log_debug("make_float_dd_measurements_and_sdiffs has error code -1\n");
     DEBUG_EXIT();
     return -1;
   }
@@ -563,9 +559,7 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   DEBUG_ENTRY();
   if (0 == _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                   ref_ecef, num_used, b)) {
-    if (DEBUG) {
-      printf("low latency IAR solution\n");
-    }
+    log_debug("low latency IAR solution\n");
     DEBUG_EXIT();
     return 1;
   }
@@ -574,15 +568,11 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   s8 float_ret_code = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
                                               ref_ecef, num_used, b);
   if (float_ret_code == 0) {
-    if (DEBUG) {
-      printf("low latency float solution\n");
-    }
+    log_debug("low latency float solution\n");
     DEBUG_EXIT();
     return 2;
   }
-  if (DEBUG) {
-    printf("no low latency solution\n");
-  }
+  log_debug("no low latency solution\n");
   DEBUG_EXIT();
   return -1;
 }

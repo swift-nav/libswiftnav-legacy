@@ -274,9 +274,7 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   u8 de_length = num_sats - 1;
 
   if (num_sats <= 1) {
-    if (DEBUG) {
-      printf("not enough sats\n");
-    }
+    log_debug("not enough sats\n");
     DEBUG_EXIT();
     return;
   }

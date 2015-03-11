@@ -684,9 +684,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     printf("}\n");
   }
   if (amb_test->sats.num_sats != num_sdiffs) {
-    if (DEBUG) {
-      printf("sats don't match (different length)\n");
-    }
+    log_debug("sats don't match (different length)\n");
     DEBUG_EXIT();
     return 0;
   }
@@ -695,9 +693,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
-      if (DEBUG) {
-        printf("sats don't match\n");
-      }
+      log_debug("sats don't match\n");
       DEBUG_EXIT();
       return 0;
     }
@@ -709,9 +705,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       i--;
     }
     else {
-      if (DEBUG) {
-        printf("sats don't match\n");
-      }
+      log_debug("sats don't match\n");
       DEBUG_EXIT();
       return 0;
     }
@@ -781,9 +775,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   // print_sats_management_short(&amb_test->sats);
   if (sats_management_code != OLD_REF) {
-    if (DEBUG) {
-      printf("updating iar reference sat\n");
-    }
+    log_debug("updating iar reference sat\n");
     changed_ref = 1;
     if (sats_management_code == NEW_REF_START_OVER) {
       create_ambiguity_test(amb_test);
@@ -860,9 +852,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
 
   u8 num_dds_before_proj = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   if (num_dds_before_proj == num_dds_in_intersection) {
-    if (DEBUG) {
-      printf("no need for projection\n");
-    }
+    log_debug("no need for projection\n");
     DEBUG_EXIT();
     return 0;
   }
@@ -1192,24 +1182,18 @@ static u8 inclusion_loop_body(
   compute_Z(num_current_dds, num_dds_to_add, x->Z1, x->Z2_inv, x->Z);
 
   if (full_size <= max_num_hyps) {
-    if (DEBUG) {
-      printf("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
-    }
+    log_debug("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
     /* The hypotheses generated for these double-differences fit. */
     return 1;
   } else if (box_size * current_num_hyps <= max_iteration_size) {
-    if (DEBUG) {
-      printf("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
-    }
+    log_debug("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
 
     x->intersection_size = 0;
 
     /* Do intersection */
     memory_pool_fold(pool, (void *)x, &fold_intersection_count);
 
-    if (DEBUG) {
-      printf("intersection size: %i\n", x->intersection_size);
-    }
+    log_debug("intersection size: %i\n", x->intersection_size);
 
     if (x->intersection_size < max_num_hyps) {
       /* The hypotheses generated for these double-differences fit. */
@@ -1391,9 +1375,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
       }
     }
   }
-  if (DEBUG) {
-    printf("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
-  }
+  log_debug("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
   /* Covariance too large, nothing added. */
   return 0;
 }
@@ -1406,9 +1388,7 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   DEBUG_ENTRY();
 
   if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    if (DEBUG) {
-      printf("no need for inclusion\n");
-    }
+    log_debug("no need for inclusion\n");
     DEBUG_EXIT();
     return 0;
   }
@@ -1471,15 +1451,11 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
                                             Z_inv);
   if (add_any_sats == 1) {
     add_sats_old(amb_test, float_prns[0], num_dds_to_add, new_dd_prns, lower_bounds, upper_bounds, Z_inv);
-    if (DEBUG) {
-      printf("adding sats\n");
-    }
+    log_debug("adding sats\n");
     DEBUG_EXIT();
     return 1;
   } else {
-    if (DEBUG) {
-      printf("not adding sats\n");
-    }
+    log_debug("not adding sats\n");
     DEBUG_EXIT();
     return 0;
   }
@@ -1615,9 +1591,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
 
   if (num_sdiffs < 2) {
     create_ambiguity_test(amb_test);
-    if (DEBUG) {
-      printf("< 2 sdiffs, starting over\n");
-    }
+    log_debug("< 2 sdiffs, starting over\n");
     DEBUG_EXIT();
     return 0; // I chose 0 because it doesn't lead to anything dynamic
   }
@@ -1653,9 +1627,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
       changed_sats = 1;
     }
   }
-  if (DEBUG) {
-    printf("changed_sats = %u\n", changed_sats);
-  }
+  log_debug("changed_sats = %u\n", changed_sats);
 
   DEBUG_EXIT();
   return changed_sats;
