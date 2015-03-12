@@ -635,7 +635,9 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
   for (u8 i=0; i<n_channels; i++) {
     nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
 
-    calc_sat_pos(nav_meas[i]->sat_pos, nav_meas[i]->sat_vel, &clock_err, &clock_rate_err, ephemerides[i], nav_meas[i]->tot);
+    calc_sat_state(ephemerides[i], nav_meas[i]->tot,
+                   nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
+                   &clock_err, &clock_rate_err);
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err*GPS_C;

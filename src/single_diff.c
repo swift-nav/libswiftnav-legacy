@@ -173,14 +173,13 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       j--;
     else if (m_local[i].prn > m_remote[j].prn)
       i--;
-    else if (ephemeris_good(es[m_local[i].prn], t)) {
+    else if (ephemeris_good(&es[m_local[i].prn], t)) {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
-      calc_sat_pos(&local_sat_pos[0],
-                   &local_sat_vel[0],
-                   &clock_err, &clock_rate_err, &es[m_local[i].prn], t);
+      calc_sat_state(&es[m_local[i].prn], t, local_sat_pos, local_sat_vel,
+                     &clock_err, &clock_rate_err);
       sds[n].prn = m_local[i].prn;
       double dx = local_sat_pos[0] - remote_pos_ecef[0];
       double dy = local_sat_pos[1] - remote_pos_ecef[1];
