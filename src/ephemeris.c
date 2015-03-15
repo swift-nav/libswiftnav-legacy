@@ -183,6 +183,6 @@ u8 ephemeris_good(ephemeris_t *eph, gps_time_t t)
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  return (eph->valid && fabs(dt) < 4*3600);
+  return (eph->valid  && eph->healthy && fabs(dt) < 4*3600);
 }
 

@@ -257,6 +257,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     if (num_sats == 1) {
       sats_management.prns[0] = sdiffs[0].prn;
     }
+    create_ambiguity_test(&ambiguity_test);
     DEBUG_EXIT(DEBUG_DGNSS_MANAGEMENT);
     return;
   }

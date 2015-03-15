@@ -751,6 +751,20 @@ void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't 
   memcpy(hypothesis->N, new_N, (num_sats-1) * sizeof(s32));
 }
 
+/** Update an ambiguity test's reference satellite.
+ * Given a set of sdiffs, choose a new reference that is hopefully already
+ * tracked. If that's impossible, just choose a reference.
+ * If the ambiguity test has the new reference, rebase the old hypotheses.
+ * Otherwise trash the test and start over.
+ * On return, the reference sat should be in the sdiffs.
+ *
+ * \param amb_test              The ambiguity test to update
+ * \param num_sdiffs            The length of the sdiffs array.
+ * \param sdiffs                sdiffs, sorted by PRN.
+ * \param sdiffs_with_ref_first sdiffs, sorted by PRN after the first element,
+ *                              which is the reference.
+ * \return Whether the reference sat has changed.
+ */
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   if (DEBUG_AMBIGUITY_TEST) {
@@ -768,13 +782,18 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
       printf("updating iar reference sat\n");
     }
     changed_ref = 1;
-    u8 new_prns[amb_test->sats.num_sats];
-    memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
+    if (sats_management_code == NEW_REF_START_OVER) {
+      create_ambiguity_test(amb_test);
+    }
+    else {
+      u8 new_prns[amb_test->sats.num_sats];
+      memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
 
-    rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
-    memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(u8));
-    memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(u8));
-    memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
+      rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
+      memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(u8));
+      memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(u8));
+      memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
+    }
   }
   if (DEBUG_AMBIGUITY_TEST) {
     printf("</AMBIGUITY_UPDATE_REFERENCE>\n");
@@ -856,6 +875,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
   printf("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
+  printf("After projection, num_sats = %d", num_dds_in_intersection + 1);
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
@@ -1221,8 +1241,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
                            const sats_management_t *float_sats, const double *float_mean,
                            const double *float_cov_U, const double *float_cov_D)
 {
-  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    /* Nothing added. */
+  if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 5) {
+    /* Nothing added if we alread have all the sats or the KF has too few sats
+     * such that we couldn't test anyways. Changing the < 5 can allow code to
+     * run below that needs to add to no less than 4 DD's.  */
     return 0;
   }
 
@@ -1286,6 +1308,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
   assert(state_dim == num_old_dds + num_addible_dds);
 
   u8 min_dds_to_add = MAX(1, 4 - num_current_dds);
+
+  if (min_dds_to_add > num_addible_dds) {
+    return 0;
+  }
 
   /* Reorder the covariance matrix basis so that old sats come first: */
   /* [ old_sats | new_sats ] */
