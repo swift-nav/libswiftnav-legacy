@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
 #include <string.h>
 
+#include "logging.h"
 #include "linear_algebra.h"
 #include "single_diff.h"
 #include "ephemeris.h"
@@ -283,9 +283,9 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
 /** Prints an sdiff_t
  * \param sd    the sdiff_t to print.
  */
-void print_sdiff(sdiff_t sd)
+void debug_sdiff(sdiff_t sd)
 {
-  printf("sdiff_t:\n"
+  log_debug("sdiff_t:\n"
     "\tprn = %u\n"
     "\tsnr = %f\n"
     "\tpseudorange   = %f\n"
@@ -303,13 +303,13 @@ void print_sdiff(sdiff_t sd)
  * \param n     The number of sdiffs to print.
  * \param sds   A pointer to the head of the array of sdiffs to print.
  */
-void print_sdiffs(u8 n, sdiff_t *sds)
+void debug_sdiffs(u8 n, sdiff_t *sds)
 {
-  printf("[\n");
+  log_debug("[\n");
   for (u8 i=0; i<n; i++) {
-    print_sdiff(sds[i]);
+    debug_sdiff(sds[i]);
   }
-  printf("]\n");
+  log_debug("]\n");
 }
 
 /** \} */
