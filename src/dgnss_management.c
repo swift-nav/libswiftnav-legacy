@@ -136,7 +136,7 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u
   /* all the ref sat stuff */
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
-    printf("====== START OVER =======\n");
+    log_info("Unable to rebase to new ref, resetting filters and starting over\n");
     dgnss_init(num_sdiffs, sdiffs, reciever_ecef);
     memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
     if (num_sdiffs >= 1) {
@@ -315,7 +315,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
       u8 num_used;
       dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
                            &num_used, bb);
-      printf("\ndgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
+      log_debug("\ndgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
              bb[0], bb[1], bb[2],
              num_used, num_sats,
              ambiguity_iar_can_solve(&ambiguity_test));
@@ -368,37 +368,39 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
   DEBUG_EXIT();
 }
 
-/* Returns the fixed baseline iff there are at least 3 dd ambs unanimously agreed upon in the ambiguity_test>
+/* Returns the fixed baseline iff there are at least 3 dd ambs unanimously
+ * agreed upon in the ambiguity_test.
  * \return 1 If fixed baseline calculation succeeds
- *         0 If iar cannot solve or an error occurs. Signals that float baseline is needed instead.
+ *         0 If iar cannot solve or an error occurs. Signals that float
+ *           baseline is needed instead.
  */
 s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
                         u8 *num_used, double b[3])
 {
-  if (ambiguity_iar_can_solve(&ambiguity_test)) {
-    sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
-    double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
-    s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(&ambiguity_test, num_sdiffs, sdiffs,
-        dd_meas, ambiguity_sdiffs);
-    /* At this point, sdiffs should be valid due to dgnss_update
-     * Return code not equal to 0 signals an error. */
-    if (valid_sdiffs == 0) {
-      double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
-      assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1, ambiguity_sdiffs, ref_ecef, DE);
-      *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-      lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
-      return 1;
-    } else {
-      if (valid_sdiffs == -2) {
-        printf("dngss_fixed_baseline2: Invalid sdiffs.\n");
-        for (u8 k=0; k < num_sdiffs; k++) {
-          printf("%u, ", sdiffs[k].prn);
-        }
-        printf("}\n");
-      }
-    }
+  if (!ambiguity_iar_can_solve(&ambiguity_test)) {
+    return 0;
   }
-  return 0;
+
+  sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
+  double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+
+  s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
+      &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
+
+  /* At this point, sdiffs should be valid due to dgnss_update
+   * Return code not equal to 0 signals an error. */
+  if (valid_sdiffs != 0) {
+    log_error("dgnss_fixed_baseline: invalid sdiffs.\n");
+    return 0;
+  }
+
+  double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
+  assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
+                ambiguity_sdiffs, ref_ecef, DE);
+  *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
+  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
+                ambiguity_test.amb_check.ambs, DE, b, 0);
+  return 1;
 }
 
 
@@ -494,6 +496,8 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
  * \TODO pull this into the IAR file when we do the same for the float low lat
  *      solution.
  *
+ * \todo This function is identical to dgnss_fixed_baseline()?
+ *
  * \param num_sdiffs  The number of sdiffs input.
  * \param sdiffs      The sdiffs used to measure. (These should be a superset
  *                    of the float sats).
@@ -508,32 +512,33 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                    double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
-  if (ambiguity_iar_can_solve(&ambiguity_test)) {
-    sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
-    double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
-    s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
-        &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
-    if (valid_sdiffs == 0) {
-      //TODO: check internals of this if's content and abstract it from the KF
-      double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
-      assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
-                    ambiguity_sdiffs, ref_ecef, DE);
-      *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-      lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
-                    dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
-      DEBUG_EXIT();
-      return 0;
-    } else if (valid_sdiffs == -2) {
-      printf("_dgnss_low_latency_IAR_baseline: Invalid sdiffs: {\n");
-      for (u8 i = 0; i < num_sdiffs; i++) {
-        printf("%u, ", sdiffs[i].prn);
-      }
-      printf("}\n");
-      print_sats_management_short(&ambiguity_test.sats);
-    }
+  if (!ambiguity_iar_can_solve(&ambiguity_test)) {
+    DEBUG_EXIT();
+    return -1;
   }
+
+  sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
+  double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+
+  s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
+      &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
+
+  if (valid_sdiffs != 0) {
+    log_error("_dgnss_low_latency_IAR_baseline: invalid sdiffs\n");
+    DEBUG_EXIT();
+    return -1;
+  }
+
+  /* TODO: check internals of this if's content and abstract it from the KF */
+  double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
+  assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
+                ambiguity_sdiffs, ref_ecef, DE);
+  *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
+  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
+                dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+
   DEBUG_EXIT();
-  return -1;
+  return 0;
 }
 
 /** Finds the baseline using low latency sdiffs.
@@ -655,11 +660,6 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs,
   s32 N[num_sats-1];
   assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
   amb_from_baseline(num_sats, DE, dds, b, N);
-
-  printf("Known Base: [");
-  for (u8 i=0; i<num_sats-1; i++)
-    printf("%"PRId32", ", N[i]);
-  printf("]\n");
 
   /* Construct fake state means. */
   double state_mean[num_sats-1+6];
@@ -812,8 +812,9 @@ u8 get_de_and_phase(sats_management_t *sats_man,
       j++;
     }
     else if (sdiffs[j].prn > sats_man->prns[i]) {
+      /* This should never happen. */
+      log_warn("sdiffs should be a super set of sats_man prns\n");
       i++;
-      printf("probable error. sdiffs should be a super set of sats_man prns\n");
     }
     else {  /* else they match */
       double e[3];
