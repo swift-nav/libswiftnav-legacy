@@ -13,6 +13,8 @@
 #ifndef LIBSWIFTNAV_LOGGING_H
 #define LIBSWIFTNAV_LOGGING_H
 
+#include <stdio.h>
+
 /* DEBUG off by default, enable it on a per-file basis. */
 #ifndef DEBUG
 #define DEBUG 0
