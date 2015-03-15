@@ -21,7 +21,6 @@
 #include "ambiguity_test.h"
 
 nkf_t nkf;
-stupid_filter_state_t stupid_state;
 sats_management_t sats_management;
 ambiguity_test_t ambiguity_test;
 
@@ -898,11 +897,6 @@ u8 dgnss_iar_MLE_ambs(s32 *ambs)
 nkf_t* get_dgnss_nkf()
 {
   return &nkf;
-}
-
-s32* get_stupid_filter_ints()
-{
-  return stupid_state.N;
 }
 
 sats_management_t* get_sats_management()
