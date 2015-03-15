@@ -11,13 +11,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <math.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "logging.h"
 #include "linear_algebra.h"
 #include "constants.h"
 #include "ephemeris.h"
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
 
 /** Calculate satellite position, velocity and clock offset from ephemeris.
  *
@@ -59,7 +60,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 
   /* If dt is greater than 4 hours our ephemeris isn't valid. */
   if (fabs(dt) > 4*3600) {
-    printf("Using ephemeris older (or newer!) than 4 hours.\n");
+    log_warn("Using ephemeris older (or newer!) than 4 hours.\n");
     return -1;
   }
 
