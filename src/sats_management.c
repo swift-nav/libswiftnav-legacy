@@ -31,17 +31,6 @@ u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
   return best_prn;
 }
 
-// bool contains(u8 num_sats, u8 ref_prn, sdiff_t *sdiffs)
-// {
-//   //todo make and use assumptions about the ordering of the prns
-//   for (u8 i=0; i<num_sats; i++) {
-//     if (ref_prn == sdiffs[i].prn) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
 //assumes both sets are ordered
 u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, const sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
@@ -89,28 +78,6 @@ u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, cons
   DEBUG_EXIT();
   return n;
 }
-
-// s8 check_and_rebase_reference_sat(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   bool still_has_ref = contains(num_sats, sdiffs);
-//   if (still_has_ref == false) {
-//     sdiff_t common_sats[num_sats];
-//     u8 intersection_size = intersect_sats(num_sats, sdiffs, common_sats);
-//     if (intersection_size>=4) {
-//       u8 new_ref_prn = choose_reference_sat(intersection_size, common_sats);
-//       printf("%i\n", new_ref_prn);
-//       printf("%i\n", state->state_dim);
-//     }
-//   }
-//   return 1;
-// }
-
-// u8 update_filter(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   //TODO add update_E logic
-
-//   u8 control_logic = check_and_rebase_reference_sat(kf, num_sats, sdiffs, state);
-// }
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
  */
