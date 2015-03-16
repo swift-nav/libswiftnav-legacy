@@ -178,31 +178,50 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   return TOW_ms;
 }
 
-int nav_parity(u32 *word) {
-// expects a word where MSB = D29*, bit 30 = D30*, bit 29 = D1, ... LSB = D30 as described in IS-GPS-200E Table 20-XIV
-// Inverts the bits if necessary, and checks the parity.
-// Returns 0 for success, 1 for fail.
+/* Tests the parity of a L1 C/A NAV message word.
+ * Inverts the data bits if necessary, and checks the parity.
+ * Expects a word where MSB = D29*, bit 30 = D30*, bit 29 = D1, ... LSB = D30.
+ *
+ * \note This function may modify the value of `word`.
+ *
+ * References:
+ *   -# ICD-GPS-200E Table 20-XIV
+ *
+ * \param word Pointer to word to check. Note, if D30* is set then the data
+ *             bits in this word will be inverted in place.
+ * \return 0 if the parity is correct,
+ *         otherwise returns the number of the first incorrect parity bit.
+ */
+u8 nav_parity(u32 *word)
+{
+  if (*word & 1<<30) { /* Inspect D30* */
+    *word ^= 0x3FFFFFC0; /* D30* = 1, invert all the data bits! */
+  }
 
-  if (*word & 1<<30)     // inspect D30*
-    *word ^= 0x3FFFFFC0; // invert all the data bits!
-
-  if (parity(*word & 0xBB1F34A0 /* 0b10111011000111110011010010100000 */)) // check d25 (see IS-GPS-200E Table 20-XIV)
+  /* Check D25 */
+  if (parity(*word & 0xBB1F34A0 /* 0b10111011000111110011010010100000 */)) {
     return 25;
-
-  if (parity(*word & 0x5D8F9A50 /* 0b01011101100011111001101001010000 */)) // check d26
+  }
+  /* Check D26 */
+  if (parity(*word & 0x5D8F9A50 /* 0b01011101100011111001101001010000 */)) {
     return 26;
-
-  if (parity(*word & 0xAEC7CD08 /* 0b10101110110001111100110100001000 */)) // check d27
+  }
+  /* Check D27 */
+  if (parity(*word & 0xAEC7CD08 /* 0b10101110110001111100110100001000 */)) {
     return 27;
-
-  if (parity(*word & 0x5763E684 /* 0b01010111011000111110011010000100 */)) // check d28
+  }
+  /* Check D28 */
+  if (parity(*word & 0x5763E684 /* 0b01010111011000111110011010000100 */)) {
     return 28;
-
-  if (parity(*word & 0x6BB1F342 /* 0b01101011101100011111001101000010 */)) // check d29
+  }
+  /* Check D29 */
+  if (parity(*word & 0x6BB1F342 /* 0b01101011101100011111001101000010 */)) {
     return 29;
-
-  if (parity(*word & 0x8B7A89C1 /* 0b10001011011110101000100111000001 */)) // check d30
+  }
+  /* Check D30 */
+  if (parity(*word & 0x8B7A89C1 /* 0b10001011011110101000100111000001 */)) {
     return 30;
+  }
 
   return 0;
 }
