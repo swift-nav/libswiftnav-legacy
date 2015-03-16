@@ -16,6 +16,7 @@
 
 #include "logging.h"
 #include "constants.h"
+#include "bits.h"
 #include "nav_msg.h"
 
 #define NAV_MSG_BIT_PHASE_THRES 5
@@ -175,18 +176,6 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     }
   }
   return TOW_ms;
-}
-
-
-int parity(u32 x)
-{
-  /* Returns 1 if there are an odd number of bits set. */
-  x ^= x >> 1;
-  x ^= x >> 2;
-  x ^= x >> 4;
-  x ^= x >> 8;
-  x ^= x >> 16;
-  return (x & 1);
 }
 
 int nav_parity(u32 *word) {

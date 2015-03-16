@@ -3,6 +3,22 @@
 
 #include <bits.h>
 
+START_TEST(test_parity)
+{
+  fail_unless(parity(0x00000000) == 0);
+  fail_unless(parity(0xFFFFFFFF) == 0);
+  fail_unless(parity(0x01010101) == 0);
+  fail_unless(parity(0x10101010) == 0);
+  fail_unless(parity(0x10A010A0) == 0);
+
+  fail_unless(parity(0x10000000) == 1);
+  fail_unless(parity(0x00000001) == 1);
+  fail_unless(parity(0x70707000) == 1);
+  fail_unless(parity(0x0B0B0B00) == 1);
+  fail_unless(parity(0x00E00000) == 1);
+}
+END_TEST
+
 START_TEST(test_getbitu)
 {
   u8 test_data[] = {
@@ -111,6 +127,7 @@ Suite* bits_suite(void)
   Suite *s = suite_create("Bit Utils");
 
   TCase *tc_core = tcase_create("Core");
+  tcase_add_test(tc_core, test_parity);
   tcase_add_test(tc_core, test_getbitu);
   tcase_add_test(tc_core, test_getbits);
   tcase_add_test(tc_core, test_setbitu);
