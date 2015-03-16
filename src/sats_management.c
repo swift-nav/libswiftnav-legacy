@@ -13,11 +13,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "logging.h"
 #include "single_diff.h"
 #include "sats_management.h"
 #include "linear_algebra.h"
-
-#define DEBUG_SATS_MAN 0
 
 u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
@@ -32,24 +31,14 @@ u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
   return best_prn;
 }
 
-// bool contains(u8 num_sats, u8 ref_prn, sdiff_t *sdiffs) 
-// {
-//   //todo make and use assumptions about the ordering of the prns
-//   for (u8 i=0; i<num_sats; i++) {
-//     if (ref_prn == sdiffs[i].prn) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
 //assumes both sets are ordered
 u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, const sdiff_t *sdiffs,
                   sdiff_t *intersection_sats)
 {
+  DEBUG_ENTRY();
+
   u8 i, j, n = 0;
-  if(DEBUG_SATS_MAN) {
-    printf("<INTERSECT_SATS>\n");
+  if(DEBUG) {
     printf("sdiff prns= {");
     for (u8 k=0; k< num_sdiffs; k++) {
       printf("%u, ", sdiffs[k].prn);
@@ -65,56 +54,30 @@ u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, cons
   /* Loop over sats1 and sdffs and check if a PRN is present in both. */
   for (i=0, j=0; i<num_sats1 && j<num_sdiffs; i++, j++) {
     if (sats1[i] < sdiffs[j].prn) {
-      if (DEBUG_SATS_MAN) {
-        printf("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++\n", n, i, sats1[i], j, sdiffs[j].prn);
-      }
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++\n", n, i, sats1[i], j, sdiffs[j].prn);
       j--;
     }
     else if (sats1[i] > sdiffs[j].prn) {
-      if (DEBUG_SATS_MAN) {
-        printf("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++\n", n, i, sats1[i], j, sdiffs[j].prn);
-      }
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++\n", n, i, sats1[i], j, sdiffs[j].prn);
       i--;
     }
     else {
-      if (DEBUG_SATS_MAN) {
-        printf("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++\n", n, i, sats1[i], j, sdiffs[j].prn);
-      }
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++\n", n, i, sats1[i], j, sdiffs[j].prn);
       memcpy(&intersection_sats[n], &sdiffs[j], sizeof(sdiff_t));
       n++;
     }
   }
-  if (DEBUG_SATS_MAN) {
+  if (DEBUG) {
     printf("intersection_sats= {");
     for (u8 k=0; k< n; k++) {
       printf("%u, ", intersection_sats[k].prn);
     }
-    printf("}\n</INTERSECT_SATS>\n");
+    printf("}\n");
   }
+
+  DEBUG_EXIT();
   return n;
 }
-
-// s8 check_and_rebase_reference_sat(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   bool still_has_ref = contains(num_sats, sdiffs);
-//   if (still_has_ref == false) {
-//     sdiff_t common_sats[num_sats];
-//     u8 intersection_size = intersect_sats(num_sats, sdiffs, common_sats);
-//     if (intersection_size>=4) {
-//       u8 new_ref_prn = choose_reference_sat(intersection_size, common_sats);
-//       printf("%i\n", new_ref_prn);
-//       printf("%i\n", state->state_dim);
-//     }
-//   }
-//   return 1;
-// }
-
-// u8 update_filter(kf_t *kf, u8 num_sats, sdiff_t *sdiffs, kf_state_t *state)
-// {
-//   //TODO add update_E logic
-
-//   u8 control_logic = check_and_rebase_reference_sat(kf, num_sats, sdiffs, state);
-// }
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
  */
@@ -154,12 +117,11 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
                        const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
+  DEBUG_ENTRY();
+
   u8 old_ref = sats_management->prns[0];
-  if (DEBUG_SATS_MAN) {
-    printf("<SET_REFERENCE_SAT>\n");
-    printf("ref_prn = %u\n", ref_prn);
-    printf("old_ref = %u\n", old_ref);
-  }
+  log_debug("ref_prn = %u\n", ref_prn);
+  log_debug("old_ref = %u\n", old_ref);
   u8 j;
   if (old_ref != ref_prn) {
     j = 1;
@@ -188,21 +150,16 @@ void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn != ref_prn) {
-      if (DEBUG_SATS_MAN) {
-        printf("prn[%u] = %u\n", j, sdiffs[i].prn);
-      }
+      log_debug("prn[%u] = %u\n", j, sdiffs[i].prn);
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     } else {
-      if (DEBUG_SATS_MAN) {
-        printf("prn[0] = %u\n", sdiffs[i].prn);
-      }
+      log_debug("prn[0] = %u\n", sdiffs[i].prn);
       memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
     }
   }
-  if (DEBUG_SATS_MAN) {
-    printf("</SET_REFERENCE_SAT>\n");
-  }
+
+  DEBUG_EXIT();
 }
 
 void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
@@ -229,23 +186,18 @@ void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_manage
 void init_sats_management(sats_management_t *sats_management,
                           const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
-  if (DEBUG_SATS_MAN) {
-    printf("<INIT_SATS_MANAGEMENT>\n");
-  }
+  DEBUG_ENTRY();
+
   if (num_sdiffs == 0) {
     sats_management->num_sats = 0;
-    if (DEBUG_SATS_MAN) {
-      printf("</INIT_SATS_MANAGEMENT>\n");
-    }
+    DEBUG_EXIT();
     return;
   }
 
   u8 ref_prn = choose_reference_sat(num_sdiffs, sdiffs);
   set_reference_sat_and_prns(ref_prn, sats_management,
                              num_sdiffs, sdiffs, sdiffs_with_ref_first);
-  if (DEBUG_SATS_MAN) {
-      printf("</INIT_SATS_MANAGEMENT>\n");
-    }
+  DEBUG_EXIT();
 }
 
 /** Prints one prn per line */
@@ -271,11 +223,10 @@ void print_sats_management_short(sats_management_t *sats_man) {
 s8 rebase_sats_management(sats_management_t *sats_management,
                           const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
+  DEBUG_ENTRY();
+
   s8 return_code;
   u8 ref_prn;
-  if (DEBUG_SATS_MAN) {
-        printf("<REBASE_SATS_MANAGEMENT>\n");
-  }
 
   if (sats_management->num_sats <= 1) {
     // Need to init first.
@@ -292,13 +243,11 @@ s8 rebase_sats_management(sats_management_t *sats_management,
     u8 num_intersection = intersect_sats(sats_management->num_sats, num_sdiffs,
                                          &(sats_management->prns[1]), sdiffs, intersection_sats);
     if (num_intersection < INTERSECTION_SATS_THRESHOLD_SIZE) {
-      if (DEBUG_SATS_MAN) {
-        printf("</REBASE_SATS_MANAGEMENT>\n");
-      }
+      DEBUG_EXIT();
       return NEW_REF_START_OVER;
     }
     else {
-      if (DEBUG_SATS_MAN) {
+      if (DEBUG) {
         printf("sdiff prns= {");
         for (u8 yo_mama=0; yo_mama< num_sdiffs; yo_mama++) {
           printf("%u, ", sdiffs[yo_mama].prn);
@@ -321,9 +270,8 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
   set_reference_sat(ref_prn, sats_management,
                     num_sdiffs, sdiffs, sdiffs_with_ref_first);
-  if (DEBUG_SATS_MAN) {
-    printf("</REBASE_SATS_MANAGEMENT>\n");
-  }
+
+  DEBUG_EXIT();
   return return_code;
 }
 
@@ -337,7 +285,7 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 
 
 
-s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, 
+s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
                             sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   u8 j = 1;
@@ -356,6 +304,4 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
   }
   return 0;
 }
-
-
 

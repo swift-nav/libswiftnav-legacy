@@ -16,10 +16,11 @@
 
 #include <string.h>
 #include <math.h>
-#include <stdio.h>
 #include <cblas.h>
 #include <clapack.h>
+
 #include "amb_kf.h"
+#include "logging.h"
 
 /* constants/macros ----------------------------------------------------------*/
 
@@ -93,7 +94,7 @@ int LD(int n, const double *Q, double *L, double *D)
         for (j=0;j<=i;j++) L[i+j*n]/=L[i+i*n];
     }
     if (info) {
-        printf("%s : LD factorization error, trying UD from Gibbs (col major UD = LD)\n",__FILE__);
+        log_error("%s : LD factorization error, trying UD from Gibbs (col major UD = LD)\n",__FILE__);
         double Qcopy[n * n];
         memcpy(Qcopy, Q, n * n * sizeof(double));
         udu2(n, Qcopy, L, D);
@@ -205,7 +206,7 @@ static int search(int n, int m, const double *L, const double *D,
     }
 
     if (c>=LOOPMAX) {
-        fprintf(stderr,"%s : search loop count overflow\n",__FILE__);
+        log_error("LAMBDA search loop count overflow\n");
         return -1;
     }
     return 0;

@@ -10,9 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
 #include <string.h>
 
+#include "logging.h"
 #include "linear_algebra.h"
 #include "single_diff.h"
 #include "ephemeris.h"
@@ -44,11 +44,6 @@ u8 propagate(u8 n, double ref_ecef[3],
     double dr[3];
     vector_subtract(3, m_in_rover[i].sat_pos, m_in_base[i].sat_pos, dr);
 
-    /* Subtract linear term (initial satellite velocity * dt),
-     * we are going to add back in the linear term derived from the Doppler
-     * instead. */
-    /*vector_add_sc(3, dr, m_in_base[i].sat_vel, -dt, dr);*/
-
     /* Make unit vector to satellite, e. */
     double e[3];
     vector_subtract(3, m_in_rover[i].sat_pos, ref_ecef, e);
@@ -57,26 +52,11 @@ u8 propagate(u8 n, double ref_ecef[3],
     /* Project onto the line of sight vector. */
     dr_[i] = vector_dot(3, dr, e);
 
-    /*printf("# ddr_ = %f\n", dr_[i]);*/
-
-    /* Add back in linear term now using Doppler. */
-    /*dr_[i] -= m_in_base[i].raw_doppler * dt * GPS_L1_LAMBDA;*/
-
-    /*printf("# dr_dopp = %f\n", -m_in_base[i].raw_doppler * dt * GPS_L1_LAMBDA);*/
-
-    /*printf("# raw dopp = %f\n", m_in_rover[i].raw_doppler);*/
-    /*printf("# my dopp = %f\n", -vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
-    /*printf("# ddopp = %f\n", m_in_rover[i].raw_doppler - vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
-    /*printf("[%f, %f],", m_in_base[i].raw_doppler, vector_dot(3, e, m_in_rover[i].sat_vel) / GPS_L1_LAMBDA);*/
-
-    /*printf("# dr_ = %f\n", dr_[i]);*/
-
     m_out_base[i].raw_pseudorange = m_in_base[i].raw_pseudorange + dr_[i];
     m_out_base[i].pseudorange = m_in_base[i].pseudorange;
     m_out_base[i].carrier_phase = m_in_base[i].carrier_phase - dr_[i] / GPS_L1_LAMBDA;
     m_out_base[i].raw_doppler = m_in_base[i].raw_doppler;
     m_out_base[i].doppler = m_in_base[i].doppler;
-    /*m_in_base[i].carrier_phase -= dr_[i] / GPS_L1_LAMBDA;*/
   }
   return 0;
 }
@@ -235,14 +215,10 @@ void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff
     sdiffs[i].prn = alms[i].prn;
     if (i==0) {
       sdiffs[i].snr = 1;
-      // printf("ref_prn=%d\n", sdiffs[i].prn);
     }
     else {
       sdiffs[i].snr = 0;
     }
-    // if (sdiffs[i].prn == 16) {
-    //   sdiffs[i].snr = 2;
-    // }
   }
 }
 
@@ -307,9 +283,9 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
 /** Prints an sdiff_t
  * \param sd    the sdiff_t to print.
  */
-void print_sdiff(sdiff_t sd)
+void debug_sdiff(sdiff_t sd)
 {
-  printf("sdiff_t:\n"
+  log_debug("sdiff_t:\n"
     "\tprn = %u\n"
     "\tsnr = %f\n"
     "\tpseudorange   = %f\n"
@@ -327,13 +303,13 @@ void print_sdiff(sdiff_t sd)
  * \param n     The number of sdiffs to print.
  * \param sds   A pointer to the head of the array of sdiffs to print.
  */
-void print_sdiffs(u8 n, sdiff_t *sds)
+void debug_sdiffs(u8 n, sdiff_t *sds)
 {
-  printf("[\n");
+  log_debug("[\n");
   for (u8 i=0; i<n; i++) {
-    print_sdiff(sds[i]);
+    debug_sdiff(sds[i]);
   }
-  printf("]\n");
+  log_debug("]\n");
 }
 
 /** \} */

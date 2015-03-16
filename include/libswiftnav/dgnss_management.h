@@ -51,7 +51,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
                       u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
-s32 * get_stupid_filter_ints(void);
 sats_management_t * get_sats_management(void);
 
 s8 dgnss_iar_resolved(void);

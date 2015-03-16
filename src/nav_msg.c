@@ -14,6 +14,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "logging.h"
 #include "constants.h"
 #include "nav_msg.h"
 
@@ -166,7 +167,6 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
             TOW_ms = TOW_trunc * 6000 - (300-60)*20;
           else  // end of week special case
             TOW_ms = 7*24*60*60*1000 - (300-60)*20;
-          //printf("TOW = hh:%02d:%02d.%03d\n", (int) (TOW_ms / 60000 % 60), (int)(TOW_ms / 1000 % 60), (int)(TOW_ms % 1000));
 
         } else
           n->subframe_start_index = 0;  // the TOW counts didn't match - disregard.
@@ -196,8 +196,6 @@ int nav_parity(u32 *word) {
 
   if (*word & 1<<30)     // inspect D30*
     *word ^= 0x3FFFFFC0; // invert all the data bits!
-
- // printf("w=%08X  ",(unsigned int )word);
 
   if (parity(*word & 0xBB1F34A0 /* 0b10111011000111110011010010100000 */)) // check d25 (see IS-GPS-200E Table 20-XIV)
     return 25;
@@ -230,22 +228,21 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   // First things first - check the parity, and invert bits if necessary.
   // process the data, skipping the first word, TLM, and starting with HOW
 
-  // printf("  %d  ", (n->subframe_start_index > 0));
-
   /* TODO: Check if inverted has changed and detect half cycle slip. */
-  if (n->inverted != (n->subframe_start_index < 0))
-    printf("Nav phase flip\n");
+  if (n->inverted != (n->subframe_start_index < 0)) {
+    log_info("Nav phase flip\n");
+  }
   n->inverted = (n->subframe_start_index < 0);
 
   if (!e) {
-    printf(" process_subframe: CALLED WITH e = NULL!\n");
+    log_warn("process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
   }
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-      printf("SUBFRAME PARITY ERROR (word 2)\n");
+      log_info("subframe parity mismatch (word 2)\n");
       n->subframe_start_index = 0;  // Mark the subframe as processed
       n->next_subframe_id = 1;      // Make sure we start again next time
       return -2;
@@ -253,15 +250,13 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
 
-  /*printf("sf_id = %d, nsf = %d\n",sf_id, n->next_subframe_id);*/
-
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
     for (int w = 0; w < 8; w++) {   // For words 3..10
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        printf("SUBFRAME PARITY ERROR (word %d)\n", w+3);
+        log_info("subframe parity mismatch (word %d)\n", w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
         return -3;
@@ -387,28 +382,6 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
       e->valid = 1;
 
-      /*printf("Health %d\n", e->healthy);*/
-      /*printf("TGD %16g\n", e->tgd);*/
-      /*printf("TOC %16u\n", (unsigned int)e->toc);*/
-      /*printf("af2 %16g\n", e->af2);*/
-      /*printf("af1 %16g\n", e->af1);*/
-      /*printf("af0 %16g\n", e->af0);*/
-      /*printf("CRS %16g\n", e->crs);*/
-      /*printf("DN %16g\n", e->dn);*/
-      /*printf("M0 %16g\n", e->m0);*/
-      /*printf("CUC %16g\n", e->cuc);*/
-      /*printf("Ecc %16g\n", e->ecc);*/
-      /*printf("CUS %16g\n", e->cus);*/
-      /*printf("SQRT A %16g\n", e->sqrta);*/
-      /*printf("TOE %16u\n", (unsigned int)e->toe);*/
-      /*printf("CIC %16g\n", e->cic);*/
-      /*printf("omega0 %16g\n", e->omega0);*/
-      /*printf("CIS %16g\n", e->cis);*/
-      /*printf("Inc %16g\n", e->inc);*/
-      /*printf("CRC %16g\n", e->crc);*/
-      /*printf("W %16g\n", e->w);*/
-      /*printf("omegadot %16g\n", e->omegadot);*/
-      /*printf("inc_dot %16g\n", e->inc_dot);*/
       return 1;
 
     }
