@@ -585,8 +585,8 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
  * to date, this will make a set of sdiffs and DD measurements that correspond
  * to the resolved sats.
  *
- * Returns 0 if the input sdiff sats are a superset of the resolved IAR sats.
- * Returns -1 otherwise.
+ * \todo If the input sdiffs are a subset of the resolved IAR sats, but still
+ *       enough to compute a solution, do it.
  *
  * \param amb_test                  The local amb_test struct. Must have a
  *                                  current amb_check.
