@@ -15,7 +15,6 @@
 
 #include "common.h"
 
-u16 crc16_ccitt(const u8 *buf, u32 len, u16 crc);
 u32 crc24q(const u8 *buf, u32 len, u32 crc);
 
 #endif /* LIBSWIFTNAV_EDC_H */
