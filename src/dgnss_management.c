@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include "logging.h"
 #include "amb_kf.h"
 #include "stupid_filter.h"
@@ -439,6 +440,8 @@ s8 make_float_dd_measurements_and_sdiffs(
  * to check if we can solve. For now, unless the sdiffs are a superset of the
  * float sats, we don't solve.
  *
+ * Requires num_sdiffs >= 4 and (global) sats_management.num_sats >= 4.
+ *
  * \TODO solve whenever the information is there.
  *
  * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
@@ -447,7 +450,7 @@ s8 make_float_dd_measurements_and_sdiffs(
  * \TODO pull this function into the KF, once we pull the sats_management struct
  *      into the KF too. When we do, do the same for the IAR low lat solution.
  *
- * \param num_sdiffs  The number of sdiffs input.
+ * \param num_sdiffs  The number of sdiffs input. Must be >= 4.
  * \param sdiffs      The sdiffs used to measure. (These should be a superset
  *                    of the float sats).
  * \param ref_ecef    The reference position used for solving, and making
@@ -461,11 +464,17 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                      double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
-  if (num_sdiffs <= 1 || sats_management.num_sats <= 1) {
-    log_debug("too few sats or too few sdiffs\n");
+  if (num_sdiffs < 4 || sats_management.num_sats < 4) {
+    /* For a position solution, we need at least 4 sats. That means we must
+     * have at least 4 sats in common between what the KF is tracking and
+     * the sdiffs we give this function. If either is less than 4,
+     * this criterion cannot be satisfied. */
+    log_debug("Low latency solution can't be computed. Too few observations"
+              " or too few sats in the current filter.\n");
     DEBUG_EXIT();
     return -1;
   }
+
   double float_dd_measurements[2 * (sats_management.num_sats - 1)];
   sdiff_t float_sdiffs[sats_management.num_sats];
   s8 can_make_obs = make_dd_measurements_and_sdiffs(sats_management.prns[0],
@@ -489,6 +498,8 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
  * brought by hysteresis) to match up with the IAR sats, so we have
  * to check if we can solve. For now, unless the sdiffs are a superset of the
  * IAR sats, we don't solve.
+ *
+ * Requires num_sdiffs >= 4.
  *
  * \TODO, solve whenever we can
  *
@@ -514,6 +525,7 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                    double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
+  assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {
     DEBUG_EXIT();
     return -1;
@@ -565,6 +577,16 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                               double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
+  if (num_sdiffs < 4 || sats_management.num_sats < 4) {
+    /* For a position solution, we need at least 4 sats. That means we must
+     * have at least 4 sats in common between what the filters are tracking and
+     * the sdiffs we give this function. If num_sdiffs, or the number of KF
+     * sats is less than 4, this criterion cannot be satisfied. */
+    log_debug("Low latency solution can't be computed. Too few observations"
+              " or too few sats in the current filter.\n");
+    DEBUG_EXIT();
+    return -1;
+  }
   if (0 == _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
                                   ref_ecef, num_used, b)) {
     log_debug("low latency IAR solution\n");
