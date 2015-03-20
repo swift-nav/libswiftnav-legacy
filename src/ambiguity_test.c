@@ -564,7 +564,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
   }
   if (DEBUG) {
     printf("amb_sdiff_prns = {");
-    for (i = 0; i < num_dds; i++) {
+    for (i = 0; i < num_dds+1; i++) {
       printf("%u, ", amb_sdiffs[i].prn);
     }
     printf("}\ndd_measurements = {");
