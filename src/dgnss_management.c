@@ -390,7 +390,9 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   /* At this point, sdiffs should be valid due to dgnss_update
    * Return code not equal to 0 signals an error. */
   if (valid_sdiffs != 0) {
-    log_error("dgnss_fixed_baseline: invalid sdiffs.\n");
+    if (valid_sdiffs != -1) {
+      log_error("dgnss_fixed_baseline: Invalid sdiffs.");
+    }
     return 0;
   }
 
@@ -524,7 +526,9 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
       &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
 
   if (valid_sdiffs != 0) {
-    log_error("_dgnss_low_latency_IAR_baseline: invalid sdiffs\n");
+    if (valid_sdiffs != -1) {
+      log_error("_dgnss_low_latency_IAR_baseline: Invalid sdiffs.");
+    }
     DEBUG_EXIT();
     return -1;
   }
