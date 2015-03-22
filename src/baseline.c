@@ -16,7 +16,7 @@
 #include <stdio.h>
 
 #include "constants.h"
-#include "stupid_filter.h"
+#include "baseline.h"
 #include "amb_kf.h"
 #include "linear_algebra.h"
 

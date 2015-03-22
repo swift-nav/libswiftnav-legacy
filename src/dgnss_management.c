@@ -15,7 +15,7 @@
 #include <assert.h>
 #include "logging.h"
 #include "amb_kf.h"
-#include "stupid_filter.h"
+#include "baseline.h"
 #include "single_diff.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"

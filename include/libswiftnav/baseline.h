@@ -10,8 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef LIBSWIFTNAV_STUPID_FILTER_H
-#define LIBSWIFTNAV_STUPID_FILTER_H
+#ifndef LIBSWIFTNAV_BASELINE_H
+#define LIBSWIFTNAV_BASELINE_H
 
 #include "common.h"
 
@@ -20,5 +20,5 @@ void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
 void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE,
                    double b[3], double *resid);
 
-#endif /* LIBSWIFTNAV_STUPID_FILTER_H */
+#endif /* LIBSWIFTNAV_BASELINE_H */
 
