@@ -375,7 +375,7 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
  */
-void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
+void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3])
 {
@@ -447,20 +447,8 @@ void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
                       const double *dd_measurements, const double ref_ecef[3],
                       double b[3])
 {
-  return _least_squares_solve_b(kf->state_dim, kf->state_mean,
+  return least_squares_solve_b_external_ambs(kf->state_dim, kf->state_mean,
       sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
-}
-
-/* Presumes that the first alm entry is the reference sat.
- * TODO use the state covariance matrix for a better estimate:
- *   That is, decorrelate and scale the LHS of y = A * x before solving for x
- */
-void least_squares_solve_b_external_ambs(
-         u8 num_dds_u8, const double *ambs, const sdiff_t *sdiffs_with_ref_first,
-         const double *dd_measurements, const double ref_ecef[3], double b[3])
-{
-  return _least_squares_solve_b(num_dds_u8, ambs, sdiffs_with_ref_first,
-      dd_measurements, ref_ecef, b);
 }
 
 /* Initializes the ambiguity means and variances.
