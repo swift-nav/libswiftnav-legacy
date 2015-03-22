@@ -53,6 +53,29 @@ START_TEST(test_predict_carrier_obs2)
 }
 END_TEST
 
+START_TEST(test_amb_from_baseline)
+{
+  double N_true[] = {22, 23, 34, -123};
+  u8 num_dds = sizeof(N_true)/sizeof(N_true[0]);
+  s32 N[num_dds];
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 1, 1, 1};
+  double b[3] = {1, 1, 1};
+  double dd_obs[num_dds];
+
+  predict_carrier_obs(num_dds, N_true, DE, b, dd_obs);
+  amb_from_baseline(num_dds, DE, dd_obs, b, N);
+
+  for (u8 i=0; i<num_dds; i++) {
+    fail_unless(fabs(N_true[i] - N[i]) < TOL,
+                "Observation mismatch: %ld vs %lf",
+                N[i], N_true[i]);
+  }
+}
+END_TEST
 
 
 Suite* baseline_test_suite(void)
@@ -62,6 +85,7 @@ Suite* baseline_test_suite(void)
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_predict_carrier_obs);
   tcase_add_test(tc_core, test_predict_carrier_obs2);
+  tcase_add_test(tc_core, test_amb_from_baseline);
   suite_add_tcase(s, tc_core);
 
   return s;

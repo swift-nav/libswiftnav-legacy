@@ -11,6 +11,7 @@
  */
 
 #include <math.h>
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <cblas.h>
@@ -64,44 +65,64 @@
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs)
 {
+  assert(N != NULL);
+  assert(DE != NULL);
+  assert(b != NULL);
+  assert(dd_obs != NULL);
+
   for (u8 i=0; i<num_dds; i++) {
     dd_obs[i] = vector_dot(3, &DE[3*i], b) / GPS_L1_LAMBDA_NO_VAC + N[i];
   }
 }
 
-/** Estimate the integer ambiguity vector from a double difference measurement
- * and a given baseline.
+/** Estimate the integer ambiguity vector from a double difference carrier
+ * phase measurement and a given baseline.
  *
  * Given the double difference carrier phase measurement equation:
+ *
  * \f[
- *    \nabla \Delta \phi_i = N_i + \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} + \epsilon
+ *    \nabla \Delta \phi_i = N_i +
+ *      \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} +
+ *      \epsilon
  * \f]
+ *
  * where \f$ \nabla \Delta \phi_i \f$ is the double differenced carrier phase
  * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
- * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is the
- * unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the baseline
- * vector between the reover and reference station.
+ * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is
+ * the unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the
+ * baseline vector between the reover and reference station.
  *
  * We can estimate \f$N_i\f$ given the baseline \f$\mathbf{b}\f$ as follows:
+ *
  * \f[
- *    \tilde{N_i} = \mathrm{round}\left(\Delta \nabla \phi_i - \frac{1}{\lambda} [\mathbf{DE} \cdot \mathbf{b}]_i + \epsilon\right)
+ *    \tilde{N_i} = \mathrm{round}\left(
+ *      \nabla \Delta \phi_i -
+ *      \frac{1}{\lambda} [\mathbf{DE} \cdot \mathbf{b}]_i
+ *    \right)
  * \f]
+ *
  * where the \f$\mathbf{DE}\f$ matrix is defined as:
+ *
  * \f[
  *    \mathbf{DE}_i = \mathbf{e}_i - \mathbf{e}_r
  * \f]
  *
- * \param num_sats Number of satellites used
+ * \param num_dds Number of double difference observations
  * \param DE Double differenced matrix of unit vectors to the satellites
- * \param dd_meas Double differenced carrier phase measurements in cycles,
- *                length `num_sats - 1`
+ * \param dd_obs Double differenced carrier phase observations in cycles,
+ *               length `num_sats - 1`
  * \param b Baseline vector in meters
  * \param N Vector where integer ambiguity estimate will be stored
  */
-void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
-                       double b[3], s32 *N)
+void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
+                       const double b[3], s32 *N)
 {
-  double N_float[num_sats-1];
+  assert(N != NULL);
+  assert(DE != NULL);
+  assert(b != NULL);
+  assert(dd_obs != NULL);
+
+  double N_float[num_dds];
   /* Solve for ambiguity vector using the observation equation, i.e.
    *   N_float = dd_meas - DE . b / lambda
    * where N_float is a real valued vector */
@@ -111,15 +132,15 @@ void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
    * beta <= 1.0
    * N_float <= beta * N_float + alpha * (DE . b)
    */
-  memcpy(N_float, dd_meas, (num_sats-1) * sizeof(double));
+  memcpy(N_float, dd_obs, num_dds * sizeof(double));
   cblas_dgemv(
-    CblasRowMajor, CblasNoTrans, num_sats-1, 3,
+    CblasRowMajor, CblasNoTrans, num_dds, 3,
     -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, b, 1,
     1.0, N_float, 1
   );
 
   /* Round the values of N_float to estimate the integer valued ambiguities. */
-  for (u8 i=0; i<num_sats-1; i++) {
+  for (u8 i=0; i<num_dds; i++) {
     N[i] = (s32)lround(N_float[i]);
   }
 }
