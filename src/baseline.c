@@ -26,14 +26,57 @@
 #define LAPACK_NAME(lcname,UCNAME)  lcname##_lolz
 #include <lapacke.h>
 
+/** \defgroup baseline Baseline calculations
+ * Functions for relating the baseline vector with carrier phase observations
+ * and ambiguities.
+ * \{ */
+
+/** Predict carrier phase double difference observations from baseline and
+ * ambiguity vectors.
+ *
+ * The carrier phase double difference observations can be modelled as:
+ * \f[
+ *    \nabla \Delta \phi_i = \frac{1}{\lambda} \mathbf{DE}_i \cdot \mathbf{b} +
+ *                           N_i
+ * \f]
+ *
+ * where \f$ \nabla \Delta \phi_i \f$ is the double differenced carrier phase
+ * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
+ * \mathbb{R}\f$ is the corresponding carrier phase ambiguity.
+ *
+ * The \f$\mathbf{DE}\f$ matrix is defined as:
+ * \f[
+ *    \mathbf{DE}_i = \mathbf{e}_i - \mathbf{e}_r
+ * \f]
+ *
+ * where \f$\mathbf{e}_i\f$ is the unit vector to the \f$i\f$th satellite and
+ * \f$\mathbf{b}\f$ is the baseline vector between the reover and reference
+ * station.
+ *
+ * \param num_dds Number of double difference observations
+ * \param DE Double differenced matrix of unit vectors to the satellites,
+ *           length `3 * num_dds`
+ * \param N Carrier phase ambiguity vector, length `num_dds`
+ * \param dd_meas Double differenced carrier phase observations in cycles,
+ *                length `num_dds`
+ * \param b Baseline vector in meters
+ */
+void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
+                         const double b[3], double *dd_obs)
+{
+  for (u8 i=0; i<num_dds; i++) {
+    dd_obs[i] = vector_dot(3, &DE[3*i], b) / GPS_L1_LAMBDA_NO_VAC + N[i];
+  }
+}
+
 /** Estimate the integer ambiguity vector from a double difference measurement
  * and a given baseline.
  *
  * Given the double difference carrier phase measurement equation:
  * \f[
- *    \Delta \nabla \phi_i = N_i + \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} + \epsilon
+ *    \nabla \Delta \phi_i = N_i + \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} + \epsilon
  * \f]
- * where \f$ \Delta \nabla \phi_i \f$ is the double differenced carrier phase
+ * where \f$ \nabla \Delta \phi_i \f$ is the double differenced carrier phase
  * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
  * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is the
  * unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the baseline

@@ -16,6 +16,8 @@
 #include "common.h"
 #include "single_diff.h"
 
+void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
+                         const double b[3], double *dd_obs);
 void amb_from_baseline(u8 num_sats, double *DE, double *dd_meas,
                        double b[3], s32 *N);
 void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE,
