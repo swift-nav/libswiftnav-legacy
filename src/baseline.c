@@ -51,7 +51,7 @@
  * \f]
  *
  * where \f$\mathbf{e}_i\f$ is the unit vector to the \f$i\f$th satellite and
- * \f$\mathbf{b}\f$ is the baseline vector between the reover and reference
+ * \f$\mathbf{b}\f$ is the baseline vector between the rover and reference
  * station.
  *
  * \param num_dds Number of double difference observations
@@ -90,7 +90,7 @@ void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
  * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
  * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is
  * the unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the
- * baseline vector between the reover and reference station.
+ * baseline vector between the rover and reference station.
  *
  * We can estimate \f$N_i\f$ given the baseline \f$\mathbf{b}\f$ as follows:
  *
@@ -133,6 +133,27 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
+/** Calculate least squares baseline solution from a set of double difference
+ * carrier phase observations and carrier phase ambiguities.
+ *
+ * For more details, see lesq_solution_float().
+ *
+ * \note This function takes integer valued carrier phase ambiguities. For real
+ *       valued ambiguities, see lesq_solution_float().
+ *
+ * \param num_dds Number of double difference observations
+ * \param dd_obs  Double differenced carrier phase observations in cycles,
+ *                length `num_dds`
+ * \param N       Carrier phase ambiguity vector, length `num_dds`
+ * \param DE      Double differenced matrix of unit vectors to the satellites,
+ *                length `3 * num_dds`
+ * \param b       The output baseline in meters.
+ * \param resid   The output least squares residuals in cycles.
+ * \return         0 on success,
+ *                -1 if there were insufficient observations to calculate the
+ *                   baseline (the solution was under-constrained),
+ *                -2 if an error occurred
+ */
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
                      const double *DE, double b[3], double *resid)
 {
@@ -176,7 +197,7 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
  *    The z_I for I = {i | d_i ~~ 0} want to be solved exactly, because we are
  *    saying that there is no noise in the measurement. This can reduce the
  *    dimension of the problem we are solving, if we really want to.
-
+ *
  *    Therefore we want to:
  *      Triangularly solve y = U * z, for z = U^(-1) * y
  *                         A = U * B, for C = U^(-1) * A
@@ -192,20 +213,56 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
  *
  *    We also need to determine if this is even worth the extra effort.
  */
-/** A least squares solution for baseline from phases using the KF state.
- * This uses the current state of the KF and a set of phase observations to
- * solve for the current baseline.
+
+/** Calculate least squares baseline solution from a set of double difference
+ * carrier phase observations and carrier phase ambiguities.
  *
- * \param kf                    The Kalman filter struct.
- * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
- *                              the reference sat of the KF, and the rest must
- *                              correspond to the KF's DD amb estimates' sats.
- * \param dd_measurements       A vector of carrier phases. They must be double
- *                              differenced and ordered according to the sdiffs
- *                              and KF's sats (which must match each other).
- * \param ref_ecef              The reference position in ECEF frame, for
- *                              computing the sat direction vectors.
- * \param b                     The output baseline in meters.
+ * Given the double difference carrier phase measurement equation:
+ *
+ * \f[
+ *    \nabla \Delta \phi_i = N_i +
+ *      \frac{1}{\lambda} (\mathbf{e}_i - \mathbf{e}_r) \cdot \mathbf{b} +
+ *      \epsilon
+ * \f]
+ *
+ * where \f$ \nabla \Delta \phi_i \f$ is the double differenced carrier phase
+ * between satellite \f$i\f$ and reference satellite \f$r\f$, \f$N_i \in
+ * \mathbb{R}\f$ is the corresponding integer ambiguity, \f$\mathbf{e}_i\f$ is
+ * the unit vector to the \f$i\f$th satellite and \f$\mathbf{b}\f$ is the
+ * baseline vector between the rover and reference station.
+ *
+ * If there are 3 or more double difference carrier phase observations then the
+ * baseline can be estimated using a least squares solution:
+ *
+ * \f[
+ *    \tilde{\mathbf{b}} = \underset{\mathbf{b}}{\mathrm{argmin}}
+ *      \left\|
+ *        \frac{1}{\lambda} \mathbf{DE}_i \cdot \mathbf{b} -
+ *        \nabla \Delta \phi_i + N_i
+ *      \right\|_{\mathcal{l}_2}
+ * \f]
+ *
+ * where:
+ *
+ * \f[
+ *    \mathbf{DE}_i = \mathbf{e}_i - \mathbf{e}_r
+ * \f]
+ *
+ * \note This function takes real valued carrier phase ambiguities. For integer
+ *       valued ambiguities, see lesq_solution_int().
+ *
+ * \param num_dds Number of double difference observations
+ * \param dd_obs  Double differenced carrier phase observations in cycles,
+ *                length `num_dds`
+ * \param N       Carrier phase ambiguity vector, length `num_dds`
+ * \param DE      Double differenced matrix of unit vectors to the satellites,
+ *                length `3 * num_dds`
+ * \param b       The output baseline in meters.
+ * \param resid   The output least squares residuals in cycles.
+ * \return         0 on success,
+ *                -1 if there were insufficient observations to calculate the
+ *                   baseline (the solution was under-constrained),
+ *                -2 if an error occurred
  */
 s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
                        const double *DE, double b[3], double *resid)
@@ -219,7 +276,6 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -1;
   }
 
-  (void)resid;
   integer num_dds = num_dds_u8;
   double DET[num_dds * 3];
   matrix_transpose(num_dds, 3, DE, DET);
@@ -250,6 +306,17 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   s32 lwork = 13;
   double work[lwork];
 
+  /* DGELSY solves:
+   *   argmin || A.x - B ||
+   * where
+   *   A <- DE
+   *   B <- phase_ranges = dd_obs - N
+   *   M <- num_dds
+   *   N <- 3
+   *   NRHS <- 1
+   *
+   * the baseline result x is returned in the first 3 elements of phase_ranges.
+   */
   dgelsy_(&num_dds, &three, &one, /* M, N, NRHS. */
           DET, &num_dds,          /* A, LDA. */
           phase_ranges, &ldb,     /* B, LDB. */
@@ -318,4 +385,6 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   (void)ret;
   DEBUG_EXIT();
 }
+
+/** \} */
 
