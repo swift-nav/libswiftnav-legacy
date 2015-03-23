@@ -23,10 +23,6 @@
 #include "amb_kf.h"
 #include "linear_algebra.h"
 
-#undef abs
-#define LAPACK_NAME(lcname,UCNAME)  lcname##_lolz
-#include <lapacke.h>
-
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
  * and ambiguities.
