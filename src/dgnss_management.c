@@ -427,8 +427,14 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
-                ambiguity_test.amb_check.ambs, DE, b, 0);
+  s8 ret = lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
+                         ambiguity_test.amb_check.ambs, DE, b, 0);
+  if (ret) {
+    log_error("dgnss_fixed_baseline: "
+              "lesq_solution returned error %d\n", ret);
+    DEBUG_EXIT();
+    return 0;
+  }
   return 1;
 }
 
@@ -576,8 +582,14 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
-                dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+  s8 ret = lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
+                         dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+  if (ret) {
+    log_error("_dgnss_low_latency_IAR_baseline: "
+              "lesq_solution returned error %d\n", ret);
+    DEBUG_EXIT();
+    return -1;
+  }
 
   DEBUG_EXIT();
   return 0;

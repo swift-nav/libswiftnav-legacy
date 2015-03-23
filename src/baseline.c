@@ -133,8 +133,18 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE, double b[3], double *resid)
+s8 lesq_solution(u8 num_dds, const double *dd_meas, const s32 *N,
+                 const double *DE, double b[3], double *resid)
 {
+  assert(dd_meas != NULL);
+  assert(N != NULL);
+  assert(DE != NULL);
+  assert(b != NULL);
+
+  if (num_dds < 3) {
+    return -1;
+  }
+
   double DE_work[num_dds*3];
   memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
 
@@ -183,6 +193,7 @@ void lesq_solution(u8 num_dds, double *dd_meas, s32 *N, double *DE, double b[3],
       1.0, resid, 1
     );
   }
+  return 0;
 }
 
 /* TODO use the state covariance matrix for a better estimate:
