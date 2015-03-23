@@ -122,26 +122,14 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   assert(b != NULL);
   assert(dd_obs != NULL);
 
-  double N_float[num_dds];
   /* Solve for ambiguity vector using the observation equation, i.e.
    *   N_float = dd_meas - DE . b / lambda
    * where N_float is a real valued vector */
-
-  /* N_float <= dd_meas
-   * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
-   * beta <= 1.0
-   * N_float <= beta * N_float + alpha * (DE . b)
-   */
-  memcpy(N_float, dd_obs, num_dds * sizeof(double));
-  cblas_dgemv(
-    CblasRowMajor, CblasNoTrans, num_dds, 3,
-    -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, b, 1,
-    1.0, N_float, 1
-  );
-
-  /* Round the values of N_float to estimate the integer valued ambiguities. */
   for (u8 i=0; i<num_dds; i++) {
-    N[i] = (s32)lround(N_float[i]);
+    double N_float = dd_obs[i] -
+                     vector_dot(3, &DE[3*i], b) / GPS_L1_LAMBDA_NO_VAC;
+    /* Round the value of N_float to estimate the integer valued ambiguity. */
+    N[i] = (s32)lround(N_float);
   }
 }
 
