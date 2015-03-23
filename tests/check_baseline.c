@@ -95,11 +95,7 @@ START_TEST(test_lesq_solution)
 
   double b[3];
   double resid[num_dds];
-  s32 N_int[num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    N_int[i] = (s32)lround(N[i]);
-  }
-  s8 ret = lesq_solution(num_dds, dd_obs, N_int, DE, b, resid);
+  s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
 
   fail_unless(ret == 0, "solution returned error %d", ret);
 
@@ -127,11 +123,7 @@ START_TEST(test_lesq_solution2)
 
   double b[3];
   double resid[num_dds];
-  s32 N_int[num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    N_int[i] = (s32)lround(N[i]);
-  }
-  s8 ret = lesq_solution(num_dds, dd_obs, N_int, DE, b, resid);
+  s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
 
   fail_unless(ret == 0, "solution returned error %d", ret);
 
@@ -146,17 +138,50 @@ END_TEST
 START_TEST(test_lesq_solution3)
 {
   /* Under constrained, should fail with correct return code. */
-  s32 N_int[2];
+  double N[2];
   double DE[2*3];
   double b[3];
   double resid[2];
   double dd_obs[2];
 
   for (u8 num_dds = 0; num_dds < 3; num_dds++) {
-    s8 ret = lesq_solution(num_dds, dd_obs, N_int, DE, b, resid);
+    s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
     fail_unless(ret == -1, "solution under-constrained, "
                 "should have returned error -1, got %d, dds = %d",
                 ret, num_dds);
+  }
+}
+END_TEST
+
+START_TEST(test_lesq_solution4)
+{
+  /* Over constrained, integer valued ambiguity */
+  double N[] = {22, 23, 34, -123};
+  u8 num_dds = sizeof(N)/sizeof(N[0]);
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 1, 1, 1};
+  double b_true[3] = {1.234, 1.456, 1.789};
+  double dd_obs[num_dds];
+
+  predict_carrier_obs(num_dds, N, DE, b_true, dd_obs);
+
+  double b[3];
+  double resid[num_dds];
+  s32 N_int[num_dds];
+  for (u8 i=0; i<num_dds; i++) {
+    N_int[i] = N[i];
+  }
+  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, resid);
+
+  fail_unless(ret == 0, "solution returned error %d", ret);
+
+  for (u8 i=0; i<3; i++) {
+    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+                "Baseline mismatch: %lf vs %lf",
+                b[i], b_true[i]);
   }
 }
 END_TEST
@@ -172,6 +197,7 @@ Suite* baseline_test_suite(void)
   tcase_add_test(tc_core, test_lesq_solution);
   tcase_add_test(tc_core, test_lesq_solution2);
   tcase_add_test(tc_core, test_lesq_solution3);
+  tcase_add_test(tc_core, test_lesq_solution4);
   suite_add_tcase(s, tc_core);
 
   return s;

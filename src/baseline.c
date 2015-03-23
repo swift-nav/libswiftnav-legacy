@@ -58,7 +58,7 @@
  * \param DE Double differenced matrix of unit vectors to the satellites,
  *           length `3 * num_dds`
  * \param N Carrier phase ambiguity vector, length `num_dds`
- * \param dd_meas Double differenced carrier phase observations in cycles,
+ * \param dd_obs Double differenced carrier phase observations in cycles,
  *                length `num_dds`
  * \param b Baseline vector in meters
  */
@@ -123,7 +123,7 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   assert(dd_obs != NULL);
 
   /* Solve for ambiguity vector using the observation equation, i.e.
-   *   N_float = dd_meas - DE . b / lambda
+   *   N_float = dd_obs - DE . b / lambda
    * where N_float is a real valued vector */
   for (u8 i=0; i<num_dds; i++) {
     double N_float = dd_obs[i] -
@@ -133,10 +133,10 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-s8 lesq_solution(u8 num_dds, const double *dd_meas, const s32 *N,
-                 const double *DE, double b[3], double *resid)
+s8 lesq_solution_float(u8 num_dds, const double *dd_obs, const double *N,
+                       const double *DE, double b[3], double *resid)
 {
-  assert(dd_meas != NULL);
+  assert(dd_obs != NULL);
   assert(N != NULL);
   assert(DE != NULL);
   assert(b != NULL);
@@ -149,17 +149,17 @@ s8 lesq_solution(u8 num_dds, const double *dd_meas, const s32 *N,
   memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
 
   /* Solve for b via least squares, i.e.
-   * dd_meas = DE . b + N
-   *  =>  DE . b = (dd_meas - N) * lambda */
+   * dd_obs = DE . b + N
+   *  =>  DE . b = (dd_obs - N) * lambda */
 
   /* min | A.x - b | wrt x
    * A <= DE
    * x <= b
-   * b <= (dd_meas - N) * lambda
+   * b <= (dd_obs - N) * lambda
    */
   double rhs[MAX(num_dds, 3)];
   for (u8 i=0; i<num_dds; i++) {
-    rhs[i] = (dd_meas[i] - N[i]) * GPS_L1_LAMBDA_NO_VAC;
+    rhs[i] = (dd_obs[i] - N[i]) * GPS_L1_LAMBDA_NO_VAC;
   }
 
   int jpvt[3] = {0, 0, 0};
@@ -179,13 +179,13 @@ s8 lesq_solution(u8 num_dds, const double *dd_meas, const s32 *N,
 
     memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
 
-    /* resid <= dd_meas - N
+    /* resid <= dd_obs - N
      * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
      * beta <= 1.0
      * resid <= beta * resid + alpha * (DE . b)
      */
     for (u8 i=0; i<num_dds; i++) {
-      resid[i] = dd_meas[i] - N[i];
+      resid[i] = dd_obs[i] - N[i];
     }
     cblas_dgemv(
       CblasRowMajor, CblasNoTrans, num_dds, 3,
@@ -195,6 +195,18 @@ s8 lesq_solution(u8 num_dds, const double *dd_meas, const s32 *N,
   }
   return 0;
 }
+
+s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
+                     const double *DE, double b[3], double *resid)
+{
+  assert(N != NULL);
+  double N_float[num_dds];
+  for (u8 i=0; i<num_dds; i++) {
+    N_float[i] = N[i];
+  }
+  return lesq_solution_float(num_dds, dd_obs, N_float, DE, b, resid);
+}
+
 
 /* TODO use the state covariance matrix for a better estimate:
  *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
