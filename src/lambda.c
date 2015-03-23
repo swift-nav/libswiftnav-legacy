@@ -19,6 +19,7 @@
 #include <cblas.h>
 #include <clapack.h>
 
+#include "linear_algebra.h"
 #include "amb_kf.h"
 #include "logging.h"
 
@@ -29,52 +30,6 @@
 #define SGN(x)      ((x)<=0.0?-1.0:1.0)
 #define ROUND(x)    (floor((x)+0.5))
 #define SWAP(x,y)   do {double tmp_; tmp_=x; x=y; y=tmp_;} while (0)
-
-
-static void triu2(u32 n, double *M)
-{
-  for (u32 i=1; i<n; i++) {
-    for (u32 j=0; j<i; j++) {
-      M[i*n + j] = 0;
-    }
-  }
-}
-
-static void eye2(u32 n, double *M)
-{
-  memset(M, 0, n * n * sizeof(double));
-  for (u32 i=0; i<n; i++) {
-    M[i*n + i] = 1;
-  }
-}
-
-static s8 udu2(u32 n, double *M, double *U, double *D) //todo: replace with DSYTRF
-{
-  double alpha, beta;
-  triu2(n, M);
-  eye2(n, U);
-  memset(D, 0, n * sizeof(double));
-
-  for (u32 j=n; j>=2; j--) {
-    D[j - 1] = M[(j-1)*n + j-1];
-    if (D[j-1] > 0) {
-      alpha = 1.0 / D[j-1];
-    } else {
-      alpha = 0.0;
-    }
-    for (u32 k=1; k<j; k++) {
-      beta = M[(k-1)*n + j-1];
-      U[(k-1)*n + j-1] = alpha * beta;
-      for (u32 kk = 0; kk < k; kk++) {
-        M[kk*n + k-1] = M[kk*n + k-1] - beta * U[kk*n + j-1];
-      }
-    }
-
-  }
-  D[0] = M[0];
-  return 0;
-}
-
 
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
 int LD(int n, const double *Q, double *L, double *D)
@@ -94,10 +49,11 @@ int LD(int n, const double *Q, double *L, double *D)
         for (j=0;j<=i;j++) L[i+j*n]/=L[i+i*n];
     }
     if (info) {
-        log_error("%s : LD factorization error, trying UD from Gibbs (col major UD = LD)\n",__FILE__);
+        log_error("%s : LD factorization error, trying UD from Gibbs "
+                  "(col major UD = LD)\n", __FILE__);
         double Qcopy[n * n];
         memcpy(Qcopy, Q, n * n * sizeof(double));
-        udu2(n, Qcopy, L, D);
+        matrix_udu(n, Qcopy, L, D);
     }
     return info;
 }
