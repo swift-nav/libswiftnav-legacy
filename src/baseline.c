@@ -271,15 +271,20 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
  */
-void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
-         const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3])
+s8 lesq_solution_float_ian(u8 num_dds_u8, const double *dd_obs, const double *N,
+                       const double *DE, double b[3], double *resid)
 {
-  DEBUG_ENTRY();
+  assert(dd_obs != NULL);
+  assert(N != NULL);
+  assert(DE != NULL);
+  assert(b != NULL);
 
+  if (num_dds_u8 < 3) {
+    return -1;
+  }
+
+  (void)resid;
   integer num_dds = num_dds_u8;
-  double DE[num_dds * 3];
-  assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
   double DET[num_dds * 3];
    /* TODO this transposition is stupid and unnecessary */
   for (u8 i=0; i<num_dds; i++) {
@@ -290,15 +295,7 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
 
   double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
-    phase_ranges[i] = dd_measurements[i] - state_mean[i];
-  }
-
-  if (DEBUG) {
-    printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
-    for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], state_mean[i], phase_ranges[i]);
-    }
-    printf("\t}\n");
+    phase_ranges[i] = dd_obs[i] - N[i];
   }
 
   /* TODO could use plain old DGELS here */
@@ -332,10 +329,38 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
-  if (DEBUG) {
-    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); /*  units --> cm. */
-  }
 
+  return 0;
+}
+
+/** A least squares solution for baseline from phases using the KF state.
+ * This uses the current state of the KF and a set of phase observations to
+ * solve for the current baseline.
+ *
+ * \param kf                    The Kalman filter struct.
+ * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
+ *                              the reference sat of the KF, and the rest must
+ *                              correspond to the KF's DD amb estimates' sats.
+ * \param dd_measurements       A vector of carrier phases. They must be double
+ *                              differenced and ordered according to the sdiffs
+ *                              and KF's sats (which must match each other).
+ * \param ref_ecef              The reference position in ECEF frame, for
+ *                              computing the sat direction vectors.
+ * \param b                     The output baseline in meters.
+ */
+void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
+         const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
+         const double ref_ecef[3], double b[3])
+{
+  DEBUG_ENTRY();
+
+  integer num_dds = num_dds_u8;
+  double DE[num_dds * 3];
+  assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
+
+  s8 ret = lesq_solution_float(num_dds_u8, dd_measurements, state_mean,
+                               DE, b, 0);
+  (void)ret;
   DEBUG_EXIT();
 }
 
