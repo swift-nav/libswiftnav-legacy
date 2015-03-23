@@ -32,9 +32,6 @@
  * and ambiguities.
  * \{ */
 
-/** Maximum working area array length for LAPACK dgelsy etc. */
-#define LWORK_MAX 32
-
 /** Predict carrier phase double difference observations from baseline and
  * ambiguity vectors.
  *
@@ -147,7 +144,6 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
   return lesq_solution_float(num_dds, dd_obs, N_float, DE, b, resid);
 }
 
-
 /* TODO use the state covariance matrix for a better estimate:
  *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
  *
@@ -242,27 +238,21 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   integer jpvt[3] = {0, 0, 0};
   double rcond = 1e-12;
   s32 rank;
-  double w[1]; /* try 25 + 10*num_sats. */
-  s32 lwork = -1;
   s32 info;
   s32 three = 3;
   s32 one = 1;
 
-  dgelsy_(&num_dds, &three, &one, /* M, N, NRHS. */
-          DET, &num_dds,          /* A, LDA. */
-          phase_ranges, &ldb,     /* B, LDB. */
-          jpvt, &rcond,           /* JPVT, RCOND. */
-          &rank,                  /* RANK. */
-          w, &lwork,              /* WORK, LWORK. */
-          &info);                 /* INFO. */
-
-  if (info != 0) {
-    log_error("dgelsy returned error %d\n", info);
-    return -2;
-  }
-
-  lwork = round(w[0]);
-  assert(lwork < LWORK_MAX);
+  /* From LAPACK DGELSY documentation:
+   * The unblocked strategy requires that:
+   *   LWORK >= MAX( MN+3*N+1, 2*MN+NRHS )
+   *   where MN = MIN( M, N )
+   *
+   * Therefore:
+   *   M >= 3, N = 3, NRHS = 1
+   *   MN = 3
+   *   LWORK >= 13
+   */
+  s32 lwork = 13;
   double work[lwork];
 
   dgelsy_(&num_dds, &three, &one, /* M, N, NRHS. */
