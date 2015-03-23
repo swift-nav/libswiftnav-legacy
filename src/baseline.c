@@ -222,12 +222,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   (void)resid;
   integer num_dds = num_dds_u8;
   double DET[num_dds * 3];
-   /* TODO this transposition is stupid and unnecessary */
-  for (u8 i=0; i<num_dds; i++) {
-    DET[              i] = DE[i*3 + 0];
-    DET[    num_dds + i] = DE[i*3 + 1];
-    DET[2 * num_dds + i] = DE[i*3 + 2];
-  }
+  matrix_transpose(num_dds, 3, DE, DET);
 
   double phase_ranges[MAX(num_dds,3)];
   for (u8 i=0; i< num_dds; i++) {
