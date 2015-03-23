@@ -136,69 +136,6 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-s8 lesq_solution_float_fergus(u8 num_dds, const double *dd_obs, const double *N,
-                       const double *DE, double b[3], double *resid)
-{
-  assert(dd_obs != NULL);
-  assert(N != NULL);
-  assert(DE != NULL);
-  assert(b != NULL);
-
-  if (num_dds < 3) {
-    return -1;
-  }
-
-  double DE_work[num_dds*3];
-  memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
-
-  /* Solve for b via least squares, i.e.
-   * dd_obs = DE . b + N
-   *  =>  DE . b = (dd_obs - N) * lambda */
-
-  /* min | A.x - b | wrt x
-   * A <= DE
-   * x <= b
-   * b <= (dd_obs - N) * lambda
-   */
-  double rhs[MAX(num_dds, 3)];
-  for (u8 i=0; i<num_dds; i++) {
-    rhs[i] = (dd_obs[i] - N[i]) * GPS_L1_LAMBDA_NO_VAC;
-  }
-
-  int jpvt[3] = {0, 0, 0};
-  int rank;
-  /* TODO: This function calls malloc to allocate work area, refactor to use
-   * LAPACKE_dgelsy_work instead. */
-  LAPACKE_dgelsy(
-    LAPACK_ROW_MAJOR, num_dds, 3,
-    1, DE_work, 3,
-    rhs, 1, jpvt,
-    -1, &rank
-  );
-  memcpy(b, rhs, 3*sizeof(double));
-
-  if (resid) {
-    /* Calculate Least Squares Residuals */
-
-    memcpy(DE_work, DE, num_dds * 3 * sizeof(double));
-
-    /* resid <= dd_obs - N
-     * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
-     * beta <= 1.0
-     * resid <= beta * resid + alpha * (DE . b)
-     */
-    for (u8 i=0; i<num_dds; i++) {
-      resid[i] = dd_obs[i] - N[i];
-    }
-    cblas_dgemv(
-      CblasRowMajor, CblasNoTrans, num_dds, 3,
-      -1.0 / GPS_L1_LAMBDA_NO_VAC, DE_work, 3, b, 1,
-      1.0, resid, 1
-    );
-  }
-  return 0;
-}
-
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
                      const double *DE, double b[3], double *resid)
 {
