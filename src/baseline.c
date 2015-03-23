@@ -326,9 +326,28 @@ s8 lesq_solution_float_ian(u8 num_dds_u8, const double *dd_obs, const double *N,
           &rank,                  /* RANK. */
           work, &lwork,           /* WORK, LWORK. */
           &info);                 /* INFO. */
+
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
+
+  if (resid) {
+    /* Calculate Least Squares Residuals */
+
+    /* resid <= dd_obs - N
+     * alpha <= - 1.0 / GPS_L1_LAMBDA_NO_VAC
+     * beta <= 1.0
+     * resid <= beta * resid + alpha * (DE . b)
+     */
+    for (u8 i=0; i<num_dds; i++) {
+      resid[i] = dd_obs[i] - N[i];
+    }
+    cblas_dgemv(
+      CblasRowMajor, CblasNoTrans, num_dds, 3,
+      -1.0 / GPS_L1_LAMBDA_NO_VAC, DE, 3, b, 1,
+      1.0, resid, 1
+    );
+  }
 
   return 0;
 }
