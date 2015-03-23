@@ -32,6 +32,9 @@
  * and ambiguities.
  * \{ */
 
+/** Maximum working area array length for LAPACK dgelsy etc. */
+#define LWORK_MAX 32
+
 /** Predict carrier phase double difference observations from baseline and
  * ambiguity vectors.
  *
@@ -133,7 +136,7 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-s8 lesq_solution_float(u8 num_dds, const double *dd_obs, const double *N,
+s8 lesq_solution_float_fergus(u8 num_dds, const double *dd_obs, const double *N,
                        const double *DE, double b[3], double *resid)
 {
   assert(dd_obs != NULL);
@@ -271,7 +274,7 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
  */
-s8 lesq_solution_float_ian(u8 num_dds_u8, const double *dd_obs, const double *N,
+s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
                        const double *DE, double b[3], double *resid)
 {
   assert(dd_obs != NULL);
@@ -298,10 +301,8 @@ s8 lesq_solution_float_ian(u8 num_dds_u8, const double *dd_obs, const double *N,
     phase_ranges[i] = dd_obs[i] - N[i];
   }
 
-  /* TODO could use plain old DGELS here */
-
   s32 ldb = (s32) MAX(num_dds,3);
-  double s[3];
+  integer jpvt[3] = {0, 0, 0};
   double rcond = 1e-12;
   s32 rank;
   double w[1]; /* try 25 + 10*num_sats. */
@@ -309,23 +310,36 @@ s8 lesq_solution_float_ian(u8 num_dds_u8, const double *dd_obs, const double *N,
   s32 info;
   s32 three = 3;
   s32 one = 1;
-  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
+
+  dgelsy_(&num_dds, &three, &one, /* M, N, NRHS. */
           DET, &num_dds,          /* A, LDA. */
           phase_ranges, &ldb,     /* B, LDB. */
-          s, &rcond,              /* S, RCOND. */
+          jpvt, &rcond,           /* JPVT, RCOND. */
           &rank,                  /* RANK. */
           w, &lwork,              /* WORK, LWORK. */
           &info);                 /* INFO. */
-  lwork = round(w[0]);
 
+  if (info != 0) {
+    log_error("dgelsy returned error %d\n", info);
+    return -2;
+  }
+
+  lwork = round(w[0]);
+  assert(lwork < LWORK_MAX);
   double work[lwork];
-  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
+
+  dgelsy_(&num_dds, &three, &one, /* M, N, NRHS. */
           DET, &num_dds,          /* A, LDA. */
           phase_ranges, &ldb,     /* B, LDB. */
-          s, &rcond,              /* S, RCOND. */
+          jpvt, &rcond,           /* JPVT, RCOND. */
           &rank,                  /* RANK. */
           work, &lwork,           /* WORK, LWORK. */
           &info);                 /* INFO. */
+
+  if (info != 0) {
+    log_error("dgelsy returned error %d\n", info);
+    return -2;
+  }
 
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
