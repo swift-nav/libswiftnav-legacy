@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <linear_algebra.h>
+#include <constants.h>
 #include <baseline.h>
 
 #define TOL 1e-10
@@ -104,6 +105,17 @@ START_TEST(test_lesq_solution)
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
+
+  /* Try with resid = NULL */
+  ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, 0);
+
+  fail_unless(ret == 0, "solution returned error %d", ret);
+
+  for (u8 i=0; i<3; i++) {
+    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+                "Baseline mismatch: %lf vs %lf",
+                b[i], b_true[i]);
+  }
 }
 END_TEST
 
@@ -183,6 +195,52 @@ START_TEST(test_lesq_solution4)
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
+
+  /* Try with resid = NULL */
+  ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, 0);
+
+  fail_unless(ret == 0, "solution returned error %d", ret);
+
+  for (u8 i=0; i<3; i++) {
+    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+                "Baseline mismatch: %lf vs %lf",
+                b[i], b_true[i]);
+  }
+}
+END_TEST
+
+START_TEST(test_lesq_solution5)
+{
+  /* Over constrained with non-zero residuals */
+  double N[] = {0, 0, 0, 0};
+  u8 num_dds = sizeof(N)/sizeof(N[0]);
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 1, 0, 0};
+  double b_true[3] = {0, 0, 0};
+  double dd_obs[] = {0, 0, 0, 1};
+
+  double b[3];
+  double resid[num_dds];
+  s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
+
+  double b_expected[3] = {0.5*GPS_L1_LAMBDA_NO_VAC, 0, 0};
+  double resid_expected[] = {-0.5, 0, 0, 0.5};
+
+  fail_unless(ret == 0, "solution returned error %d", ret);
+
+  for (u8 i=0; i<3; i++) {
+    fail_unless(fabs(b[i] - b_expected[i]) < TOL,
+                "Baseline mismatch: %lf vs %lf",
+                b[i], b_true[i]);
+  }
+  for (u8 i=0; i<num_dds; i++) {
+    fail_unless(fabs(resid[i] - resid_expected[i]) < TOL,
+                "Residual mismatch: %lf vs %lf",
+                resid[i], resid_expected[i]);
+  }
 }
 END_TEST
 
@@ -198,6 +256,7 @@ Suite* baseline_test_suite(void)
   tcase_add_test(tc_core, test_lesq_solution2);
   tcase_add_test(tc_core, test_lesq_solution3);
   tcase_add_test(tc_core, test_lesq_solution4);
+  tcase_add_test(tc_core, test_lesq_solution5);
   suite_add_tcase(s, tc_core);
 
   return s;
