@@ -31,7 +31,6 @@ else (CMAKE_CROSSCOMPILING)
       check_edc.c
       check_bits.c
       check_memory_pool.c
-      check_sbp.c
       check_rtcm3.c
       check_coord_system.c
       check_linear_algebra.c
@@ -47,4 +46,3 @@ else (CMAKE_CROSSCOMPILING)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
-
