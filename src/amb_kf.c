@@ -35,6 +35,10 @@
  * The expectation value of carrier + code / lambda is
  * integer ambiguity + bias. Regardless of bias, this is an
  * important measurement.
+ *
+ * \param carrier A carrier phase measurement in units of wavelengths.
+ * \param code    A code measurement in the same units as GPS_L1_LAMBDA_NO_VAC.
+ * \return A rough estimate of the integer ambiguity.
  */
 double simple_amb_measurement(double carrier, double code)
 {
@@ -560,7 +564,7 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
   }
   for (u8 i=0; i<num_dds; i++) {
     q_tilde[(i+nullspace_dim)*dd_dim + i] = 1;
-    q_tilde[(i+nullspace_dim)*dd_dim + i+num_dds] = -1 / GPS_L1_LAMBDA_NO_VAC;
+    q_tilde[(i+nullspace_dim)*dd_dim + i+num_dds] = 1 / GPS_L1_LAMBDA_NO_VAC;
   }
 
   /* TODO make more efficient via the structure of q_tilde, and it's relation to the I + 1*1^T structure of the obs cov mtx. */
@@ -853,11 +857,30 @@ void nkf_state_projection(nkf_t *kf,
   /* NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE. */
 }
 
+/** Add new sats the the KF
+ * Given some space Z = X x Y, and some state mean/cov on X,
+ * we construct a state mean/cov on Z by doing the inclusion of X
+ * in Z and making initial estimates for the state of the Y elements
+ * of Z. Here, X is the space of old satellite DDs, and Y is new sats.
+ *
+ * \param kf                    The KF struct to be updated
+ * \param num_old_non_ref_sats  The old number of DDs (dimension of X)
+ * \param num_new_non_ref_sats  The new number of DDs (dimension of Z)
+ * \param ndx_of_old_sat_in_new The indices of the old sats in the new full
+ *                              space. For example, if the first (ndx=0) element
+ *                              of the state vector in X was for PRN 3 and
+ *                              PRN 3 is the 4th (ndx=3) element of the state
+ *                              vector in Z, then ndx_of_old_sat_in_new[0] = 3.
+ * \param estimates             Rough estimates of the ambiguities (in Z).
+ * \param int_init_var          The variance with which to initialize any new
+ *                              sats (elements of Y).
+ */
 void nkf_state_inclusion(nkf_t *kf,
-                                   u8 num_old_non_ref_sats,
-                                   u8 num_new_non_ref_sats,
-                                   u8 *ndx_of_old_sat_in_new,
-                                   double int_init_var)
+                         u8 num_old_non_ref_sats,
+                         u8 num_new_non_ref_sats,
+                         u8 *ndx_of_old_sat_in_new,
+                         double *estimates,
+                         double int_init_var)
 {
   u8 old_state_dim = num_old_non_ref_sats;
   double old_cov[old_state_dim * old_state_dim];
@@ -867,7 +890,7 @@ void nkf_state_inclusion(nkf_t *kf,
   double new_cov[new_state_dim * new_state_dim];
   memset(new_cov, 0, new_state_dim * new_state_dim * sizeof(double));
   double new_mean[new_state_dim];
-  memset(new_mean, 0, new_state_dim * sizeof(double));
+  memcpy(new_mean, estimates, new_state_dim * sizeof(double));
   for (u8 i=0; i<num_new_non_ref_sats; i++) {
     new_cov[i*new_state_dim + i] = int_init_var;
   }

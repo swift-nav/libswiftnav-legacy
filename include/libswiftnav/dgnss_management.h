@@ -22,7 +22,7 @@
 #define DEFAULT_CODE_VAR_KF     (100 * 400)
 #define DEFAULT_AMB_DRIFT_VAR   1e-8
 #define DEFAULT_AMB_INIT_VAR    1e8
-#define DEFAULT_NEW_INT_VAR     1e10
+#define DEFAULT_NEW_INT_VAR     1e4
 
 typedef struct {
   double phase_var_test;
