@@ -700,7 +700,7 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
 
   for (u32 j=n; j>=2; j--) {
     D[j - 1] = M[(j-1)*n + j-1];
-    if (D[j-1] != 0) {
+    if (D[j-1] > 0) {
       alpha = 1.0 / D[j-1];
     } else {
       alpha = 0.0;

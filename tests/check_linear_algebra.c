@@ -241,7 +241,10 @@ START_TEST(test_matrix_udu_2)
       M[i][j] = M[j][i] = mrand;
     }
   }
-  memcpy(M_orig, M, n * n * sizeof(double));
+
+  /* Square the random matrix to ensure it is positive semi-definite. */
+  matrix_multiply(n, n, n, (double *)M, (double *)M, (double *)M_orig);
+  memcpy(M, M_orig, n * n * sizeof(double));
 
   double U[n][n];
   memset(U, 0, n * n * sizeof(double));
