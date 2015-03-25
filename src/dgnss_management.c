@@ -160,7 +160,11 @@ void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
   }
 }
 
-/** Roughly measure the ambiguity vector given sdiffs.
+/** Single timestep measurement of the ambiguity vector given sdiffs.
+ * Using just the scalar DD carrier phase and pseudoranges for each channel,
+ * estimate the integer ambiguities.
+ * See docs for simple_amb_measurement.
+ *
  * \param num_sdiffs            The number of sdiffs including the reference.
  * \param sdiffs_with_ref_first The sdiffs sorted by prn, but with the ref first.
  */
