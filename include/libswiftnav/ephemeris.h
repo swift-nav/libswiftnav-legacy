@@ -28,7 +28,6 @@ typedef struct {
   u8 prn;
 } ephemeris_t;
 
-
 s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err);
@@ -38,6 +37,8 @@ double predict_range(double rx_pos[3],
                      ephemeris_t *ephemeris);
 
 u8 ephemeris_good(ephemeris_t *eph, gps_time_t t);
+
+void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */
 

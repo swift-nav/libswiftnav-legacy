@@ -16,6 +16,7 @@
 
 #include "logging.h"
 #include "constants.h"
+#include "bits.h"
 #include "nav_msg.h"
 
 #define NAV_MSG_BIT_PHASE_THRES 5
@@ -177,43 +178,50 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   return TOW_ms;
 }
 
-
-int parity(u32 x)
+/* Tests the parity of a L1 C/A NAV message word.
+ * Inverts the data bits if necessary, and checks the parity.
+ * Expects a word where MSB = D29*, bit 30 = D30*, bit 29 = D1, ... LSB = D30.
+ *
+ * \note This function may modify the value of `word`.
+ *
+ * References:
+ *   -# ICD-GPS-200E Table 20-XIV
+ *
+ * \param word Pointer to word to check. Note, if D30* is set then the data
+ *             bits in this word will be inverted in place.
+ * \return 0 if the parity is correct,
+ *         otherwise returns the number of the first incorrect parity bit.
+ */
+u8 nav_parity(u32 *word)
 {
-  /* Returns 1 if there are an odd number of bits set. */
-  x ^= x >> 1;
-  x ^= x >> 2;
-  x ^= x >> 4;
-  x ^= x >> 8;
-  x ^= x >> 16;
-  return (x & 1);
-}
+  if (*word & 1<<30) { /* Inspect D30* */
+    *word ^= 0x3FFFFFC0; /* D30* = 1, invert all the data bits! */
+  }
 
-int nav_parity(u32 *word) {
-// expects a word where MSB = D29*, bit 30 = D30*, bit 29 = D1, ... LSB = D30 as described in IS-GPS-200E Table 20-XIV
-// Inverts the bits if necessary, and checks the parity.
-// Returns 0 for success, 1 for fail.
-
-  if (*word & 1<<30)     // inspect D30*
-    *word ^= 0x3FFFFFC0; // invert all the data bits!
-
-  if (parity(*word & 0xBB1F34A0 /* 0b10111011000111110011010010100000 */)) // check d25 (see IS-GPS-200E Table 20-XIV)
+  /* Check D25 */
+  if (parity(*word & 0xBB1F34A0 /* 0b10111011000111110011010010100000 */)) {
     return 25;
-
-  if (parity(*word & 0x5D8F9A50 /* 0b01011101100011111001101001010000 */)) // check d26
+  }
+  /* Check D26 */
+  if (parity(*word & 0x5D8F9A50 /* 0b01011101100011111001101001010000 */)) {
     return 26;
-
-  if (parity(*word & 0xAEC7CD08 /* 0b10101110110001111100110100001000 */)) // check d27
+  }
+  /* Check D27 */
+  if (parity(*word & 0xAEC7CD08 /* 0b10101110110001111100110100001000 */)) {
     return 27;
-
-  if (parity(*word & 0x5763E684 /* 0b01010111011000111110011010000100 */)) // check d28
+  }
+  /* Check D28 */
+  if (parity(*word & 0x5763E684 /* 0b01010111011000111110011010000100 */)) {
     return 28;
-
-  if (parity(*word & 0x6BB1F342 /* 0b01101011101100011111001101000010 */)) // check d29
+  }
+  /* Check D29 */
+  if (parity(*word & 0x6BB1F342 /* 0b01101011101100011111001101000010 */)) {
     return 29;
-
-  if (parity(*word & 0x8B7A89C1 /* 0b10001011011110101000100111000001 */)) // check d30
+  }
+  /* Check D30 */
+  if (parity(*word & 0x8B7A89C1 /* 0b10001011011110101000100111000001 */)) {
     return 30;
+  }
 
   return 0;
 }
@@ -235,7 +243,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   n->inverted = (n->subframe_start_index < 0);
 
   if (!e) {
-    log_warn("process_subframe: CALLED WITH e = NULL!\n");
+    log_error("process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
@@ -269,118 +277,8 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       // Got all of subframes 1 to 3
       n->next_subframe_id = 1;      // Make sure we start again next time
 
-      // Now let's actually go through the parameters...
-
-      // These unions facilitate signed/unsigned conversion and sign extension
-      union {
-        s8 s8;
-        u8 u8;
-      } onebyte;
-
-      union
-      {
-        s16 s16;
-        u16 u16;
-      } twobyte;
-
-      union
-      {
-        s32 s32;
-        u32 u32;
-      } fourbyte;
-
-      // Subframe 1: SV health, T_GD, t_oc, a_f2, a_f1, a_f0
-
-      e->toe.wn = (n->frame_words[0][3-3] >> (30-10) & 0x3FF);       // GPS week number (mod 1024): Word 3, bits 20-30
-      e->toe.wn += GPS_WEEK_CYCLE*1024;
-      e->toc.wn = e->toe.wn;
-
-      e->healthy = !(n->frame_words[0][3-3] >> (30-17) & 1);     // Health flag: Word 3, bit 17
-
-      onebyte.u8 = n->frame_words[0][7-3] >> (30-24) & 0xFF;  // t_gd: Word 7, bits 17-24
-      e->tgd = onebyte.s8 * pow(2,-31);
-
-      e->toc.tow = (n->frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;   // t_oc: Word 8, bits 8-24
-
-      onebyte.u8 = n->frame_words[0][9-3] >> (30-8) & 0xFF;         // a_f2: Word 9, bits 1-8
-      e->af2 = onebyte.s8 * pow(2,-55);
-
-      twobyte.u16 = n->frame_words[0][9-3] >> (30-24) & 0xFFFF;     // a_f1: Word 9, bits 9-24
-      e->af1 = twobyte.s16 * pow(2,-43);
-
-      fourbyte.u32 = n->frame_words[0][10-3] >> (30-22) & 0x3FFFFF; // a_f0: Word 10, bits 1-22
-      fourbyte.u32 <<= 10; // Shift to the left for sign extension
-      fourbyte.s32 >>= 10; // Carry the sign bit back down and reduce to signed 22 bit value
-      e->af0 = fourbyte.s32 * pow(2,-31);
-
-
-      // Subframe 2: crs, dn, m0, cuc, ecc, cus, sqrta, toe
-
-      twobyte.u16 = n->frame_words[1][3-3] >> (30-24) & 0xFFFF;     // crs: Word 3, bits 9-24
-      e->crs = twobyte.s16 * pow(2,-5);
-
-      twobyte.u16 = n->frame_words[1][4-3] >> (30-16) & 0xFFFF;     // dn: Word 4, bits 1-16
-      e->dn = twobyte.s16 * pow(2,-43) * GPS_PI;
-
-      fourbyte.u32 = ((n->frame_words[1][4-3] >> (30-24) & 0xFF) << 24) // m0: Word 4, bits 17-24
-                  | (n->frame_words[1][5-3] >> (30-24) & 0xFFFFFF);     // and word 5, bits 1-24
-      e->m0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
-
-      twobyte.u16 = n->frame_words[1][6-3] >> (30-16) & 0xFFFF;    // cuc: Word 6, bits 1-16
-      e->cuc = twobyte.s16 * pow(2,-29);
-
-      fourbyte.u32 = ((n->frame_words[1][6-3] >> (30-24) & 0xFF) << 24) // ecc: Word 6, bits 17-24
-                  | (n->frame_words[1][7-3] >> (30-24) & 0xFFFFFF);     // and word 7, bits 1-24
-      e->ecc = fourbyte.u32 * pow(2,-33);
-
-
-      twobyte.u16 = n->frame_words[1][8-3] >> (30-16) & 0xFFFF;   // cus: Word 8, bits 1-16
-      e->cus = twobyte.s16 * pow(2,-29);
-
-
-      fourbyte.u32 = ((n->frame_words[1][8-3] >> (30-24) & 0xFF) << 24) // sqrta: Word 8, bits 17-24
-                  | (n->frame_words[1][9-3] >> (30-24) & 0xFFFFFF);     // and word 9, bits 1-24
-      e->sqrta = fourbyte.u32 * pow(2,-19);
-
-      e->toe.tow = (n->frame_words[1][10-3] >> (30-16) & 0xFFFF) * 16;   // t_oe: Word 10, bits 1-16
-
-
-      // Subframe 3: cic, omega0, cis, inc, crc, w, omegadot, inc_dot
-
-      twobyte.u16 = n->frame_words[2][3-3] >> (30-16) & 0xFFFF;   // cic: Word 3, bits 1-16
-      e->cic = twobyte.s16 * pow(2,-29);
-
-      fourbyte.u32 = ((n->frame_words[2][3-3] >> (30-24) & 0xFF) << 24) // omega0: Word 3, bits 17-24
-                  | (n->frame_words[2][4-3] >> (30-24) & 0xFFFFFF);     // and word 4, bits 1-24
-      e->omega0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
-
-      twobyte.u16 = n->frame_words[2][5-3] >> (30-16) & 0xFFFF; // cis: Word 5, bits 1-16
-      e->cis = twobyte.s16 * pow(2,-29);
-
-      fourbyte.u32 = ((n->frame_words[2][5-3] >> (30-24) & 0xFF) << 24) // inc (i0): Word 5, bits 17-24
-                  | (n->frame_words[2][6-3] >> (30-24) & 0xFFFFFF);     // and word 6, bits 1-24
-      e->inc = fourbyte.s32 * pow(2,-31) * GPS_PI;
-
-      twobyte.u16 = n->frame_words[2][7-3] >> (30-16) & 0xFFFF; // crc: Word 7, bits 1-16
-      e->crc = twobyte.s16 * pow(2,-5);
-
-      fourbyte.u32 = ((n->frame_words[2][7-3] >> (30-24) & 0xFF) << 24) // w (omega): Word 7, bits 17-24
-                  | (n->frame_words[2][8-3] >> (30-24) & 0xFFFFFF);     // and word 8, bits 1-24
-      e->w = fourbyte.s32 * pow(2,-31) * GPS_PI;
-
-      fourbyte.u32 = n->frame_words[2][9-3] >> (30-24) & 0xFFFFFF;     // Omega_dot: Word 9, bits 1-24
-      fourbyte.u32 <<= 8; // shift left for sign extension
-      fourbyte.s32 >>= 8; // sign-extend it
-      e->omegadot = fourbyte.s32 * pow(2,-43) * GPS_PI;
-
-
-      twobyte.u16 = n->frame_words[2][10-3] >> (30-22) & 0x3FFF;  // inc_dot (IDOT): Word 10, bits 9-22
-      twobyte.u16 <<= 2;
-      twobyte.s16 >>= 2;  // sign-extend
-      e->inc_dot = twobyte.s16 * pow(2,-43) * GPS_PI;
-
-
-      e->valid = 1;
+      // Now let's actually decode the ephemeris...
+      decode_ephemeris(n->frame_words, e);
 
       return 1;
 
@@ -391,7 +289,6 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   }
 
   return 0;
-
 
 }
 

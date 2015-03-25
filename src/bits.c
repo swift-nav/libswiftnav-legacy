@@ -16,6 +16,25 @@
  * Bit field packing, unpacking and utility functions.
  * \{ */
 
+/** Computes the parity of a 32-bit word.
+ *
+ * References:
+ *   -# https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+ *
+ * \param x Word for which to compute parity
+ * \return 1 if there are an odd number of bits set.
+ *         0 if there are an even number of bits set.
+ */
+u8 parity(u32 x)
+{
+  x ^= x >> 16;
+  x ^= x >> 8;
+  x ^= x >> 4;
+  x &= 0xF;
+  return (0x6996 >> x) & 1;
+}
+
+
 /** Get bit field from buffer as an unsigned integer.
  * Unpacks `len` bits at bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
