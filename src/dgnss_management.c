@@ -160,6 +160,28 @@ void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
   }
 }
 
+/** Single timestep measurement of the ambiguity vector given sdiffs.
+ * Using just the scalar DD carrier phase and pseudoranges for each channel,
+ * estimate the integer ambiguities.
+ * See docs for simple_amb_measurement.
+ *
+ * \param num_sdiffs            The number of sdiffs including the reference.
+ * \param sdiffs_with_ref_first The sdiffs sorted by prn, but with the ref first.
+ */
+void dgnss_simple_amb_meas(const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first,
+                           double *est)
+{
+  double ref_phase = sdiffs_with_ref_first[0].carrier_phase;
+  double ref_code  = sdiffs_with_ref_first[0].pseudorange;
+  for (u8 i = 0; i < num_sdiffs - 1; i++) {
+    double phase = sdiffs_with_ref_first[i+1].carrier_phase;
+    double code  = sdiffs_with_ref_first[i+1].pseudorange;
+    phase -= ref_phase;
+    code  -= ref_code;
+    est[i] = simple_amb_measurement(phase, code);
+  }
+}
+
 void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *sdiffs_with_ref_first,
                        double *dd_measurements)
 {
@@ -196,10 +218,14 @@ void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3], sdiff_t *sdiffs_w
                            &ndx_of_intersection_in_old[1]);
     }
     if (num_intersection_sats < num_sdiffs) { /* we gained sats */
+      double simple_estimates[num_sdiffs-1];
+      dgnss_simple_amb_meas(num_sdiffs, sdiffs_with_ref_first,
+                            simple_estimates);
       nkf_state_inclusion(&nkf,
                           num_intersection_sats-1,
                           num_sdiffs-1,
                           &ndx_of_intersection_in_new[1],
+                          simple_estimates,
                           dgnss_settings.new_int_var);
     }
 

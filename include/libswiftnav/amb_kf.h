@@ -55,10 +55,11 @@ void nkf_state_projection(nkf_t *kf,
                                     u8 num_new_non_ref_sats,
                                     u8 *ndx_of_new_sat_in_old);
 void nkf_state_inclusion(nkf_t *kf,
-                                   u8 num_old_non_ref_sats,
-                                   u8 num_new_non_ref_sats,
-                                   u8 *ndx_of_old_sat_in_new,
-                                   double int_init_var);
+                         u8 num_old_non_ref_sats,
+                         u8 num_new_non_ref_sats,
+                         u8 *ndx_of_old_sat_in_new,
+                         double *estimates,
+                         double int_init_var);
 
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
