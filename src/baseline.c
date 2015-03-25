@@ -304,7 +304,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
 
   /* DGELSY solves:
    *   argmin || A.x - B ||
-   * where
+   * under the l2 norm, where
    *   A <- DE
    *   B <- phase_ranges = dd_obs - N
    *   M <- num_dds
@@ -358,7 +358,8 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
  * \param kf                    The Kalman filter struct.
  * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
  *                              the reference sat of the KF, and the rest must
- *                              correspond to the KF's DD amb estimates' sats.
+ *                              correspond to the KF's DD amb estimates' sats,
+ *                              sorted in ascending PRN order.
  * \param dd_measurements       A vector of carrier phases. They must be double
  *                              differenced and ordered according to the sdiffs
  *                              and KF's sats (which must match each other).
