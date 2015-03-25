@@ -487,6 +487,54 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
   s->n++;
 }
 
+/** Initialise alias lock detection structure.
+ *
+ * \param a         The alias lock detect struct.
+ * \param acc_len   The number of points to accumulate before calculating error.
+ * \param time_diff Time difference between calls to alias_detect_first and
+ *                  alias_detect_full.
+ */
+void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff)
+{
+  memset(a, 0, sizeof(*a));
+  a->acc_len = acc_len;
+  a->dt = time_diff;
+}
+
+/** Load first I/Q sample into alias lock detect structure.
+ *
+ * \param a The alias lock detect struct.
+ * \param I The prompt in-phase correlation.
+ * \param Q The prompt quadrature-phase correlation.
+ */
+void alias_detect_first(alias_detect_t *a, float I, float Q)
+{
+  a->first_I = I;
+  a->first_Q = Q;
+}
+
+/** Load second I/Q sample into alias lock detect structure and return
+ *  frequency error if ready.
+ *
+ * \param a The alias lock detect struct.
+ * \param I The prompt in-phase correlation.
+ * \param Q The prompt quadrature-phase correlation.
+ * \returns Calculated frequency error or zero.
+ */
+float alias_detect_second(alias_detect_t *a, float I, float Q)
+{
+  a->dot += (I * a->first_I + Q * a->first_Q) / a->acc_len;
+  a->cross += (a->first_I * Q - I * a->first_Q) / a->acc_len;
+  a->fl_count++;
+  if (a->fl_count == a->acc_len) {
+    float err = atan2f(a->cross, a->dot) / ((float)M_PI * a->dt);
+    a->fl_count = 0;
+    a->cross = 0;
+    a->dot = 0;
+    return err;
+  }
+  return 0;
+}
 
 /** \} */
 

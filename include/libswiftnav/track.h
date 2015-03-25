@@ -77,6 +77,15 @@ typedef struct {
   float carr_to_code;          /**< Scale factor from carrier to code. */
 } comp_tl_state_t;
 
+typedef struct {
+  u8 acc_len;     /**< Accumulation length. */
+  float dt;       /**< Time difference between sample points. */
+  float dot;        /**< Accumulated dot products. */
+  float cross;      /**< Accumulated cross products. */
+  u8 fl_count;    /**< Currently accumulated point count. */
+  float first_I;    /**< First in-phase sample. */
+  float first_Q;    /**< First quadrature-phase sample. */
+} alias_detect_t;
 
 /** \} */
 
@@ -178,6 +187,10 @@ void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                     float carr_zeta, float carr_k,
                     float tau, float cpc, u32 sched);
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
+
+void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff);
+void alias_detect_first(alias_detect_t *a, float I, float Q);
+float alias_detect_second(alias_detect_t *a, float I, float Q);
 
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
