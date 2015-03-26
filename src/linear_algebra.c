@@ -699,7 +699,7 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
   memset(D, 0, n * sizeof(double));
 
   for (u32 j=n; j>=2; j--) {
-    D[j - 1] = M[(j-1)*n + j-1];
+    D[j - 1] = MAX(0, M[(j-1)*n + j-1]);
     if (D[j-1] > 0) {
       alpha = 1.0 / D[j-1];
     } else {
@@ -713,7 +713,7 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
       }
     }
   }
-  D[0] = M[0];
+  D[0] = MAX(0, M[0]);
 }
 
 /** Reconstructs a matrix from its \f$U D U^{T}\f$ decomposition.
