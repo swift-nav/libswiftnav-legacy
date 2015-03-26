@@ -26,9 +26,11 @@ cdef extern from "libswiftnav/dgnss_management.h":
   u32 dgnss_iar_num_sats()
   s8 dgnss_iar_get_single_hyp(double *hyp)
   nkf_t * get_dgnss_kf()
-  s32 * get_stupid_filter_ints()
   sats_management_t * get_sats_management()
-  void measure_amb_kf_b(double reciever_ecef[3], 
+  void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3])
+  s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
+                        u8 *num_used, double b[3])
+  void measure_amb_kf_b(double reciever_ecef[3],
                   		u8 num_sdiffs, sdiff_t *sdiffs,
                   		double *b)
   void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,

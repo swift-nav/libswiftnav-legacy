@@ -200,7 +200,7 @@ cdef class Ephemeris:
     def __set__(self, prn):
         self.ephemeris.prn = prn
 
-def calc_sat_pos(Ephemeris eph, GpsTime time):
+def calc_sat_state(Ephemeris eph, GpsTime time):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos_ = \
     np.array([0,0,0], dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel_ = \
@@ -212,10 +212,10 @@ def calc_sat_pos(Ephemeris eph, GpsTime time):
   cdef ephemeris_c.ephemeris_t eph_ = eph.ephemeris
   cdef gpstime_c.gps_time_t t_      = time.gps_time
 
-  ephemeris_c.calc_sat_pos(&pos_[0], &vel_[0],
-                 &clock_err, &clock_rate_err,
-                 &eph_,
-                 t_)
+  ephemeris_c.calc_sat_state(&eph_, t_,
+                 &pos_[0], &vel_[0],
+                 &clock_err, &clock_rate_err
+                 )
 
   return pos_, vel_, clock_err, clock_rate_err
 

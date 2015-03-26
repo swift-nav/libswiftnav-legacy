@@ -160,20 +160,49 @@ def dgnss_iar_get_single_hyp(num_dds):
 #   memcpy(&(pykf.kf), kf, sizeof(amb_kf_c.nkf_t))
 #   return pykf
 
-
-def get_stupid_state(num):
-  cdef np.ndarray[np.int32_t, ndim=1, mode="c"] N = \
-    np.empty(num, dtype=np.int32)
-  cdef s32 * c_N = dgnss_management_c.get_stupid_filter_ints()
-  memcpy(&N[0], c_N, num * sizeof(s32))
-  return N
-
 def get_sats_management():
   cdef sats_management_t * sats_man = dgnss_management_c.get_sats_management()
   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
     np.empty(sats_man.num_sats, dtype=np.uint8)
   memcpy(&prns[0], sats_man.prns, sats_man.num_sats * sizeof(u8))
   return sats_man.num_sats, prns
+
+def dgnss_new_float_baseline(sdiffs, ref_ecef):
+  cdef u8 num_sats = len(sdiffs)
+  cdef u8 num_used
+  cdef sdiff_t sdiffs_[32]
+  cdef sdiff_t s_
+  for (i,sdiff) in enumerate(sdiffs):
+    s_ = (<SingleDiff> sdiff).sdiff
+    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+  dgnss_management_c.dgnss_new_float_baseline(num_sats,
+                                              &sdiffs_[0], &ref_ecef_[0],
+                                              &num_used, &b[0])
+  return num_used, b
+
+def dgnss_fixed_baseline(sdiffs, ref_ecef):
+  cdef u8 num_sats = len(sdiffs)
+  cdef u8 num_used
+  cdef sdiff_t sdiffs_[32]
+  cdef sdiff_t s_
+  for (i,sdiff) in enumerate(sdiffs):
+    s_ = (<SingleDiff> sdiff).sdiff
+    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+  cdef s8 flag = dgnss_management_c.dgnss_fixed_baseline(num_sats,
+                                                         &sdiffs_[0], &ref_ecef_[0],
+                                                         &num_used, &b[0])
+  if flag == 1:
+    return num_used, b
+  else:
+    return 0, np.array([np.nan]*3)
 
 def measure_float_b(sdiffs, reciever_ecef): #TODO eventually, want to get reciever_ecef from data
   num_sdiffs = len(sdiffs)

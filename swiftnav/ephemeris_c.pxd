@@ -21,7 +21,7 @@ cdef extern from "libswiftnav/ephemeris.h":
    u8 healthy
    u8 prn
 
-  int calc_sat_pos(double pos[3], double vel[3],
-                   double *clock_err, double *clock_rate_err,
-                   ephemeris_t *ephemeris,
-                   gps_time_t tot)
+  int calc_sat_state(ephemeris_t *ephemeris, gps_time_t t,
+                   double pos[3], double vel[3],
+                   double *clock_err, double *clock_rate_err
+                   )
