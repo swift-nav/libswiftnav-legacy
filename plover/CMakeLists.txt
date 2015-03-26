@@ -1,5 +1,5 @@
 add_custom_command (
-  OUTPUT "${PROJECT_SOURCE_DIR}/plover/plover.c" "${PROJECT_SOURCE_DIR}/plover/plover.h"
+  OUTPUT "${PROJECT_SOURCE_DIR}/plover/plover.c" "${PROJECT_SOURCE_DIR}/plover/plover.h" "${PROJECT_SOURCE_DIR}/plover/pvt_gen.c"
   COMMAND cabal run
   DEPENDS "${PROJECT_SOURCE_DIR}/plover/Main.hs"
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/plover/"

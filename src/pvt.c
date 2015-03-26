@@ -22,6 +22,8 @@
 
 #include "pvt.h"
 
+#include "plover.h"
+
 static double vel_solve(double rx_vel[],
                         const u8 n_used,
                         const navigation_measurement_t nav_meas[n_used],
@@ -132,29 +134,29 @@ static double pvt_solve(double rx_state[],
                         const navigation_measurement_t nav_meas[n_used],
                         double H[4][4])
 {
-  double p_pred[n_used];
+  //  double p_pred[n_used];
 
-  /* Vector of prediction errors */
-  double omp[n_used];
+  //  /* Vector of prediction errors */
+  //  double omp[n_used];
 
-  /* G is a geometry matrix tells us how our pseudoranges relate to
-   * our state estimates -- it's the Jacobian of d(p_i)/d(x_j) where
-   * x_j are x, y, z, Δt. */
+  //  /* G is a geometry matrix tells us how our pseudoranges relate to
+  //   * our state estimates -- it's the Jacobian of d(p_i)/d(x_j) where
+  //   * x_j are x, y, z, Δt. */
   double G[n_used][4];
   double Gtrans[4][n_used];
   double GtG[4][4];
 
-  /* H is the square of the Jacobian matrix; it tells us the shape of
-     our error (or, if you prefer, the direction in which we need to
-     move to get a better solution) in terms of the receiver state. */
+  //  /* H is the square of the Jacobian matrix; it tells us the shape of
+  //     our error (or, if you prefer, the direction in which we need to
+  //     move to get a better solution) in terms of the receiver state. */
 
-  /* X is just H * Gtrans -- it maps our pseudoranges onto our
-   * Jacobian update */
+  //  /* X is just H * Gtrans -- it maps our pseudoranges onto our
+  //   * Jacobian update */
   double X[4][n_used];
 
-  double tempv[3];
-  double los[3];
-  double xk_new[3];
+  //  double tempv[3];
+  //  double los[3];
+  //  double xk_new[3];
   double tempd;
   double correction[4];
 
@@ -162,71 +164,74 @@ static double pvt_solve(double rx_state[],
     correction[j] = 0.0;
   }
 
-  for (u8 j = 0; j < n_used; j++) {
-    /* The satellite positions need to be corrected for Earth's rotation during
-     * the signal time of flight. */
-    /* TODO: Explain more about how this corrects for the Sagnac effect. */
+  wrap_pvt(rx_state, n_used, nav_meas, correction, G, X);
 
-    /* Magnitude of range vector converted into an approximate time in secs. */
-    vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
-    double tau = vector_norm(3, tempv) / GPS_C;
 
-    /* Rotation of Earth during time of flight in radians. */
-    double wEtau = GPS_OMEGAE_DOT * tau;
+  //   for (u8 j = 0; j < n_used; j++) {
+  //     /* The satellite positions need to be corrected for Earth's rotation during
+  //      * the signal time of flight. */
+  //     /* TODO: Explain more about how this corrects for the Sagnac effect. */
 
-    /* Apply linearlised rotation about Z-axis which will adjust for the
-     * satellite's position at time t-tau. Note the rotation is through
-     * -wEtau because it is the ECEF frame that is rotating with the Earth and
-     * hence in the ECEF frame free falling bodies appear to rotate in the
-     * opposite direction.
-     *
-     * Making a small angle approximation here leads to less than 1mm error in
-     * the satellite position. */
-    xk_new[0] = nav_meas[j].sat_pos[0] + wEtau * nav_meas[j].sat_pos[1];
-    xk_new[1] = nav_meas[j].sat_pos[1] - wEtau * nav_meas[j].sat_pos[0];
-    xk_new[2] = nav_meas[j].sat_pos[2];
+  //     /* Magnitude of range vector converted into an approximate time in secs. */
+  //     vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
+  //     double tau = vector_norm(3, tempv) / GPS_C;
 
-    /* Line of sight vector. */
-    vector_subtract(3, xk_new, rx_state, los);
+  //     /* Rotation of Earth during time of flight in radians. */
+  //     double wEtau = GPS_OMEGAE_DOT * tau;
 
-    /* Predicted range from satellite position and estimated Rx position. */
-    p_pred[j] = vector_norm(3, los);
+  //     /* Apply linearlised rotation about Z-axis which will adjust for the
+  //      * satellite's position at time t-tau. Note the rotation is through
+  //      * -wEtau because it is the ECEF frame that is rotating with the Earth and
+  //      * hence in the ECEF frame free falling bodies appear to rotate in the
+  //      * opposite direction.
+  //      *
+  //      * Making a small angle approximation here leads to less than 1mm error in
+  //      * the satellite position. */
+  //     xk_new[0] = nav_meas[j].sat_pos[0] + wEtau * nav_meas[j].sat_pos[1];
+  //     xk_new[1] = nav_meas[j].sat_pos[1] - wEtau * nav_meas[j].sat_pos[0];
+  //     xk_new[2] = nav_meas[j].sat_pos[2];
 
-    /* omp means "observed minus predicted" range -- this is E, the
-     * prediction error vector (or innovation vector in Kalman/LS
-     * filtering terms).
-     */
-    omp[j] = nav_meas[j].pseudorange - p_pred[j];
+  //     /* Line of sight vector. */
+  //     vector_subtract(3, xk_new, rx_state, los);
 
-    /* Construct a geometry matrix.  Each row (satellite) is
-     * independently normalized into a unit vector. */
-    for (u8 i=0; i<3; i++) {
-      G[j][i] = -los[i] / p_pred[j];
-    }
+  //     /* Predicted range from satellite position and estimated Rx position. */
+  //     p_pred[j] = vector_norm(3, los);
 
-    /* Set time covariance to 1. */
-    G[j][3] = 1;
+  //     /* omp means "observed minus predicted" range -- this is E, the
+  //      * prediction error vector (or innovation vector in Kalman/LS
+  //      * filtering terms).
+  //      */
+  //     omp[j] = nav_meas[j].pseudorange - p_pred[j];
 
-  } /* End of channel loop. */
+  //     /* Construct a geometry matrix.  Each row (satellite) is
+  //      * independently normalized into a unit vector. */
+  //     for (u8 i=0; i<3; i++) {
+  //       G[j][i] = -los[i] / p_pred[j];
+  //     }
 
-  /* Solve for position corrections using batch least-squares.  When
-   * all-at-once least-squares estimation for a nonlinear problem is
-   * mixed with numerical iteration (not time-series recursion, but
-   * iteration on a single set of measurements), it's basically
-   * Newton's method.  There's a reasonably clear explanation of this
-   * in Wikipedia's article on GPS.
-   */
+  //     /* Set time covariance to 1. */
+  //     G[j][3] = 1;
 
-  /* Gt := G^{T} */
+  //   } /* End of channel loop. */
+
+  //   /* Solve for position corrections using batch least-squares.  When
+  //    * all-at-once least-squares estimation for a nonlinear problem is
+  //    * mixed with numerical iteration (not time-series recursion, but
+  //    * iteration on a single set of measurements), it's basically
+  //    * Newton's method.  There's a reasonably clear explanation of this
+  //    * in Wikipedia's article on GPS.
+  //    */
+
+  //   /* Gt := G^{T} */
   matrix_transpose(n_used, 4, (double *) G, (double *) Gtrans);
   /* GtG := G^{T} G */
   matrix_multiply(4, n_used, 4, (double *) Gtrans, (double *) G, (double *) GtG);
   /* H \elem \mathbb{R}^{4 \times 4} := GtG^{-1} */
   matrix_inverse(4, (const double *) GtG, (double *) H);
-  /* X := H * G^{T} */
-  matrix_multiply(4, 4, n_used, (double *) H, (double *) Gtrans, (double *) X);
-  /* correction := X * E (= X * omp) */
-  matrix_multiply(4, n_used, 1, (double *) X, (double *) omp, (double *) correction);
+  //   /* X := H * G^{T} */
+  //   matrix_multiply(4, 4, n_used, (double *) H, (double *) Gtrans, (double *) X);
+  //   /* correction := X * E (= X * omp) */
+  //   matrix_multiply(4, n_used, 1, (double *) X, (double *) omp, (double *) correction);
 
   /* Increment ecef estimate by the new corrections */
   for (u8 i=0; i<3; i++) {

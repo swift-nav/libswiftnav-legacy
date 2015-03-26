@@ -4,6 +4,8 @@ import Plover.Types
 import Plover.Macros
 import Plover.Compile (writeProgram)
 
+import qualified Plover as P (main)
+
 --dotcfile = "#include <stdio.h>\n#include \"plover.h\"\nvoid plover_test() { printf(\"plover test success! " ++ show fundamentalConstant ++ "\\n\"); }\n"
 
 
@@ -17,3 +19,4 @@ plover_test = FnDeclare "plover_test" plover_test_sig $ seqList [
 main = do
   writeProgram "plover.c" (return plover_test)
   writeFile "plover.h" dothfile
+  P.main
