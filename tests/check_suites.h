@@ -2,6 +2,7 @@
 #define CHECK_SUITES_H
 
 Suite* dgnss_management_test_suite(void);
+Suite* baseline_test_suite(void);
 Suite* amb_kf_test_suite(void);
 Suite* sdiff_test_suite(void);
 Suite* coord_system_suite(void);

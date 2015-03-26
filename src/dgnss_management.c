@@ -15,7 +15,7 @@
 #include <assert.h>
 #include "logging.h"
 #include "amb_kf.h"
-#include "stupid_filter.h"
+#include "baseline.h"
 #include "single_diff.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"
@@ -427,8 +427,14 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
-                ambiguity_test.amb_check.ambs, DE, b, 0);
+  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
+                             ambiguity_test.amb_check.ambs, DE, b, 0);
+  if (ret) {
+    log_error("dgnss_fixed_baseline: "
+              "lesq_solution returned error %d\n", ret);
+    DEBUG_EXIT();
+    return 0;
+  }
   return 1;
 }
 
@@ -576,8 +582,14 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  lesq_solution(ambiguity_test.amb_check.num_matching_ndxs,
-                dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
+                             dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
+  if (ret) {
+    log_error("_dgnss_low_latency_IAR_baseline: "
+              "lesq_solution returned error %d\n", ret);
+    DEBUG_EXIT();
+    return -1;
+  }
 
   DEBUG_EXIT();
   return 0;
@@ -665,7 +677,7 @@ void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs,
   memcpy(&ambiguity_test.sats, &sats_management, sizeof(sats_management));
   hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(ambiguity_test.pool);
   hyp->ll = 0;
-  amb_from_baseline(num_sats, DE, dds, b, hyp->N);
+  amb_from_baseline(num_sats-1, DE, dds, b, hyp->N);
 
   double obs_cov[(num_sats-1) * (num_sats-1) * 4];
   memset(obs_cov, 0, (num_sats-1) * (num_sats-1) * 4 * sizeof(double));
@@ -711,7 +723,7 @@ void dgnss_init_known_baseline2(u8 num_sats, sdiff_t *sdiffs,
   double DE[(num_sats-1)*3];
   s32 N[num_sats-1];
   assign_de_mtx(num_sats, corrected_sdiffs, ref_ecef, DE);
-  amb_from_baseline(num_sats, DE, dds, b, N);
+  amb_from_baseline(num_sats-1, DE, dds, b, N);
 
   /* Construct fake state means. */
   double state_mean[num_sats-1+6];

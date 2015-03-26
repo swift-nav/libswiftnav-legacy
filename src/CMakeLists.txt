@@ -27,7 +27,7 @@ set(libswiftnav_SRCS
   bits.c
   lambda.c
   amb_kf.c
-  stupid_filter.c
+  baseline.c
   single_diff.c
   memory_pool.c
   dgnss_management.c

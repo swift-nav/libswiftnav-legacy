@@ -29,6 +29,7 @@
 #include "track.h"
 #include "almanac.h"
 #include "gpstime.h"
+#include "baseline.h"
 #include "amb_kf.h"
 
 /** Measure the integer ambiguity just from the code and carrier measurements.
@@ -311,156 +312,12 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   DEBUG_EXIT();
 }
 
-
-/* TODO use the state covariance matrix for a better estimate:
- *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
- *
- *    That is, we assume that y ~ N ( A * x, S), and want to make a maximum
- *    likelihood estimate (asymptotically optimal by the Cramer-Rao bound).
- *    This is the minimizer of (A * x - y)' * S^-1 * (A * x - y).
- *        = min_x  (x' * A' - y') * S^-1 * (A * x - y)
- *        = min_x  x' * A' * S^-1* A * x - x' * A' * S^-1 * y
- *                                       - y' * S^-1 * A * x  +  y' * S^-1 * y
- *    Differentiating by x, this becomes
- *    0   =   2 * A' * S^-1 * A * x - 2 * A' * S^-1 * y  ====>
- *    A' * S^-1 * y   =   A' * S^-1 * A * x              ====>
- *    (A'* S^-1 * A)^-1 * A' * S^-1 * y = x
- *
- *    Decomposing S^(-1) = U'^-1 * D^-1/2 * D^-1/2 * U^-1 and defining
- *    C = D^-1/2 * U^-1 * A, we get
- *    (C' * C)^-1 * C' * D^(-1/2) * U^(-1) * y = x
- *    We know that (C' * C)^-1 * C' is the pseudoinverse of C for all C, so
- *    we're really just solving
- *    D^(-1/2) * U^(-1) * y = C * x = D^(-1/2) * U^(-1) * A * x.
- *
- *
- *    Alternatively, we can show this as
- *    If y ~ N( A * x, S = U * D * U'),
- *        then D^(-1/2) * U^(-1) * y ~  N( D^(-1/2) * U^-1 * A * x, I).
- *
- *    This form brings more light on the fact that:
- *      z = U^(-1) * y ~  N(U^-1 * A * x, D).
- *    This form helps us decide how to solve when d_i ~~ 0.
- *    The z_I for I = {i | d_i ~~ 0} want to be solved exactly, because we are
- *    saying that there is no noise in the measurement. This can reduce the
- *    dimension of the problem we are solving, if we really want to.
-
- *    Therefore we want to:
- *      Triangularly solve y = U * z, for z = U^(-1) * y
- *                         A = U * B, for C = U^(-1) * A
- *        (perhaps simultaneously)
- *      Scale w = D^(-1/2) * z, being mindful that D might not be full rank.
- *      Scale C = D^(-1/2) * B, being mindful that D might not be full rank.
- *      Perform an ordinary least squares solution for w = C * x.
- *          -If we have zeros (d_i below some threshold), we could just do an
- *              exact solution for those then least squares solve the rest.
- *          -Or we could set those d_i to be at threshold and then invert.
- *
- *    We then have that the covariance matrix for x is (C' * C)^-1.
- *
- *    We also need to determine if this is even worth the extra effort.
- */
-/** A least squares solution for baseline from phases using the KF state.
- * This uses the current state of the KF and a set of phase observations to
- * solve for the current baseline.
- *
- * \param kf                    The Kalman filter struct.
- * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
- *                              the reference sat of the KF, and the rest must
- *                              correspond to the KF's DD amb estimates' sats.
- * \param dd_measurements       A vector of carrier phases. They must be double
- *                              differenced and ordered according to the sdiffs
- *                              and KF's sats (which must match each other).
- * \param ref_ecef              The reference position in ECEF frame, for
- *                              computing the sat direction vectors.
- * \param b                     The output baseline in meters.
- */
-void _least_squares_solve_b(u8 num_dds_u8, const double *state_mean,
-         const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3])
-{
-  DEBUG_ENTRY();
-
-  integer num_dds = num_dds_u8;
-  double DE[num_dds * 3];
-  assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
-  double DET[num_dds * 3];
-   /* TODO this transposition is stupid and unnecessary */
-  for (u8 i=0; i<num_dds; i++) {
-    DET[              i] = DE[i*3 + 0];
-    DET[    num_dds + i] = DE[i*3 + 1];
-    DET[2 * num_dds + i] = DE[i*3 + 2];
-  }
-
-  double phase_ranges[MAX(num_dds,3)];
-  for (u8 i=0; i< num_dds; i++) {
-    phase_ranges[i] = dd_measurements[i] - state_mean[i];
-  }
-
-  if (DEBUG) {
-    printf("\tdd_measurements, \tkf->state_mean, \tdifferenced phase_ranges = {\n");
-    for (u8 i=0; i< num_dds; i++) {
-      printf("\t%f, \t%f, \t%f,\n", dd_measurements[i], state_mean[i], phase_ranges[i]);
-    }
-    printf("\t}\n");
-  }
-
-  /* TODO could use plain old DGELS here */
-
-  s32 ldb = (s32) MAX(num_dds,3);
-  double s[3];
-  double rcond = 1e-12;
-  s32 rank;
-  double w[1]; /* try 25 + 10*num_sats. */
-  s32 lwork = -1;
-  s32 info;
-  s32 three = 3;
-  s32 one = 1;
-  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
-          DET, &num_dds,          /* A, LDA. */
-          phase_ranges, &ldb,     /* B, LDB. */
-          s, &rcond,              /* S, RCOND. */
-          &rank,                  /* RANK. */
-          w, &lwork,              /* WORK, LWORK. */
-          &info);                 /* INFO. */
-  lwork = round(w[0]);
-
-  double work[lwork];
-  dgelss_(&num_dds, &three, &one, /* M, N, NRHS. */
-          DET, &num_dds,          /* A, LDA. */
-          phase_ranges, &ldb,     /* B, LDB. */
-          s, &rcond,              /* S, RCOND. */
-          &rank,                  /* RANK. */
-          work, &lwork,           /* WORK, LWORK. */
-          &info);                 /* INFO. */
-  b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
-  b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
-  b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
-  if (DEBUG) {
-    printf("b = {%f, %f, %f}\n", b[0]*100, b[1]*100, b[2]*100); /*  units --> cm. */
-  }
-
-  DEBUG_EXIT();
-}
-
 void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
                       const double *dd_measurements, const double ref_ecef[3],
                       double b[3])
 {
-  return _least_squares_solve_b(kf->state_dim, kf->state_mean,
+  return least_squares_solve_b_external_ambs(kf->state_dim, kf->state_mean,
       sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
-}
-
-/* Presumes that the first alm entry is the reference sat.
- * TODO use the state covariance matrix for a better estimate:
- *   That is, decorrelate and scale the LHS of y = A * x before solving for x
- */
-void least_squares_solve_b_external_ambs(
-         u8 num_dds_u8, const double *ambs, const sdiff_t *sdiffs_with_ref_first,
-         const double *dd_measurements, const double ref_ecef[3], double b[3])
-{
-  return _least_squares_solve_b(num_dds_u8, ambs, sdiffs_with_ref_first,
-      dd_measurements, ref_ecef, b);
 }
 
 /* Initializes the ambiguity means and variances.
