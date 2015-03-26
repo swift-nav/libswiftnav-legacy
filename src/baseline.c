@@ -322,7 +322,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
           &info);                 /* INFO. */
 
   if (info != 0) {
-    log_error("dgelsy returned error %d\n", info);
+    log_error("dgelsy returned error %"PRId32"\n", info);
     return -2;
   }
 
