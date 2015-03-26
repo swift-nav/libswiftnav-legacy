@@ -860,7 +860,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
   log_info("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
-  log_info("After projection, num_sats = %d", num_dds_in_intersection + 1);
+  log_info("After projection, num_sats = %d\n", num_dds_in_intersection + 1);
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
