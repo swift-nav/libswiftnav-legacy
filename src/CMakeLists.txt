@@ -38,12 +38,16 @@ set(libswiftnav_SRCS
   sats_management.c
   ambiguity_test.c
   printing_utils.c
+
+  "${PROJECT_SOURCE_DIR}/plover/wrappers.c"
+  "${PROJECT_SOURCE_DIR}/plover/extern_defs.c"
 )
 
 set(libswiftnav_GENERATED_SRCS
-  "${PROJECT_SOURCE_DIR}/plover/plover.c"
+  "${PROJECT_SOURCE_DIR}/plover/generated.c"
 )
-SET_SOURCE_FILES_PROPERTIES("${PROJECT_SOURCE_DIR}/plover/plover.c" PROPERTIES GENERATED TRUE)
+SET_SOURCE_FILES_PROPERTIES("${PROJECT_SOURCE_DIR}/plover/generated.c" PROPERTIES GENERATED TRUE)
+SET_SOURCE_FILES_PROPERTIES("${PROJECT_SOURCE_DIR}/plover/generated.h" PROPERTIES GENERATED TRUE)
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS} ${libswiftnav_GENERATED_SRCS})
 target_link_libraries(swiftnav-static cblas)
@@ -51,7 +55,7 @@ target_link_libraries(swiftnav-static lapacke)
 install(TARGETS swiftnav-static DESTINATION lib${LIB_SUFFIX})
 
 if(BUILD_SHARED_LIBS)
-  add_library(swiftnav STATIC ${libswiftnav_SRCS} ${libswiftnav_GENERATED_SRCS})
+  add_library(swiftnav SHARED ${libswiftnav_SRCS} ${libswiftnav_GENERATED_SRCS})
   target_link_libraries(swiftnav cblas)
   target_link_libraries(swiftnav lapacke)
   install(TARGETS swiftnav DESTINATION lib${LIB_SUFFIX})

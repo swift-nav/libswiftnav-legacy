@@ -4,10 +4,9 @@
 #include "single_diff.h"
 #include "check_utils.h"
 
-#include "plover.h"
+#include "generated.h"
 
 START_TEST(hello_world) {
-  plover_test();
 }
 END_TEST
 

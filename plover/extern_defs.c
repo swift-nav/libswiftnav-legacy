@@ -4,9 +4,9 @@
 #include "linear_algebra.h"
 #include <time.h>
 
-void inverse(int dim, double *arr, double *output)
+void inverse(int dim, double arr[dim][dim], double output[dim][dim])
 {
-  matrix_inverse(dim, arr, output);
+  matrix_inverse(dim, (const double *)arr, (double *)output);
 }
 
 int randInt()
