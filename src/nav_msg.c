@@ -19,7 +19,7 @@
 #include "bits.h"
 #include "nav_msg.h"
 
-#define NAV_MSG_BIT_PHASE_THRES 5
+#define NAV_MSG_BIT_PHASE_THRES 10
 
 void nav_msg_init(nav_msg_t *n)
 {
@@ -73,6 +73,36 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
+{
+  float dot = corr_prompt_real * n->prev_corr;
+  n->prev_corr = corr_prompt_real;
+
+  if (dot > 0)
+    return;
+
+  /* Sign change - Add to histogram */
+  n->hist[n->bit_phase] += -dot;
+
+  n->bit_phase_count++;
+  if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES)
+    return;
+
+  /* Find the max and run with it */
+  float max = 0;
+  u8 max_index = 0;
+  for (u8 i = 0; i < 20; i++) {
+    if (n->hist[i] > max) {
+      max = n->hist[i];
+      max_index = i;
+    }
+    n->hist[i] = 0;
+  }
+
+  n->bit_phase_ref = (max_index + 19) % 20;
+
+  n->bit_phase_count = 0;
+}
 
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
@@ -86,24 +116,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   n->bit_phase += ms;
   n->bit_phase %= 20;
 
-  if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES) {
-
-    /* No bit phase lock yet. */
-    if ((n->nav_bit_integrate > 0) != (corr_prompt_real > 0)) {
-      /* Edge detected. */
-      if ((n->bit_phase - 1) % 20 == n->bit_phase_ref)
-        /* This edge came N*20 ms after the last one. */
-        n->bit_phase_count++;
-      else {
-        /* Store the bit phase hypothesis. */
-        n->bit_phase_ref = (n->bit_phase - 1) % 20;
-        n->bit_phase_count = 1;
-      }
-    }
-    /* Store the correlation for next time. */
-    n->nav_bit_integrate = corr_prompt_real;
-    return -1;
-  }
+  update_bit_sync(n, corr_prompt_real);
 
   /* We have bit phase lock. */
   n->nav_bit_integrate += corr_prompt_real;
