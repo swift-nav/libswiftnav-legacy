@@ -329,6 +329,9 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   fourbyte.s32 >>= 8;
   e->omegadot = fourbyte.s32 * pow(2,-43) * GPS_PI;
 
+  /* iode: Word 10, bits 1-8 */
+  e->iode = frame_words[2][10-3] >> (30-8) & 0xFF;
+
   /* inc_dot (IDOT): Word 10, bits 9-22 */
   twobyte.u16 = frame_words[2][10-3] >> (30-22) & 0x3FFF;
   twobyte.u16 <<= 2;

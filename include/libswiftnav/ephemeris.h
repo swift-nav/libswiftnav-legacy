@@ -26,6 +26,7 @@ typedef struct {
   u8 valid;
   u8 healthy;
   u8 prn;
+  u8 iode;
 } ephemeris_t;
 
 s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
