@@ -10,6 +10,7 @@
 #include "check_utils.h"
 
 
+
 /* Assure that when the sdiffs match amb_test's sats, amb_test's sats are unchanged. */
 START_TEST(test_update_sats_same_sats)
 {
@@ -140,9 +141,6 @@ START_TEST(test_amb_sat_inclusion)
   u8 dim = 7;
   double cov_mat[state_dim * state_dim];
   double multiplier[state_dim * state_dim];
-  double multiplierT[state_dim * state_dim];
-  double a[state_dim * state_dim];
-  double b[state_dim * state_dim];
   matrix_eye(state_dim, cov_mat);
   double diag = 0.08;
   for (u8 i = 0; i < state_dim; i++) {
@@ -164,6 +162,9 @@ START_TEST(test_amb_sat_inclusion)
   /* Compute a lightly randomized covariance matrix:
    *     multiplier * diag * multiplier^t
    */
+  double multiplierT[state_dim * state_dim];
+  double a[state_dim * state_dim];
+  double b[state_dim * state_dim];
   matrix_transpose(state_dim, state_dim, multiplier, multiplierT);
   matrix_multiply(state_dim, state_dim, state_dim, multiplier, cov_mat, a);
   matrix_multiply(state_dim, state_dim, state_dim, a, multiplierT, b);
@@ -200,27 +201,27 @@ START_TEST(test_amb_sat_inclusion)
   u8 flag;
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size before: %i\n", pool_size);
-  /* Include. This one should succeed. */
+  /* Include. This one should succeed and add 5 sats. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size after 1: %i\n", pool_size);
   fail_unless(flag == 1);
+  fail_unless(pool_size == 625);
   /* Include again. This one should succeed. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
   printf("pool size after 2: %i\n", pool_size);
   fail_unless(flag == 1);
-  /* Include again. This one should fail due to high covariance. */
+  fail_unless(pool_size == 547);
+  /* Include again. This one should fail. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
   printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
-  printf("pool size after 3: %i\n", pool_size);
+  printf("pool size after 2: %i\n", pool_size);
   fail_unless(flag == 0);
-
-  /* Checks */
-  fail_unless(pool_size > 1);
+  fail_unless(pool_size == 547);
 }
 END_TEST
 
