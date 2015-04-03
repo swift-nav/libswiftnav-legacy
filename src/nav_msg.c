@@ -114,6 +114,20 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   /* Dump the nav bit, i.e. determine the sign of the correlation over the
    * nav bit period. */
 
+#define abs(x) ((x) < 0 ? -(x) : (x))
+  u16 last_subframe_bit_index = abs(n->subframe_start_index) + 27;
+  last_subframe_bit_index %= NAV_MSG_SUBFRAME_BITS_LEN * 32;
+  if (n->subframe_start_index &&
+      (n->subframe_bit_index == last_subframe_bit_index)) {
+    /* Subframe buffer is full: the nav message decoder has missed it's
+     * deadline.  Clobbering the buffer can result in invalid nav data
+     * being used.
+     */
+    n->overrun = true;
+    n->nav_bit_integrate = 0;
+    return -2;
+  }
+
   /* Is bit 1? */
   if (n->nav_bit_integrate > 0) {
     n->subframe_bits[n->subframe_bit_index >> 5] |= \
@@ -235,6 +249,11 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   // First things first - check the parity, and invert bits if necessary.
   // process the data, skipping the first word, TLM, and starting with HOW
+  /* Complain if buffer overrun */
+  if (n->overrun) {
+    log_warn("nav_msg subframe buffer overrun!\n");
+    n->overrun = false;
+  }
 
   /* TODO: Check if inverted has changed and detect half cycle slip. */
   if (n->inverted != (n->subframe_start_index < 0)) {

@@ -16,11 +16,12 @@
 #include "common.h"
 #include "ephemeris.h"
 
-#define NAV_MSG_SUBFRAME_BITS_LEN 12 /* Buffer 384 nav bits. */
+#define NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
 
 typedef struct {
   u32 subframe_bits[NAV_MSG_SUBFRAME_BITS_LEN];
   u16 subframe_bit_index;
+  bool overrun;
   /** Foo
    * - 0 = no preamble found
    * - +x = preamble begins at bit index (x-1)
