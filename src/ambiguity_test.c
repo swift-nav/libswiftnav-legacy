@@ -134,6 +134,60 @@ u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
   return acc.found;
 }
 
+/** A struct to be used as the x in a memory pool fold, checking likelihood.
+ * Used in fold_ll().
+ */
+typedef struct {
+  u8 num_dds;             /**< The number of double differences in the hypotheses. */
+  s32 N[MAX_CHANNELS-1];  /**< The ambiguity vector being searched for. */
+  u8 found;               /**< Whether or not the ambiguity vector is found yet. */
+  double ll;              /**< The pseudo log likelihood if it's been found. */
+} fold_ll_t;
+
+/** A memory pool fold method to check a hypothesis's pseudo log likelihood.
+ *
+ * Should be used in memory_pool_fold().
+ *
+ * \param x    The accumulator. Contains the hypothesis and whether it's found.
+ * \param elem The hypothesis being folded against (checked for match).
+ */
+void fold_ll(void *x, element_t *elem)
+{
+  fold_ll_t *acc = (fold_ll_t *) x;
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+  if (acc->found == 1) {
+    return;
+  }
+  for (u8 i=0; i<acc->num_dds; i++) {
+    if (hyp->N[i] != acc->N[i]) {
+      return;
+    }
+  }
+  acc->ll = hyp->ll;
+  acc->found = 1;
+}
+
+/** Tests whether an ambiguity test has a particular hypothesis.
+ *
+ * \param amb_test    The test to check against.
+ * \param num_ambs    The length of the ambs vector.
+ * \param ambs        The ambiguity hypothesis to look for.
+ * \return            The pseudo log-likelihood of the hypothesis if it is
+ *                    in the pool, and a positive number otherwise.
+ */
+u8 ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
+{
+  fold_ll_t acc;
+  acc.num_dds = amb_test->sats.num_sats-1;
+  acc.ll = 1;
+  assert(acc.num_dds == num_ambs);
+  for (u8 i=0; i<acc.num_dds; i++) {
+    acc.N[i] = lround(ambs[i]);
+  }
+  memory_pool_fold(amb_test->pool, (void *) &acc, &fold_ll);
+  return acc.ll;
+}
+
 
 /** A struct to be used in a memory pool fold to find the most likely hypothesis.
  * Should be used in fold_mle().
