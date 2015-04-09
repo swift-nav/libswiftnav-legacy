@@ -73,6 +73,10 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
+/* Check for a sign change in the correlation and add to the histogram.
+ * After NAV_MSG_BIT_PHASE_THRES sign changes, the histogram is evaluated
+ * and bit_phase_ref is updated.
+ */
 static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
 {
   float dot = corr_prompt_real * n->prev_corr;
