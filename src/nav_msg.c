@@ -114,8 +114,11 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   /* Dump the nav bit, i.e. determine the sign of the correlation over the
    * nav bit period. */
 
-#define abs(x) ((x) < 0 ? -(x) : (x))
-  u16 last_subframe_bit_index = abs(n->subframe_start_index) + 27;
+  /* The following is offset by 27 to allow the handover word to be
+   * overwritten.  This is not a problem as it's handled below and
+   * isn't needed by the ephemeris decoder.
+   */
+  u16 last_subframe_bit_index = ABS(n->subframe_start_index) + 27;
   last_subframe_bit_index %= NAV_MSG_SUBFRAME_BITS_LEN * 32;
   if (n->subframe_start_index &&
       (n->subframe_bit_index == last_subframe_bit_index)) {
