@@ -108,12 +108,23 @@ static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
   n->bit_phase_count = 0;
 }
 
+/** Navigation message decoding update.
+ * Called once per tracking loop update. Performs the necessary steps to
+ * recover the nav bit clock, store the nav bits and decode them.
+ *
+ * Also extracts and returns the GPS time of week each time a new subframe is
+ * received.
+ *
+ * \param n Nav message decode state struct
+ * \param corr_prompt_real In-phase prompt correlation from tracking loop
+ * \param ms Number of milliseconds integration performed in the correlation
+ *
+ * \return The GPS time of week in milliseconds of the current code phase
+ *         rollover, or `TOW_INVALID` (-1) if unknown
+ */
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
-  /* Called once per tracking loop update. Performs the necessary steps to
-   * recover the nav bit clock, store the nav bits and decode them. */
-
-  s32 TOW_ms = -1;
+  s32 TOW_ms = TOW_INVALID;
 
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
@@ -125,8 +136,9 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   /* We have bit phase lock. */
   n->nav_bit_integrate += corr_prompt_real;
 
-  if (n->bit_phase != n->bit_phase_ref)
-    return -1;
+  if (n->bit_phase != n->bit_phase_ref) {
+    return TOW_INVALID;
+  }
 
   /* Dump the nav bit, i.e. determine the sign of the correlation over the
    * nav bit period. */
