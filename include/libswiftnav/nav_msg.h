@@ -18,6 +18,8 @@
 
 #define NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
 
+#define TOW_INVALID -1
+
 typedef struct {
   u32 subframe_bits[NAV_MSG_SUBFRAME_BITS_LEN];
   u16 subframe_bit_index;
