@@ -260,10 +260,10 @@ static double pvt_solve(double rx_state[],
 u8 filter_solution(gnss_solution* soln, dops_t* dops)
 {
   if (dops->pdop > 50.0)
-    /* PDOP is too high to yeild a good solution. */
+    /* PDOP is too high to yield a good solution. */
     return 1;
 
-  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e8)
+  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e6)
     /* Altitude is unreasonable. */
     return 2;
 
