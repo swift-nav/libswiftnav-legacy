@@ -10,6 +10,8 @@ include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
 
 include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
+include_directories("${CMAKE_PLOVER_DIR}")
+
 set(libswiftnav_SRCS
   ephemeris.c
   nav_msg.c
@@ -37,12 +39,14 @@ set(libswiftnav_SRCS
 )
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS})
+add_dependencies(swiftnav-static generate)
 target_link_libraries(swiftnav-static cblas)
 target_link_libraries(swiftnav-static lapacke)
 install(TARGETS swiftnav-static DESTINATION lib${LIB_SUFFIX})
 
 if(BUILD_SHARED_LIBS)
   add_library(swiftnav SHARED ${libswiftnav_SRCS})
+  add_dependencies(swiftnav generate)
   target_link_libraries(swiftnav cblas)
   target_link_libraries(swiftnav lapacke)
   install(TARGETS swiftnav DESTINATION lib${LIB_SUFFIX})
