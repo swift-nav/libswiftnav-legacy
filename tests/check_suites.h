@@ -12,5 +12,6 @@ Suite* memory_pool_suite(void);
 Suite* edc_suite(void);
 Suite* linear_algebra_suite(void);
 Suite* ambiguity_test_suite(void);
+Suite* plover_test_suite(void);
 
 #endif /* CHECK_SUITES_H */

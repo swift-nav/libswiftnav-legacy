@@ -20,6 +20,7 @@ else (CMAKE_CROSSCOMPILING)
     endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
+    include_directories("${PROJECT_SOURCE_DIR}/plover")
 
     add_executable(test_libswiftnav
       check_main.c
@@ -36,6 +37,8 @@ else (CMAKE_CROSSCOMPILING)
       check_coord_system.c
       check_linear_algebra.c
       check_ambiguity_test.c
+
+      check_plover.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})
