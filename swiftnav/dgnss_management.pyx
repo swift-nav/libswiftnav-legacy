@@ -154,12 +154,6 @@ def dgnss_iar_get_single_hyp(num_dds):
   dgnss_management_c.dgnss_iar_get_single_hyp(&hyp[0])
   return hyp
 
-# def get_dgnss_kf():
-#   cdef nkf_t *kf = dgnss_management_c.get_dgnss_kf()
-#   cdef KalmanFilter pykf = KalmanFilter()
-#   memcpy(&(pykf.kf), kf, sizeof(amb_kf_c.nkf_t))
-#   return pykf
-
 def get_sats_management():
   cdef sats_management_t * sats_man = dgnss_management_c.get_sats_management()
   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \
@@ -516,10 +510,6 @@ def get_amb_kf_cov2():
     np.empty((32*32, 1), dtype=np.double)
   num_dds = dgnss_management_c.get_amb_kf_cov(&cov[0,0])
   return cov[:num_dds*num_dds,0].reshape((num_dds,num_dds))
-  # if num_dds == num_dds2:
-  #   return cov
-  # else:
-  #   raise ValueError("Was given the wrong num_dds.")
 
 def get_amb_kf_prns():
   cdef np.ndarray[np.uint8_t, ndim=1, mode="c"] prns = \

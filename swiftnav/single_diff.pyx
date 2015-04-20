@@ -13,7 +13,6 @@ cimport single_diff_c
 from libc.string cimport memcpy
 
 cdef class SingleDiff:
-  # cdef single_diff_c.sdiff_t sdiff
   def __init__(self,
                pseudorange,
                carrier_phase,
@@ -80,5 +79,4 @@ cdef class SingleDiff:
       return self.sdiff.prn
     def __set__(self, prn):
       self.sdiff.prn = prn
-  
   
