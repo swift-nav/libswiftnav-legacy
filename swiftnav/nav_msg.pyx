@@ -12,8 +12,8 @@ cdef class NavMsg:
     nav_msg_c.nav_msg_init(&self.state)
     self.eph_valid = False
 
-  def update(self, corr_prompt_real):
-    tow = nav_msg_c.nav_msg_update(&self.state, corr_prompt_real)
+  def update(self, corr_prompt_real, ms):
+    tow = nav_msg_c.nav_msg_update(&self.state, corr_prompt_real, ms)
     if nav_msg_c.subframe_ready(&self.state):
       #self.eph.valid = 0
       nav_msg_c.process_subframe(&self.state, &self.eph)
