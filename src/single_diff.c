@@ -198,6 +198,149 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   return n;
 }
 
+bool is_prn_set(u8 len, const u8 *prns)
+{
+  if (len == 0) {
+    return true;
+  }
+  u8 current = prns[0];
+  for (u8 i = 1; i < len; i++) {
+    if (prns[i] <= current) {
+      return false;
+    }
+    current = prns[i];
+  }
+  return true;
+}
+
+/* Constructs the double differenced measurements and sdiffs needed for IAR.
+ * This requires that all IAR prns are in the sdiffs used (sdiffs is a superset
+ * of IAR's PRNs), that the sdiffs are ordered by prn, and that the IAR
+ * non_ref_prns are also ordered (both ascending).
+ *
+ * The dd_meas output will be ordered like the non_ref_prns
+ * with the whole vector of carrier phase elements coming before the
+ * pseudoranges. The amb_sdiffs will have the ref sat first, then the rest in
+ * ascending order like the non_ref_prns.
+ *
+ * \param ref_prn                    The current reference PRN for the IAR.
+ * \param non_ref_prns               The rest of the current PRNs for the IAR.
+ * \param num_dds                    The number of dds used in the IAR
+ *                                   (length of non_ref_prns).
+ * \param num_sdiffs                 The number of sdiffs being passed in.
+ * \param sdiffs                     The sdiffs to pull measurements out of.
+ * \param dd_meas  The output vector of DD measurements
+ *                                   to be used to update the IAR.
+ * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
+ * \return 0 if the input sdiffs are superset of the IAR sats,
+ *        -1 if they are not,
+ *        -2 if non_ref_prns is not an ordered set.
+ */
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, sdiff_t *sdiffs_in,
+                                   double *dd_meas, sdiff_t *sdiffs_out)
+{
+  DEBUG_ENTRY();
+
+  if (DEBUG) {
+    printf("ref_prn = %u\nnon_ref_prns = {", ref_prn);
+    for (u8 i=0; i < num_dds; i++) {
+      printf("%d, ", non_ref_prns[i]);
+    }
+    printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds, num_sdiffs);
+    for (u8 i=0; i < num_sdiffs; i++) {
+      printf("%d, ", sdiffs_in[i].prn);
+    }
+    printf("}\n");
+  }
+
+  if (!is_prn_set(num_dds, non_ref_prns)) {
+    log_error("There is disorder in the amb_test sats.\n");
+    printf("amb_test sat prns = {%u, ", ref_prn);
+    for (u8 k=0; k < num_dds; k++) {
+      printf("%u, ", non_ref_prns[k]);
+    }
+    printf("}\n");
+    DEBUG_EXIT();
+    return -2;
+  }
+
+  double ref_phase = 0;
+  double ref_pseudorange = 0;
+  u8 i=0;
+  u8 j=0;
+  u8 found_ref = 0;
+  /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
+   * and the reference sat. */
+  while (i < num_dds) {
+    if (non_ref_prns[i] == sdiffs_in[j].prn) {
+      /* When we find a non-ref sat, we fill in the next measurement. */
+      memcpy(&sdiffs_out[i+1], &sdiffs_in[j], sizeof(sdiff_t));
+      dd_meas[i] = sdiffs_in[j].carrier_phase;
+      dd_meas[i+num_dds] = sdiffs_in[j].pseudorange;
+      i++;
+      j++;
+    } else if (ref_prn == sdiffs_in[j].prn) {
+      /* when we find the ref sat, we copy it over and raise the FOUND flag */
+      memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
+      ref_phase =  sdiffs_in[j].carrier_phase;
+      ref_pseudorange = sdiffs_in[j].pseudorange;
+      j++;
+      found_ref = 1;
+    }
+    else if (non_ref_prns[i] > sdiffs_in[j].prn) {
+      /* If both sets are ordered, and we increase j (and possibly i), and the
+       * i prn is higher than the j one, it means that the i one might be in the
+       * j set for higher j, and that the current j prn isn't in the i set. */
+      j++;
+    } else {
+      /* if both sets are ordered, and we increase j (and possibly i), and the
+       * j prn is higher than the i one, it means that the j one might be in the
+       * i set for higher i, and that the current i prn isn't in the j set.
+       * This means a sat in the IAR's sdiffs isn't in the sdiffs.
+       * */
+      DEBUG_EXIT();
+      return -1;
+    }
+  }
+  /* This awkward case deals with the situation when sdiffs and sats have the
+   * same satellites only the ref of amb_test.sats is the last PRN in sdiffs.
+   * This case is never checked for j = num_dds as i only runs to num_dds-1. */
+  /* TODO: This function could be refactored to be a lot clearer. */
+  while (!found_ref && j < num_sdiffs ) {
+    if (ref_prn == sdiffs_in[j].prn) {
+      memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
+      ref_phase =  sdiffs_in[j].carrier_phase;
+      ref_pseudorange = sdiffs_in[j].pseudorange;
+      found_ref = 1;
+    }
+    j++;
+  }
+
+  if (found_ref == 0) {
+    DEBUG_EXIT();
+    return -1;
+  }
+  for (i=0; i < num_dds; i++) {
+    dd_meas[i] -= ref_phase;
+    dd_meas[i+num_dds] -= ref_pseudorange;
+  }
+  if (DEBUG) {
+    printf("amb_sdiff_prns = {");
+    for (i = 0; i < num_dds+1; i++) {
+      printf("%u, ", sdiffs_out[i].prn);
+    }
+    printf("}\ndd_measurements = {");
+    for (i=0; i < 2 * num_dds; i++) {
+      printf("%f, \t", dd_meas[i]);
+    }
+    printf("}\n");
+  }
+
+  DEBUG_EXIT();
+  return 0;
+}
+
 
 /** Convert a list of almanacs to a list of single differences.
  * This only fills the position, velocity and prn.
