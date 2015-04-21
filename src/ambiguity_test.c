@@ -26,6 +26,7 @@
 #include "lambda.h"
 #include "memory_pool.h"
 #include "printing_utils.h"
+#include "filter_utils.h"
 #include "sats_management.h"
 
 #define RAW_PHASE_BIAS_VAR 0

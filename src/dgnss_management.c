@@ -19,6 +19,7 @@
 #include "single_diff.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"
+#include "filter_utils.h"
 #include "ambiguity_test.h"
 
 nkf_t nkf;
