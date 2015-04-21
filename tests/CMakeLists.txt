@@ -9,10 +9,9 @@ else (CMAKE_CROSSCOMPILING)
 
     include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
     include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
-    include_directories("${PROJECT_SOURCE_DIR}/lapacke/include")
 
     include_directories(${CHECK_INCLUDE_DIRS})
-    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapacke cblas m)
+    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapack cblas m)
 
     # Check needs to be linked against Librt on Linux
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

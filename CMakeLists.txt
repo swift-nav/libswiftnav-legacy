@@ -63,7 +63,6 @@ endif ()
 
 add_subdirectory(clapack-3.2.1-CMAKE)
 add_subdirectory(CBLAS)
-add_subdirectory(lapacke)
 add_subdirectory(src)
 add_subdirectory(docs)
 add_subdirectory(tests)
