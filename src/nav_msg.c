@@ -238,7 +238,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
  * \return 0 if the parity is correct,
  *         otherwise returns the number of the first incorrect parity bit.
  */
-u8 nav_parity(u32 *word)
+static u8 nav_parity(u32 *word)
 {
   if (*word & 1<<30) { /* Inspect D30* */
     *word ^= 0x3FFFFFC0; /* D30* = 1, invert all the data bits! */

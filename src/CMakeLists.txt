@@ -2,6 +2,8 @@ if (NOT DEFINED BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 endif (NOT DEFINED BUILD_SHARED_LIBS)
 
+set(CMAKE_C_FLAGS "-Wmissing-prototypes ${CMAKE_C_FLAGS}")
+
 file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 
 include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")

@@ -18,7 +18,7 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
-u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
+static u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;
@@ -32,8 +32,8 @@ u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 }
 
 //assumes both sets are ordered
-u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1, const sdiff_t *sdiffs,
-                  sdiff_t *intersection_sats)
+static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1,
+                         const sdiff_t *sdiffs, sdiff_t *intersection_sats)
 {
   DEBUG_ENTRY();
 
@@ -114,8 +114,8 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
  */
-void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
-                       const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
+                              const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   DEBUG_ENTRY();
 
@@ -162,8 +162,8 @@ void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
   DEBUG_EXIT();
 }
 
-void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
-                                const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+static void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
+                                       const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
   sats_management->prns[0] = ref_prn;

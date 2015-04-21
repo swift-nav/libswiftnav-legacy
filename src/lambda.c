@@ -22,6 +22,7 @@
 #include "linear_algebra.h"
 #include "amb_kf.h"
 #include "logging.h"
+#include "lambda.h"
 
 /* constants/macros ----------------------------------------------------------*/
 
@@ -32,7 +33,7 @@
 #define SWAP(x,y)   do {double tmp_; tmp_=x; x=y; y=tmp_;} while (0)
 
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
-int LD(int n, const double *Q, double *L, double *D)
+static int LD(int n, const double *Q, double *L, double *D)
 {
     int i,j,k,info=0;
     double a;
@@ -58,7 +59,7 @@ int LD(int n, const double *Q, double *L, double *D)
     return info;
 }
 /* integer gauss transformation ----------------------------------------------*/
-void gauss(int n, double *L, double *Z, int i, int j)
+static void gauss(int n, double *L, double *Z, int i, int j)
 {
     int k,mu;
 
@@ -68,7 +69,7 @@ void gauss(int n, double *L, double *Z, int i, int j)
     }
 }
 /* permutations --------------------------------------------------------------*/
-void perm(int n, double *L, double *D, int j, double del, double *Z)
+static void perm(int n, double *L, double *D, int j, double del, double *Z)
 {
     int k;
     double eta,lam,a0,a1;
@@ -86,7 +87,7 @@ void perm(int n, double *L, double *D, int j, double del, double *Z)
     for (k=0;k<n;k++) SWAP(Z[k+j*n],Z[k+(j+1)*n]);
 }
 /* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (ref.[1]) ---------------*/
-void reduction(int n, double *L, double *D, double *Z)
+static void reduction(int n, double *L, double *D, double *Z)
 {
     int i,j,k;
     double del;
@@ -213,7 +214,7 @@ int lambda_reduction(int n, const double *Q, double *Z)
 *          double *C        IO matrix C (n x k)
 * return : none
 *-----------------------------------------------------------------------------*/
-void matmul(const char *tr, integer n, integer k, integer m, double alpha,
+static void matmul(const char *tr, integer n, integer k, integer m, double alpha,
                    const double *A, const double *B, double beta, double *C)
 {
     integer lda=tr[0]=='T'?m:n,ldb=tr[1]=='T'?k:m;
@@ -233,7 +234,7 @@ void matmul(const char *tr, integer n, integer k, integer m, double alpha,
 * notes  : matirix stored by column-major order (fortran convention)
 *          X can be same as Y
 *-----------------------------------------------------------------------------*/
-int solve(const char *tr, const double *A, const double *Y, integer n,
+static int solve(const char *tr, const double *A, const double *Y, integer n,
                  integer m, double *X)
 {
     double B[n*n];
