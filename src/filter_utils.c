@@ -21,9 +21,10 @@
 #include "linear_algebra.h"
 #include "filter_utils.h"
 
+
 /*  Presumes that the first alm entry is the reference sat. */
-void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
-                   const double ref_ecef[3], double *DE)
+s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
+                 const double ref_ecef[3], double *DE)
 {
   DEBUG_ENTRY();
 
@@ -40,14 +41,14 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
     printf("}\nref_ecef = {%f, \t%f, \t%f}\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
   }
 
-  assert(num_sats > 1);
   u8 de_length = num_sats - 1;
 
   if (num_sats <= 1) {
     log_debug("not enough sats\n");
     DEBUG_EXIT();
-    return;
+    return -1;
   }
+  assert(num_sats > 1);
 
   memset(DE, 0, de_length * 3 * sizeof(double));
   double e0[3];
@@ -71,5 +72,6 @@ void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
     MAT_PRINTF(DE, (num_sats-1), 3);
   }
   DEBUG_EXIT();
+  return 0;
 }
 

@@ -17,8 +17,8 @@
 
 #include <common.h>
 
-void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
-                   const double ref_ecef[3], double *DE);
+s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
+                 const double ref_ecef[3], double *DE);
 
 #endif /* LIBSWIFTNAV_FILTER_UTILS_H */
 
