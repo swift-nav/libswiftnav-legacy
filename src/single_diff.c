@@ -160,13 +160,20 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   return n;
 }
 
-bool is_prn_set(u8 len, const u8 *prns)
+/* Tests if an array of PRNs form a sorted set with no duplicate elements.
+ *
+ * \param n Length of PRN array
+ * \param prns Array of PRNs
+ * \return `TRUE` if the PRNs form an ordered set, else `FALSE`
+ */
+bool is_prn_set(u8 n, const u8 *prns)
 {
-  if (len == 0) {
+  if (n == 0) {
     return true;
   }
+
   u8 current = prns[0];
-  for (u8 i = 1; i < len; i++) {
+  for (u8 i = 1; i < n; i++) {
     if (prns[i] <= current) {
       return false;
     }
