@@ -2,19 +2,23 @@
 import System.Environment
 
 import Plover.Types
-import Plover.Compile (defaultMain)
+import Plover.Compile
 
 mainBody :: CExpr
 mainBody =
   Ref "printf" :$ StrLit "hello world\n" :> Return 0
 
 defs :: [FunctionDefinition]
-defs = [("helloWorld", [], FnT [] [] IntType, mainBody)]
+defs = [("helloWorld", [VoidExpr], FnT [] [] IntType, mainBody)]
+
+logGenerate :: String -> IO ()
+logGenerate fn = putStrLn $ "generating file: " ++ fn
 
 main = do
   args <- getArgs
   case args of
-    [fn] -> do
-      putStrLn $ "generating file: " ++ fn
-      defaultMain fn [] defs
+    [c_dir, h_dir] -> do
+        files <- generate "generated" c_dir h_dir ["stdio.h", "plover/generated.h"] defs
+        mapM_ logGenerate files
     _ -> error "Requires exactly one argument: output file name"
+

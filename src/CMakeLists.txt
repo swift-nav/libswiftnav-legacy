@@ -11,7 +11,8 @@ include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
 
 include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
 
-include_directories("${CMAKE_PLOVER_DIR}")
+set_source_files_properties(${plover_SRCS} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${plover_HDRS} PROPERTIES GENERATED TRUE)
 
 set(libswiftnav_SRCS
   ephemeris.c
@@ -37,6 +38,7 @@ set(libswiftnav_SRCS
   sats_management.c
   ambiguity_test.c
   printing_utils.c
+  ${plover_SRCS}
 )
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS})

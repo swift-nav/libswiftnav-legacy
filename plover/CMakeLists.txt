@@ -1,5 +1,11 @@
 # Working dir
-set (CMAKE_PLOVER_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "")
+set (PLOVER_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "")
+
+# Output dirs
+set (PLOVER_GENERATED_C_DIR ${CMAKE_SOURCE_DIR}/src/plover CACHE INTERNAL "")
+file(MAKE_DIRECTORY ${PLOVER_GENERATED_C_DIR})
+set (PLOVER_GENERATED_H_DIR ${CMAKE_SOURCE_DIR}/include/libswiftnav/plover CACHE INTERNAL "")
+file(MAKE_DIRECTORY ${PLOVER_GENERATED_H_DIR})
 
 # Find default cabal
 find_program(CMAKE_cabal NAMES cabal)
@@ -11,16 +17,29 @@ else ()
   message("Environment variable 'CABAL' not set. Defaulting to ${CMAKE_cabal}.")
 endif ()
 
+set (plover_SRCS
+  ${PLOVER_GENERATED_C_DIR}/generated.c
+  CACHE INTERNAL ""
+)
+
+set (plover_HDRS
+  ${PLOVER_GENERATED_H_DIR}/generated.h
+  CACHE INTERNAL ""
+)
+
 if (CMAKE_cabal)
   message("\nFound Haskell tools. Adding code generation step (to be run if Haskell subproject is modified).\n")
   add_custom_command(
-    OUTPUT "${CMAKE_PLOVER_DIR}/generated.h" "${CMAKE_PLOVER_DIR}/generated.c"
-    COMMAND ${CMAKE_cabal} run "${CMAKE_PLOVER_DIR}/generated"
-    WORKING_DIRECTORY ${CMAKE_PLOVER_DIR}
+    OUTPUT ${plover_SRCS} ${plover_HDRS}
+    COMMAND ${CMAKE_cabal} run "${PLOVER_GENERATED_C_DIR}" "${PLOVER_GENERATED_H_DIR}"
+    WORKING_DIRECTORY ${PLOVER_DIR}
     DEPENDS Main.hs)
 else ()
   message("\nNo Haskell toolchain (cabal) found. Code generation with Plover is disabled.\n")
 endif ()
 
+set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${PLOVER_DIR}/dist)
+
 # Main project depends on generated code
-add_custom_target(generate DEPENDS "${CMAKE_PLOVER_DIR}/generated.c")
+add_custom_target(generate DEPENDS ${plover_SRCS} ${plover_HDRS})
+
