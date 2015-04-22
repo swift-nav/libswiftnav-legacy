@@ -101,7 +101,7 @@ typedef struct {
  * \param x    The accumulator. Contains the hypothesis and whether it's found.
  * \param elem The hypothesis being folded against (checked for match).
  */
-void fold_contains(void *x, element_t *elem)
+static void fold_contains(void *x, element_t *elem)
 {
   fold_contains_t *acc = (fold_contains_t *) x;
   hypothesis_t *hyp = (hypothesis_t *) elem;
@@ -152,7 +152,7 @@ typedef struct {
  * \param x     The fold accumulator. Contains the MLE and supporting fields.
  * \param elem  The hypothesis to fold.
  */
-void fold_mle(void *x, element_t *elem)
+static void fold_mle(void *x, element_t *elem)
 {
   hypothesis_t *hyp = (hypothesis_t *) elem;
   fold_mle_t *mle = (fold_mle_t *) x;
@@ -292,7 +292,7 @@ typedef struct {
  * \param x     Points to a hyp_filter_t containing the accumulator and everything needed for the map.
  * \param elem  The hypothesis to be mapAccum'd.
  */
-s8 update_and_get_max_ll(void *x_, element_t *elem) {
+static s8 update_and_get_max_ll(void *x_, element_t *elem) {
   hyp_filter_t *x = (hyp_filter_t *) x_;
   hypothesis_t *hyp = (hypothesis_t *) elem;
   double hypothesis_N[x->num_dds];
@@ -313,8 +313,8 @@ s8 update_and_get_max_ll(void *x_, element_t *elem) {
  * \param hyp       The hypothesis to be checked against.
  * \param amb_check Keeps track of which ambs are still unanimous and their values.
  */
-void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
-                          unanimous_amb_check_t *amb_check)
+static void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
+                                 unanimous_amb_check_t *amb_check)
 {
   if (amb_check->initialized) {
     u8 j = 0; // index in newly constructed amb_check matches
@@ -357,7 +357,7 @@ void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
  * \param elem    The hypothesis to be mapped/filtered/folded against.
  * \return        Whether or not this hypothesis made the cut.
  */
-s8 filter_and_renormalize(void *arg, element_t *elem) {
+static s8 filter_and_renormalize(void *arg, element_t *elem) {
   hypothesis_t *hyp = (hypothesis_t *) elem;
 
   u8 keep_it = (hyp->ll > LOG_PROB_RAT_THRESHOLD);
@@ -435,7 +435,7 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
          amb_test->amb_check.num_matching_ndxs >= 3;
 }
 
-bool is_prn_set(u8 len, u8 *prns)
+static bool is_prn_set(u8 len, u8 *prns)
 {
   if (len == 0) {
     return true;
@@ -716,7 +716,7 @@ typedef struct {
   u8 new_prns[MAX_CHANNELS];
 } rebase_prns_t;
 
-void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't have to do all these lookups every time
+static void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't have to do all these lookups every time
 {
   rebase_prns_t *prns = (rebase_prns_t *) arg;
   u8 num_sats = prns->num_sats;
@@ -793,7 +793,7 @@ typedef struct {
   u8 intersection_ndxs[MAX_CHANNELS - 1];
 } intersection_ndxs_t;
 
-s32 projection_comparator(void *arg, element_t *a, element_t *b)
+static s32 projection_comparator(void *arg, element_t *a, element_t *b)
 {
   intersection_ndxs_t *intersection_struct = (intersection_ndxs_t *) arg;
   u8 num_ndxs = intersection_struct->num_ndxs;
@@ -819,7 +819,7 @@ s32 projection_comparator(void *arg, element_t *a, element_t *b)
   return 0;
 }
 
-void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
+static void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *elem_)
 {
   intersection_ndxs_t *x = (intersection_ndxs_t *)x_;
   hypothesis_t *new = (hypothesis_t *)new_;
@@ -872,7 +872,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
   return 1;
 }
 
-void vec_plus(u8 cols, u8 rows, z_t *v, z_t *Z, z_t mult, u8 column)
+static void vec_plus(u8 cols, u8 rows, z_t *v, z_t *Z, z_t mult, u8 column)
 {
   for(u8 i = 0; i < rows; i++) {
     v[i] += Z[i * cols + column] * mult;
@@ -901,7 +901,7 @@ static s8 increment_matrix_product(u8 len, s32 *counter, u8 vlen, z_t *Z,
   return 1;
 }
 
-bool inside(u32 dim, z_t *point, s32 *lower_bounds, s32 *upper_bounds)
+static bool inside(u32 dim, z_t *point, s32 *lower_bounds, s32 *upper_bounds)
 {
   /* Without a slight tolerance, some cases have strange behavior because
    * points on the boundary may not be included; e.g. even with an identity Z
@@ -915,7 +915,7 @@ bool inside(u32 dim, z_t *point, s32 *lower_bounds, s32 *upper_bounds)
 }
 
 /* Initializes x->zimage */
-void init_intersection_count_vector(intersection_count_t *x, hypothesis_t *hyp)
+static void init_intersection_count_vector(intersection_count_t *x, hypothesis_t *hyp)
 {
   u8 full_dim = x->old_dim + x->new_dim;
   /* Initialize counter using lower bounds. */
@@ -931,7 +931,7 @@ void init_intersection_count_vector(intersection_count_t *x, hypothesis_t *hyp)
   matrix_multiply_i(full_dim, full_dim, 1, x->Z1, v0, x->zimage);
 }
 
-void fold_intersection_count(void *arg, element_t *elem)
+static void fold_intersection_count(void *arg, element_t *elem)
 {
   intersection_count_t *x = (intersection_count_t *) arg;
   hypothesis_t *hyp = (hypothesis_t *)elem;
@@ -950,7 +950,7 @@ void fold_intersection_count(void *arg, element_t *elem)
                   x->itr_lower_bounds, x->itr_upper_bounds));
 }
 
-void round_matrix(u32 rows, u32 cols, const double *A, s32 *B)
+static void round_matrix(u32 rows, u32 cols, const double *A, s32 *B)
 {
   for (u8 i=0; i < rows; i++) {
     for (u8 j=0; j < cols; j++) {
@@ -959,18 +959,9 @@ void round_matrix(u32 rows, u32 cols, const double *A, s32 *B)
   }
 }
 
-void round_inverse(u8 dim, const double *Z, s32 *Z_inv)
-{
-  /* Intermediate needed for type correctness */
-  double Z_inv_[dim * dim];
-  matrix_inverse(dim, Z, Z_inv_);
-  /* TODO: Check return value of matrix_inverse to handle singular matrix. */
-  round_matrix(dim, dim, Z_inv_, Z_inv);
-}
-
 /* Computes Z1' * Z2^-1, where Z1' is the rightmost (new_dim) columns of Z1. */
 /* Assumes Z1 is written in a basis where the old dds come first. */
-void compute_Z(u8 old_dim, u8 new_dim, const z_t *Z1, const z_t * Z2_inv, z_t *transform)
+static void compute_Z(u8 old_dim, u8 new_dim, const z_t *Z1, const z_t * Z2_inv, z_t *transform)
 {
   u8 full_dim = old_dim + new_dim;
   z_t Z1_right[full_dim * new_dim];
@@ -1089,15 +1080,12 @@ static void intersection_hypothesis_prod(element_t *new_, void *x_, u32 n, eleme
   }
 }
 
-s32 add_sats(ambiguity_test_t *amb_test,
-               u8 ref_prn, u8 *added_prns,
-               intersection_count_t *x)
+static s32 add_sats(ambiguity_test_t *amb_test,
+                    u8 ref_prn, u8 *added_prns,
+                    intersection_count_t *x)
 {
   generate_hypothesis_state_t2 s;
   s.x = x;
-  //s32 Z_new_inv[x->new_dim * x->new_dim];
-  //s.Z_new_inv = Z_new_inv;
-  //round_inverse(x->new_dim, Z_new, s.Z_new_inv);
   s.Z_new_inv = x->Z2_inv;
   remap_prns(amb_test, ref_prn, x->new_dim, added_prns, &s);
   s32 count = memory_pool_product_generator(amb_test->pool, &s, MAX_HYPOTHESES, sizeof(s),
@@ -1684,7 +1672,7 @@ typedef struct {
   s32 Z_inv[(MAX_CHANNELS-1) * (MAX_CHANNELS-1)];
 } generate_hypothesis_state_t;
 
-s8 generate_next_hypothesis(void *x_, u32 n)
+static s8 generate_next_hypothesis(void *x_, u32 n)
 {
   (void) n;
   generate_hypothesis_state_t *x = (generate_hypothesis_state_t *)x_;
@@ -1709,7 +1697,7 @@ s8 generate_next_hypothesis(void *x_, u32 n)
   return 1;
 }
 
-void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
+static void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
 {
   (void) elem_;
   (void) n;
@@ -1734,32 +1722,6 @@ void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
 
   /* NOTE: new->ll remains the same as elem->ll as p := exp(ll) is invariant under a
    * constant multiplicative factor common to all hypotheses. TODO: reference^2 document (currently lives in page 3/5.6/2014 of ian's notebook) */
-}
-
-typedef struct {
-  u8 num_added_dds;
-  u8 num_old_dds;
-  s32 Z_inv[(MAX_CHANNELS-1)*(MAX_CHANNELS-1)];
-} recorrelation_params_t;
-
-void recorrelate_added_sats(void *arg, element_t *elem_)
-{
-  hypothesis_t *elem = (hypothesis_t *) elem_;
-  recorrelation_params_t *params = (recorrelation_params_t *)arg;
-
-  /* elem->N <- [[I 0] [0 Z_inv]] . elem->N
-   * where Z_inv is the inverse Lambda reduction matrix having
-   * shape (num_added_dds, num_added_dds) and I has shape
-   * (num_old_dds, num_old_dds) */
-
-  s32 recorrelated_N[params->num_added_dds];
-  memset(recorrelated_N, 0, params->num_added_dds * sizeof(s32));
-  for (u8 i=0; i<params->num_added_dds; i++) {
-    for (u8 j=0; j<params->num_added_dds; j++) {
-      recorrelated_N[i] += params->Z_inv[i*params->num_added_dds + j] * elem->N[params->num_old_dds + j];
-    }
-  }
-  memcpy(&elem->N[params->num_old_dds], recorrelated_N, params->num_added_dds * sizeof(s32));
 }
 
 /* TODO(dsk) remove dead code. */
@@ -1845,69 +1807,6 @@ void init_residual_matrices(residual_mtxs_t *res_mtxs, u8 num_dds, double *DE_mt
   assign_phase_obs_null_basis(num_dds, DE_mtx, res_mtxs->null_projector);
   assign_residual_covariance_inverse(num_dds, obs_cov, res_mtxs->null_projector, res_mtxs->half_res_cov_inv);
 }
-
-
-// void QR_part1(integer m, integer n, double *A, double *tau)
-// {
-//   double w[1];
-//   integer lwork = -1;
-//   integer info;
-//   integer jpvt[3];
-//   memset(jpvt, 0, 3 * sizeof(integer));
-//   dgeqp3_(&m, &n,
-//           A, &m,
-//           jpvt,
-//           tau,
-//           w, &lwork, &info);
-//   lwork = round(w[0]);
-//   double work[lwork];
-//   dgeqp3_(&m, &n,
-//           A, &m,
-//           jpvt,
-//           tau,
-//           work, &lwork, &info); //set A = QR(A)
-// }
-
-// void QR_part2(integer m, integer n, double *A, double *tau)
-// {
-//   double w[1];
-//   integer lwork = -1;
-//   integer info;
-//   dorgqr_(&m, &m, &n,
-//           A, &m,
-//           tau,
-//           w, &lwork, &info);
-//   lwork = round(w[0]);
-//   double work[lwork];
-//   dorgqr_(&m, &m, &n,
-//           A, &m,
-//           tau,
-//           work, &lwork, &info);
-// }
-
-// void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
-// {
-//   // use either GEQRF or GEQP3. GEQP3 is the version with pivoting
-//   // int dgeqrf_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-//   //       lda, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork, __CLPK_integer *info)
-//   // int dgeqp3_(__CLPK_integer *m, __CLPK_integer *n, __CLPK_doublereal *a, __CLPK_integer *
-//   //       lda, __CLPK_integer *jpvt, __CLPK_doublereal *tau, __CLPK_doublereal *work, __CLPK_integer *lwork,
-//   //        __CLPK_integer *info)
-
-//   //DE is num_sats-1 by 3, need to transpose it to column major
-//   double A[num_dds * num_dds];
-//   for (u8 i=0; i<num_dds; i++) {
-//     for (u8 j=0; j<3; j++) {
-//       A[j*num_dds + i] = DE_mtx[i*3 + j]; //set A = Transpose(DE_mtx)
-//     }
-//   }
-//   integer m = num_dds;
-//   integer n = 3;
-//   double tau[3];
-//   QR_part1(m, n, A, tau);
-//   QR_part2(m, n, A, tau);
-//   memcpy(q, &A[3*num_dds], (num_dds-3) * num_dds * sizeof(double));
-// }
 
 void assign_residual_covariance_inverse(u8 num_dds, double *obs_cov, double *q, double *r_cov_inv) //TODO make this more efficient (e.g. via page 3/6.2-3/2014 of ian's notebook)
 {

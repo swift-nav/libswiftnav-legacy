@@ -60,9 +60,9 @@ static double vel_solve(double rx_vel[],
   return rx_vel[3];
 }
 
-void compute_dops(const double H[4][4],
-                  const double pos_ecef[3],
-                  dops_t *dops)
+static void compute_dops(const double H[4][4],
+                         const double pos_ecef[3],
+                         dops_t *dops)
 {
   double H_pos_diag[3];
   double H_ned[3];
@@ -257,7 +257,7 @@ static double pvt_solve(double rx_state[],
   return tempd;
 }
 
-u8 filter_solution(gnss_solution* soln, dops_t* dops)
+static u8 filter_solution(gnss_solution* soln, dops_t* dops)
 {
   if (dops->pdop > 50.0)
     /* PDOP is too high to yield a good solution. */

@@ -942,6 +942,21 @@ void vector_cross(const double a[3], const double b[3],
   c[2] = a[0]*b[1] - a[1]*b[0];
 }
 
+/** Euclidean distance between two points (i.e. under the L2 norm).
+ *  Compute \f$ \sqrt{\sum_{i=1}^n (a_i-b_i)^2} \f$.
+ *
+ *  \param n            Length of a and b
+ *  \param a            First input vector
+ *  \param b            Second input vector
+ *
+ *  \return             Distance between points
+ */
+double vector_distance(u32 n, const double *a, const double *b) {
+  double c[n];
+  vector_subtract(n, a, b, c);
+  return sqrt(vector_norm(3, c));
+}
+
 /* \} */
 /* \} */
 

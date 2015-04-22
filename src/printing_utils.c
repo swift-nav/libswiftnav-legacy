@@ -15,6 +15,7 @@
 #include "constants.h"
 #include "common.h"
 #include "ambiguity_test.h"
+#include "printing_utils.h"
 
 /** Prints a matrix of doubles.
  *
@@ -135,7 +136,7 @@ void print_hyp(void *arg, element_t *elem)
 }
 
 /* Utilities for debugging inclusion algorithm in ambiguity_test.c */
-void print_Z(s8 label, u8 full_dim, u8 new_dim, z_t * Z)
+static void print_Z(s8 label, u8 full_dim, u8 new_dim, z_t * Z)
 {
   printf("Z %i:\n", label);
   print_s32_mtx(Z, full_dim, new_dim);

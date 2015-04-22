@@ -59,8 +59,8 @@ double simple_amb_measurement(double carrier, double code)
  *    singular matrices, dictating that zeros from cov_D dominate.
  *
  */
-void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
-                               double *U, double *D, double *k)
+static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
+                                           double *U, double *D, double *k)
 {
   DEBUG_ENTRY();
 
@@ -181,7 +181,7 @@ void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
 /** In place updating of the state mean and covariances to use the (decorrelated) observations
  * This is directly from section 10.2.1 of Gibbs [1]
  */
-void incorporate_obs(nkf_t *kf, double *decor_obs)
+static void incorporate_obs(nkf_t *kf, double *decor_obs)
 {
   DEBUG_ENTRY();
 
@@ -209,7 +209,7 @@ void incorporate_obs(nkf_t *kf, double *decor_obs)
 }
 
 /*  Turns (phi, rho) into Q_tilde * (phi, rho). */
-void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
+static void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
 {
   u8 constraint_dim = CLAMP_DIFF(kf->state_dim, 3);
   cblas_dgemv (CblasRowMajor, CblasNoTrans, /* Order, TransA. */
@@ -224,7 +224,7 @@ void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_m
   }
 }
 
-void diffuse_state(nkf_t *kf)
+static void diffuse_state(nkf_t *kf)
 {
   for (u8 i=0; i< kf->state_dim; i++) {
     /* TODO make this a tunable parameter defined at the right time. */
@@ -322,7 +322,7 @@ void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
 
 /* Initializes the ambiguity means and variances.
  * Note that the covariance is  in UDU form, and U starts as identity. */
-void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
+static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
@@ -335,7 +335,7 @@ void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
   matrix_eye(num_dds, kf->state_cov_U);
 }
 
-void QR_part1(integer m, integer n, double *A, double *tau)
+static void QR_part1(integer m, integer n, double *A, double *tau)
 {
   double w[1];
   integer lwork = -1;
@@ -356,7 +356,7 @@ void QR_part1(integer m, integer n, double *A, double *tau)
           work, &lwork, &info); /* set A = QR(A). */
 }
 
-void QR_part2(integer m, integer n, double *A, double *tau)
+static void QR_part2(integer m, integer n, double *A, double *tau)
 {
   double w[1];
   integer lwork = -1;
@@ -391,7 +391,8 @@ void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q)
 }
 
 /* TODO this could be made more efficient, if it matters. */
-void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd_obs_cov)
+static void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var,
+                              double *dd_obs_cov)
 {
   for (u8 i = 0; i < num_dds; i++) {
     for (u8 j = 0; j < num_dds; j++) {
@@ -410,7 +411,8 @@ void assign_dd_obs_cov(u8 num_dds, double phase_var, double code_var, double *dd
 }
 
 /* TODO make this more efficient (e.g. via pages 3/6.2-3/2014 of ian's notebook). */
-void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, double *q, double *r_cov)
+static void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var,
+                                    double *q, double *r_cov)
 {
   double dd_obs_cov[4 * num_dds * num_dds];
   assign_dd_obs_cov(num_dds, phase_var, code_var, dd_obs_cov);
@@ -428,7 +430,8 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
     q_tilde[(i+nullspace_dim)*dd_dim + i+num_dds] = 1 / GPS_L1_LAMBDA_NO_VAC;
   }
 
-  /* TODO make more efficient via the structure of q_tilde, and its relation to the I + 1*1^T structure of the obs cov mtx. */
+  /* TODO make more efficient via the structure of q_tilde, and its relation to
+   * the I + 1*1^T structure of the obs cov mtx. */
   double QC[res_dim * dd_dim];
   cblas_dsymm(CblasRowMajor, CblasRight, CblasUpper, /* CBLAS_ORDER, CBLAS_SIDE, CBLAS_UPLO. */
               res_dim, dd_dim,                       /* int M, int N. */
@@ -436,7 +439,8 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
               q_tilde, dd_dim,                       /* double *B, int ldb. */
               0, QC, dd_dim);                        /* double beta, double *C, int ldc. */
 
-  /* TODO make more efficient via the structure of q_tilde, and its relation to the I + 1*1^T structure of the obs cov mtx. */
+  /* TODO make more efficient via the structure of q_tilde, and its relation to
+   * the I + 1*1^T structure of the obs cov mtx. */
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, /*  CBLAS_ORDER, CBLAS_TRANSPOSE transA, cBLAS_TRANSPOSE transB. */
               res_dim, res_dim, dd_dim,                /* int M, int N, int K. */
               1, QC, dd_dim,                           /* double alpha, double *A, int lda. */
@@ -445,7 +449,7 @@ void assign_residual_obs_cov(u8 num_dds, double phase_var, double code_var, doub
 }
 
 /*  In place inversion of U. */
-void invert_U(u8 res_dim, double *U)
+static void invert_U(u8 res_dim, double *U)
 {
   char uplo = 'U'; /* upper triangular. */
   char diag = 'U'; /* unit triangular. */
@@ -456,7 +460,7 @@ void invert_U(u8 res_dim, double *U)
           &dim, U, &lda, &info);
 }
 
-void assign_simple_sig(u8 num_dds, double var, double *simple_cov)
+static void assign_simple_sig(u8 num_dds, double var, double *simple_cov)
 {
   for (u8 i = 0; i < num_dds; i++) {
     for (u8 j = 0; j < num_dds; j++) {
@@ -479,8 +483,8 @@ void assign_simple_sig(u8 num_dds, double var, double *simple_cov)
  *     ( I )
  * where Q's rows form a basis for the left null space for DE
  */
-void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
-                    double *Q, double *U_inv, double *H_prime)
+static void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
+                           double *Q, double *U_inv, double *H_prime)
 {
   /*  set the H_prime variable to equal H. */
   memcpy(H_prime, Q, constraint_dim * num_dds * sizeof(double));
@@ -515,12 +519,12 @@ void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
  *
  * This function constructs D, U^-1, and H'
  */
-void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
-                     double ref_ecef[3],
-                     double phase_var, double code_var,
-                     double *null_basis_Q,
-                     double *U_inv, double *D,
-                     double *H_prime)
+static void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
+                            double ref_ecef[3],
+                            double phase_var, double code_var,
+                            double *null_basis_Q,
+                            double *U_inv, double *D,
+                            double *H_prime)
 {
   assert (num_sdiffs > 0);
 
@@ -624,7 +628,8 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
 }
 
 /* REQUIRES num_sats > 1 */
-void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns, const u8 *new_prns, double *rebase_mtx)
+static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
+                                    const u8 *new_prns, double *rebase_mtx)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
