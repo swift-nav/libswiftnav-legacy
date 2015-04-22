@@ -43,7 +43,11 @@ else ()
   message("\nNo Haskell toolchain (cabal) found. Code generation with Plover is disabled.\n")
 endif ()
 
-set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${PLOVER_DIR}/dist)
+add_custom_target(clean_generate
+  COMMAND ${CMAKE_COMMAND} -E remove_directory ${PLOVER_DIR}/dist
+  COMMAND ${CMAKE_COMMAND} -E remove ${PLOVER_GENERATED_C_DIR}/*
+  COMMAND ${CMAKE_COMMAND} -E remove ${PLOVER_GENERATED_H_DIR}/*
+)
 
 # Main project depends on generated code
 add_custom_target(generate DEPENDS ${plover_SRCS} ${plover_HDRS})
