@@ -4,21 +4,20 @@ import System.Environment
 import Plover.Types
 import Plover.Compile
 
-mainBody :: CExpr
-mainBody =
-  Ref "printf" :$ StrLit "hello world\n" :> Return 0
+import qualified AmbiguityTest (defs, includes)
 
-defs :: [FunctionDefinition]
-defs = [("helloWorld", [VoidExpr], FnT [] [] IntType, mainBody)]
+files :: [([FunctionDefinition], String, [String])]
+files = [
+  (AmbiguityTest.defs, "ambiguity_test", AmbiguityTest.includes)
+  ]
 
-logGenerate :: String -> IO ()
-logGenerate fn = putStrLn $ "generating file: " ++ fn
+gen :: String -> String -> ([FunctionDefinition], String, [String]) -> IO ()
+gen c_dir h_dir (defs, name, includes) = generate name c_dir h_dir includes defs
 
 main = do
   args <- getArgs
   case args of
     [c_dir, h_dir] -> do
-        files <- generate "generated" c_dir h_dir ["stdio.h", "plover/generated.h"] defs
-        mapM_ logGenerate files
-    _ -> error "Requires exactly one argument: output file name"
+        mapM_ (gen c_dir h_dir) files
+    _ -> error "Requires exactly two arguments: C and H file output directories"
 

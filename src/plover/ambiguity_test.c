@@ -1,5 +1,5 @@
 #include "stdio.h"
-#include "plover/generated.h"
+#include "plover/ambiguity_test.h"
 int helloWorld(void)
 {
   printf("hello world\n");

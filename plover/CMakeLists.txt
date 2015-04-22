@@ -17,13 +17,18 @@ else ()
   message("Environment variable 'CABAL' not set. Defaulting to ${CMAKE_cabal}.")
 endif ()
 
+set (plover_HS_SRCS
+  Main.hs
+  AmbiguityTest.hs
+)
+
 set (plover_SRCS
-  ${PLOVER_GENERATED_C_DIR}/generated.c
+  ${PLOVER_GENERATED_C_DIR}/ambiguity_test.c
   CACHE INTERNAL ""
 )
 
 set (plover_HDRS
-  ${PLOVER_GENERATED_H_DIR}/generated.h
+  ${PLOVER_GENERATED_H_DIR}/ambiguity_test.h
   CACHE INTERNAL ""
 )
 
@@ -33,7 +38,7 @@ if (CMAKE_cabal)
     OUTPUT ${plover_SRCS} ${plover_HDRS}
     COMMAND ${CMAKE_cabal} run "${PLOVER_GENERATED_C_DIR}" "${PLOVER_GENERATED_H_DIR}"
     WORKING_DIRECTORY ${PLOVER_DIR}
-    DEPENDS Main.hs)
+    DEPENDS ${plover_HS_SRCS})
 else ()
   message("\nNo Haskell toolchain (cabal) found. Code generation with Plover is disabled.\n")
 endif ()
