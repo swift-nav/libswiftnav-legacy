@@ -3,6 +3,7 @@
 module AmbiguityTest (cu) where
 
 import Plover.Types
+import Plover.Macros
 import Plover.Compile
 
 testStruct = StructDecl "test_struct_t" (
@@ -16,13 +17,17 @@ helloPlover :: FunctionDefinition
 helloPlover = ("hello_world", FnT [] [] IntType, body)
   where
     body :: CExpr
-    body = Ref "printf" :$ StrLit "hello world\n" :> Return 0
+    body = seqList $ [
+      Ref "printf" :$ StrLit "hello world\n",
+      Return 0
+      ]
 
 cu :: CompilationUnit
 cu = CU
   { unitName = "ambiguity_test"
-  , definitions = [helloPlover]
-  , includes = ["stdio.h", "plover/ambiguity_test.h"]
+  , sourceDefs = [helloPlover]
+  , sourceIncs = ["stdio.h", "plover/ambiguity_test.h"]
   , headerDefs = [testStruct]
+  , headerIncs = ["common.h"]
   }
 

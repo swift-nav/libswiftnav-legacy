@@ -12,7 +12,7 @@ units = [AmbiguityTest.cu]
 main = do
   args <- getArgs
   case args of
-    [c_dir, h_dir] -> do
-        mapM_ (generateMain c_dir h_dir) units
+    [cdir, hdir] -> do
+        mapM_ (generateMain hdir cdir) units
     _ -> error "Requires exactly two arguments: C and H file output directories"
 
