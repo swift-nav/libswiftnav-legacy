@@ -15,6 +15,7 @@
 
 #include "amb_kf.h"
 #include "sats_management.h"
+#include "ambiguity_test.h"
 
 /* The default DD carrier phase variance to use in the hypothesis testing. */
 #define DEFAULT_PHASE_VAR_TEST  (9e-4 * 16)
@@ -62,6 +63,7 @@ void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
                       u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
 sats_management_t * get_sats_management(void);
+ambiguity_test_t* get_ambiguity_test(void);
 
 s8 dgnss_iar_resolved(void);
 u32 dgnss_iar_num_hyps(void);

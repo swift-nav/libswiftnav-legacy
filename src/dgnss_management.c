@@ -859,14 +859,17 @@ u8 dgnss_iar_MLE_ambs(s32 *ambs)
   return CLAMP_DIFF(ambiguity_test.sats.num_sats, 1);
 }
 
-nkf_t* get_dgnss_nkf()
+nkf_t* get_dgnss_nkf(void)
 {
   return &nkf;
 }
 
-sats_management_t* get_sats_management()
+sats_management_t* get_sats_management(void)
 {
   return &sats_management;
 }
 
-
+ambiguity_test_t* get_ambiguity_test(void)
+{
+  return &ambiguity_test;
+}
