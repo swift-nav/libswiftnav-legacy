@@ -151,7 +151,7 @@ typedef struct {
  * \param x    The accumulator. Contains the hypothesis and whether it's found.
  * \param elem The hypothesis being folded against (checked for match).
  */
-void fold_ll(void *x, element_t *elem)
+static void fold_ll(void *x, element_t *elem)
 {
   fold_ll_t *acc = (fold_ll_t *) x;
   hypothesis_t *hyp = (hypothesis_t *) elem;
@@ -167,7 +167,7 @@ void fold_ll(void *x, element_t *elem)
   acc->found = 1;
 }
 
-/** Tests whether an ambiguity test has a particular hypothesis.
+/** Finds the unnormalized log likelihood of an input ambiguity
  *
  * \param amb_test    The test to check against.
  * \param num_ambs    The length of the ambs vector.
@@ -175,7 +175,7 @@ void fold_ll(void *x, element_t *elem)
  * \return            The pseudo log-likelihood of the hypothesis if it is
  *                    in the pool, and a positive number otherwise.
  */
-u8 ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
+double ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
 {
   fold_ll_t acc;
   acc.num_dds = amb_test->sats.num_sats-1;
@@ -188,6 +188,45 @@ u8 ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
   return acc.ll;
 }
 
+/** A memory pool fold method to add probabilities.
+ *
+ * Should be used in memory_pool_fold().
+ *
+ * \param x    The accumulator. Contains the sum of the probabilities thus far.
+ * \param elem The hypothesis being folded against (checked for match).
+ */
+static void fold_prob(void *x, element_t *elem)
+{
+  double *acc = (double *) x;
+  hypothesis_t *hyp = (hypothesis_t *) elem;
+  *acc += exp(hyp->ll);
+}
+
+/** Finds the probability of an input ambiguity
+ *
+ * \param amb_test    The test to check against.
+ * \param num_ambs    The length of the ambs vector.
+ * \param ambs        The ambiguity hypothesis to look for.
+ * \return            The probability of the hypothesis if it is
+ *                    in the pool, and a negative number otherwise.
+ */
+double ambiguity_test_pool_prob(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
+{
+  fold_ll_t acc;
+  acc.num_dds = amb_test->sats.num_sats-1;
+  acc.ll = 1;
+  assert(acc.num_dds == num_ambs);
+  for (u8 i=0; i<acc.num_dds; i++) {
+    acc.N[i] = lround(ambs[i]);
+  }
+  memory_pool_fold(amb_test->pool, (void *) &acc, &fold_ll);
+  if (acc.ll > 0) {
+    return -1;
+  }
+  double prob_sum = 0;
+  memory_pool_fold(amb_test->pool, (void *) &prob_sum, &fold_prob);
+  return exp(acc.ll) / prob_sum;
+}
 
 /** A struct to be used in a memory pool fold to find the most likely hypothesis.
  * Should be used in fold_mle().

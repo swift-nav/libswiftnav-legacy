@@ -858,6 +858,11 @@ double dgnss_iar_pool_ll(u8 num_ambs, double *ambs)
   return ambiguity_test_pool_ll(&ambiguity_test, num_ambs, ambs);
 }
 
+double dgnss_iar_pool_prob(u8 num_ambs, double *ambs)
+{
+  return ambiguity_test_pool_prob(&ambiguity_test, num_ambs, ambs);
+}
+
 u8 dgnss_iar_MLE_ambs(s32 *ambs)
 {
   ambiguity_test_MLE_ambs(&ambiguity_test, ambs);
