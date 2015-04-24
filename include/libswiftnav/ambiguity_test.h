@@ -87,6 +87,8 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 void update_unanimous_ambiguities(ambiguity_test_t *amb_test);
 u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
 u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs);
+double ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs);
+double ambiguity_test_pool_prob(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs);
 void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,

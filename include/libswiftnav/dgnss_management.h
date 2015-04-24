@@ -93,6 +93,8 @@ u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
                         double ref_ecef[3],
                         double *de, double *phase);
 u8 dgnss_iar_pool_contains(double *ambs);
+double dgnss_iar_pool_ll(u8 num_ambs, double *ambs);
+double dgnss_iar_pool_prob(u8 num_ambs, double *ambs);
 u8 get_amb_kf_mean(double *ambs);
 u8 get_amb_kf_cov(double *cov);
 u8 get_amb_kf_prns(u8 *prns);
