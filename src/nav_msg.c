@@ -77,7 +77,7 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
  * After NAV_MSG_BIT_PHASE_THRES sign changes, the histogram is evaluated
  * and bit_phase_ref is updated.
  */
-static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   float dot = corr_prompt_real * n->prev_corr;
   n->prev_corr = corr_prompt_real;
@@ -103,7 +103,7 @@ static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
     n->hist[i] = 0;
   }
 
-  n->bit_phase_ref = (max_index + 19) % 20;
+  n->bit_phase_ref = (max_index + 20 - ms) % 20;
 
   n->bit_phase_count = 0;
 }
@@ -131,7 +131,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   n->bit_phase += ms;
   n->bit_phase %= 20;
 
-  update_bit_sync(n, corr_prompt_real);
+  update_bit_sync(n, corr_prompt_real, ms);
 
   /* We have bit phase lock. */
   n->nav_bit_integrate += corr_prompt_real;
