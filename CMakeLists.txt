@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(libswiftnav)
 
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_MINSIZEREL "-Os")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+
 # Setup flags for Code Coverage build mode
 set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage" CACHE STRING
     "Flags used by the C++ compiler for building with code coverage."
