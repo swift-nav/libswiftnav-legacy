@@ -19,16 +19,20 @@ endif ()
 
 set (plover_HS_SRCS
   Main.hs
+  Utils.hs
   AmbiguityTest.hs
+  AmbKF.hs
 )
 
 set (plover_SRCS
   ${PLOVER_GENERATED_C_DIR}/ambiguity_test.c
+  ${PLOVER_GENERATED_C_DIR}/amb_kf.c
   CACHE INTERNAL ""
 )
 
 set (plover_HDRS
   ${PLOVER_GENERATED_H_DIR}/ambiguity_test.h
+  ${PLOVER_GENERATED_H_DIR}/amb_kf.h
   CACHE INTERNAL ""
 )
 

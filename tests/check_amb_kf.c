@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "constants.h"
+#include "plover/amb_kf.h"
 #include "amb_kf.h"
 #include "single_diff.h"
 #include "check_utils.h"

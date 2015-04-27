@@ -5,9 +5,13 @@ import Plover.Types
 import Plover.Compile
 
 import qualified AmbiguityTest
+import qualified AmbKF
+import qualified Utils
 
 units :: [CompilationUnit]
-units = [AmbiguityTest.cu]
+units = [ AmbiguityTest.cu
+        , AmbKF.cu
+        ]
 
 main = do
   args <- getArgs

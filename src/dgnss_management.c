@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "logging.h"
+#include "plover/amb_kf.h"
 #include "amb_kf.h"
 #include "baseline.h"
 #include "single_diff.h"
