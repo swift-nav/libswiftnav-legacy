@@ -1,11 +1,14 @@
 
 #include <check.h>
 #include <stdio.h>
+
+#include "constants.h"
 #include "amb_kf.h"
 #include "single_diff.h"
 #include "check_utils.h"
 
-START_TEST(test_lsq) {
+START_TEST(test_lsq)
+{
   sdiff_t sdiffs[5];
   sdiffs[0].sat_pos[0] = 1;
   sdiffs[0].sat_pos[1] = 0;
@@ -66,12 +69,22 @@ START_TEST(test_lsq) {
 }
 END_TEST
 
+START_TEST(test_simple_amb_measurement)
+{
+  fail_unless(simple_amb_measurement(0, 0) == 0);
+  fail_unless(simple_amb_measurement(1234, 0) == 1234);
+  fail_unless(simple_amb_measurement(0, GPS_L1_LAMBDA_NO_VAC) == 1);
+  fail_unless(simple_amb_measurement(22, 33) == 22 + (33 / GPS_L1_LAMBDA_NO_VAC));
+}
+END_TEST
+
 Suite* amb_kf_test_suite(void)
 {
   Suite *s = suite_create("Ambiguity Kalman Filter");
 
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_lsq);
+  tcase_add_test(tc_core, test_simple_amb_measurement);
   suite_add_tcase(s, tc_core);
 
   return s;
