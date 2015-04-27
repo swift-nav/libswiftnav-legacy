@@ -26,13 +26,13 @@ set (plover_HS_SRCS
 
 set (plover_SRCS
   ${PLOVER_GENERATED_C_DIR}/ambiguity_test.c
-  ${PLOVER_GENERATED_C_DIR}/amb_kf.c
+  ${PLOVER_GENERATED_C_DIR}/amb_kf_plover.c
   CACHE INTERNAL ""
 )
 
 set (plover_HDRS
   ${PLOVER_GENERATED_H_DIR}/ambiguity_test.h
-  ${PLOVER_GENERATED_H_DIR}/amb_kf.h
+  ${PLOVER_GENERATED_H_DIR}/amb_kf_plover.h
   CACHE INTERNAL ""
 )
 

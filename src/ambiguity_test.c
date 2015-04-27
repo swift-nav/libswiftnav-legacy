@@ -22,7 +22,7 @@
 #include "constants.h"
 #include "linear_algebra.h"
 #include "single_diff.h"
-#include "plover/amb_kf.h"
+#include "plover/amb_kf_plover.h"
 #include "amb_kf.h"
 #include "lambda.h"
 #include "memory_pool.h"

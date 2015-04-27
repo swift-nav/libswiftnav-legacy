@@ -31,7 +31,7 @@
 #include "gpstime.h"
 #include "baseline.h"
 #include "filter_utils.h"
-#include "plover/amb_kf.h"
+#include "plover/amb_kf_plover.h"
 #include "amb_kf.h"
 
 /** \defgroup amb_kf Float Ambiguity Resolution
@@ -43,7 +43,7 @@
  *    singular matrices, dictating that zeros from cov_D dominate.
  *
  */
-static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
+void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
                                            double *U, double *D, double *k)
 {
   DEBUG_ENTRY();

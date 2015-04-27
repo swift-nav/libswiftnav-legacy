@@ -37,6 +37,8 @@ typedef struct {
 } nkf_t;
 
 void nkf_update(nkf_t *kf, double *measurements);
+void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
+                                           double *U, double *D, double *k);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
