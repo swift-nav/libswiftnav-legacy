@@ -420,9 +420,11 @@ static void check_unanimous_ambs(u8 num_dds, hypothesis_t *hyp,
         j++;
       }
     }
+    log_info("c_u_a: (1) %d\n", j);
     amb_check->num_matching_ndxs = j;
   } else {
     amb_check->initialized = 1;
+    log_info("c_u_a: (2) %d\n", num_dds);
     amb_check->num_matching_ndxs = num_dds;
     for (u8 i=0; i < num_dds; i++) {
       amb_check->matching_ndxs[i] = i;
@@ -472,6 +474,7 @@ void update_unanimous_ambiguities(ambiguity_test_t *amb_test)
 {
   hyp_filter_t x;
   if (amb_test->sats.num_sats <= 1) {
+    log_info("u_u_a: 0\n");
     amb_test->amb_check.num_matching_ndxs = 0;
     return;
   }
@@ -524,6 +527,8 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
  */
 u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
 {
+  log_info("a_i_c_s: %d %d\n", amb_test->amb_check.initialized,
+           amb_test->amb_check.num_matching_ndxs);
   return amb_test->amb_check.initialized &&
          amb_test->amb_check.num_matching_ndxs >= 3;
 }
