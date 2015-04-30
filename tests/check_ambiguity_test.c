@@ -143,6 +143,9 @@ START_TEST(test_amb_sat_inclusion)
   double multiplier[state_dim * state_dim];
   matrix_eye(state_dim, cov_mat);
   double diag = 0.08;
+
+  srandom(1);
+
   for (u8 i = 0; i < state_dim; i++) {
     cov_mat[i*state_dim+i] = diag;
   }
