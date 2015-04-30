@@ -34,8 +34,8 @@
 #define LOG_PROB_RAT_THRESHOLD -90
 #define SINGLE_OBS_CHISQ_THRESHOLD 20
 
-// TODO delete
-void matrix_multiply_z_t(u32 n, u32 m, u32 p, const z_t *a,
+// TODO delete?
+static void matrix_multiply_z_t(u32 n, u32 m, u32 p, const z_t *a,
                          const z_t *b, z_t *c)
 {
   matrix_multiply_s64(n,m,p,a,b,c);

@@ -102,7 +102,7 @@ void print_s32_mtx(s32 *mat, u32 m, u32 n)
  * \param n     The number of columns in the matrix.
  * \param mat1  The matrix to be printed.
  */
-void print_s64_mtx(s64 *mat, u32 m, u32 n)
+static void print_s64_mtx(s64 *mat, u32 m, u32 n)
 {
   for (u32 i=0; i < m; i++) {
     for (u32 j=0; j < n; j++) {

@@ -21,7 +21,6 @@ void print_s32_mtx_diff(u32 m, u32 n, s32 *mat1, s32 *mat2);
 void print_s32_mtx(s32 *mat, u32 m, u32 n);
 void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v);
 void print_intersection_state(intersection_count_t *x);
-void print_Z(s8 label, u8 full_dim, u8 new_dim, z_t * Z);
 
 
 #endif /* LIBSWIFTNAV_PRINTING_UTILS_H */
