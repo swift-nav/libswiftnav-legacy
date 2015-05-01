@@ -651,7 +651,8 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
 void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
 {
   double TOTs[n_channels];
-  double min_TOT = DBL_MAX;
+  double min_TOF = -DBL_MAX;
+  double clock_err[n_channels], clock_rate_err[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
     TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
@@ -665,9 +666,6 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     if (gpsdifftime(nav_meas[i]->tot, ephemerides[i]->toe) > 3*24*3600)
       nav_meas[i]->tot.wn -= 1;
 
-    if (TOTs[i] < min_TOT)
-      min_TOT = TOTs[i];
-
     nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
     nav_meas[i]->prn = meas[i]->prn;
@@ -676,22 +674,25 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
-  }
-
-  double clock_err, clock_rate_err;
-
-  for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
-
+	
+    /* calc sat clock error */
     calc_sat_state(ephemerides[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
-                   &clock_err, &clock_rate_err);
+                   &clock_err[i], &clock_rate_err[i]);
+
+    /* remove clock error to put all tots within the same time window */
+    if ((TOTs[i] + clock_err[i]) > min_TOF)
+      min_TOF = TOTs[i];
+  }
+
+  for (u8 i=0; i<n_channels; i++) {
+    nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
-                               + clock_err*GPS_C;
-    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err*GPS_L1_HZ;
+                               + clock_err[i]*GPS_C;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
 
-    nav_meas[i]->tot.tow -= clock_err;
+    nav_meas[i]->tot.tow -= clock_err[i];
     nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
   }
 }
