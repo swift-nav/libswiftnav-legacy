@@ -66,11 +66,11 @@ void check_dgnss_management_teardown()
  * \param n The size of the matrix.
  * \param M Pointer to the matrix.
  */
-void matrix_eye_s32(u32 n, s32 *M)
+void matrix_eye_s64(u32 n, s64 *M)
 {
   /* NOTE: This function has been bounds checked. Please check again if
    * modifying. */
-  memset(M, 0, n * n * sizeof(s32));
+  memset(M, 0, n * n * sizeof(s64));
   for (u32 i=0; i<n; i++) {
     M[i*n + i] = 1;
   }
@@ -229,13 +229,13 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   prns[1] = 3;
   prns[2] = 4;
   prns[3] = 5;
-  s32 lower[4];
-  s32 upper[4];
-  memset(lower, 0, sizeof(s32) * 4);
-  memset(upper, 0, sizeof(s32) * 4);
+  z_t lower[4];
+  z_t upper[4];
+  memset(lower, 0, sizeof(z_t) * 4);
+  memset(upper, 0, sizeof(z_t) * 4);
 
-  s32 Z_inv[16];
-  matrix_eye_s32(4, Z_inv);
+  z_t Z_inv[16];
+  matrix_eye_s64(4, Z_inv);
 
   add_sats_old(&ambiguity_test,
            1,
@@ -249,7 +249,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   ambiguity_test.amb_check.matching_ndxs[1] = 1;
   ambiguity_test.amb_check.matching_ndxs[2] = 2;
   ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(s32) * 5);
+  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
@@ -274,13 +274,13 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   prns[1] = 3;
   prns[2] = 4;
   prns[3] = 5;
-  s32 lower[4];
-  s32 upper[4];
-  memset(lower, 0, sizeof(s32) * 4);
-  memset(upper, 0, sizeof(s32) * 4);
+  z_t lower[4];
+  z_t upper[4];
+  memset(lower, 0, sizeof(z_t) * 4);
+  memset(upper, 0, sizeof(z_t) * 4);
 
-  s32 Z_inv[16];
-  matrix_eye_s32(4, Z_inv);
+  z_t Z_inv[16];
+  matrix_eye_s64(4, Z_inv);
 
   add_sats_old(&ambiguity_test,
            ref_prn,
@@ -294,7 +294,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   ambiguity_test.amb_check.matching_ndxs[1] = 1;
   ambiguity_test.amb_check.matching_ndxs[2] = 2;
   ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(s32) * 5);
+  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
@@ -319,13 +319,13 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   prns[1] = 2;
   prns[2] = 3;
   prns[3] = 4;
-  s32 lower[4];
-  s32 upper[4];
-  memset(lower, 0, sizeof(s32) * 4);
-  memset(upper, 0, sizeof(s32) * 4);
+  z_t lower[4];
+  z_t upper[4];
+  memset(lower, 0, sizeof(z_t) * 4);
+  memset(upper, 0, sizeof(z_t) * 4);
 
-  s32 Z_inv[16];
-  matrix_eye_s32(4, Z_inv);
+  z_t Z_inv[16];
+  matrix_eye_s64(4, Z_inv);
 
   add_sats_old(&ambiguity_test,
            ref_prn,
@@ -339,7 +339,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   ambiguity_test.amb_check.matching_ndxs[1] = 1;
   ambiguity_test.amb_check.matching_ndxs[2] = 2;
   ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(s32) * 5);
+  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
@@ -364,13 +364,13 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   prns[1] = 2;
   prns[2] = 3;
   prns[3] = 4;
-  s32 lower[4];
-  s32 upper[4];
-  memset(lower, 0, sizeof(s32) * 4);
-  memset(upper, 0, sizeof(s32) * 4);
+  z_t lower[4];
+  z_t upper[4];
+  memset(lower, 0, sizeof(z_t) * 4);
+  memset(upper, 0, sizeof(z_t) * 4);
 
-  s32 Z_inv[16];
-  matrix_eye_s32(4, Z_inv);
+  z_t Z_inv[16];
+  matrix_eye_s64(4, Z_inv);
 
   add_sats_old(&ambiguity_test,
            ref_prn,

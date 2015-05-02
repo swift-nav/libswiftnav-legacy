@@ -34,6 +34,13 @@
 #define LOG_PROB_RAT_THRESHOLD -90
 #define SINGLE_OBS_CHISQ_THRESHOLD 20
 
+// TODO delete?
+static void matrix_multiply_z_t(u32 n, u32 m, u32 p, const z_t *a,
+                         const z_t *b, z_t *c)
+{
+  matrix_multiply_s64(n,m,p,a,b,c);
+}
+
 /** \defgroup ambiguity_test Integer Ambiguity Resolution
  * Integer ambiguity resolution using bayesian hypothesis testing.
  * \{ */
@@ -971,9 +978,9 @@ static void vec_plus(u8 cols, u8 rows, z_t *v, z_t *Z, z_t mult, u8 column)
     v[i] += Z[i * cols + column] * mult;
   }
 }
-static s8 increment_matrix_product(u8 len, s32 *counter, u8 vlen, z_t *Z,
-                                   z_t *v, s32 *lower_bounds, s32 *upper_bounds) {
-  if (memcmp(upper_bounds, counter, len * sizeof(s32)) == 0) {
+static s8 increment_matrix_product(u8 len, z_t *counter, u8 vlen, z_t *Z,
+                                   z_t *v, z_t *lower_bounds, z_t *upper_bounds) {
+  if (memcmp(upper_bounds, counter, len * sizeof(z_t)) == 0) {
     /* counter has reached upper_bound, terminate iteration. */
     return 0;
   }
@@ -994,7 +1001,7 @@ static s8 increment_matrix_product(u8 len, s32 *counter, u8 vlen, z_t *Z,
   return 1;
 }
 
-static bool inside(u32 dim, z_t *point, s32 *lower_bounds, s32 *upper_bounds)
+static bool inside(u32 dim, z_t *point, z_t *lower_bounds, z_t *upper_bounds)
 {
   /* Without a slight tolerance, some cases have strange behavior because
    * points on the boundary may not be included; e.g. even with an identity Z
@@ -1012,16 +1019,16 @@ static void init_intersection_count_vector(intersection_count_t *x, hypothesis_t
 {
   u8 full_dim = x->old_dim + x->new_dim;
   /* Initialize counter using lower bounds. */
-  memcpy(x->counter, x->itr_lower_bounds, x->new_dim * sizeof(s32));
+  memcpy(x->counter, x->itr_lower_bounds, x->new_dim * sizeof(z_t));
   z_t v0[full_dim];
   /* Map the lower bound vector using Z2_inverse into the second half of v0. */
-  matrix_multiply_i(x->new_dim, x->new_dim, 1, x->Z2_inv, x->counter, v0 + x->old_dim);
+  matrix_multiply_z_t(x->new_dim, x->new_dim, 1, x->Z2_inv, x->counter, v0 + x->old_dim);
   /* Map the old hypothesis values identically into the first half of v0. */
   for (u8 i = 0; i < x->old_dim; i++) {
     v0[i] = hyp->N[i];
   }
   /* Decorrelate the joint vector. */
-  matrix_multiply_i(full_dim, full_dim, 1, x->Z1, v0, x->zimage);
+  matrix_multiply_z_t(full_dim, full_dim, 1, x->Z1, v0, x->zimage);
 }
 
 static void fold_intersection_count(void *arg, element_t *elem)
@@ -1043,7 +1050,7 @@ static void fold_intersection_count(void *arg, element_t *elem)
                   x->itr_lower_bounds, x->itr_upper_bounds));
 }
 
-static void round_matrix(u32 rows, u32 cols, const double *A, s32 *B)
+static void round_matrix(u32 rows, u32 cols, const double *A, z_t *B)
 {
   for (u8 i=0; i < rows; i++) {
     for (u8 j=0; j < cols; j++) {
@@ -1062,7 +1069,7 @@ static void compute_Z(u8 old_dim, u8 new_dim, const z_t *Z1, const z_t * Z2_inv,
   for (u8 i = 0; i < full_dim; i++) {
     memcpy(&Z1_right[i*new_dim], &Z1[i*full_dim + old_dim], new_dim * sizeof(z_t));
   }
-  matrix_multiply_i(full_dim, new_dim, new_dim, Z1_right, Z2_inv, transform);
+  matrix_multiply_z_t(full_dim, new_dim, new_dim, Z1_right, Z2_inv, transform);
 }
 
 /* TODO(dsk) Use submatrix for this instead? */
@@ -1245,6 +1252,7 @@ static u8 inclusion_loop_body(
         state_dim, full_dim,
         x->box_lower_bounds, x->box_upper_bounds, x->Z1, x->Z1_inv);
 
+
   /* Useful for debugging. */
   *full_size_return = full_size;
 
@@ -1388,11 +1396,11 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
       row_map, reordering, N_mean_ordered);
 
   /* Initialize intersection struct. */
-  s32 counter[num_addible_dds];
-  s32 lower_bounds1[state_dim];
-  s32 upper_bounds1[state_dim];
-  s32 lower_bounds2[num_addible_dds];
-  s32 upper_bounds2[num_addible_dds];
+  z_t counter[num_addible_dds];
+  z_t lower_bounds1[state_dim];
+  z_t upper_bounds1[state_dim];
+  z_t lower_bounds2[num_addible_dds];
+  z_t upper_bounds2[num_addible_dds];
   z_t zimage[state_dim];
   z_t Z1[state_dim * state_dim];
   z_t Z1_inv[state_dim * state_dim];
@@ -1515,9 +1523,9 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   }
 
   /* Find the largest set of sats we can add */
-  s32 Z_inv[num_addible_dds * num_addible_dds];
-  s32 lower_bounds[num_addible_dds];
-  s32 upper_bounds[num_addible_dds];
+  z_t Z_inv[num_addible_dds * num_addible_dds];
+  z_t lower_bounds[num_addible_dds];
+  z_t upper_bounds[num_addible_dds];
   u8 num_dds_to_add;
   s8 add_any_sats = determine_sats_addition(amb_test,
                                             addible_float_cov, num_addible_dds, addible_float_mean,
@@ -1535,11 +1543,11 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   }
 }
 
-u32 float_to_decor(const double *addible_float_cov,
+z_t float_to_decor(const double *addible_float_cov,
                    const double *addible_float_mean,
                    u8 num_addible_dds,
                    u8 num_dds_to_add,
-                   s32 *lower_bounds, s32 *upper_bounds,
+                   z_t *lower_bounds, z_t *upper_bounds,
                    z_t *Z, z_t *Z_inv)
 {
   u8 dim = num_dds_to_add;
@@ -1583,7 +1591,7 @@ u32 float_to_decor(const double *addible_float_cov,
     }
   }
 
-  u32 new_hyp_set_cardinality = 1;
+  u64 new_hyp_set_cardinality = 1;
   for (u8 i=0; i<num_dds_to_add; i++) {
     double search_distance = NUM_SEARCH_STDS * sqrt(decor_float_cov_diag[i]);
     upper_bounds[i] = lround(ceil(decor_float_mean[i] + search_distance));
@@ -1603,7 +1611,7 @@ u32 float_to_decor(const double *addible_float_cov,
 /* TODO(dsk) remove this function. */
 s8 determine_sats_addition(ambiguity_test_t *amb_test,
                            double *float_N_cov, u8 num_float_dds, double *float_N_mean,
-                           s32 *lower_bounds, s32 *upper_bounds, u8 *num_dds_to_add,
+                           z_t *lower_bounds, z_t *upper_bounds, u8 *num_dds_to_add,
                            z_t *Z_inv)
 {
   u8 num_current_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
@@ -1755,14 +1763,14 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
 
 /* TODO(dsk) remove dead code. */
 typedef struct {
-  s32 upper_bounds[MAX_CHANNELS-1];
-  s32 lower_bounds[MAX_CHANNELS-1];
-  s32 counter[MAX_CHANNELS-1];
+  z_t upper_bounds[MAX_CHANNELS-1];
+  z_t lower_bounds[MAX_CHANNELS-1];
+  z_t counter[MAX_CHANNELS-1];
   u8 ndxs_of_old_in_new[MAX_CHANNELS-1];
   u8 ndxs_of_added_in_new[MAX_CHANNELS-1];
   u8 num_added_dds;
   u8 num_old_dds;
-  s32 Z_inv[(MAX_CHANNELS-1) * (MAX_CHANNELS-1)];
+  z_t Z_inv[(MAX_CHANNELS-1) * (MAX_CHANNELS-1)];
 } generate_hypothesis_state_t;
 
 static s8 generate_next_hypothesis(void *x_, u32 n)
@@ -1770,7 +1778,7 @@ static s8 generate_next_hypothesis(void *x_, u32 n)
   (void) n;
   generate_hypothesis_state_t *x = (generate_hypothesis_state_t *)x_;
 
-  if (memcmp(x->upper_bounds, x->counter, x->num_added_dds * sizeof(s32)) == 0) {
+  if (memcmp(x->upper_bounds, x->counter, x->num_added_dds * sizeof(z_t)) == 0) {
     /* counter has reached upper_bound, terminate iteration. */
     return 0;
   }
@@ -1801,7 +1809,7 @@ static void hypothesis_prod(element_t *new_, void *x_, u32 n, element_t *elem_)
   u8 *ndxs_of_added_in_new = x->ndxs_of_added_in_new;
 
   s32 old_N[MAX_CHANNELS-1];
-  memcpy(old_N, new->N, x->num_old_dds * sizeof(s32));
+  memcpy(old_N, new->N, x->num_old_dds * sizeof(z_t));
 
   for (u8 i=0; i < x->num_old_dds; i++) {
     new->N[ndxs_of_old_in_new[i]] = old_N[i];
@@ -1825,14 +1833,14 @@ static s8 no_init(void *x, element_t *elem) {
 void add_sats_old(ambiguity_test_t *amb_test,
                   u8 ref_prn,
                   u32 num_added_dds, u8 *added_prns,
-                  s32 *lower_bounds, s32 *upper_bounds,
-                  s32 *Z_inv)
+                  z_t *lower_bounds, z_t *upper_bounds,
+                  z_t *Z_inv)
 {
   /* Make a generator that iterates over the new hypotheses. */
   generate_hypothesis_state_t x0;
-  memcpy(x0.upper_bounds, upper_bounds, num_added_dds * sizeof(s32));
-  memcpy(x0.lower_bounds, lower_bounds, num_added_dds * sizeof(s32));
-  memcpy(x0.counter, lower_bounds, num_added_dds * sizeof(s32));
+  memcpy(x0.upper_bounds, upper_bounds, num_added_dds * sizeof(z_t));
+  memcpy(x0.lower_bounds, lower_bounds, num_added_dds * sizeof(z_t));
+  memcpy(x0.counter, lower_bounds, num_added_dds * sizeof(z_t));
 
   x0.num_added_dds = num_added_dds;
   x0.num_old_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
@@ -1883,7 +1891,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
   if (DEBUG) {
     memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
   }
-  memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(s32));
+  memcpy(x0.Z_inv, Z_inv, num_added_dds * num_added_dds * sizeof(z_t));
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &no_init, &generate_next_hypothesis, &hypothesis_prod);

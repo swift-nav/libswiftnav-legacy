@@ -50,6 +50,8 @@ void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
                      const double *b, double *c);
 void matrix_multiply_i(u32 n, u32 m, u32 p, const s32 *a,
                        const s32 *b, s32 *c);
+void matrix_multiply_s64(u32 n, u32 m, u32 p, const s64 *a,
+                         const s64 *b, s64 *c);
 void matrix_triu(u32 n, double *M);
 void matrix_eye(u32 n, double *M);
 void matrix_udu(u32 n, double *M, double *U, double *D);

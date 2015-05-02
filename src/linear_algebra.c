@@ -630,6 +630,18 @@ inline void matrix_multiply_i(u32 n, u32 m, u32 p, const s32 *a,
     }
 }
 
+inline void matrix_multiply_s64(u32 n, u32 m, u32 p, const s64 *a,
+                                const s64 *b, s64 *c)
+{
+  u32 i, j, k;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < p; j++) {
+      c[p*i + j] = 0;
+      for (k = 0; k < m; k++)
+        c[p*i + j] += a[m*i+k] * b[p*k + j];
+    }
+}
+
 /** Zero lower triangle of an `n` x `n` square matrix.
  * Some routines designed to work on upper triangular matricies use the lower
  * triangle as scratch space. This function zeros the lower triangle such that
