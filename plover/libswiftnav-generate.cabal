@@ -7,7 +7,7 @@ maintainer:          dskovach@gmail.com
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable plover
+executable libswiftnav-generate
   main-is:             Main.hs
   other-extensions:    OverloadedStrings
   build-depends:       base >=4.7 && <4.8, plover

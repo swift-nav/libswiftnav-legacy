@@ -14,11 +14,13 @@
 #include <stdio.h>
 #include <assert.h>
 #include "logging.h"
+#include "plover/amb_kf_plover.h"
 #include "amb_kf.h"
 #include "baseline.h"
 #include "single_diff.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"
+#include "filter_utils.h"
 #include "ambiguity_test.h"
 
 nkf_t nkf;
