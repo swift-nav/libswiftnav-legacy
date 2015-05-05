@@ -198,30 +198,6 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   return n;
 }
 
-
-/** Convert a list of almanacs to a list of single differences.
- * This only fills the position, velocity and prn.
- *
- * It's only useful for using functions that need a sdiff_t when you have almanac_t.
- */
-void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs)
-{
-  for (u8 i=0; i<n; i++) {
-    double p[3];
-    double v[3];
-    calc_sat_state_almanac(&alms[i], timestamp.tow, timestamp.wn, p, v);
-    memcpy(sdiffs[i].sat_pos, &p[0], 3 * sizeof(double));
-    memcpy(sdiffs[i].sat_vel, &v[0], 3 * sizeof(double));
-    sdiffs[i].prn = alms[i].prn;
-    if (i==0) {
-      sdiffs[i].snr = 1;
-    }
-    else {
-      sdiffs[i].snr = 0;
-    }
-  }
-}
-
 void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx)
 {
   for (u8 i=0; i<n; i++) {
