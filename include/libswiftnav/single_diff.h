@@ -29,15 +29,9 @@ typedef struct {
   u8 prn;
 } sdiff_t;
 
-u8 propagate(u8 n, double ref_ecef[3],
-             navigation_measurement_t *m_in_base, gps_time_t *t_base,
-             navigation_measurement_t *m_in_rover, gps_time_t *t_rover,
-             navigation_measurement_t *m_out_base);
-
 u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
                sdiff_t *sds);
-void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx);
 
 int sdiff_search_prn(const void *a, const void *b);
 
@@ -46,8 +40,6 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           double *remote_dists, double remote_pos_ecef[3],
                           ephemeris_t *es, gps_time_t t,
                           sdiff_t *sds);
-
-void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs);
 
 s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 

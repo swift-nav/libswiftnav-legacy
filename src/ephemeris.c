@@ -151,22 +151,6 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 
   return 0;
 }
-
-double predict_range(double rx_pos[3],
-                     gps_time_t t,
-                     ephemeris_t *ephemeris)
-{
-  double sat_pos[3];
-  double sat_vel[3];
-  double temp[3];
-  double clock_err, clock_rate_err;
-
-  calc_sat_state(ephemeris, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
-
-  vector_subtract(3, sat_pos, rx_pos, temp); /* temp = sat_pos - rx_pos */
-  return vector_norm(3, temp);
-}
-
 /** Is this ephemeris usable?
  *
  * \todo This should actually be more than just the "valid" flag.

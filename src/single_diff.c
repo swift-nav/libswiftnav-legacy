@@ -23,44 +23,6 @@
  * Functions for storing and manipulating single difference observations.
  * \{ */
 
-#define GPS_L1_LAMBDA (GPS_C / GPS_L1_HZ)
-
-u8 propagate(u8 n, double ref_ecef[3],
-             navigation_measurement_t *m_in_base, gps_time_t *t_base,
-             navigation_measurement_t *m_in_rover, gps_time_t *t_rover,
-             navigation_measurement_t *m_out_base)
-{
-  double dt = gpsdifftime(*t_rover, *t_base);
-  (void)dt;
-
-  double dr_[n];
-
-  for (u8 i=0; i<n; i++) {
-    m_out_base[i].prn = m_in_base[i].prn;
-    m_out_base[i].snr = m_in_base[i].snr;
-    m_out_base[i].lock_time = m_in_base[i].lock_time;
-
-    /* Calculate delta range. */
-    double dr[3];
-    vector_subtract(3, m_in_rover[i].sat_pos, m_in_base[i].sat_pos, dr);
-
-    /* Make unit vector to satellite, e. */
-    double e[3];
-    vector_subtract(3, m_in_rover[i].sat_pos, ref_ecef, e);
-    vector_normalize(3, e);
-
-    /* Project onto the line of sight vector. */
-    dr_[i] = vector_dot(3, dr, e);
-
-    m_out_base[i].raw_pseudorange = m_in_base[i].raw_pseudorange + dr_[i];
-    m_out_base[i].pseudorange = m_in_base[i].pseudorange;
-    m_out_base[i].carrier_phase = m_in_base[i].carrier_phase - dr_[i] / GPS_L1_LAMBDA;
-    m_out_base[i].raw_doppler = m_in_base[i].raw_doppler;
-    m_out_base[i].doppler = m_in_base[i].doppler;
-  }
-  return 0;
-}
-
 /** Calculate single difference observations.
  * Undifferenced input observations are assumed to be both taken at the
  * same time, `t`.
@@ -196,44 +158,6 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   }
 
   return n;
-}
-
-
-/** Convert a list of almanacs to a list of single differences.
- * This only fills the position, velocity and prn.
- *
- * It's only useful for using functions that need a sdiff_t when you have almanac_t.
- */
-void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs)
-{
-  for (u8 i=0; i<n; i++) {
-    double p[3];
-    double v[3];
-    calc_sat_state_almanac(&alms[i], timestamp.tow, timestamp.wn, p, v);
-    memcpy(sdiffs[i].sat_pos, &p[0], 3 * sizeof(double));
-    memcpy(sdiffs[i].sat_vel, &v[0], 3 * sizeof(double));
-    sdiffs[i].prn = alms[i].prn;
-    if (i==0) {
-      sdiffs[i].snr = 1;
-    }
-    else {
-      sdiffs[i].snr = 0;
-    }
-  }
-}
-
-void double_diff(u8 n, sdiff_t *sds, sdiff_t *dds, u8 ref_idx)
-{
-  for (u8 i=0; i<n; i++) {
-    dds[i].prn = sds[i].prn;
-    dds[i].pseudorange = sds[i].pseudorange - sds[ref_idx].pseudorange;
-    dds[i].carrier_phase = sds[i].carrier_phase - sds[ref_idx].carrier_phase;
-    dds[i].doppler = sds[i].doppler - sds[ref_idx].doppler;
-    dds[i].snr = MIN(sds[i].snr, sds[ref_idx].snr);
-
-    memcpy(&(dds[i].sat_pos), &(sds[i].sat_pos), 3*sizeof(double));
-    memcpy(&(dds[i].sat_vel), &(sds[i].sat_vel), 3*sizeof(double));
-  }
 }
 
 s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
