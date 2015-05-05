@@ -11,6 +11,7 @@ from common cimport *
 from single_diff_c cimport *
 from amb_kf_c cimport *
 from sats_management_c cimport *
+cimport ambiguity_test_c
 
 cdef extern from "libswiftnav/dgnss_management.h":
   void dgnss_set_settings(double phase_var_test, double code_var_test,
@@ -52,3 +53,4 @@ cdef extern from "libswiftnav/dgnss_management.h":
   u8 get_amb_kf_prns(u8 *prns)
   u8 get_amb_test_prns(u8 *prns)
   u8 dgnss_iar_MLE_ambs(s32 *ambs)
+  ambiguity_test_c.ambiguity_test_t* get_ambiguity_test()

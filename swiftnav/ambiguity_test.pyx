@@ -8,9 +8,24 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 cimport ambiguity_test_c
+cimport memory_pool_c
 import numpy as np
 cimport numpy as np
 from common cimport *
+
+cdef hypothesis_to_tuple(u8 num_dds, ambiguity_test_c.hypothesis_t *h):
+  ambs = [ h.N[i] for i in range(num_dds) ]
+  return (h.ll, ambs)
+
+cdef class AmbiguityTest:
+
+  def __iter__(self):
+    cdef memory_pool_c.node_t *currp = self.test.pool.allocated_nodes_head
+    while currp is not NULL:
+      yield hypothesis_to_tuple(self.test.sats.num_sats - 1,
+              <ambiguity_test_c.hypothesis_t *>currp.elem)
+      currp = currp.hdr.next
+
 
 def get_phase_obs_null_basis(DE):
   num_dds = DE.shape[0]
@@ -43,7 +58,7 @@ cdef class ResidualMtxs:
   cdef u8 num_dds
 
   def __init__(self,
-               np.ndarray[np.double_t, ndim=2, mode="c"] DE_mtx, 
+               np.ndarray[np.double_t, ndim=2, mode="c"] DE_mtx,
                np.ndarray[np.double_t, ndim=2, mode="c"] obs_cov):
 
     self.num_dds = obs_cov.shape[0] / 2

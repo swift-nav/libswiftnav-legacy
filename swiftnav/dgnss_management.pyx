@@ -23,6 +23,9 @@ from gpstime_c cimport *
 from libc.string cimport memcpy
 from libc.stdio cimport printf
 from sats_management_c cimport *
+from ambiguity_test_c cimport *
+from ambiguity_test import AmbiguityTest
+from ambiguity_test cimport AmbiguityTest
 
 
 def set_settings(phase_var_test, code_var_test,
@@ -528,3 +531,9 @@ def dgnss_iar_MLE_ambs():
     np.empty(32, dtype=np.int32)
   num_dds = dgnss_management_c.dgnss_iar_MLE_ambs(&ambs[0])
   return ambs[:num_dds]
+
+def get_ambiguity_test():
+  test = AmbiguityTest()
+  test.test = dgnss_management_c.get_ambiguity_test()
+  return test
+
