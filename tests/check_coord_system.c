@@ -194,7 +194,7 @@ START_TEST(test_random_wgsllh2ecef2llh)
 
   llh_init[0] = D2R*frand(-90, 90);
   llh_init[1] = D2R*frand(-180, 180);
-  llh_init[2] = frand(-EARTH_A, 4*EARTH_A);
+  llh_init[2] = frand(-0.5 * EARTH_A, 4 * EARTH_A);
 
   wgsllh2ecef(llh_init, ecef);
   wgsecef2llh(ecef, llh);
@@ -225,7 +225,7 @@ START_TEST(test_random_wgsllh2ecef2llh)
   );
 
   fail_unless((R2D*llh[0] >= -90) && (R2D*llh[0] <= 90),
-      "Converting random WGS86 ECEF gives latitude out of bounds.\n"
+      "Converting random WGS84 ECEF gives latitude out of bounds.\n"
       "ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef[0], ecef[1], ecef[2],
@@ -233,7 +233,7 @@ START_TEST(test_random_wgsllh2ecef2llh)
   );
 
   fail_unless((R2D*llh[1] >= -180) && (R2D*llh[1] <= 180),
-      "Converting random WGS86 ECEF gives longitude out of bounds.\n"
+      "Converting random WGS84 ECEF gives longitude out of bounds.\n"
       "ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef[0], ecef[1], ecef[2],
@@ -241,7 +241,7 @@ START_TEST(test_random_wgsllh2ecef2llh)
   );
 
   fail_unless(llh[2] > -EARTH_A,
-      "Converting random WGS86 ECEF gives height out of bounds.\n"
+      "Converting random WGS84 ECEF gives height out of bounds.\n"
       "ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef[0], ecef[1], ecef[2],
@@ -289,7 +289,7 @@ START_TEST(test_random_wgsecef2llh2ecef)
   }
 
   fail_unless((R2D*llh[0] >= -90) && (R2D*llh[0] <= 90),
-      "Converting random WGS86 ECEF gives latitude out of bounds.\n"
+      "Converting random WGS84 ECEF gives latitude out of bounds.\n"
       "Initial ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef_init[0], ecef_init[1], ecef_init[2],
@@ -297,7 +297,7 @@ START_TEST(test_random_wgsecef2llh2ecef)
   );
 
   fail_unless((R2D*llh[1] >= -180) && (R2D*llh[1] <= 180),
-      "Converting random WGS86 ECEF gives longitude out of bounds.\n"
+      "Converting random WGS84 ECEF gives longitude out of bounds.\n"
       "Initial ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef_init[0], ecef_init[1], ecef_init[2],
@@ -305,7 +305,7 @@ START_TEST(test_random_wgsecef2llh2ecef)
   );
 
   fail_unless(llh[2] > -EARTH_A,
-      "Converting random WGS86 ECEF gives height out of bounds.\n"
+      "Converting random WGS84 ECEF gives height out of bounds.\n"
       "Initial ECEF: %f, %f, %f\n"
       "LLH: %f, %f, %f\n",
       ecef_init[0], ecef_init[1], ecef_init[2],
