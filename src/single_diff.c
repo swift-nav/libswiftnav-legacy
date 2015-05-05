@@ -19,8 +19,6 @@
 #include "constants.h"
 #include "sats_management.h"
 
-#define GPS_L1_LAMBDA (GPS_C / GPS_L1_HZ)
-
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
  * \{ */
