@@ -80,7 +80,7 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
  */
 static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
-  float dot = corr_prompt_real * n->prev_corr;
+  float dot = (float)corr_prompt_real * n->prev_corr;
   n->prev_corr = corr_prompt_real;
 
   if (dot > 0)
