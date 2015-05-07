@@ -28,6 +28,7 @@ void nav_msg_init(nav_msg_t *n)
   n->bit_phase = 0;
   n->bit_phase_ref = 0;
   n->bit_phase_count = 0;
+  memset(n->hist, 0, sizeof(n->hist));
   n->nav_bit_integrate = 0;
   n->subframe_start_index = 0;
   memset(n->subframe_bits, 0, sizeof(n->subframe_bits));
