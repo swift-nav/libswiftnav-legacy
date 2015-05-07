@@ -11,11 +11,12 @@
 from common cimport *
 cimport memory_pool_c
 cimport sats_management_c
+from constants_c cimport MAX_CHANNELS
 
 cdef extern from "libswiftnav/ambiguity_test.h":
 
   ctypedef struct hypothesis_t:
-    s32 N[22]
+    s32 N[MAX_CHANNELS-1]
     float ll
 
   ctypedef struct residual_mtxs_t:
