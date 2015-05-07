@@ -20,5 +20,3 @@ cdef extern from "libswiftnav/single_diff.h":
     double *sat_vel
     double snr
     u8 prn
-
-  void almanacs_to_single_diffs(u8 n, almanac_t *alms, gps_time_t timestamp, sdiff_t *sdiffs)
