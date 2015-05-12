@@ -22,6 +22,9 @@
 #include "linear_algebra.h"
 #include "filter_utils.h"
 
+/** \defgroup filter_utils Utility functions for use in filters
+ * \{ */
+
 /** Measure the integer ambiguity just from the code and carrier measurements.
  * The expectation value of carrier + code / lambda is
  * integer ambiguity + bias. Currently, pseudorange bias can get up to 10s of
@@ -67,4 +70,6 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
 
   return 0;
 }
+
+/** \} */
 
