@@ -33,23 +33,6 @@
 #include "filter_utils.h"
 #include "amb_kf.h"
 
-/** Measure the integer ambiguity just from the code and carrier measurements.
- * The expectation value of carrier + code / lambda is
- * integer ambiguity + bias. Currently, pseudorange bias can get up to 10s of
- * wavelengths for minutes at a time, so averaging carrier + code isn't
- * sufficient for determining the ambiguity. Regardless of bias, this is an
- * important measurement. It is especially useful as a simple initialization
- * of the float filter.
- *
- * \param carrier A carrier phase measurement in units of wavelengths.
- * \param code    A code measurement in the same units as GPS_L1_LAMBDA_NO_VAC.
- * \return An estimate of the integer ambiguity. Its expectation value is the
- *         integer ambiguity plus carrier and code bias.
- */
-double simple_amb_measurement(double carrier, double code)
-{
-  return carrier + code / GPS_L1_LAMBDA_NO_VAC;
-}
 
 /** \defgroup amb_kf Float Ambiguity Resolution
  * Preliminary integer ambiguity estimation with a Kalman Filter.

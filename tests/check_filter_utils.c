@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <constants.h>
 #include <linear_algebra.h>
 #include <single_diff.h>
 #include <filter_utils.h>
@@ -60,6 +61,15 @@ START_TEST(test_assign_de_mtx_3)
 }
 END_TEST
 
+START_TEST(test_simple_amb_measurement)
+{
+  fail_unless(simple_amb_measurement(0, 0) == 0);
+  fail_unless(simple_amb_measurement(1234, 0) == 1234);
+  fail_unless(simple_amb_measurement(0, GPS_L1_LAMBDA_NO_VAC) == 1);
+  fail_unless(simple_amb_measurement(22, 33) == 22 + (33 / GPS_L1_LAMBDA_NO_VAC));
+}
+END_TEST
+
 Suite* filter_utils_suite(void)
 {
   Suite *s = suite_create("Filter Utils");
@@ -68,6 +78,7 @@ Suite* filter_utils_suite(void)
   tcase_add_test(tc_core, test_assign_de_mtx_1);
   tcase_add_test(tc_core, test_assign_de_mtx_2);
   tcase_add_test(tc_core, test_assign_de_mtx_3);
+  tcase_add_test(tc_core, test_simple_amb_measurement);
   suite_add_tcase(s, tc_core);
 
   return s;

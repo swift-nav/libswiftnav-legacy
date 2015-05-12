@@ -36,8 +36,6 @@ typedef struct {
   double state_cov_D[MAX_STATE_DIM];
 } nkf_t;
 
-double simple_amb_measurement(double carrier, double code);
-// void predict_forward(nkf_t *kf);
 void nkf_update(nkf_t *kf, double *measurements);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
