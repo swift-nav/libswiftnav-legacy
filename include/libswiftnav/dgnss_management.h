@@ -50,64 +50,63 @@ typedef struct {
   double new_int_var;
 } dgnss_settings_t;
 
-extern dgnss_settings_t dgnss_settings;
+typedef struct {
+  dgnss_settings_t settings;
+  nkf_t nkf;
+  sats_management_t sats_management;  /* TODO: This really belongs inside of nkf */
+  ambiguity_test_t ambiguity_test;  /* Note: ambiguity_test contains another, different
+                                       sats_management (which should be a subset of the above) */
+} dgnss_state_t;
 
-void dgnss_set_settings(double phase_var_test, double code_var_test,
-                        double phase_var_kf, double code_var_kf,
-                        double amb_drift_var, double amb_init_var,
-                        double new_int_var);
 void make_measurements(u8 num_diffs, const sdiff_t *sdiffs, double *raw_measurements);
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
+void dgnss_init(dgnss_state_t *dgs, u8 num_sats, const sdiff_t *sdiffs, const double reciever_ecef[3]);
+void dgnss_update(dgnss_state_t *dgs, u8 num_sats, const sdiff_t *sdiffs, const double reciever_ecef[3]);
+void dgnss_rebase_ref(dgnss_state_t *dgs, u8 num_sats, const sdiff_t *sdiffs, const double reciever_ecef[3],
                       u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
-nkf_t * get_dgnss_nkf(void);
-sats_management_t * get_sats_management(void);
-ambiguity_test_t* get_ambiguity_test(void);
 
-s8 dgnss_iar_resolved(void);
-u32 dgnss_iar_num_hyps(void);
-u32 dgnss_iar_num_sats(void);
-s8 dgnss_iar_get_single_hyp(double *hyp);
-void dgnss_reset_iar(void);
-void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
+s8 dgnss_iar_resolved(const dgnss_state_t *dgs);
+u32 dgnss_iar_num_hyps(const dgnss_state_t *dgs);
+u32 dgnss_iar_num_sats(const dgnss_state_t *dgs);
+s8 dgnss_iar_get_single_hyp(const dgnss_state_t *dgs, double *hyp);
+void dgnss_reset_iar(dgnss_state_t *dgs); 
+void dgnss_init_known_baseline(dgnss_state_t *dgs, u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_float_baseline(u8 *num_used, double b[3]);
-void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3]);
-s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
+void dgnss_new_float_baseline(dgnss_state_t *dgs, u8 num_sats, const sdiff_t *sdiffs, const double ref_ecef[3], u8 *num_used, double b[3]);
+s8 dgnss_fixed_baseline(const dgnss_state_t *dgs, u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
                         u8 *num_used, double b[3]);
-s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                               double ref_ecef[3], u8 *num_used, double b[3]);
-void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
+s8 dgnss_low_latency_baseline(const dgnss_state_t *dgs, u8 num_sdiffs, const sdiff_t *sdiffs,
+                               const double ref_ecef[3], u8 *num_used, double b[3]);
+void measure_amb_kf_b(const dgnss_state_t *dgs, u8 num_sdiffs, const sdiff_t *sdiffs,
                       const double receiver_ecef[3], double *b);
-void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,
+void measure_b_with_external_ambs(const dgnss_state_t *dgs, u8 state_dim, const double *state_mean,
                                   u8 num_sdiffs, sdiff_t *sdiffs,
                                   const double receiver_ecef[3], double *b);
-void measure_iar_b_with_external_ambs(double *state_mean,
-                                      u8 num_sdiffs, sdiff_t *sdiffs,
-                                      double receiver_ecef[3],
+void measure_iar_b_with_external_ambs(const dgnss_state_t *dgs, double *state_mean,
+                                      u8 num_sdiffs, const sdiff_t *sdiffs,
+                                      const double receiver_ecef[3],
                                       double *b);
-u8 get_amb_kf_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+u8 get_amb_kf_de_and_phase(const dgnss_state_t *dgs, u8 num_sdiffs, sdiff_t *sdiffs,
                            double ref_ecef[3],
                            double *de, double *phase);
-u8 get_iar_de_and_phase(u8 num_sdiffs, sdiff_t *sdiffs,
+u8 get_iar_de_and_phase(const dgnss_state_t *dgs, u8 num_sdiffs, sdiff_t *sdiffs,
                         double ref_ecef[3],
                         double *de, double *phase);
-u8 dgnss_iar_pool_contains(double *ambs);
-double dgnss_iar_pool_ll(u8 num_ambs, double *ambs);
-double dgnss_iar_pool_prob(u8 num_ambs, double *ambs);
-u8 get_amb_kf_mean(double *ambs);
-u8 get_amb_kf_cov(double *cov);
-u8 get_amb_kf_prns(u8 *prns);
-u8 get_amb_test_prns(u8 *prns);
-u8 dgnss_iar_MLE_ambs(s32 *ambs);
+u8 dgnss_iar_pool_contains(const dgnss_state_t *dgs, double *ambs);
+double dgnss_iar_pool_ll(const dgnss_state_t *dgs, u8 num_ambs, double *ambs);
+double dgnss_iar_pool_prob(const dgnss_state_t *dgs, u8 num_ambs, double *ambs);
+u8 get_amb_kf_mean(const dgnss_state_t *dgs, double *ambs);
+u8 get_amb_kf_cov(const dgnss_state_t *dgs, double *cov);
+u8 get_amb_kf_prns(const dgnss_state_t *dgs, u8 *prns);
+u8 get_amb_test_prns(const dgnss_state_t *dgs, u8 *prns);
+u8 dgnss_iar_MLE_ambs(const dgnss_state_t *dgs, s32 *ambs);
 
 
 /* Functions for internal use in the file. In here so we can unit test them
  * without having to extern them (where they could get out of sync with
  * changes in type signature) */
-s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                                    double ref_ecef[3], u8 *num_used, double b[3]);
-s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                                  double ref_ecef[3], u8 *num_used, double b[3]);
+s8 _dgnss_low_latency_float_baseline(const dgnss_state_t *dgs, u8 num_sdiffs, const sdiff_t *sdiffs,
+                                    const double ref_ecef[3], u8 *num_used, double b[3]);
+s8 _dgnss_low_latency_IAR_baseline(const dgnss_state_t *dgs, u8 num_sdiffs, const sdiff_t *sdiffs,
+                                  const double ref_ecef[3], u8 *num_used, double b[3]);
 
 #endif /* LIBSWIFTNAV_DGNSS_MANAGEMENT_H */
