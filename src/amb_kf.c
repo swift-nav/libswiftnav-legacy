@@ -399,7 +399,7 @@ bool nkf_update(nkf_t *kf, const double *measurements)
 
 /* Initializes the ambiguity means and variances.
  * Note that the covariance is  in UDU form, and U starts as identity. */
-static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)
+static void initialize_state(nkf_t *kf, const double *dd_measurements, double init_var)
 {
   u8 num_dds = kf->state_dim;
   for (u32 i=0; i<num_dds; i++) {
@@ -596,8 +596,8 @@ static void assign_H_prime(u8 res_dim, u8 constraint_dim, u8 num_dds,
  *
  * This function constructs D, U^-1, and H'
  */
-static void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
-                            double ref_ecef[3],
+static void get_kf_matrices(u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first,
+                            const double ref_ecef[3],
                             double phase_var, double code_var,
                             double *null_basis_Q,
                             double *U_inv, double *D,
@@ -639,7 +639,7 @@ static void get_kf_matrices(u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first,
 
 /* REQUIRES num_sats > 1 */
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
-            u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3])
+            u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements, const double ref_ecef[3])
 {
   DEBUG_ENTRY();
 
@@ -652,7 +652,7 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
 }
 
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
-                     u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3])
+                     u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, const double ref_ecef[3])
 {
   assert(num_sdiffs > 1);
 

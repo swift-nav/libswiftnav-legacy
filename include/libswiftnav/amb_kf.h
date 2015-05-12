@@ -67,9 +67,9 @@ bool nkf_update(nkf_t *kf, const double *measurements);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
-            u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3]);
+            u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements, const double ref_ecef[3]);
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
-                     u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3]);
+                     u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, const double ref_ecef[3]);
 s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list);
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 

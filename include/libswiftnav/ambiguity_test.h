@@ -73,31 +73,31 @@ typedef struct {
   z_t *Z_new_inv;
 } generate_hypothesis_state_t2;
 
-s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N);
+s8 get_single_hypothesis(const ambiguity_test_t *amb_test, s32 *hyp_N);
 void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);
 void reset_ambiguity_test(ambiguity_test_t *amb_test);
 void destroy_ambiguity_test(ambiguity_test_t *amb_test);
 s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs);
 u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
-void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
+void update_ambiguity_test(const double ref_ecef[3], double phase_var, double code_var,
+                           ambiguity_test_t *amb_test, u8 state_dim, const sdiff_t *sdiffs,
                            u8 changed_sats);
 void update_unanimous_ambiguities(ambiguity_test_t *amb_test);
-u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test);
-u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs);
-double ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs);
-double ambiguity_test_pool_prob(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs);
-void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs);
+u32 ambiguity_test_n_hypotheses(const ambiguity_test_t *amb_test);
+u8 ambiguity_test_pool_contains(const ambiguity_test_t *amb_test, double *ambs);
+double ambiguity_test_pool_ll(const ambiguity_test_t *amb_test, u8 num_ambs, const double *ambs);
+double ambiguity_test_pool_prob(const ambiguity_test_t *amb_test, u8 num_ambs, const double *ambs);
+void ambiguity_test_MLE_ambs(const ambiguity_test_t *amb_test, s32 *ambs);
 void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measurements);
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const sdiff_t *sdiffs, const sats_management_t *float_sats,
                          const double *float_mean, const double *float_cov_U,
                          const double *float_cov_D, u8 is_bad_measurement);
 u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
-u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
-s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-                                               double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
+u8 ambiguity_iar_can_solve(const ambiguity_test_t *ambiguity_test);
+s8 make_ambiguity_dd_measurements_and_sdiffs(const ambiguity_test_t *amb_test, u8 num_sdiffs, const sdiff_t *sdiffs,
+                                             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection, const u8 *dd_intersection_ndxs);
 // TODO(dsk) delete
 u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
