@@ -17,7 +17,7 @@
 #include "almanac.h"
 #include "gpstime.h"
 #include "common.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "constants.h"
 
 #define MAX_STATE_DIM (MAX_CHANNELS - 1)

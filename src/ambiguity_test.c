@@ -21,7 +21,7 @@
 #include "common.h"
 #include "constants.h"
 #include "linear_algebra.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "amb_kf.h"
 #include "lambda.h"
 #include "memory_pool.h"

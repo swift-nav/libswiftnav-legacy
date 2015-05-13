@@ -14,7 +14,7 @@
 #define LIBSWIFTNAV_BASELINE_H
 
 #include "common.h"
-#include "single_diff.h"
+#include "observation.h"
 
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs);

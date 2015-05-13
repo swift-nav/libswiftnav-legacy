@@ -17,7 +17,7 @@
 #include <assert.h>
 
 #include "logging.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "constants.h"
 #include "linear_algebra.h"
 #include "filter_utils.h"

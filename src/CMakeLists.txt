@@ -32,7 +32,7 @@ set(libswiftnav_SRCS
   lambda.c
   amb_kf.c
   baseline.c
-  single_diff.c
+  observation.c
   memory_pool.c
   dgnss_management.c
   sats_management.c

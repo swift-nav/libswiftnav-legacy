@@ -14,10 +14,10 @@
 
 #include "logging.h"
 #include "linear_algebra.h"
-#include "single_diff.h"
 #include "ephemeris.h"
 #include "constants.h"
 #include "sats_management.h"
+#include "observation.h"
 
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.

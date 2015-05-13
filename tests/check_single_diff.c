@@ -1,7 +1,7 @@
 
 #include <check.h>
 #include <stdio.h>
-#include "single_diff.h"
+#include "observation.h"
 
 navigation_measurement_t nm1 = {.prn = 1};
 navigation_measurement_t nm2 = {.prn = 2};

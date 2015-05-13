@@ -16,7 +16,7 @@
 #include "logging.h"
 #include "amb_kf.h"
 #include "baseline.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "dgnss_management.h"
 #include "linear_algebra.h"
 #include "filter_utils.h"

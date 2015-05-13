@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "logging.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "sats_management.h"
 #include "linear_algebra.h"
 

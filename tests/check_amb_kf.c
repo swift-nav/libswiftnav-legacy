@@ -3,7 +3,7 @@
 
 #include "baseline.h"
 #include "amb_kf.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "check_utils.h"
 
 START_TEST(test_lsq)
