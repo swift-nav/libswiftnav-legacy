@@ -1,6 +1,5 @@
 
 #include <check.h>
-#include <stdio.h>
 
 #include "amb_kf.h"
 #include "single_diff.h"
