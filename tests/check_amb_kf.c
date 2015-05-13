@@ -1,11 +1,12 @@
 
 #include <check.h>
-#include <stdio.h>
+
 #include "amb_kf.h"
 #include "single_diff.h"
 #include "check_utils.h"
 
-START_TEST(test_lsq) {
+START_TEST(test_lsq)
+{
   sdiff_t sdiffs[5];
   sdiffs[0].sat_pos[0] = 1;
   sdiffs[0].sat_pos[1] = 0;

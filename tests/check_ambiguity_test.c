@@ -1,5 +1,4 @@
 #include <check.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
@@ -44,11 +43,11 @@ START_TEST(test_update_sats_rebase)
   amb_test.sats.prns[3] = 4;
 
   sdiff_t sdiffs[3] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0}, 
-                      // {.prn = 3, .snr = 0}, 
+                       {.prn = 2, .snr = 0},
+                      // {.prn = 3, .snr = 0},
                        {.prn = 4, .snr = 1}};
   u8 num_sdiffs = 3;
-  
+
   hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
   hyp->N[0] = 0;
   hyp->N[1] = 1;
@@ -61,9 +60,6 @@ START_TEST(test_update_sats_rebase)
   fail_unless(amb_test.sats.prns[0] == 4);
   fail_unless(amb_test.sats.prns[1] == 1);
   fail_unless(amb_test.sats.prns[2] == 2);
-  printf("N0: %i\n", hyp->N[0]);
-  printf("N1: %i\n", hyp->N[1]);
-  printf("N2: %i\n", hyp->N[2]);
   fail_unless(hyp->N[0] == -2);
   fail_unless(hyp->N[1] == -1);
 }
@@ -73,13 +69,12 @@ START_TEST(test_ambiguity_update_reference)
 {
   srandom(1);
 
-  ambiguity_test_t amb_test = {.sats = {.num_sats = 4, 
+  ambiguity_test_t amb_test = {.sats = {.num_sats = 4,
                                         .prns = {3,1,2,4}}};
   create_empty_ambiguity_test(&amb_test);
 
   sdiff_t sdiffs[4] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0}, 
-                       // {.prn = 3, .snr = 0}, 
+                       {.prn = 2, .snr = 0},
                        {.prn = 4, .snr = 1}};
   u8 num_sdiffs = 4;
 
@@ -92,15 +87,10 @@ START_TEST(test_ambiguity_update_reference)
     hyp->ll = frand(0, 1);
   }
 
-  u8 num_dds = MAX(0,amb_test.sats.num_sats - 1);
-  printf("Before rebase:\n");
-  memory_pool_map(amb_test.pool, &num_dds, &print_hyp);
-
   sdiff_t sdiffs_with_ref_first[4];
   ambiguity_update_reference(&amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first);
 
-  printf("After rebase:\n");
-  memory_pool_map(amb_test.pool, &num_dds, &print_hyp);
+  /* TODO: Check results of rebase. */
 }
 END_TEST
 
@@ -189,9 +179,6 @@ START_TEST(test_amb_sat_inclusion)
   double block[dim * dim];
   resize_matrix(state_dim, state_dim, dim, dim, cov_mat, block);
 
-  printf("test covariance matrix:\n");
-  print_double_mtx(block, dim, dim);
-
   double u[dim * dim];
   double d[dim * dim];
   matrix_udu(dim, block, u, d);
@@ -210,32 +197,29 @@ START_TEST(test_amb_sat_inclusion)
 
   u16 pool_size;
   u8 flag;
+
   pool_size = memory_pool_n_allocated(amb_test.pool);
-  printf("pool size before: %i\n", pool_size);
+  fail_unless(pool_size == 1);
+
   /* Include. This one should succeed and add 5 sats. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
-  printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
-  printf("pool size after 1: %i\n", pool_size);
   fail_unless(flag == 1);
   fail_unless(pool_size == 625);
+
   /* Include again. This one should succeed and add 1 more sat. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
-  printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
-  printf("pool size after 2: %i\n", pool_size);
   fail_unless(flag == 1);
   fail_unless(pool_size == 945);
+
   /* Include again. This one should fail. */
   flag = ambiguity_sat_inclusion(&amb_test, 0, &float_sats, mean, u, d);
-  printf("inclusion return code: %i\n", flag);
   pool_size = memory_pool_n_allocated(amb_test.pool);
-  printf("pool size after 2: %i\n", pool_size);
   fail_unless(flag == 0);
   fail_unless(pool_size == 945);
 }
 END_TEST
-
 
 Suite* ambiguity_test_suite(void)
 {

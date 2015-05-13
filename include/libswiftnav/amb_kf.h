@@ -12,6 +12,7 @@
 
 #ifndef LIBSWIFTNAV_AMB_KF_H
 #define LIBSWIFTNAV_AMB_KF_H
+
 #include "track.h"
 #include "almanac.h"
 #include "gpstime.h"
@@ -35,12 +36,7 @@ typedef struct {
   double state_cov_D[MAX_STATE_DIM];
 } nkf_t;
 
-double simple_amb_measurement(double carrier, double code);
-// void predict_forward(nkf_t *kf);
 void nkf_update(nkf_t *kf, double *measurements);
-
-void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
-                   const double ref_ecef[3], double *DE);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
@@ -69,5 +65,5 @@ void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
 void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
 void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
 
-#endif /* LIBSWIFTNAV_AMBFLOAT_KF_H */
+#endif /* LIBSWIFTNAV_AMB_KF_H */
 

@@ -38,6 +38,7 @@ set(libswiftnav_SRCS
   sats_management.c
   ambiguity_test.c
   printing_utils.c
+  filter_utils.c
   ${plover_SRCS}
 )
 

@@ -30,25 +30,9 @@
 #include "almanac.h"
 #include "gpstime.h"
 #include "baseline.h"
+#include "filter_utils.h"
 #include "amb_kf.h"
 
-/** Measure the integer ambiguity just from the code and carrier measurements.
- * The expectation value of carrier + code / lambda is
- * integer ambiguity + bias. Currently, pseudorange bias can get up to 10s of
- * wavelengths for minutes at a time, so averaging carrier + code isn't
- * sufficient for determining the ambiguity. Regardless of bias, this is an
- * important measurement. It is especially useful as a simple initialization
- * of the float filter.
- *
- * \param carrier A carrier phase measurement in units of wavelengths.
- * \param code    A code measurement in the same units as GPS_L1_LAMBDA_NO_VAC.
- * \return An estimate of the integer ambiguity. Its expectation value is the
- *         integer ambiguity plus carrier and code bias.
- */
-double simple_amb_measurement(double carrier, double code)
-{
-  return carrier + code / GPS_L1_LAMBDA_NO_VAC;
-}
 
 /** \defgroup amb_kf Float Ambiguity Resolution
  * Preliminary integer ambiguity estimation with a Kalman Filter.
@@ -257,58 +241,6 @@ void nkf_update(nkf_t *kf, double *measurements)
     VEC_PRINTF(kf->state_mean, kf->state_dim);
   }
 
-  DEBUG_EXIT();
-}
-
-/*  Presumes that the first alm entry is the reference sat. */
-void assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
-                   const double ref_ecef[3], double *DE)
-{
-  DEBUG_ENTRY();
-
-  if (DEBUG) {
-    printf("num_sats = %u\nsdiff prns&positions = {\n", num_sats);
-    for (u8 i=0; i < num_sats; i++) {
-      printf("i = %u, prn = %u, \tpos = [%f, \t%f, \t%f]\n",
-             i,
-             sats_with_ref_first[i].prn,
-             sats_with_ref_first[i].sat_pos[0],
-             sats_with_ref_first[i].sat_pos[1],
-             sats_with_ref_first[i].sat_pos[2]);
-    }
-    printf("}\nref_ecef = {%f, \t%f, \t%f}\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
-  }
-
-  assert(num_sats > 1);
-  u8 de_length = num_sats - 1;
-
-  if (num_sats <= 1) {
-    log_debug("not enough sats\n");
-    DEBUG_EXIT();
-    return;
-  }
-
-  memset(DE, 0, de_length * 3 * sizeof(double));
-  double e0[3];
-  double x0 = sats_with_ref_first[0].sat_pos[0] - ref_ecef[0];
-  double y0 = sats_with_ref_first[0].sat_pos[1] - ref_ecef[1];
-  double z0 = sats_with_ref_first[0].sat_pos[2] - ref_ecef[2];
-  double norm0 = sqrt(x0*x0 + y0*y0 + z0*z0);
-  e0[0] = x0 / norm0;
-  e0[1] = y0 / norm0;
-  e0[2] = z0 / norm0;
-  for (u8 i=1; i<num_sats; i++) {
-    double x = sats_with_ref_first[i].sat_pos[0] - ref_ecef[0];
-    double y = sats_with_ref_first[i].sat_pos[1] - ref_ecef[1];
-    double z = sats_with_ref_first[i].sat_pos[2] - ref_ecef[2];
-    double norm = sqrt(x*x + y*y + z*z);
-    DE[3*(i-1)] = x / norm - e0[0];
-    DE[3*(i-1) + 1] = y / norm - e0[1];
-    DE[3*(i-1) + 2] = z / norm - e0[2];
-  }
-  if (DEBUG) {
-    MAT_PRINTF(DE, (num_sats-1), 3);
-  }
   DEBUG_EXIT();
 }
 
