@@ -21,10 +21,19 @@
 /** Comparison function prototype.
  * Follows the standard C library comparison prototype e.g. used by qsort()
  * http://www.gnu.org/software/libc/manual/html_node/Comparison-Functions.html
+ *
+ * \param a Pointer to A
+ * \param b Pointer to B
+ * \return <0 if A < B,
+ *          0 if A = B,
+ *         >0 if A > B
  * */
-typedef int (*cmp_fn) (const void*, const void*);
+typedef int (*cmp_fn) (const void* a, const void* b);
 
 /** \} */
+
+int cmp_s32(const void * a, const void * b);
+int cmp_u8(const void * a, const void * b);
 
 bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp);
 bool is_prn_set(u8 len, const u8 *prns);

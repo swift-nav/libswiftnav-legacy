@@ -18,6 +18,20 @@
 /** \defgroup set Utility functions for dealing with sets
  * \{ */
 
+/** Comparison function for s32s.
+ * See `cmp_fn`. */
+int cmp_s32(const void * a, const void * b)
+{
+   return *(s32*)a - *(s32*)b;
+}
+
+/** Comparison function for u8s.
+ * See `cmp_fn`. */
+int cmp_u8(const void * a, const void * b)
+{
+   return *(u8*)a - *(u8*)b;
+}
+
 /* Tests if an array of PRNs form a sorted set with no duplicate elements.
  *
  * \param n Length of PRN array
@@ -26,18 +40,7 @@
  */
 bool is_prn_set(u8 n, const u8 *prns)
 {
-  if (n == 0) {
-    return true;
-  }
-
-  u8 current = prns[0];
-  for (u8 i = 1; i < n; i++) {
-    if (prns[i] <= current) {
-      return false;
-    }
-    current = prns[i];
-  }
-  return true;
+  return is_set(n, sizeof(u8), prns, cmp_u8);
 }
 
 /* Tests if an array forms a sorted set with no duplicate elements.

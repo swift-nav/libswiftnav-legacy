@@ -10,11 +10,6 @@
 
 #define LEN(x) (sizeof(x) / sizeof(x[0]))
 
-int cmp_s32(const void * a, const void * b)
-{
-   return *(s32*)a - *(s32*)b;
-}
-
 void test_map_f(void *context, u32 n, const void *a_, const void *b_)
 {
   s32 *a = (s32 *)a_;
@@ -204,6 +199,7 @@ Suite* set_suite(void)
   TCase *tc_set = tcase_create("Set");
   tcase_add_test(tc_set, test_is_prn_set);
   suite_add_tcase(s, tc_intersection);
+  suite_add_tcase(s, tc_set);
 
   return s;
 }
