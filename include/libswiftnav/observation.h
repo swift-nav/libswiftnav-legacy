@@ -29,6 +29,8 @@ typedef struct {
   u8 prn;
 } sdiff_t;
 
+int cmp_sdiff_prn(const void *a_, const void *b_);
+
 u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
                sdiff_t *sds);
