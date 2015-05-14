@@ -14,7 +14,7 @@ int main(void)
   srunner_add_suite(sr, dgnss_management_test_suite());
   srunner_add_suite(sr, baseline_test_suite());
   srunner_add_suite(sr, amb_kf_test_suite());
-  srunner_add_suite(sr, sdiff_test_suite());
+  srunner_add_suite(sr, observation_test_suite());
   srunner_add_suite(sr, ambiguity_test_suite());
   srunner_add_suite(sr, rtcm3_suite());
   srunner_add_suite(sr, bits_suite());

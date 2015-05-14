@@ -27,7 +27,7 @@ else (CMAKE_CROSSCOMPILING)
       check_dgnss_management.c
       check_baseline.c
       check_amb_kf.c
-      check_single_diff.c
+      check_observation.c
       check_edc.c
       check_bits.c
       check_memory_pool.c

@@ -165,9 +165,9 @@ START_TEST(test_end_matches)
 }
 END_TEST
 
-Suite* sdiff_test_suite(void)
+Suite* observation_test_suite(void)
 {
-  Suite *s = suite_create("Single Differences");
+  Suite *s = suite_create("Observation Handling");
 
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_no_match);
