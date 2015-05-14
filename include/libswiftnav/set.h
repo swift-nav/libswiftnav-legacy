@@ -38,7 +38,7 @@ int cmp_u8(const void * a, const void * b);
 bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp);
 bool is_prn_set(u8 len, const u8 *prns);
 
-u32 intersection_map(u32 na, size_t sa, const void *as,
+s32 intersection_map(u32 na, size_t sa, const void *as,
                      u32 nb, size_t sb, const void *bs,
                      cmp_fn cmp, void *context,
                      void (*f)(void *context, u32 n,

@@ -53,6 +53,10 @@ bool is_prn_set(u8 n, const u8 *prns)
  */
 bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
 {
+  assert(sz != 0);
+  assert(set != NULL);
+  assert(cmp != NULL);
+
   if (n == 0) {
     return true;
   }
@@ -70,6 +74,9 @@ bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
 
 /** Call a function for each element in the intersection of two sets.
  *
+ * Set A and B should be represented as sorted arrays with no repeated
+ * elements.
+ *
  * \param na Number of elements in set A
  * \param sa Size of each element of set A
  * \param as Array of elements in set A
@@ -80,14 +87,31 @@ bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
  * \param context Pointer to an context passed directly through to `f`
  * \param f Pointer to function to map across intersection
  *
- * \return Number of elements in intersection
+ * \return Number of elements in intersection on success,
+ *         -1 if A is not a valid set,
+ *         -2 if B is not a valid set
  */
-u32 intersection_map(u32 na, size_t sa, const void *as,
+s32 intersection_map(u32 na, size_t sa, const void *as,
                      u32 nb, size_t sb, const void *bs,
                      cmp_fn cmp, void *context,
                      void (*f)(void *context, u32 n,
                                const void *a, const void *b))
 {
+  assert(sa != 0);
+  assert(sb != 0);
+  assert(as != NULL);
+  assert(bs != NULL);
+  assert(cmp != NULL);
+  assert(f != NULL);
+
+  if (!is_set(na, sa, as, cmp)) {
+    return -1;
+
+  }
+  if (!is_set(nb, sb, bs, cmp)) {
+    return -2;
+  }
+
   u32 ia, ib, n = 0;
 
   for (ia=0, ib=0; ia<na && ib<nb; ia++, ib++) {
