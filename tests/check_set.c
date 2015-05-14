@@ -144,6 +144,48 @@ START_TEST(test_intersection_map_10)
 }
 END_TEST
 
+START_TEST(test_is_prn_set)
+{
+
+#define TEST_IS_SET(set, result) \
+  fail_unless(is_prn_set(sizeof(set)/sizeof(set[0]), set) == result, \
+              "is_prn_set(" #set ") != " #result);
+
+  /* Normal set. */
+  u8 prns1[] = {0, 1, 2, 33, 44, 200};
+  TEST_IS_SET(prns1, true);
+
+  /* Empty set. */
+  fail_unless(is_prn_set(0, prns1) == true);
+
+  /* Single element set. */
+  u8 prns2[] = {22};
+  TEST_IS_SET(prns2, true);
+
+  /* Repeated elements. */
+
+  u8 prns3[] = {22, 22};
+  TEST_IS_SET(prns3, false);
+
+  u8 prns4[] = {0, 1, 2, 3, 3};
+  TEST_IS_SET(prns4, false);
+
+  u8 prns5[] = {1, 1, 2, 3, 4};
+  TEST_IS_SET(prns5, false);
+
+  /* Incorrectly sorted. */
+
+  u8 prns6[] = {22, 1, 2, 3, 4};
+  TEST_IS_SET(prns6, false);
+
+  u8 prns7[] = {0, 1, 2, 3, 1};
+  TEST_IS_SET(prns7, false);
+
+  u8 prns8[] = {0, 1, 22, 3, 4};
+  TEST_IS_SET(prns8, false);
+}
+END_TEST
+
 Suite* set_suite(void)
 {
   Suite *s = suite_create("Set");
@@ -159,6 +201,8 @@ Suite* set_suite(void)
   tcase_add_test(tc_intersection, test_intersection_map_8);
   tcase_add_test(tc_intersection, test_intersection_map_9);
   tcase_add_test(tc_intersection, test_intersection_map_10);
+  TCase *tc_set = tcase_create("Set");
+  tcase_add_test(tc_set, test_is_prn_set);
   suite_add_tcase(s, tc_intersection);
 
   return s;

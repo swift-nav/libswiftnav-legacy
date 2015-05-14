@@ -18,6 +18,53 @@
 /** \defgroup set Utility functions for dealing with sets
  * \{ */
 
+/* Tests if an array of PRNs form a sorted set with no duplicate elements.
+ *
+ * \param n Length of PRN array
+ * \param prns Array of PRNs
+ * \return `TRUE` if the PRNs form an ordered set, else `FALSE`
+ */
+bool is_prn_set(u8 n, const u8 *prns)
+{
+  if (n == 0) {
+    return true;
+  }
+
+  u8 current = prns[0];
+  for (u8 i = 1; i < n; i++) {
+    if (prns[i] <= current) {
+      return false;
+    }
+    current = prns[i];
+  }
+  return true;
+}
+
+/* Tests if an array forms a sorted set with no duplicate elements.
+ *
+ * \param n Length of array
+ * \param sz Size of array element in bytes
+ * \param set Pointer to array
+ * \param cmp Pointer to a comparison function
+ * \return `TRUE` if the array forms an ordered set, else `FALSE`
+ */
+bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
+{
+  if (n == 0) {
+    return true;
+  }
+
+  const void *current = set;
+  for (u8 i = 1; i < n; i++) {
+    const void *next = set + sz*i;
+    if (cmp(next, current) <= 0) {
+      return false;
+    }
+    current = next;
+  }
+  return true;
+}
+
 /** Call a function for each element in the intersection of two sets.
  *
  * \param na Number of elements in set A
