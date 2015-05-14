@@ -88,6 +88,42 @@ u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                           nav_meas_cmp, sds, single_diff_);
 }
 
+typedef struct {
+  sdiff_t *sds;
+  double *remote_pos_ecef;
+} make_propagated_sdiff_ctxt;
+
+static void make_propagated_sdiff_(void *context, u32 n,
+                                   const void *a, const void *b)
+{
+  const navigation_measurement_t *m_a = (const navigation_measurement_t *)a;
+  const navigation_measurement_t *m_b = (const navigation_measurement_t *)b;
+  make_propagated_sdiff_ctxt *ctxt = (make_propagated_sdiff_ctxt *)context;
+
+  /* Construct sds[n] */
+  single_diff_(ctxt->sds, n, a, b);
+
+  double old_dist = vector_distance(3, m_a->sat_pos, ctxt->remote_pos_ecef);
+  double new_dist = vector_distance(3, m_b->sat_pos, ctxt->remote_pos_ecef);
+  double dr = new_dist - old_dist;
+
+  ctxt->sds[n].pseudorange += dr;
+  ctxt->sds[n].carrier_phase -= dr / GPS_L1_LAMBDA_NO_VAC;
+}
+
+u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
+                          u8 n_remote, navigation_measurement_t *m_remote,
+                          double remote_pos_ecef[3], sdiff_t *sds)
+{
+  make_propagated_sdiff_ctxt ctxt = {
+    .sds = sds,
+    .remote_pos_ecef = remote_pos_ecef
+  };
+  return intersection_map(n_local, sizeof(navigation_measurement_t), m_local,
+                          n_remote, sizeof(navigation_measurement_t), m_remote,
+                          nav_meas_cmp, &ctxt, make_propagated_sdiff_);
+}
+
 int sdiff_search_prn(const void *a, const void *b)
 {
   return (*(u8*)a - ((sdiff_t *)b)->prn);
@@ -122,7 +158,7 @@ int sdiff_search_prn(const void *a, const void *b)
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
  */
-u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
+u8 make_propagated_sdiffs2(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
                           ephemeris_t *es, gps_time_t t,
