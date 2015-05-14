@@ -293,9 +293,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 
     double ref_ecef[3];
 
-    ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
-    ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[0];
-    ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[0];
+    vector_add_sc(3, receiver_ecef, b2, 0.5, ref_ecef);
 
     /* TODO: make a common DE and use it instead. */
 
@@ -310,6 +308,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
                                           &sats_management, nkf.state_mean,
                                           nkf.state_cov_U, nkf.state_cov_D);
 
+  /* TODO: Refactor - looks like ref_ecef can be passed in uninitialized */
   update_ambiguity_test(ref_ecef,
                         dgnss_settings.phase_var_test,
                         dgnss_settings.code_var_test,
@@ -531,9 +530,7 @@ void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs,
                                double receiver_ecef[3], double b[3])
 {
   double ref_ecef[3];
-  ref_ecef[0] = receiver_ecef[0] + 0.5 * b[0];
-  ref_ecef[1] = receiver_ecef[1] + 0.5 * b[1];
-  ref_ecef[2] = receiver_ecef[2] + 0.5 * b[2];
+  vector_add_sc(3, receiver_ecef, b, 0.5, ref_ecef);
 
   sdiff_t corrected_sdiffs[num_sats];
 
