@@ -6,9 +6,7 @@
 #include "dgnss_management.h"
 #include "ambiguity_test.h"
 
-extern sats_management_t sats_management;
-extern nkf_t nkf;
-extern ambiguity_test_t ambiguity_test;
+dgnss_state_t dgs;
 
 sdiff_t sdiffs[6];
 double ref_ecef[3];
@@ -49,11 +47,11 @@ void check_dgnss_management_setup()
 
   sdiffs[5].prn = 99;
 
-  memset(nkf.state_mean, 0, sizeof(double) * 5);
-  nkf.state_dim = 4;
-  nkf.obs_dim = 8;
+  memset(dgs.nkf.state_mean, 0, sizeof(double) * 5);
+  dgs.nkf.state_dim = 4;
+  dgs.nkf.obs_dim = 8;
 
-  create_ambiguity_test(&ambiguity_test);
+  create_ambiguity_test(&dgs.ambiguity_test);
 }
 
 void check_dgnss_management_teardown()
@@ -79,18 +77,18 @@ void matrix_eye_s64(u32 n, s64 *M)
 /* Check that it works with the first sdiff as the reference sat.
  * This should verify that the loop can start correctly.*/
 START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 1;
-  sats_management.prns[1] = 2;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 1;
+  dgs.sats_management.prns[1] = 2;
+  dgs.sats_management.prns[2] = 3;
+  dgs.sats_management.prns[3] = 4;
+  dgs.sats_management.prns[4] = 5;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -103,18 +101,18 @@ END_TEST
 /* Check that it works with a middle sdiff as the reference sat.
  * This should verify that the induction works. */
 START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 2;
-  sats_management.prns[1] = 1;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 2;
+  dgs.sats_management.prns[1] = 1;
+  dgs.sats_management.prns[2] = 3;
+  dgs.sats_management.prns[3] = 4;
+  dgs.sats_management.prns[4] = 5;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -127,18 +125,18 @@ END_TEST
 /* Check that it works with the last sdiff as the reference sat.
  * This should verify that the loop can terminate correctly.*/
 START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 5;
-  sats_management.prns[1] = 1;
-  sats_management.prns[2] = 2;
-  sats_management.prns[3] = 3;
-  sats_management.prns[4] = 4;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 5;
+  dgs.sats_management.prns[1] = 1;
+  dgs.sats_management.prns[2] = 2;
+  dgs.sats_management.prns[3] = 3;
+  dgs.sats_management.prns[4] = 4;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -151,12 +149,12 @@ END_TEST
 /* Check that measurements generated from a baseline result in an estimate
  * matching the baseline. */
 START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 5;
-  sats_management.prns[1] = 1;
-  sats_management.prns[2] = 2;
-  sats_management.prns[3] = 3;
-  sats_management.prns[4] = 4;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 5;
+  dgs.sats_management.prns[1] = 1;
+  dgs.sats_management.prns[2] = 2;
+  dgs.sats_management.prns[3] = 3;
+  dgs.sats_management.prns[4] = 4;
 
   double b_orig[3];
   b_orig[0] = 1;
@@ -187,7 +185,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -198,21 +196,21 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
 END_TEST
 
 START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
-  sats_management.prns[0] = 5;
-  sats_management.num_sats = 1;
+  dgs.sats_management.prns[0] = 5;
+  dgs.sats_management.num_sats = 1;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
 
-  sats_management.num_sats = 0;
+  dgs.sats_management.num_sats = 0;
 
-  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
@@ -237,25 +235,25 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_first) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
+  add_sats_old(&dgs.ambiguity_test,
            1,
            4, prns,
            lower, upper,
            Z_inv);
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 1;
-  ambiguity_test.amb_check.matching_ndxs[2] = 2;
-  ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 1;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 3;
+  memset(dgs.ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -282,25 +280,25 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_middle) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
+  add_sats_old(&dgs.ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 1;
-  ambiguity_test.amb_check.matching_ndxs[2] = 2;
-  ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 1;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 3;
+  memset(dgs.ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -327,25 +325,25 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_ref_end) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
+  add_sats_old(&dgs.ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 1;
-  ambiguity_test.amb_check.matching_ndxs[2] = 2;
-  ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 1;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 3;
+  memset(dgs.ambiguity_test.amb_check.ambs, 0, sizeof(z_t) * 5);
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -372,19 +370,19 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
+  add_sats_old(&dgs.ambiguity_test,
            ref_prn,
            4, prns,
            lower, upper,
            Z_inv);
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 1;
-  ambiguity_test.amb_check.matching_ndxs[2] = 2;
-  ambiguity_test.amb_check.matching_ndxs[3] = 3;
-  memset(ambiguity_test.amb_check.ambs, 0, sizeof(s32) * 5);
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 1;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 3;
+  memset(dgs.ambiguity_test.amb_check.ambs, 0, sizeof(s32) * 5);
 
   double b_orig[3];
   b_orig[0] = 1;
@@ -415,7 +413,7 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                  ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
@@ -426,58 +424,58 @@ START_TEST(test_dgnss_low_latency_IAR_baseline_fixed_point) {
 END_TEST
 
 START_TEST(test_dgnss_low_latency_IAR_baseline_few_sats) {
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 1;
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 1;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 
-  ambiguity_test.amb_check.num_matching_ndxs = 0;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 0;
 
-  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 
-  ambiguity_test.amb_check.initialized = 0;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.initialized = 0;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
 
-  _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
+  _dgnss_low_latency_float_baseline(&dgs, num_sdiffs, sdiffs,
                                    ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
 END_TEST
 
 START_TEST(test_dgnss_low_latency_IAR_baseline_uninitialized) {
-  ambiguity_test.amb_check.initialized = 0;
-  ambiguity_test.amb_check.num_matching_ndxs = 5;
+  dgs.ambiguity_test.amb_check.initialized = 0;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 5;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
 END_TEST
 
 START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
-  ambiguity_test.amb_check.initialized = 0;
-  ambiguity_test.amb_check.num_matching_ndxs = 5;
+  dgs.ambiguity_test.amb_check.initialized = 0;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 5;
 
   double b[3];
   u8 num_used;
   u8 num_sdiffs = 6;
 
 
-  s8 valid = _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
+  s8 valid = _dgnss_low_latency_IAR_baseline(&dgs, num_sdiffs, sdiffs,
                                               ref_ecef, &num_used, b);
   fail_unless(valid == -1);
 }
