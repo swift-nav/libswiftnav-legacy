@@ -47,7 +47,7 @@ cdef class ChannelMeasurement:
 
 cdef class NavigationMeasurement:
   def __cinit__(self, raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
-                doppler, sat_pos, sat_vel, snr, lock_time, tot, wn, prn):
+                doppler, sat_pos, sat_vel, snr, lock_time, tow, wn, prn):
     self.meas.raw_pseudorange = raw_pseudorange
     self.meas.pseudorange = pseudorange
     self.meas.carrier_phase = carrier_phase
@@ -58,9 +58,83 @@ cdef class NavigationMeasurement:
       self.meas.sat_vel[i] = sat_vel[i]
     self.meas.snr = snr
     self.meas.lock_time = lock_time
-    self.meas.tot.tow = tot
+    self.meas.tot.tow = tow
     self.meas.tot.wn = wn
     self.meas.prn = prn
+
+  property raw_pseudorange:
+    def __get__(self):
+      return self.meas.raw_pseudorange
+    def __set__(self, raw_pseudorange):
+      self.meas.raw_pseudorange = raw_pseudorange
+
+  property pseudorange:
+    def __get__(self):
+      return self.meas.pseudorange
+    def __set__(self, pseudorange):
+      self.meas.pseudorange = pseudorange
+
+  property carrier_phase:
+    def __get__(self):
+      return self.meas.carrier_phase
+    def __set__(self, carrier_phase):
+      self.meas.carrier_phase = carrier_phase
+
+  property raw_doppler:
+    def __get__(self):
+      return self.meas.raw_doppler
+    def __set__(self, raw_doppler):
+      self.meas.raw_doppler = raw_doppler
+
+  property doppler:
+    def __get__(self):
+      return self.meas.doppler
+    def __set__(self, doppler):
+      self.meas.doppler = doppler
+
+  property sat_pos:
+    def __get__(self):
+      return (self.meas.sat_pos[0], self.meas.sat_pos[1], self.meas.sat_pos[2])
+    def __set__(self, sat_pos):
+      for i in range(3):
+        self.meas.sat_pos[i] = sat_pos[i]
+
+  property sat_vel:
+    def __get__(self):
+      return (self.meas.sat_vel[0], self.meas.sat_vel[1], self.meas.sat_vel[2])
+    def __set__(self, sat_vel):
+      for i in range(3):
+        self.meas.sat_vel[i] = sat_vel[i]
+
+  property snr:
+    def __get__(self):
+      return self.meas.snr
+    def __set__(self, snr):
+      self.meas.snr = snr
+
+  property lock_time:
+    def __get__(self):
+      return self.meas.lock_time
+    def __set__(self, lock_time):
+      self.meas.lock_time = lock_time
+
+  property tow:
+    def __get__(self):
+      return self.meas.tot.tow
+    def __set__(self, tow):
+      self.meas.tot.tow = tow
+
+  property wn:
+    def __get__(self):
+      return self.meas.tot.wn
+    def __set__(self, wn):
+      self.meas.tot.wn = wn
+
+  property prn:
+    def __get__(self):
+      return self.meas.prn
+    def __set__(self, prn):
+      self.meas.prn = prn
 
   def __repr__(self):
     return '<NavigationMeasurement ' + \
