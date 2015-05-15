@@ -12,6 +12,9 @@
 cimport track_c
 from nav_msg cimport NavMsg
 from nav_msg import NavMsg
+from gpstime cimport *
+from gpstime_c cimport *
+from gpstime import GpsTime
 from ephemeris_c cimport ephemeris_t
 from track_c cimport channel_measurement_t, navigation_measurement_t
 from common cimport *
@@ -47,7 +50,7 @@ cdef class ChannelMeasurement:
 
 cdef class NavigationMeasurement:
   def __cinit__(self, raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
-                doppler, sat_pos, sat_vel, snr, lock_time, tow, wn, prn):
+                doppler, sat_pos, sat_vel, snr, lock_time, tot, prn, lock_counter):
     self.meas.raw_pseudorange = raw_pseudorange
     self.meas.pseudorange = pseudorange
     self.meas.carrier_phase = carrier_phase
@@ -58,9 +61,10 @@ cdef class NavigationMeasurement:
       self.meas.sat_vel[i] = sat_vel[i]
     self.meas.snr = snr
     self.meas.lock_time = lock_time
-    self.meas.tot.tow = tow
-    self.meas.tot.wn = wn
+    self.meas.tot.tow = tot.tow
+    self.meas.tot.wn = tot.wn
     self.meas.prn = prn
+    self.meas.lock_counter = lock_counter
 
   property raw_pseudorange:
     def __get__(self):
@@ -118,23 +122,24 @@ cdef class NavigationMeasurement:
     def __set__(self, lock_time):
       self.meas.lock_time = lock_time
 
-  property tow:
+  property tot:
     def __get__(self):
-      return self.meas.tot.tow
-    def __set__(self, tow):
-      self.meas.tot.tow = tow
-
-  property wn:
-    def __get__(self):
-      return self.meas.tot.wn
-    def __set__(self, wn):
-      self.meas.tot.wn = wn
+      return GpsTime(self.meas.tot.wn, self.meas.tot.tow)
+    def __set__(self, tot):
+      self.meas.tot.tow = tot.tow
+      self.meas.tot.wn = tot.wn
 
   property prn:
     def __get__(self):
       return self.meas.prn
     def __set__(self, prn):
       self.meas.prn = prn
+
+  property lock_counter:
+    def __get__(self):
+      return self.meas.lock_counter
+    def __set__(self, lock_counter):
+      self.meas.lock_counter = lock_counter
 
   def __repr__(self):
     return '<NavigationMeasurement ' + \

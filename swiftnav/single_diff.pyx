@@ -32,6 +32,22 @@ cdef class SingleDiff:
   def __repr__(self):
     return "<SingleDiff prn=" + str(self.prn) + ", snr=" + str(self.snr) + ">"
 
+  def __dict__(self):
+    # Cython doesn't produce dict attributes fothese objects automatically. This
+    # flattens out the dict for easy consumption at other sources that can't handle
+    # nested arrays.
+    return {'pseudorange': self.pseudorange,
+            'carrier_phase': self.carrier_phase,
+            'doppler': self.doppler,
+            'sat_pos_x': self.sat_pos[0],
+            'sat_pos_y': self.sat_pos[1],
+            'sat_pos_z': self.sat_pos[2],
+            'sat_vel_x': self.sat_vel[0],
+            'sat_vel_y': self.sat_vel[1],
+            'sat_vel_z': self.sat_vel[2],
+            'snr': self.snr,
+            'prn': self.prn}
+
   property pseudorange:
     def __get__(self):
         return self.sdiff.pseudorange
