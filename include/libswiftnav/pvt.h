@@ -17,7 +17,7 @@
 #include "common.h"
 #include "track.h"
 
-#define PVT_MAX_ITERATIONS 20
+#define PVT_MAX_ITERATIONS 10
 
 typedef struct {
   double pdop;

@@ -669,6 +669,10 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                   kf->decor_obs_mtx);
 }
 
+/* Currently this function is only ever used to find the new position of a prn
+ * in a new basis (permuted list) of prns, so all callsites assert the result
+ * is not -1.
+ */
 s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list)
 {
   for (u32 i=0; i<num_elements; i++) {
