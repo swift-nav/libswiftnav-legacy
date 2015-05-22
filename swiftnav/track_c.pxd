@@ -34,6 +34,7 @@ cdef extern from "libswiftnav/track.h":
     double lock_time
     gps_time_t tot
     u8 prn
+    u16 lock_counter
 
   ctypedef struct simple_lf_state_t:
     float y
