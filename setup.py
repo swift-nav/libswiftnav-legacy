@@ -91,10 +91,6 @@ setup_args = dict(
 )
 
 if __name__ == "__main__":
-  # Bootstrap Distribute if the user doesn't have it
-  from distribute_setup import use_setuptools
-  use_setuptools()
-
   import numpy as np
   import os, sys
 
