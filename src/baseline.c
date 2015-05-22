@@ -23,6 +23,7 @@
 #include "amb_kf.h"
 #include "linear_algebra.h"
 #include "filter_utils.h"
+#include "dgnss_management.h"
 
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
@@ -350,6 +351,94 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   }
 
   return 0;
+}
+
+static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
+{
+  memcpy(to, from, index*size*sizeof(double));
+  memcpy(to + index*size, from + (index + 1)*size, (len - index - 1)*size*sizeof(double));
+}
+
+static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
+                  const double *N, const double *DE, double b[3], double *resid)
+{
+  u8 new_dds = num_dds - 1;
+  double new_obs[new_dds];
+  double new_N[new_dds];
+  double new_DE[new_dds * 3];
+
+  drop_i(dropped_dd, num_dds, 1, dd_obs, new_obs);
+  drop_i(dropped_dd, num_dds, 1, N, new_N);
+  drop_i(dropped_dd, num_dds, 3, DE, new_DE);
+
+  return lesq_solution_float(new_dds, new_obs, new_N, new_DE, b, resid);
+}
+
+/* Approximate chi square test
+ * Scales least squares residuals by a priori covariance, compares against threshold.
+ * Returns true if norm is below threshold.
+ */
+static bool chi_test(u8 num_dds, double *resid)
+{
+  double sigma = DEFAULT_PHASE_VAR_KF;
+  // TODO
+  double threshold = 222;
+  return vector_norm(num_dds, resid) / sqrt(sigma) < threshold;
+}
+
+/* See lesq_solution_float for argument documentation
+ * Returns number of dds used in solution
+ *
+ * TODO do any callers need to see residuals?
+ *      replace calls in dgnss_fixed_baseline, _dgnss_low_lat
+ */
+u8 least_squares_solve_and_check(u8 num_dds_u8, const double *dd_obs,
+                                 const double *N, const double *DE, double b[3])
+{
+  integer num_dds = num_dds_u8;
+  double residuals[num_dds];
+
+  s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
+
+  if (okay == 0) {
+    if (chi_test(num_dds, residuals)) {
+      // solution with all sats ok
+      return num_dds_u8;
+    } else {
+      if (num_dds < 4) {
+        // just enough sats for a solution; can't search for solution after dropping one
+        return 0;
+      } else {
+        u8 num_passing = 0;
+        u8 bad_sat = -1;
+        u8 new_dds = num_dds - 1;
+
+        for (u8 i = 0; i < num_dds; i++) {
+          lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
+          if (chi_test(new_dds, residuals)) {
+            num_passing++;
+            bad_sat = i;
+          }
+        }
+
+        if (num_passing == 1) {
+          /* bad_sat holds index of bad dd
+           * Return solution without bad_sat */
+          lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, 0);
+          return new_dds;
+        } else if (num_passing == 0) {
+          // ref sat is bad?
+          return 0;
+        } else {
+          // ?
+          return 0;
+        }
+      }
+    }
+  } else {
+    // not enough sats or other error with initial lesq solution
+    return 0;
+  }
 }
 
 /** A least squares solution for baseline from phases using the KF state.
