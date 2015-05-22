@@ -24,6 +24,7 @@
 #include "linear_algebra.h"
 #include "filter_utils.h"
 #include "set.h"
+#include "dgnss_management.h"
 
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
@@ -153,14 +154,14 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
  *                -2 if an error occurred
  */
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3], double *resid)
+                     const double *DE, double b[3])
 {
   assert(N != NULL);
   double N_float[num_dds];
   for (u8 i=0; i<num_dds; i++) {
     N_float[i] = N[i];
   }
-  return lesq_solution_float(num_dds, dd_obs, N_float, DE, b, resid);
+  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b, 0, 0, 0);
 }
 
 /* TODO use the state covariance matrix for a better estimate:
@@ -353,6 +354,137 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   return 0;
 }
 
+static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
+{
+  memcpy(to, from, index*size*sizeof(double));
+  memcpy(to + index*size, from + (index + 1)*size, (len - index - 1)*size*sizeof(double));
+}
+
+static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
+                  const double *N, const double *DE, double b[3], double *resid)
+{
+  u8 new_dds = num_dds - 1;
+  double new_obs[new_dds];
+  double new_N[new_dds];
+  double new_DE[new_dds * 3];
+
+  drop_i(dropped_dd, num_dds, 1, dd_obs, new_obs);
+  drop_i(dropped_dd, num_dds, 1, N, new_N);
+  drop_i(dropped_dd, num_dds, 3, DE, new_DE);
+
+  return lesq_solution_float(new_dds, new_obs, new_N, new_DE, b, resid);
+}
+
+/* Approximate chi square test
+ * Scales least squares residuals by estimated covariance, compares against threshold.
+ * Returns true if norm is below threshold.
+ *
+ * Returns residual value in `residual' if non-null.
+ */
+static bool chi_test(u8 num_dds, double *residuals, double *residual)
+{
+  double sigma = DEFAULT_PHASE_VAR_KF;
+  /* 5.5 seems adequate for float/fixed baseline residuals. */
+#define BASELINE_RESIDUAL_THRESHOLD 5.5
+  double norm = vector_norm(num_dds, residuals) / sqrt(sigma);
+  if (residual) {
+    *residual = norm;
+  }
+  return norm < BASELINE_RESIDUAL_THRESHOLD;
+}
+
+/* See lesq_solution_float for argument documentation
+ * Return values:
+ *    0: solution with all dd's ok
+ *    1: repaired solution, using one fewer observation
+ *       returns index of removed observation if removed_obs ptr is passed
+ *   -1: no reasonable solution possible
+ */
+/* TODO(dsk) update all call sites to use n_used as calculated here.
+ * TODO(dsk) add warn/info logging to call sites when repair occurs. */
+s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
+                        const double *N, const double *DE, double b[3],
+                        u8 *n_used,
+                        double *ret_residuals,
+                        u8 *removed_obs)
+{
+  integer num_dds = num_dds_u8;
+  double residuals[num_dds];
+
+  s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
+
+  if (okay == 0) {
+    double residual;
+    if (chi_test(num_dds, residuals, &residual)) {
+      /* Solution using all sats ok. */
+      if (ret_residuals) {
+        memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+      }
+      if (n_used) {
+        *n_used = num_dds;
+      }
+      return 0;
+    } else {
+      if (num_dds < 5) {
+        /* We have just enough sats for a solution; can't search for solution
+         * after dropping one.
+         * 5 are needed because a 3 dimensional system is exactly constrained,
+         * so the bad measurement can't be detected.
+         */
+        if (n_used) {
+          *n_used = 0;
+        }
+        return -1;
+      } else {
+        u8 num_passing = 0;
+        u8 bad_sat = -1;
+        u8 new_dds = num_dds - 1;
+
+        for (u8 i = 0; i < num_dds; i++) {
+          lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
+          if (chi_test(new_dds, residuals, &residual)) {
+            num_passing++;
+            bad_sat = i;
+          }
+        }
+
+        if (num_passing == 1) {
+          /* bad_sat holds index of bad dd
+           * Return solution without bad_sat. */
+          /* Recalculate this solution. */
+          lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
+          if (removed_obs) {
+            *removed_obs = bad_sat;
+          }
+          if (ret_residuals) {
+            memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+          }
+          if (n_used) {
+            *n_used = num_dds-1;
+          }
+          return 1;
+        } else if (num_passing == 0) {
+          /* Ref sat is bad? */
+          if (n_used) {
+            *n_used = 0;
+          }
+          return -1;
+        } else {
+          /* Had more than one acceptable solution.
+           * TODO(dsk) should we return the best one? */
+          if (n_used) {
+            *n_used = 0;
+          }
+          return -1;
+        }
+      }
+    }
+  } else {
+    /* Not enough sats or other error returned by initial lesq solution. */
+    return -1;
+  }
+}
+
 /** A least squares solution for baseline from phases using the KF state.
  * This uses the current state of the KF and a set of phase observations to
  * solve for the current baseline.
@@ -369,7 +501,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
  */
-void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
+s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3])
 {
@@ -379,10 +511,9 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 ret = lesq_solution_float(num_dds_u8, dd_measurements, state_mean,
-                               DE, b, 0);
-  (void)ret;
+  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0, 0);
   DEBUG_EXIT();
+  return code;
 }
 
 /** Calculate least squares baseline solution from a set of single difference

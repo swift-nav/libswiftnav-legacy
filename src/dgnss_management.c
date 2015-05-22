@@ -291,8 +291,13 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
   double ref_ecef[3];
   if (num_sats >= 5) {
     double b2[3];
-    least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+    s8 code = least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
         sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
+
+    if (code < 0) {
+      DEBUG_EXIT();
+      return;
+    }
 
     double ref_ecef[3];
 
