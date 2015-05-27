@@ -20,6 +20,8 @@
 #include "coord_system.h"
 #include "track.h"
 
+#include "baseline.h"
+
 #include "pvt.h"
 
 static double vel_solve(double rx_vel[],
@@ -130,12 +132,13 @@ static void compute_dops(const double H[4][4],
 static double pvt_solve(double rx_state[],
                         const u8 n_used,
                         const navigation_measurement_t nav_meas[n_used],
+                        double omp[n_used],
                         double H[4][4])
 {
   double p_pred[n_used];
 
   /* Vector of prediction errors */
-  double omp[n_used];
+  //double omp[n_used];
 
   /* G is a geometry matrix tells us how our pseudoranges relate to
    * our state estimates -- it's the Jacobian of d(p_i)/d(x_j) where
@@ -305,9 +308,11 @@ s8 calc_PVT(const u8 n_used,
 
   double update;
   u8 iters;
+  // Residual
+  double omp[n_used];
   /* Newton-Raphson iteration. */
   for (iters=0; iters<PVT_MAX_ITERATIONS; iters++) {
-    if ((update = pvt_solve(rx_state, n_used, nav_meas, H)) > 0) {
+    if ((update = pvt_solve(rx_state, n_used, nav_meas, omp, H)) > 0) {
       break;
     }
   }
@@ -333,6 +338,14 @@ s8 calc_PVT(const u8 n_used,
     rx_state[2] = 0;
     return -4;
   }
+
+  // Integrity testing. calculate lesq residual
+  // Need to add clock offset to omp calculated by last iteration of pvt_solve
+  for (int i = 0; i < n_used; i++) {
+    omp[i] -= rx_state[3];
+  }
+  double residual = vector_norm(n_used, omp);
+  printf("PVT NORM %i %i %f\n", n_used, iters, residual);
 
   /* Save as x, y, z. */
   for (u8 i=0; i<3; i++) {

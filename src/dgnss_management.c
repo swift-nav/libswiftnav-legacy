@@ -250,8 +250,16 @@ static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measureme
 {
   DEBUG_ENTRY();
 
+  // TODO 2222
+  // move to dgnss_update?
+  // log timestep + sdiff prns (not off by one)
+  // join with residuals
+  // check sats on repair
+  TIME_STEP++;
+
   double b2[3];
-  least_squares_solve_b(&nkf, sdiffs, dd_measurements, reciever_ecef, b2);
+  s8 code = least_squares_solve_b(&nkf, sdiffs, dd_measurements, reciever_ecef, b2);
+  (void)code;
 
   double ref_ecef[3];
 
@@ -314,11 +322,32 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
 
     double b2[3];
-    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
+    LESQ_CALLER = 0;
+    s8 code = least_squares_solve_b(
+        &nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
+
+    if (lesq_error(code)) {
+      // TODO
+      DEBUG_EXIT();
+      return;
+    }
 
     ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[2];
+
+    if (SITL_LOGGING) {
+      // Calculate a baseline and calculate baselines for checking
+      u8 num_used;
+      double base[3];
+      LESQ_CALLER = 1;
+      dgnss_new_float_baseline(num_sats, sdiffs, ref_ecef,
+                               &num_used, base);
+      LESQ_CALLER = 2;
+      dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
+                           &num_used, base);
+      LESQ_CALLER = 0;
+    }
   }
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
@@ -336,7 +365,12 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   if (DEBUG) {
     if (num_sats >=4) {
       double b3[3];
-      least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b3);
+      if (lesq_error(
+            least_squares_solve_b(
+              &nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b3))) {
+        DEBUG_EXIT();
+        return;
+      }
 
       ref_ecef[0] = reciever_ecef[0] + 0.5 * b3[0];
       ref_ecef[1] = reciever_ecef[1] + 0.5 * b3[1];
@@ -379,7 +413,8 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
   return ret;
 }
 
-void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], u8 *num_used, double b[3])
+void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
+                              u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
   sdiff_t corrected_sdiffs[num_sats];
@@ -394,6 +429,7 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
   least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, receiver_ecef, b);
+  // TODO(dsk) is this okay given that lesq may use variable number of sats?
   *num_used = sats_management.num_sats;
   DEBUG_EXIT();
 }
@@ -431,8 +467,8 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
   s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
-                             ambiguity_test.amb_check.ambs, DE, b, 0);
-  if (ret) {
+                             ambiguity_test.amb_check.ambs, DE, b);
+  if (lesq_error(ret)) {
     log_error("dgnss_fixed_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();
@@ -470,6 +506,7 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
 s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                      double ref_ecef[3], u8 *num_used, double b[3])
 {
+  printf("LOW LAT FLOAT BASELINE\n");
   DEBUG_ENTRY();
   if (num_sdiffs < 4 || sats_management.num_sats < 4) {
     /* For a position solution, we need at least 4 sats. That means we must
@@ -493,8 +530,13 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
-                        ref_ecef, b);
+  s8 code = least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
+                                  ref_ecef, b);
+  if (lesq_error(code)) {
+    DEBUG_EXIT();
+    return -1;
+  }
+  // TODO(dsk) is this okay given that lesq may use variable number of sats?
   *num_used = sats_management.num_sats;
   DEBUG_EXIT();
   return 0;
@@ -531,6 +573,7 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
 s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                    double ref_ecef[3], u8 *num_used, double b[3])
 {
+  printf("LOW LAT IAR BASELINE\n");
   DEBUG_ENTRY();
   assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {
@@ -558,8 +601,8 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
   s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
-                             dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
-  if (ret) {
+                             dd_meas, ambiguity_test.amb_check.ambs, DE, b);
+  if (lesq_error(ret)) {
     log_error("_dgnss_low_latency_IAR_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();
@@ -609,7 +652,7 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   /* if we get here, we weren't able to get an IAR resolved baseline.
    * Check if we can get a float baseline. */
   s8 float_ret_code = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, num_used, b);
+                                                        ref_ecef, num_used, b);
   if (float_ret_code == 0) {
     log_debug("low latency float solution\n");
     DEBUG_EXIT();

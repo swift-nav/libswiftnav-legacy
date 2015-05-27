@@ -59,7 +59,7 @@ void nkf_state_inclusion(nkf_t *kf,
 
 void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
 void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
+s8 least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
          const double *dd_measurements, const double ref_ecef[3], double b[3]);
 
 void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);

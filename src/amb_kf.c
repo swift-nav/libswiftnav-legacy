@@ -244,9 +244,9 @@ void nkf_update(nkf_t *kf, double *measurements)
   DEBUG_EXIT();
 }
 
-void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
-                      const double *dd_measurements, const double ref_ecef[3],
-                      double b[3])
+s8 least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
+                         const double *dd_measurements, const double ref_ecef[3],
+                         double b[3])
 {
   return least_squares_solve_b_external_ambs(kf->state_dim, kf->state_mean,
       sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
@@ -530,6 +530,10 @@ s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *l
     if (x == list[i]) {
       return i;
     }
+  }
+  printf("failed to find: %i\n", x);
+  for (u32 i=0; i<num_elements; i++) {
+    printf("prn: %i\n", list[i]);
   }
   assert(false);
 }

@@ -181,25 +181,13 @@ START_TEST(test_lesq_solution4)
   predict_carrier_obs(num_dds, N, DE, b_true, dd_obs);
 
   double b[3];
-  double resid[num_dds];
   s32 N_int[num_dds];
   for (u8 i=0; i<num_dds; i++) {
     N_int[i] = N[i];
   }
-  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, resid);
+  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b);
 
-  fail_unless(ret == 0, "solution returned error %d", ret);
-
-  for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
-                "Baseline mismatch: %lf vs %lf",
-                b[i], b_true[i]);
-  }
-
-  /* Try with resid = NULL */
-  ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, 0);
-
-  fail_unless(ret == 0, "solution returned error %d", ret);
+  fail_unless(ret > 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(fabs(b[i] - b_true[i]) < TOL,
