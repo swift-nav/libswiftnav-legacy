@@ -100,9 +100,11 @@ typedef struct {
  */
 typedef struct {
   float log_bw;     /**< Noise bandwidth in dBHz. */
-  float A;          /**< IIR filter coeff. */
+  float b;          /**< IIR filter coeff. */
+  float a;          /**< IIR filter coeff. */
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
   float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
+  float xn;         /**< Last pre-filter sample. */
 } cn0_est_state_t;
 
 /** \} */
