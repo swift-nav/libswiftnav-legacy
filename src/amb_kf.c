@@ -14,6 +14,11 @@
  * This is a Bierman-Thornton kalman filter implementation, as described in:
  *  [1] Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
  *      John C. Wiley & Sons, Inc., 2011.
+ * It has been modified to be more robust. It can be verified by following a
+ * proof parallel to the one in Bierman's original derivation [2] of the U-D
+ * updates with a data-scaled Kalman gain.
+ *  [2] Bierman, Gerald J. "Factorization Methods for Discrete Sequential
+        Estimation" Academic Press, Inc., 1977.
  */
 
 #include <string.h>
@@ -38,75 +43,102 @@
  * Preliminary integer ambiguity estimation with a Kalman Filter.
  * \{ */
 
-/** In place updating of the state cov and k vec using a scalar observation
- * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
- *    singular matrices, dictating that zeros from cov_D dominate.
+/**Calculation of vectors needed for the innovation scaling.
+ * We compute two vectors needed to make the Bierman update,
+ * as well as the variance of the innovation.
  *
+ * \param state_dim The dimension of the KF state.
+ * \param h         A row of the observation matrix.
+ * \param R         The variance of the observation.
+ * \param U         KF state covariance U (not packed form)
+ * \param D         KF state covariance D (stored as a vector)
+ * \param f         U^T * h.
+ * \param g         diag(D) * f.
+ * \return          alpha = f * g + R, the innovation variance.
  */
-static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
-                                           double *U, double *D, double *k)
+static double compute_innovation_terms(u32 state_dim, const double *h,
+                                       double R, const double *U,
+                                       const double *D, double *f, double *g)
 {
-  DEBUG_ENTRY();
-
-  if (DEBUG) {
-    VEC_PRINTF(h, state_dim);
-    printf("R = %.16f", R);
-    if (abs(R) == 0) {
-      printf(" \t (R == 0 exactly)\n");
-    }
-    else {
-      printf("\n");
-    }
-  }
-
-  double f[state_dim]; /*  f = U^T * h. */
   memcpy(f, h, state_dim * sizeof(double));
+  /*  f = U^T * h. */
   cblas_dtrmv(CblasRowMajor, CblasUpper, CblasTrans, CblasUnit,
               /* ^ CBLAS_ORDER, CBLAS_UPLO, CBLAS_TRANSPOSE transA, CBLAS_DIAG. */
               state_dim, U,     /* int N, double *A. */
               state_dim, f, 1); /*  int lda, double *X, int incX. */
 
 
-  double g[state_dim]; /*  g = diag(D) * f. */
-  double alpha = R;    /*  alpha = f * g + R = f^T * diag(D) * f + R. */
+  /*  g = diag(D) * f.
+      alpha = f * g + R = f^T * diag(D) * f + R. */
+  double alpha = R;
   for (u32 i=0; i<state_dim; i++) {
     g[i] = D[i] * f[i];
     alpha += f[i] * g[i];
   }
-  if (DEBUG) {
-    VEC_PRINTF(f, state_dim);
-    VEC_PRINTF(g, state_dim);
-    printf("alpha = %.16f", alpha);
-    if (abs(alpha) == 0) {
-      printf(" \t (alpha == 0 exactly)\n");
-    }
-    else {
-      printf("\n");
-    }
-  }
+  return alpha;
+}
 
-  double gamma[state_dim];
+
+/** In place updating of the state cov and k vec using a scalar observation
+ * This is from section 10.2.1 of Gibbs [1], with some extra logic for handling
+ * singular matrices, dictating that zeros from cov_D dominate in a particular
+ * potential 0 / 0.
+ * We also make it more robust, by multiplying k by k_scalar <=  1.
+ * To still perform the update in factored form, we modified the derivation
+ * in section V.3 of [2] to arrive at the following code.
+ *
+ * \param kf        The KF to update
+ * \param R         The measurement variance
+ * \param f         U^T * h
+ * \param g         diag(D) * f
+ * \param alpha     The innovation variance
+ * \param k_scalar  A scalar to multiply the Kalman gain by (softens outliers)
+ * \param innov     The difference between the actual and predicted observation
+ */
+static void update_kf_state(nkf_t *kf, double R, double *f, double *g,
+                            double alpha, double k_scalar,
+                            double innov)
+{
+  DEBUG_ENTRY();
+
+  assert(k_scalar <= 1);
+  assert(k_scalar >= 0);
+  if (k_scalar == 0) {
+    return;
+  }
+  u32 state_dim = kf->state_dim;
+  double *U = kf->state_cov_U;
+  double *D = kf->state_cov_D;
+  double k[state_dim];
+
   double U_bar[state_dim * state_dim];
   double D_bar[state_dim];
 
-  memset(gamma, 0,             state_dim * sizeof(double));
   memset(U_bar, 0, state_dim * state_dim * sizeof(double));
   memset(D_bar, 0,             state_dim * sizeof(double));
   memset(k,     0,             state_dim * sizeof(double));
 
-  gamma[0] = R + g[0] * f[0];
+  /* Turns out that to use k' = k * k_scalar instead of k as the Kalman gain,
+   * the only change in the covariance calculation needed is the initialization
+   * of gamma (alpha_i in Bierman's old book [2] V.3) */
+  double gamma = R / k_scalar + g[0] * f[0];
+  if (k_scalar < 1) {
+    for (u8 i = 0; i < kf->state_dim; i++) {
+      gamma += (1 - k_scalar) / k_scalar * g[i] * f[i];
+    }
+  }
   if (D[0] == 0 || R == 0) {
     /*  This is just an expansion of the other branch with the proper
      *  0 `div` 0 definitions. */
     D_bar[0] = 0;
   }
   else {
-    D_bar[0] = D[0] * R / gamma[0];
+    D_bar[0] = D[0] * R / gamma;
   }
   k[0] = g[0];
   U_bar[0] = 1;
   if (DEBUG) {
-    printf("gamma[0] = %f\n", gamma[0]);
+    printf("gamma[0] = %f\n", gamma);
     printf("D_bar[0] = %f\n", D_bar[0]);
     VEC_PRINTF(k, state_dim);
     printf("U_bar[:,0] = {");
@@ -116,16 +148,17 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
     printf("}\n");
   }
   for (u32 j=1; j<state_dim; j++) {
-    gamma[j] = gamma[j-1] + g[j] * f[j];
-    if (D[j] == 0 || gamma[j-1] == 0) {
+    double gamma_prev = gamma;
+    gamma += g[j] * f[j];
+    if (D[j] == 0 || gamma_prev == 0) {
       /* This is just an expansion of the other branch with the proper
        * 0 `div` 0 definitions. */
       D_bar[j] = 0;
     }
     else {
-      D_bar[j] = D[j] * gamma[j-1] / gamma[j];
+      D_bar[j] = D[j] * gamma_prev / gamma;
     }
-    double f_over_gamma = f[j] / gamma[j-1];
+    double f_over_gamma = f[j] / gamma_prev;
     for (u32 i=0; i<=j; i++) {
       if (k[i] == 0) {
       /* This is just an expansion of the other branch with the proper
@@ -139,7 +172,7 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
       k[i] += g[j] * U[i*state_dim + j]; /*  k = k + g[j] * U[:,j]. */
     }
     if (DEBUG) {
-      printf("gamma[%"PRIu32"] = %f\n", j, gamma[j]);
+      printf("gamma[%"PRIu32"] = %f\n", j, gamma);
       printf("D_bar[%"PRIu32"] = %f\n", j, D_bar[j]);
       VEC_PRINTF(k, state_dim);
       printf("U_bar[:,%"PRIu32"] = {", j);
@@ -154,6 +187,11 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   }
   memcpy(U, U_bar, state_dim * state_dim * sizeof(double));
   memcpy(D, D_bar,             state_dim * sizeof(double));
+
+  /* Update the KF mean, scaled by some heuristic term for robustness */
+  for (u32 j=0; j<kf->state_dim; j++) {
+      kf->state_mean[j] += k[j] * k_scalar * innov;
+  }
   if (DEBUG) {
     MAT_PRINTF(U, state_dim, state_dim);
     VEC_PRINTF(D, state_dim);
@@ -162,21 +200,100 @@ static void incorporate_scalar_measurement(u32 state_dim, double *h, double R,
   DEBUG_EXIT();
 }
 
-/** In place updating of the state mean and covariances to use the (decorrelated) observations
- * This is directly from section 10.2.1 of Gibbs [1]
+/** Get the weighted sum of squared innovations.
+ * It's a normalized error metric. High is bad.
+ * More precisely, we square the difference between the predicted observations
+ * and the actual observations, divide them by their variances (FPF' + R),
+ * but pretending they're independent, and then sum them.
+ * It's: sum_i (z - H * x)_i / (F * P * F' + R)_ii.
+ * If FPF'+R was actually diagonal and these measurements were independent,
+ * these would be chi square with kf->obs_dim degrees of freedom.
+ *
+ * \param kf        Kalman filter struct
+ * \param decor_obs Decorrelated observation vector
+ * \return          The weighted SOS.
  */
-static void incorporate_obs(nkf_t *kf, double *decor_obs)
+double get_sos_innov(const nkf_t *kf, const double *decor_obs)
+{
+  double predicted_obs[kf->obs_dim];
+  matrix_multiply(kf->obs_dim, kf->state_dim, 1,
+                  kf->decor_obs_mtx, kf->state_mean, predicted_obs);
+  double hu[kf->obs_dim * kf->state_dim];
+  /* TODO use the fact that U is unit triangular to save a ton of time */
+  matrix_multiply(kf->obs_dim, kf->state_dim, kf->state_dim,
+                  kf->decor_obs_mtx, kf->state_cov_U, hu);
+  /* (H * U * D * U^T * H^T)_ii = (HU * D * HU^T)_ii
+   *                            = Sum_kl (HU_ik * D_kl * HU^T_li)
+   *                            = Sum_kl (HU_ik * D_kl * HU_il)
+   *                            = Sum_k (HU_ik * D_kk * HU_ik) */
+  double sos = 0;
+  for (u8 i=0; i < kf->obs_dim; i++) {
+    double hph_r_ii = kf->decor_obs_cov[i];
+    for (u8 k=0; k < kf->state_dim; k++) {
+      hph_r_ii += hu[i * kf->state_dim + k] *
+                  hu[i * kf->state_dim + k] *
+                  kf->state_cov_D[k];
+    }
+    sos += (predicted_obs[i] - decor_obs[i]) *
+           (predicted_obs[i] - decor_obs[i]) /
+           hph_r_ii;
+  }
+  return sos;
+}
+
+/** Compute a scale factor to soften outliers, updating an outlier filter.
+ * We want to have some form of outlier detection that allows them
+ * (especially near the edge of the classifier) to influence the filter.
+ * This way, we soften the influence of any outliers, while eventually letting
+ * change-points through.
+ *
+ * I have found this moving average in log space to work best, only
+ * surpassed by a moving median. Both seem optimal with a timescale
+ * of 7 observations, as per detecting change points, but if we reduce
+ * the number of cycle slips, we may want to increase it.
+ *
+ * \param kf        The Kalman filter
+ * \param decor_obs Decorrelated observation vector
+ * \param k_scalar
+ * \return          A scalar to multiply Kalman gain by
+ */
+u8 outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar)
+{
+  double sos = get_sos_innov(kf, decor_obs) / kf->obs_dim;
+  double l_sos = log(MAX(1e-10,sos));
+  double new_weight = 1.0f / KF_SOS_TIMESCALE;
+  *k_scalar =  MIN(1, SOS_SWITCH * exp(kf->l_sos_avg) / MAX(1e-10, sos));
+  kf->l_sos_avg = kf->l_sos_avg * (1 - new_weight) +
+                  l_sos * new_weight;
+  return (*k_scalar < 1);
+}
+
+/** In place updating of the state mean and covariances to use the (decorrelated) observations
+ * A modification of the update in section 10.2.1 of Gibbs [1].
+ * Changes are: -Scaling the kalman gain to deal with outliers.
+ *              -Some minor tweaks to handle singular matrices.
+ *
+ * \param kf        Kalman filter to be updated.
+ * \param decor_obs Decorrelated observation vector.
+ * \return          Whether we think the observations were bad.
+ */
+static u8 incorporate_obs(nkf_t *kf, double *decor_obs)
 {
   DEBUG_ENTRY();
+
+  double k_scalar;
+  u8 is_outlier = outlier_check(kf, decor_obs, &k_scalar);
 
   for (u32 i=0; i<kf->obs_dim; i++) {
     double *h = &kf->decor_obs_mtx[kf->state_dim * i]; /* vector of length kf->state_dim. */
     double R = kf->decor_obs_cov[i]; /* scalar. */
-    double k[kf->state_dim]; /*  vector of length kf->state_dim. */
 
-    /* updates cov and sets k. */
-    incorporate_scalar_measurement(kf->state_dim, h, R, kf->state_cov_U, kf->state_cov_D, &k[0]);
+    double f[kf->state_dim];
+    double g[kf->state_dim];
 
+    double alpha = compute_innovation_terms(kf->state_dim, h, R,
+                                            kf->state_cov_U, kf->state_cov_D,
+                                            f, g);
     double predicted_obs = 0;
     /* TODO take advantage of sparsity of h. */
     for (u32 j=0; j<kf->state_dim; j++) {
@@ -184,16 +301,15 @@ static void incorporate_obs(nkf_t *kf, double *decor_obs)
     }
     double obs_minus_predicted_obs = decor_obs[i] - predicted_obs;
 
-    for (u32 j=0; j<kf->state_dim; j++) {
-      kf->state_mean[j] += k[j] * obs_minus_predicted_obs; /* uses k to update mean. */
-    }
+    /* updates kf state. */
+    update_kf_state(kf, R, f, g, alpha, k_scalar, obs_minus_predicted_obs);
   }
-
   DEBUG_EXIT();
+  return is_outlier;
 }
 
 /*  Turns (phi, rho) into Q_tilde * (phi, rho). */
-static void make_residual_measurements(nkf_t *kf, double *measurements, double *resid_measurements)
+static void make_residual_measurements(const nkf_t *kf, const double *measurements, double *resid_measurements)
 {
   u8 constraint_dim = CLAMP_DIFF(kf->state_dim, 3);
   cblas_dgemv (CblasRowMajor, CblasNoTrans, /* Order, TransA. */
@@ -208,18 +324,35 @@ static void make_residual_measurements(nkf_t *kf, double *measurements, double *
   }
 }
 
+/** The temporal update step of the KF.
+ * To be really strict, since changes are equally likely on all channels,
+ * This should be += (I + 1 * 1^T)*var instead of I*var, but it's
+ * unlikely to be significant.
+ *
+ * \param kf The KF to be updated.
+ */
 static void diffuse_state(nkf_t *kf)
 {
+  double cov[kf->state_dim * kf->state_dim];
+  matrix_reconstruct_udu(kf->state_dim, kf->state_cov_U, kf->state_cov_D, cov);
   for (u8 i=0; i< kf->state_dim; i++) {
     /* TODO make this a tunable parameter defined at the right time. */
-    kf->state_cov_D[i] += kf->amb_drift_var;
+    cov[i*kf->state_dim + i] += kf->amb_drift_var;
   }
+  matrix_udu(kf->state_dim, cov, kf->state_cov_U, kf->state_cov_D);
 }
 
-
-/** In place updating of the state mean and covariance. Modifies measurements.
+/** In place updating of the KF state mean and covariance.
+ * Does both the temporal and measurement updates to the KF.
+ *
+ * \param kf            The KF to update
+ * \param measurements  The observations. The first (kf->state_dim) elements are
+ *                      carrier phases, and the next (kf->state_dim) are
+ *                      pseudoranges.
+ * \return              Whether the KF thought the measurement was a bad
+ *                      measurement.
  */
-void nkf_update(nkf_t *kf, double *measurements)
+u8 nkf_update(nkf_t *kf, const double *measurements)
 {
   DEBUG_ENTRY();
 
@@ -231,17 +364,18 @@ void nkf_update(nkf_t *kf, double *measurements)
               kf->obs_dim, kf->decor_mtx, kf->obs_dim, /*  N, A, lda. */
               resid_measurements, 1); /*  X, incX. */
 
-  /*  predict_forward(kf);. */
+  /*  Temporal update */
   diffuse_state(kf);
-  incorporate_obs(kf, resid_measurements);
+  /* Measurement update */
+  u8 is_bad_measurement = incorporate_obs(kf, resid_measurements);
 
   if (DEBUG) {
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
     VEC_PRINTF(kf->state_cov_D, kf->state_dim);
     VEC_PRINTF(kf->state_mean, kf->state_dim);
   }
-
   DEBUG_EXIT();
+  return is_bad_measurement;
 }
 
 void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
@@ -502,7 +636,7 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
   set_nkf_matrices(kf, phase_var, code_var, num_sdiffs, sdiffs_with_ref_first, ref_ecef);
   /* Given plain old measurements, initialize the state. */
   initialize_state(kf, dd_measurements, amb_init_var);
-
+  kf->l_sos_avg = 1;
   DEBUG_EXIT();
 }
 
