@@ -22,6 +22,8 @@
 
 #define MAX_STATE_DIM (MAX_CHANNELS - 1)
 #define MAX_OBS_DIM (2 * MAX_CHANNELS - 5)
+#define KF_SOS_TIMESCALE 7.0f
+#define SOS_SWITCH 10.0f
 
 typedef struct {
   u32 state_dim;
@@ -34,9 +36,10 @@ typedef struct {
   double state_mean[MAX_STATE_DIM];
   double state_cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
   double state_cov_D[MAX_STATE_DIM];
+  double l_sos_avg;
 } nkf_t;
 
-void nkf_update(nkf_t *kf, double *measurements);
+u8 nkf_update(nkf_t *kf, const double *measurements);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
@@ -62,6 +65,9 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 
 void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
 void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
+
+double get_sos_innov(const nkf_t *kf, const double *decor_obs);
+u8 outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar);
 
 #endif /* LIBSWIFTNAV_AMB_KF_H */
 
