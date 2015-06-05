@@ -36,6 +36,7 @@ else (CMAKE_CROSSCOMPILING)
       check_linear_algebra.c
       check_ambiguity_test.c
       check_filter_utils.c
+      check_ephemeris.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})

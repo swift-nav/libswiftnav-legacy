@@ -22,6 +22,7 @@ int main(void)
   srunner_add_suite(sr, coord_system_suite());
   srunner_add_suite(sr, linear_algebra_suite());
   srunner_add_suite(sr, filter_utils_suite());
+  srunner_add_suite(sr, ephemeris_suite());
 
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);
