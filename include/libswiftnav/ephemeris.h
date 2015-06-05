@@ -36,6 +36,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 u8 ephemeris_good(ephemeris_t *eph, gps_time_t t);
 
 void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
+bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */
 
