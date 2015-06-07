@@ -251,7 +251,8 @@ static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measureme
   DEBUG_ENTRY();
 
   double b2[3];
-  least_squares_solve_b(&nkf, sdiffs, dd_measurements, receiver_ecef, b2);
+  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+      sdiffs, dd_measurements, receiver_ecef, b2);
 
   double ref_ecef[3];
 
@@ -314,7 +315,8 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
     dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, receiver_ecef);
 
     double b2[3];
-    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
+    least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+        sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
 
     ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
     ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[1];
@@ -336,7 +338,8 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
   if (DEBUG) {
     if (num_sats >=4) {
       double b3[3];
-      least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, receiver_ecef, b3);
+      least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+          sdiffs_with_ref_first, dd_measurements, receiver_ecef, b3);
 
       ref_ecef[0] = receiver_ecef[0] + 0.5 * b3[0];
       ref_ecef[1] = receiver_ecef[1] + 0.5 * b3[1];
@@ -393,7 +396,8 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
 
-  least_squares_solve_b(&nkf, corrected_sdiffs, dd_measurements, receiver_ecef, b);
+  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+      corrected_sdiffs, dd_measurements, receiver_ecef, b);
   *num_used = sats_management.num_sats;
   DEBUG_EXIT();
 }
@@ -493,8 +497,8 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
-                        ref_ecef, b);
+  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+      float_sdiffs, float_dd_measurements, ref_ecef, b);
   *num_used = sats_management.num_sats;
   DEBUG_EXIT();
   return 0;
