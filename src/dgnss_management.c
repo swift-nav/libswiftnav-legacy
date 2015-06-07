@@ -245,31 +245,6 @@ static void dgnss_update_sats(u8 num_sdiffs, double receiver_ecef[3],
   DEBUG_EXIT();
 }
 
-static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
-                                          double *receiver_ecef)
-{
-  DEBUG_ENTRY();
-
-  double b2[3];
-  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
-      sdiffs, dd_measurements, receiver_ecef, b2);
-
-  double ref_ecef[3];
-
-  ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
-  ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[0];
-  ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[0];
-
-  /* TODO: make a common DE and use it instead. */
-
-  set_nkf_matrices(&nkf,
-                   dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
-                   sats_management.num_sats, sdiffs, ref_ecef);
-
-  nkf_update(&nkf, dd_measurements);
-  DEBUG_EXIT();
-}
-
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 {
   DEBUG_ENTRY();
@@ -312,15 +287,23 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 
   double ref_ecef[3];
   if (num_sats >= 5) {
-    dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, receiver_ecef);
-
     double b2[3];
     least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
         sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
 
+    double ref_ecef[3];
+
     ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
-    ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[1];
-    ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[2];
+    ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[0];
+    ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[0];
+
+    /* TODO: make a common DE and use it instead. */
+
+    set_nkf_matrices(&nkf,
+                     dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
+                     sats_management.num_sats, sdiffs_with_ref_first, ref_ecef);
+
+    nkf_update(&nkf, dd_measurements);
   }
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
