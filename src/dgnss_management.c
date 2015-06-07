@@ -346,26 +346,6 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
   return ret;
 }
 
-void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], u8 *num_used, double b[3])
-{
-  DEBUG_ENTRY();
-  sdiff_t corrected_sdiffs[num_sats];
-
-  u8 old_prns[MAX_CHANNELS];
-  memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
-  /* Rebase globals to a new reference sat
-   * (permutes corrected_sdiffs accordingly) */
-  dgnss_rebase_ref(num_sats, sdiffs, receiver_ecef, old_prns, corrected_sdiffs);
-
-  double dd_measurements[2*(num_sats-1)];
-  make_measurements(num_sats-1, corrected_sdiffs, dd_measurements);
-
-  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
-      corrected_sdiffs, dd_measurements, receiver_ecef, b);
-  *num_used = sats_management.num_sats;
-  DEBUG_EXIT();
-}
-
 /** Constructs an integer resolved baseline measurement.
  * The sdiffs have no particular reason (other than a general tendency
  * brought by hysteresis) to match up with the IAR sats, so we have
@@ -459,8 +439,8 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
  * \return -1 if it can't solve.
  *          0 If it can solve.
  */
-s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                                     double ref_ecef[3], u8 *num_used, double b[3])
+s8 dgnss_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
+                        u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
   if (num_sdiffs < 4 || sats_management.num_sats < 4) {
@@ -530,8 +510,8 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   }
   /* if we get here, we weren't able to get an IAR resolved baseline.
    * Check if we can get a float baseline. */
-  s8 float_ret_code = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, num_used, b);
+  s8 float_ret_code = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef,
+                                           num_used, b);
   if (float_ret_code == 0) {
     log_debug("low latency float solution\n");
     DEBUG_EXIT();
