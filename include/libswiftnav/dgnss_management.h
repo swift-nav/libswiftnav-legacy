@@ -71,8 +71,8 @@ u32 dgnss_iar_num_sats(void);
 s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
-void dgnss_float_baseline(u8 *num_used, double b[3]);
-void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3]);
+s8 dgnss_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3],
+                        u8 *num_used, double b[3]);
 s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
                         u8 *num_used, double b[3]);
 s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
@@ -100,12 +100,5 @@ u8 get_amb_kf_cov(double *cov);
 u8 get_amb_kf_prns(u8 *prns);
 u8 get_amb_test_prns(u8 *prns);
 u8 dgnss_iar_MLE_ambs(s32 *ambs);
-
-
-/* Functions for internal use in the file. In here so we can unit test them
- * without having to extern them (where they could get out of sync with
- * changes in type signature) */
-s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                                    double ref_ecef[3], u8 *num_used, double b[3]);
 
 #endif /* LIBSWIFTNAV_DGNSS_MANAGEMENT_H */
