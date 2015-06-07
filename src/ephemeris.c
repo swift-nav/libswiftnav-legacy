@@ -326,3 +326,34 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   e->valid = 1;
 }
 
+bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b)
+{
+  return (a->valid == b->valid) &&
+         (a->healthy == b->healthy) &&
+         (a->prn == b->prn) &&
+         (a->iode == b->iode) &&
+         (a->tgd == b->tgd) &&
+         (a->crs == b->crs) &&
+         (a->crc == b->crc) &&
+         (a->cuc == b->cuc) &&
+         (a->cus == b->cus) &&
+         (a->cic == b->cic) &&
+         (a->cis == b->cis) &&
+         (a->dn == b->dn) &&
+         (a->m0 == b->m0) &&
+         (a->ecc == b->ecc) &&
+         (a->sqrta == b->sqrta) &&
+         (a->omega0 == b->omega0) &&
+         (a->omegadot == b->omegadot) &&
+         (a->w == b->w) &&
+         (a->inc == b->inc) &&
+         (a->inc_dot == b->inc_dot) &&
+         (a->af0 == b->af0) &&
+         (a->af1 == b->af1) &&
+         (a->af2 == b->af2) &&
+         (a->toe.wn == b->toe.wn) &&
+         (a->toe.tow == b->toe.tow) &&
+         (a->toc.wn == b->toc.wn) &&
+         (a->toc.tow == b->toc.tow);
+}
+

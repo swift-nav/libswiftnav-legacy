@@ -13,5 +13,6 @@ Suite* edc_suite(void);
 Suite* linear_algebra_suite(void);
 Suite* ambiguity_test_suite(void);
 Suite* filter_utils_suite(void);
+Suite* ephemeris_suite(void);
 
 #endif /* CHECK_SUITES_H */
