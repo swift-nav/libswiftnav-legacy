@@ -205,8 +205,8 @@ bool is_prn_set(u8 n, const u8 *prns)
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                   u8 num_sdiffs, sdiff_t *sdiffs_in,
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
   DEBUG_ENTRY();

@@ -71,12 +71,12 @@ u32 dgnss_iar_num_sats(void);
 s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
-s8 dgnss_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3],
-                        u8 *num_used, double b[3]);
-s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
-                        u8 *num_used, double b[3]);
-s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                               double ref_ecef[3], u8 *num_used, double b[3]);
+s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                        const double ref_ecef[3], u8 *num_used, double b[3]);
+s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                        const double ref_ecef[3], u8 *num_used, double b[3]);
+s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                  const double ref_ecef[3], u8 *num_used, double b[3]);
 void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
                       const double receiver_ecef[3], double *b);
 void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,

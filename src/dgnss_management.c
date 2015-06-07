@@ -372,8 +372,8 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
  * \return -1 if the fixed baseline can't be solved or if an error occurs
  *          0 if the baseline solution succeeded.
  */
-s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
-                        u8 *num_used, double b[3])
+s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                        const double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
   assert(num_sdiffs >= 4);
@@ -439,8 +439,8 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
  * \return -1 if it can't solve.
  *          0 If it can solve.
  */
-s8 dgnss_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
-                        u8 *num_used, double b[3])
+s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                        const double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
   if (num_sdiffs < 4 || sats_management.num_sats < 4) {
@@ -488,8 +488,8 @@ s8 dgnss_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
  *          2 if we are using a float baseline.
  *         -1 if we can't give a baseline.
  */
-s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                              double ref_ecef[3], u8 *num_used, double b[3])
+s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                  const double ref_ecef[3], u8 *num_used, double b[3])
 {
   DEBUG_ENTRY();
   if (num_sdiffs < 4 || sats_management.num_sats < 4) {

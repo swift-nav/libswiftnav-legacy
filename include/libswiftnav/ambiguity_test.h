@@ -97,14 +97,12 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const double *float_cov_D);
 u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
-s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test,
-            u8 num_sdiffs, sdiff_t *sdiffs,
-            double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                   u8 num_sdiffs, sdiff_t *sdiffs,
-                                   double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
+s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
+            const ambiguity_test_t *amb_test, u8 num_sdiffs,
+            const sdiff_t *sdiffs,
+            double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs);
 u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_intersection, const u8 *dd_intersection_ndxs);
 // TODO(dsk) delete
 u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_intersection,
