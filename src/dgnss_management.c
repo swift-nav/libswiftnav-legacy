@@ -318,25 +318,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 
   update_unanimous_ambiguities(&ambiguity_test);
 
-  if (DEBUG) {
-    if (num_sats >=4) {
-      double b3[3];
-      least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
-          sdiffs_with_ref_first, dd_measurements, receiver_ecef, b3);
-
-      ref_ecef[0] = receiver_ecef[0] + 0.5 * b3[0];
-      ref_ecef[1] = receiver_ecef[1] + 0.5 * b3[1];
-      ref_ecef[2] = receiver_ecef[2] + 0.5 * b3[2];
-      double bb[3];
-      u8 num_used;
-      dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
-                           &num_used, bb);
-      log_debug("\ndgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
-             bb[0], bb[1], bb[2],
-             num_used, num_sats,
-             ambiguity_iar_can_solve(&ambiguity_test));
-    }
-  }
   DEBUG_EXIT();
 }
 
