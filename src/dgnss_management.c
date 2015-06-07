@@ -366,16 +366,41 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
   DEBUG_EXIT();
 }
 
-/* Returns the fixed baseline iff there are at least 3 dd ambs unanimously
- * agreed upon in the ambiguity_test.
- * \return 1 If fixed baseline calculation succeeds
- *         0 If iar cannot solve or an error occurs. Signals that float
- *           baseline is needed instead.
+/** Constructs an integer resolved baseline measurement.
+ * The sdiffs have no particular reason (other than a general tendency
+ * brought by hysteresis) to match up with the IAR sats, so we have
+ * to check if we can solve. For now, unless the sdiffs are a superset of the
+ * IAR sats, we don't solve.
+ *
+ * Requires num_sdiffs >= 4.
+ *
+ * \TODO solve whenever we can (even if not strict superset)
+ *
+ * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
+ * amb_test context, pull it into another file.
+ *
+ * \TODO pull this into the IAR file when we do the same for the float low lat
+ *      solution.
+ *
+ * \TODO return <0 for error
+ *
+ * \param num_sdiffs The number of `sdiff_t`s in the input array.
+ * \param sdiffs     Array of single difference observations (should be a
+ *                   superset of the IAR resolved sats).
+ * \param ref_ecef   The reference position used for solving and making
+ *                   observation matrices.
+ * \param num_used   The number of sats actually used in the baseline solution.
+ * \param b          The baseline computed.
+ * \return 0 if the fixed baseline can't be solved or if an error occurs
+ *         1 if the baseline solution succeeded.
  */
 s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
                         u8 *num_used, double b[3])
 {
+  DEBUG_ENTRY();
+  assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {
+    DEBUG_EXIT();
     return 0;
   }
 
@@ -385,12 +410,11 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
       &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
 
-  /* At this point, sdiffs should be valid due to dgnss_update
-   * Return code not equal to 0 signals an error. */
   if (valid_sdiffs != 0) {
     if (valid_sdiffs != -1) {
       log_error("dgnss_fixed_baseline: Invalid sdiffs.");
     }
+    DEBUG_EXIT();
     return 0;
   }
 
@@ -398,14 +422,16 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
                 ambiguity_sdiffs, ref_ecef, DE);
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
-                             ambiguity_test.amb_check.ambs, DE, b, 0);
+  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
+                             dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
   if (ret) {
     log_error("dgnss_fixed_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();
     return 0;
   }
+
+  DEBUG_EXIT();
   return 1;
 }
 
@@ -468,76 +494,6 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   return 0;
 }
 
-/** Constructs a low latency IAR resolved baseline measurement.
- * The sdiffs have no particular reason (other than a general tendency
- * brought by hysteresis) to match up with the IAR sats, so we have
- * to check if we can solve. For now, unless the sdiffs are a superset of the
- * IAR sats, we don't solve.
- *
- * Requires num_sdiffs >= 4.
- *
- * \TODO, solve whenever we can
- *
- * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
- * amb_test context, pull it into another file.
- *
- * \TODO pull this into the IAR file when we do the same for the float low lat
- *      solution.
- *
- * \todo This function is identical to dgnss_fixed_baseline()?
- *
- * \param num_sdiffs  The number of sdiffs input.
- * \param sdiffs      The sdiffs used to measure. (These should be a superset
- *                    of the float sats).
- * \param ref_ecef    The reference position used for solving, and making
- *                    observation matrices.
- * \param num_used    The number of sats actually used to compute the baseline.
- * \param b           The baseline computed.
- * \return -1 if it can't solve.
- *          0 If it can solve.
- */
-s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
-                                   double ref_ecef[3], u8 *num_used, double b[3])
-{
-  DEBUG_ENTRY();
-  assert(num_sdiffs >= 4);
-  if (!ambiguity_iar_can_solve(&ambiguity_test)) {
-    DEBUG_EXIT();
-    return -1;
-  }
-
-  sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
-  double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
-
-  s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
-      &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
-
-  if (valid_sdiffs != 0) {
-    if (valid_sdiffs != -1) {
-      log_error("_dgnss_low_latency_IAR_baseline: Invalid sdiffs.");
-    }
-    DEBUG_EXIT();
-    return -1;
-  }
-
-  /* TODO: check internals of this if's content and abstract it from the KF */
-  double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
-  assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
-                ambiguity_sdiffs, ref_ecef, DE);
-  *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
-                             dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
-  if (ret) {
-    log_error("_dgnss_low_latency_IAR_baseline: "
-              "lesq_solution returned error %d\n", ret);
-    DEBUG_EXIT();
-    return -1;
-  }
-
-  DEBUG_EXIT();
-  return 0;
-}
-
 /** Finds the baseline using low latency sdiffs.
  * The low latency sdiffs are not guaranteed to match up with either the
  * amb_test's or the float sdiffs, and thus care must be taken to transform them
@@ -568,8 +524,8 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  if (0 == _dgnss_low_latency_IAR_baseline(num_sdiffs, sdiffs,
-                                  ref_ecef, num_used, b)) {
+  if (1 == dgnss_fixed_baseline(num_sdiffs, sdiffs,
+                                ref_ecef, num_used, b)) {
     log_debug("low latency IAR solution\n");
     DEBUG_EXIT();
     return 1;
