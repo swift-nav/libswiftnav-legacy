@@ -382,8 +382,6 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
  * \TODO pull this into the IAR file when we do the same for the float low lat
  *      solution.
  *
- * \TODO return <0 for error
- *
  * \param num_sdiffs The number of `sdiff_t`s in the input array.
  * \param sdiffs     Array of single difference observations (should be a
  *                   superset of the IAR resolved sats).
@@ -391,8 +389,8 @@ void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef
  *                   observation matrices.
  * \param num_used   The number of sats actually used in the baseline solution.
  * \param b          The baseline computed.
- * \return 0 if the fixed baseline can't be solved or if an error occurs
- *         1 if the baseline solution succeeded.
+ * \return -1 if the fixed baseline can't be solved or if an error occurs
+ *          0 if the baseline solution succeeded.
  */
 s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
                         u8 *num_used, double b[3])
@@ -401,7 +399,7 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {
     DEBUG_EXIT();
-    return 0;
+    return -1;
   }
 
   sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
@@ -415,7 +413,7 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
       log_error("dgnss_fixed_baseline: Invalid sdiffs.");
     }
     DEBUG_EXIT();
-    return 0;
+    return -1;
   }
 
   double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
@@ -428,11 +426,11 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
     log_error("dgnss_fixed_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();
-    return 0;
+    return -1;
   }
 
   DEBUG_EXIT();
-  return 1;
+  return 0;
 }
 
 /** Constructs a low latency float baseline measurement.
@@ -524,7 +522,7 @@ s8 dgnss_low_latency_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  if (1 == dgnss_fixed_baseline(num_sdiffs, sdiffs,
+  if (0 == dgnss_fixed_baseline(num_sdiffs, sdiffs,
                                 ref_ecef, num_used, b)) {
     log_debug("low latency IAR solution\n");
     DEBUG_EXIT();
