@@ -652,8 +652,10 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
 {
   double TOTs[n_channels];
   double min_TOT = DBL_MAX;
+  double max_TOT = DBL_MIN;
 
   for (u8 i=0; i<n_channels; i++) {
+    /** \todo Optimize the math here, with delta, and reciprocals */
     TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
     TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
     TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
@@ -665,8 +667,14 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     if (gpsdifftime(nav_meas[i]->tot, ephemerides[i]->toe) > 3*24*3600)
       nav_meas[i]->tot.wn -= 1;
 
+    /* Original, longest path, lowest elevation, tends to fade, harder to predict clock drift
+        and bias, or filter. Not sure where filtered. This code selects EARLIEST(MIN) ToW */
     if (TOTs[i] < min_TOT)
       min_TOT = TOTs[i];
+
+    /* Shortest path, highest elevation, TimeOfTravel. Pick LASTEST(MAX) TimeOfWeek (ToW) */
+    if (TOTs[i] > max_TOT)
+      max_TOT = TOTs[i];
 
     nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
@@ -681,7 +689,11 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
   double clock_err, clock_rate_err;
 
   for (u8 i=0; i<n_channels; i++) {
+#if 0 /* Original */
     nav_meas[i]->raw_pseudorange = (min_TOT - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
+#else /* Highest/Shortest path as ordinal */
+    nav_meas[i]->raw_pseudorange = (max_TOT - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
+#endif
 
     calc_sat_state(ephemerides[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
