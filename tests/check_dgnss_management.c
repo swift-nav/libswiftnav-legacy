@@ -78,7 +78,7 @@ void matrix_eye_s64(u32 n, s64 *M)
 
 /* Check that it works with the first sdiff as the reference sat.
  * This should verify that the loop can start correctly.*/
-START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
+START_TEST(test_dgnss_float_baseline_ref_first) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 1;
   sats_management.prns[1] = 2;
@@ -90,8 +90,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_first) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.742242));
@@ -102,7 +101,7 @@ END_TEST
 
 /* Check that it works with a middle sdiff as the reference sat.
  * This should verify that the induction works. */
-START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
+START_TEST(test_dgnss_float_baseline_ref_middle) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 2;
   sats_management.prns[1] = 1;
@@ -114,8 +113,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_middle) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.622609));
@@ -126,7 +124,7 @@ END_TEST
 
 /* Check that it works with the last sdiff as the reference sat.
  * This should verify that the loop can terminate correctly.*/
-START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
+START_TEST(test_dgnss_float_baseline_ref_end) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 5;
   sats_management.prns[1] = 1;
@@ -138,8 +136,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_ref_end) {
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.589178));
@@ -150,7 +147,7 @@ END_TEST
 
 /* Check that measurements generated from a baseline result in an estimate
  * matching the baseline. */
-START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
+START_TEST(test_dgnss_float_baseline_fixed_point) {
   sats_management.num_sats = 5;
   sats_management.prns[0] = 5;
   sats_management.prns[1] = 1;
@@ -187,8 +184,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], b_orig[0]));
@@ -197,7 +193,7 @@ START_TEST(test_dgnss_low_latency_float_baseline_fixed_point) {
 }
 END_TEST
 
-START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
+START_TEST(test_dgnss_float_baseline_few_sats) {
   sats_management.prns[0] = 5;
   sats_management.num_sats = 1;
 
@@ -205,15 +201,13 @@ START_TEST(test_dgnss_low_latency_float_baseline_few_sats) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, &num_used, b);
+  s8 valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
 
   sats_management.num_sats = 0;
 
-  valid = _dgnss_low_latency_float_baseline(num_sdiffs, sdiffs,
-                                   ref_ecef, &num_used, b);
+  valid = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
   fail_unless(valid == -1);
 }
@@ -237,11 +231,7 @@ START_TEST(test_dgnss_fixed_baseline_ref_first) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
-           1,
-           4, prns,
-           lower, upper,
-           Z_inv);
+  add_sats_old(&ambiguity_test, 1, 4, prns, lower, upper, Z_inv);
 
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
@@ -255,10 +245,9 @@ START_TEST(test_dgnss_fixed_baseline_ref_first) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
-  fail_unless(valid == 1);
+  fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
   fail_unless(within_epsilon(b[2], -0.0533294));
@@ -282,11 +271,7 @@ START_TEST(test_dgnss_fixed_baseline_ref_middle) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
-           ref_prn,
-           4, prns,
-           lower, upper,
-           Z_inv);
+  add_sats_old(&ambiguity_test, ref_prn, 4, prns, lower, upper, Z_inv);
 
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
@@ -300,10 +285,9 @@ START_TEST(test_dgnss_fixed_baseline_ref_middle) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
-  fail_unless(valid == 1);
+  fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.622609));
   fail_unless(within_epsilon(b[1], -0.432371));
   fail_unless(within_epsilon(b[2], -0.00461595));
@@ -327,11 +311,7 @@ START_TEST(test_dgnss_fixed_baseline_ref_end) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
-           ref_prn,
-           4, prns,
-           lower, upper,
-           Z_inv);
+  add_sats_old(&ambiguity_test, ref_prn, 4, prns, lower, upper, Z_inv);
 
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
@@ -345,10 +325,9 @@ START_TEST(test_dgnss_fixed_baseline_ref_end) {
   u8 num_used;
   u8 num_sdiffs = 5;
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
-  fail_unless(valid == 1);
+  fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
   fail_unless(within_epsilon(b[2], 0.0288157));
@@ -372,11 +351,7 @@ START_TEST(test_dgnss_fixed_baseline_fixed_point) {
   z_t Z_inv[16];
   matrix_eye_s64(4, Z_inv);
 
-  add_sats_old(&ambiguity_test,
-           ref_prn,
-           4, prns,
-           lower, upper,
-           Z_inv);
+  add_sats_old(&ambiguity_test, ref_prn, 4, prns, lower, upper, Z_inv);
 
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
@@ -415,10 +390,9 @@ START_TEST(test_dgnss_fixed_baseline_fixed_point) {
   u8 num_used;
   u8 num_sdiffs = 6;
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                 ref_ecef, &num_used, b);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
 
-  fail_unless(valid == 1);
+  fail_unless(valid == 0);
   fail_unless(within_epsilon(b[0], b_orig[0]));
   fail_unless(within_epsilon(b[1], b_orig[1]));
   fail_unless(within_epsilon(b[2], b_orig[2]));
@@ -434,22 +408,19 @@ START_TEST(test_dgnss_fixed_baseline_few_sats) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, &num_used, b);
-  fail_unless(valid == 0);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 
   ambiguity_test.amb_check.num_matching_ndxs = 0;
 
-  valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                   ref_ecef, &num_used, b);
-  fail_unless(valid == 0);
+  valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 
   ambiguity_test.amb_check.initialized = 0;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
 
-  valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                   ref_ecef, &num_used, b);
-  fail_unless(valid == 0);
+  valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 }
 END_TEST
 
@@ -462,13 +433,12 @@ START_TEST(test_dgnss_fixed_baseline_uninitialized) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, &num_used, b);
-  fail_unless(valid == 0);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 }
 END_TEST
 
-START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
+START_TEST(test_dgnss_baseline_uninitialized) {
   ambiguity_test.amb_check.initialized = 0;
   ambiguity_test.amb_check.num_matching_ndxs = 5;
 
@@ -477,9 +447,8 @@ START_TEST(test_dgnss_low_latency_baseline_uninitialized) {
   u8 num_sdiffs = 6;
 
 
-  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                              ref_ecef, &num_used, b);
-  fail_unless(valid == 0);
+  s8 valid = dgnss_fixed_baseline(num_sdiffs, sdiffs, ref_ecef, &num_used, b);
+  fail_unless(valid == -1);
 }
 END_TEST
 
@@ -490,11 +459,11 @@ Suite* dgnss_management_test_suite(void)
   TCase *tc_core = tcase_create("Core");
   tcase_add_checked_fixture (tc_core, check_dgnss_management_setup,
                                       check_dgnss_management_teardown);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_first);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_middle);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_ref_end);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_fixed_point);
-  tcase_add_test(tc_core, test_dgnss_low_latency_float_baseline_few_sats);
+  tcase_add_test(tc_core, test_dgnss_float_baseline_ref_first);
+  tcase_add_test(tc_core, test_dgnss_float_baseline_ref_middle);
+  tcase_add_test(tc_core, test_dgnss_float_baseline_ref_end);
+  tcase_add_test(tc_core, test_dgnss_float_baseline_fixed_point);
+  tcase_add_test(tc_core, test_dgnss_float_baseline_few_sats);
 
   tcase_add_test(tc_core, test_dgnss_fixed_baseline_ref_first);
   tcase_add_test(tc_core, test_dgnss_fixed_baseline_ref_middle);
@@ -502,7 +471,7 @@ Suite* dgnss_management_test_suite(void)
   tcase_add_test(tc_core, test_dgnss_fixed_baseline_fixed_point);
   tcase_add_test(tc_core, test_dgnss_fixed_baseline_few_sats);
   tcase_add_test(tc_core, test_dgnss_fixed_baseline_uninitialized);
-  tcase_add_test(tc_core, test_dgnss_low_latency_baseline_uninitialized);
+  tcase_add_test(tc_core, test_dgnss_baseline_uninitialized);
   suite_add_tcase(s, tc_core);
 
   return s;
