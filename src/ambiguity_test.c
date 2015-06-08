@@ -557,7 +557,8 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
  * \return error code; see make_dd_measurements_and_sdiffs docstring.
  */
 s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
-            ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+            const ambiguity_test_t *amb_test, u8 num_sdiffs,
+            const sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   DEBUG_ENTRY();
