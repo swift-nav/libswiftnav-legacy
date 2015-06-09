@@ -100,7 +100,8 @@ static void make_propagated_sdiff_(void *context, u32 n,
   const navigation_measurement_t *m_b = (const navigation_measurement_t *)b;
   make_propagated_sdiff_ctxt *ctxt = (make_propagated_sdiff_ctxt *)context;
 
-  /* Construct sds[n] */
+  /* Construct sds[n].
+   * NOTE: The resulting sds have sat_pos and sat_vel taken from b. */
   single_diff_(ctxt->sds, n, a, b);
 
   double old_dist = vector_distance(3, m_a->sat_pos, ctxt->remote_pos_ecef);
@@ -111,9 +112,11 @@ static void make_propagated_sdiff_(void *context, u32 n,
   ctxt->sds[n].carrier_phase -= dr / GPS_L1_LAMBDA_NO_VAC;
 }
 
-u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
-                          u8 n_remote, navigation_measurement_t *m_remote,
-                          double remote_pos_ecef[3], sdiff_t *sds)
+/** New more efficient version of make_propagated_sdiffs(), NOT WORKING!!!
+ * WIP */
+u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
+                              u8 n_remote, navigation_measurement_t *m_remote,
+                              double remote_pos_ecef[3], sdiff_t *sds)
 {
   make_propagated_sdiff_ctxt ctxt = {
     .sds = sds,
@@ -158,7 +161,7 @@ int sdiff_search_prn(const void *a, const void *b)
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
  */
-u8 make_propagated_sdiffs2(u8 n_local, navigation_measurement_t *m_local,
+u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
                           ephemeris_t *es, gps_time_t t,
