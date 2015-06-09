@@ -30,10 +30,10 @@
  * walk, but in a special space. Look at the code for its current usage.*/
 #define DEFAULT_AMB_DRIFT_VAR   1e-8
 /* The variance with which to initialize the Kalman Filter. */
-#define DEFAULT_AMB_INIT_VAR    1e8
+#define DEFAULT_AMB_INIT_VAR    1e25
 /* The variance with which to add new sats to the Kalman Filter.
  * TODO deprecate in lieu of amb_init_var once we do some tuning. */
-#define DEFAULT_NEW_INT_VAR     1e4
+#define DEFAULT_NEW_INT_VAR     1e25
 
 typedef struct {
   double phase_var_test;
