@@ -531,7 +531,7 @@ s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *l
       return i;
     }
   }
-  return -1;
+  assert(false);
 }
 
 /* REQUIRES num_sats > 1 */
@@ -544,7 +544,7 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
   u8 new_ref = new_prns[0];
 
   double new_mean[state_dim];
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats, new_ref, &old_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
   for (u8 i=0; i<state_dim; i++) {
     u8 new_prn = new_prns[1+i];
@@ -552,7 +552,7 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
       new_mean[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats, new_prn, &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prn, &old_prns[1]);
       new_mean[i] = mean[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
   }
@@ -570,12 +570,12 @@ static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(state_dim, new_ref, &old_prns[1]);
-  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(state_dim, old_ref, &new_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
   for (u8 i=0; i<state_dim; i++) {
     rebase_mtx[i*state_dim + index_of_new_ref_in_old] = -1;
     if (i != (u8) index_of_old_ref_in_new) {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(state_dim, new_prns[i+1], &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
       rebase_mtx[i*state_dim + index_of_this_sat_in_old_basis] = 1;
     }
   }

@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -129,9 +130,11 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
     memcpy(old_prns, sats_management->prns, sats_management->num_sats * sizeof(u8));
     u8 set_old_yet = 0;
     sats_management->prns[0] = ref_prn;
+    u8 or_count = 0;
     for (u8 i=1; i<sats_management->num_sats; i++) {
       if (old_prns[i] != ref_prn) {
         if (old_prns[i]>old_ref && set_old_yet == 0) {
+          or_count++;
           sats_management->prns[j] = old_ref;
           j++;
           i--;
@@ -142,11 +145,14 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
           j++;
         }
       }
-      else if (i == sats_management->num_sats-1) {
-        sats_management->prns[j] = old_ref;
-      }
     }
+    if (set_old_yet == 0) {
+      or_count++;
+      sats_management->prns[j] = old_ref;
+    }
+    assert (or_count == 1);
   }
+
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn != ref_prn) {
@@ -240,7 +246,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
   else {
     sdiff_t intersection_sats[num_sdiffs];
-    u8 num_intersection = intersect_sats(sats_management->num_sats, num_sdiffs,
+    u8 num_intersection = intersect_sats(sats_management->num_sats-1, num_sdiffs,
                                          &(sats_management->prns[1]), sdiffs, intersection_sats);
     if (num_intersection < INTERSECTION_SATS_THRESHOLD_SIZE) {
       DEBUG_EXIT();
