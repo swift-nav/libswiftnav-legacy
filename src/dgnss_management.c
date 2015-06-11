@@ -326,8 +326,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     s8 code = least_squares_solve_b(
         &nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
 
-    if (lesq_error(code)) {
-      // TODO
+    if (code < 0) {
       DEBUG_EXIT();
       return;
     }
@@ -362,29 +361,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
   update_unanimous_ambiguities(&ambiguity_test);
 
-  if (DEBUG) {
-    if (num_sats >=4) {
-      double b3[3];
-      if (lesq_error(
-            least_squares_solve_b(
-              &nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b3))) {
-        DEBUG_EXIT();
-        return;
-      }
-
-      ref_ecef[0] = reciever_ecef[0] + 0.5 * b3[0];
-      ref_ecef[1] = reciever_ecef[1] + 0.5 * b3[1];
-      ref_ecef[2] = reciever_ecef[2] + 0.5 * b3[2];
-      double bb[3];
-      u8 num_used;
-      dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
-                           &num_used, bb);
-      log_debug("\ndgnss_fixed_baseline:\nb = %f, \t%f, \t%f\nnum_used/num_sats = %u/%u\nusing_iar = %u\n\n",
-             bb[0], bb[1], bb[2],
-             num_used, num_sats,
-             ambiguity_iar_can_solve(&ambiguity_test));
-    }
-  }
   DEBUG_EXIT();
 }
 
@@ -468,7 +444,7 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
   s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs, dd_meas,
                              ambiguity_test.amb_check.ambs, DE, b);
-  if (lesq_error(ret)) {
+  if (ret < 0) {
     log_error("dgnss_fixed_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();
@@ -532,7 +508,7 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   }
   s8 code = least_squares_solve_b(&nkf, float_sdiffs, float_dd_measurements,
                                   ref_ecef, b);
-  if (lesq_error(code)) {
+  if (code < 0) {
     DEBUG_EXIT();
     return -1;
   }
@@ -602,7 +578,7 @@ s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
   *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
   s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
                              dd_meas, ambiguity_test.amb_check.ambs, DE, b);
-  if (lesq_error(ret)) {
+  if (ret < 0) {
     log_error("_dgnss_low_latency_IAR_baseline: "
               "lesq_solution returned error %d\n", ret);
     DEBUG_EXIT();

@@ -139,9 +139,6 @@ static double pvt_solve(double rx_state[],
 {
   double p_pred[n_used];
 
-  /* Vector of prediction errors */
-  //double omp[n_used];
-
   /* G is a geometry matrix tells us how our pseudoranges relate to
    * our state estimates -- it's the Jacobian of d(p_i)/d(x_j) where
    * x_j are x, y, z, Δt. */
@@ -283,11 +280,15 @@ static u8 filter_solution(gnss_solution* soln, dops_t* dops)
   return 0;
 }
 
-static bool chi_test(u8 n_used, double omp[n_used], double rx_state[],
-                     double *residual)
+/* Checks pvt_iter residuals; can detect erroneous input measurements.
+ * Returns true if residual is sufficiently small.
+ */
+static bool residual_test(u8 n_used, double omp[n_used],
+                          const double rx_state[],
+                          double *residual)
 {
   /* Very liberal threshold. Typical range 20 - 120 */
-  double res_threshold = 3000;
+#define PVT_RESIDUAL_THRESHOLD 3000
 
   /* Need to add clock offset to observed-minus-predicted calculated by last
    * iteration of pvt_solve before computing residual. */
@@ -295,20 +296,29 @@ static bool chi_test(u8 n_used, double omp[n_used], double rx_state[],
     omp[i] -= rx_state[3];
   }
   double norm = vector_norm(n_used, omp);
-  *residual = norm;
+  if (residual) {
+    *residual = norm;
+  }
   printf("PVT NORM %i %f\n", n_used, norm);
 
-  return norm < res_threshold;
+  return norm < PVT_RESIDUAL_THRESHOLD;
 }
 
 
+/* Iterates pvt_solve until it converges or PVT_MAX_ITERATIONS is reached.
+ * Return value:
+ *   0: solution converged
+ *  -1: solution failed to converge
+ *
+ *  Results stored in rx_state, omp, H
+ */
 static s8 pvt_iter(double rx_state[],
                    const u8 n_used,
                    const navigation_measurement_t nav_meas[n_used],
                    double omp[n_used],
                    double H[4][4])
 {
-  /* reset state to zero !? */
+  /* Reset state to zero */
   for(u8 i=4; i<8; i++) {
     rx_state[i] = 0;
   }
@@ -333,24 +343,25 @@ static s8 pvt_iter(double rx_state[],
   return 0;
 }
 
-
-/* returns:
- * 0: inital solution ok
- * 1: repaired solution, using one less nav_meas
- * -1: no reasonable solution possible
+/* Return values:
+ *    1: repaired solution, using one fewer observation
+ *       returns prn of removed measurement if removed_prn ptr is passed
+ *   -1: no reasonable solution possible
+ *
+ *  Results stored in rx_state, omp, H
  */
 static s8 pvt_repair(double rx_state[],
                      const u8 n_used,
                      const navigation_measurement_t nav_meas[n_used],
                      double omp[n_used],
-                     double H[4][4])
+                     double H[4][4],
+                     u8 *removed_prn)
 {
   /* Try solving with n-1 navigation measurements. */
   navigation_measurement_t nav_meas_copy[n_used];
   u8 one_less = n_used - 1;
   s8 bad_sat = -1;
   u8 num_passing = 0;
-  double residual = 0;
 
   memcpy(nav_meas_copy, nav_meas, n_used * sizeof(navigation_measurement_t));
 
@@ -369,50 +380,57 @@ static s8 pvt_repair(double rx_state[],
       continue;
     }
 
-    if (chi_test(n_used-1, omp, rx_state, &residual)) {
+    if (residual_test(n_used-1, omp, rx_state, 0)) {
       num_passing++;
       bad_sat = drop;
     }
   }
 
   if (num_passing == 1) {
-    /* Repair is possible by omitting bad_sat. Re-calculate that solution. */
+    /* Repair is possible by omitting bad_sat. Recalculate that solution. */
     memcpy(nav_meas_copy, nav_meas, n_used * sizeof(navigation_measurement_t));
     nav_meas_copy[bad_sat] = nav_meas_copy[one_less];
     s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_copy, omp, H);
     assert(flag == 0);
-    printf("pvt_repair successful. dropped prn: %i.\n", nav_meas[bad_sat].prn);
+    if (removed_prn) {
+      *removed_prn = nav_meas[bad_sat].prn;
+    }
     return 1;
   } else {
     return -1;
   }
 }
 
-/* returns:
- * 0: inital solution ok
- * 1: repaired solution, using one less nav_meas
- * -1: no reasonable solution possible
+/* Return values:
+ *    0: inital solution ok
+ *    1: repaired solution, using one fewer observation
+ *       returns prn of removed measurement if removed_prn ptr is passed
+ *   -1: no reasonable solution possible
+ *
+ *  Results stored in rx_state, H
  */
 static s8 pvt_solve_and_check(double rx_state[],
                               const u8 n_used,
                               const navigation_measurement_t nav_meas[n_used],
-                              double H[4][4])
+                              double H[4][4],
+                              u8 *removed_prn)
 {
   double omp[n_used];
   double residual = 0;
 
   s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
 
-  if (flag == 0 && chi_test(n_used, omp, rx_state, &residual)) {
+  if (flag == 0 && residual_test(n_used, omp, rx_state, &residual)) {
     /* Solution ok. */
     return 0;
   } else {
-    printf("PVT BAD RESIDUAL: %f\n", residual);
+    log_warn("PVT BAD RESIDUAL: %f n_used: %i\n", residual, n_used);
     if (n_used < 5) {
       /* Not enough measurements to repair. */
       return -1;
     }
-    return pvt_repair(rx_state, n_used, nav_meas, omp, H);
+    flag = pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
+    return flag;
   }
 }
 
@@ -435,12 +453,18 @@ s8 calc_PVT(const u8 n_used,
   soln->valid = 0;
   soln->n_used = n_used; // Keep track of number of working channels
 
-  s8 flag = pvt_solve_and_check(rx_state, n_used, nav_meas, H);
+  u8 removed_prn;
+  s8 flag = pvt_solve_and_check(rx_state, n_used, nav_meas, H, &removed_prn);
 
   if (flag < 0) {
     /* Didn't converge or least squares integrity check failed. */
-    log_error("PVT iteration failed with code: %i\n", flag);
+    log_warn("PVT iteration failed with code: %i\n", flag);
     return -4;
+  }
+
+  /* Initial solution failed, but repair was successful. */
+  if (flag == 1) {
+    log_info("pvt_repair successful. dropped prn: %i.\n", removed_prn);
   }
 
   /* Compute various dilution of precision metrics. */

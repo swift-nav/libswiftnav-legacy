@@ -39,9 +39,9 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const double ref_ecef[3], double b[3]);
 
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
-                        const double *N, const double *DE, double b[3]);
-
-bool lesq_error(u8 num_sats);
+                        const double *N, const double *DE, double b[3],
+                        double *residuals,
+                        u8 *removed_obs);
 
 #endif /* LIBSWIFTNAV_BASELINE_H */
 

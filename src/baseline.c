@@ -162,7 +162,7 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
   for (u8 i=0; i<num_dds; i++) {
     N_float[i] = N[i];
   }
-  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b);
+  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b, 0, 0);
 }
 
 /* TODO use the state covariance matrix for a better estimate:
@@ -377,27 +377,21 @@ static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
 }
 
 /* Approximate chi square test
- * Scales least squares residuals by a priori covariance, compares against threshold.
+ * Scales least squares residuals by estimated covariance, compares against threshold.
  * Returns true if norm is below threshold.
+ *
+ * Returns residual value in `residual' if non-null.
  */
 static bool chi_test(u8 num_dds, double *residuals, double *residual)
 {
   double sigma = DEFAULT_PHASE_VAR_KF;
-  // TODO
-  // 5.5 seems adequate for float/fixed baseline residuals
-  double threshold = 5.5;
+  /* 5.5 seems adequate for float/fixed baseline residuals. */
+#define BASELINE_RESIDUAL_THRESHOLD 5.5
   double norm = vector_norm(num_dds, residuals) / sqrt(sigma);
-  *residual = norm;
-  //if (SITL_LOGGING)
-  //  printf("SITL NORM %i %i %f\n", TIME_STEP, num_dds, norm);
-  return norm < threshold;
-}
-
-// Is the return code an error?
-// TODO remove
-bool lesq_error(u8 num_sats)
-{
-  return num_sats == 0;
+  if (residual) {
+    *residual = norm;
+  }
+  return norm < BASELINE_RESIDUAL_THRESHOLD;
 }
 
 static void log_baseline(int okay, double b[3], int num_dds, double *residuals)
@@ -411,10 +405,16 @@ static void log_baseline(int okay, double b[3], int num_dds, double *residuals)
 }
 
 /* See lesq_solution_float for argument documentation
- * Returns number of dds used in solution. 0 for error
+ * Return values:
+ *    0: solution with all dd's ok
+ *    1: repaired solution, using one fewer observation
+ *       returns index of removed observation if removed_obs ptr is passed
+ *   -1: no reasonable solution possible
  */
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
-                        const double *N, const double *DE, double b[3])
+                        const double *N, const double *DE, double b[3],
+                        double *ret_residuals,
+                        u8 *removed_obs)
 {
   integer num_dds = num_dds_u8;
   double residuals[num_dds];
@@ -424,15 +424,17 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
   if (okay == 0) {
     double residual;
     if (chi_test(num_dds, residuals, &residual)) {
-      // solution with all sats ok
-      //printf("OKAY: %i %f\n", num_dds, residual);
+      /* Solution using all sats ok. */
       log_baseline(0, b, num_dds, residuals);
-      return num_dds_u8;
+      if (ret_residuals) {
+        memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+      }
+      return 0;
     } else {
-      log_baseline(1, b, num_dds, residuals);
       if (num_dds < 4) {
-        // just enough sats for a solution; can't search for solution after dropping one
-        return 0;
+        /* We have just enough sats for a solution; can't search for solution
+         * after dropping one. */
+        return -1;
       } else {
         u8 num_passing = 0;
         u8 bad_sat = -1;
@@ -448,38 +450,27 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
 
         if (num_passing == 1) {
           /* bad_sat holds index of bad dd
-           * Return solution without bad_sat */
-          if (SITL_LOGGING)
-            printf("FOUND BAD SAT!\n");
-          // TODO remove this
-          //for (u8 i = 0; i < num_dds; i++) {
-          //  lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
-          //  chi_test(new_dds, residuals, &residual);
-          //  printf("RESID %d: %f\n", i, residual);
-          //}
+           * Return solution without bad_sat. */
           lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
-          log_baseline(2, b, num_dds, residuals);
-          return new_dds;
+          if (removed_obs) {
+            *removed_obs = bad_sat;
+          }
+          if (ret_residuals) {
+            memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+          }
+          return 1;
         } else if (num_passing == 0) {
           // ref sat is bad?
-          // TODO remove this
-          //printf("FOUND BAD REF SAT?\n");
-          //for (u8 i = 0; i < num_dds; i++) {
-          //  lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
-          //  chi_test(new_dds, residuals, &residual);
-          //  printf("RESID %d: %f\n", i, residual);
-          //}
-          return 0;
+          return -1;
         } else {
           // ?
-          //printf("CONFUSING DATA\n");
-          return 0;
+          return -1;
         }
       }
     }
   } else {
-    // not enough sats or other error with initial lesq solution
-    return 0;
+    /* Not enough sats or other error returned by initial lesq solution. */
+    return -1;
   }
 }
 
@@ -509,7 +500,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b);
+  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0);
   DEBUG_EXIT();
   return code;
 }
