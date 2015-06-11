@@ -104,7 +104,7 @@ static u8 dgnss_intersect_sats(u8 num_old_prns, const u8 *old_prns,
   return n;
 }
 
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
+void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 {
   DEBUG_ENTRY();
 
@@ -126,25 +126,25 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     dgnss_settings.amb_drift_var,
     dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
     dgnss_settings.amb_init_var,
-    num_sats, corrected_sdiffs, dd_measurements, reciever_ecef
+    num_sats, corrected_sdiffs, dd_measurements, receiver_ecef
   );
 
   DEBUG_EXIT();
 }
 
-void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double reciever_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
+void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double receiver_ecef[3], u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs)
 {
-  (void)reciever_ecef;
+  (void)receiver_ecef;
   /* all the ref sat stuff */
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
     log_info("Unable to rebase to new ref, resetting filters and starting over\n");
-    dgnss_init(num_sdiffs, sdiffs, reciever_ecef);
+    dgnss_init(num_sdiffs, sdiffs, receiver_ecef);
     memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
     if (num_sdiffs >= 1) {
       copy_sdiffs_put_ref_first(old_prns[0], num_sdiffs, sdiffs, corrected_sdiffs);
     }
-    /*dgnss_init(num_sdiffs, sdiffs, reciever_ecef); //TODO use current baseline state*/
+    /*dgnss_init(num_sdiffs, sdiffs, receiver_ecef); //TODO use current baseline state*/
     return;
   }
   else if (sats_management_code == NEW_REF) {
@@ -184,7 +184,7 @@ static void dgnss_simple_amb_meas(const u8 num_sdiffs,
   }
 }
 
-static void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3],
+static void dgnss_update_sats(u8 num_sdiffs, double receiver_ecef[3],
                               sdiff_t *sdiffs_with_ref_first,
                               double *dd_measurements)
 {
@@ -211,7 +211,7 @@ static void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3],
     set_nkf_matrices(
       &nkf,
       dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
-      num_sdiffs, sdiffs_with_ref_first, reciever_ecef
+      num_sdiffs, sdiffs_with_ref_first, receiver_ecef
     );
 
     if (num_intersection_sats < sats_management.num_sats) { /* we lost sats */
@@ -238,7 +238,7 @@ static void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3],
     set_nkf_matrices(
       &nkf,
       dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
-      num_sdiffs, sdiffs_with_ref_first, reciever_ecef
+      num_sdiffs, sdiffs_with_ref_first, receiver_ecef
     );
   }
 
@@ -246,18 +246,18 @@ static void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3],
 }
 
 static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
-                                          double *reciever_ecef)
+                                          double *receiver_ecef)
 {
   DEBUG_ENTRY();
 
   double b2[3];
-  least_squares_solve_b(&nkf, sdiffs, dd_measurements, reciever_ecef, b2);
+  least_squares_solve_b(&nkf, sdiffs, dd_measurements, receiver_ecef, b2);
 
   double ref_ecef[3];
 
-  ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
-  ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[0];
-  ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[0];
+  ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
+  ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[0];
+  ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[0];
 
   /* TODO: make a common DE and use it instead. */
 
@@ -269,7 +269,7 @@ static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measureme
   DEBUG_EXIT();
 }
 
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
 {
   DEBUG_ENTRY();
   if (DEBUG) {
@@ -291,7 +291,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   }
 
   if (sats_management.num_sats <= 1) {
-    dgnss_init(num_sats, sdiffs, reciever_ecef);
+    dgnss_init(num_sats, sdiffs, receiver_ecef);
   }
 
   sdiff_t sdiffs_with_ref_first[num_sats];
@@ -301,24 +301,24 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
   /* rebase globals to a new reference sat
    * (permutes sdiffs_with_ref_first accordingly) */
-  dgnss_rebase_ref(num_sats, sdiffs, reciever_ecef, old_prns, sdiffs_with_ref_first);
+  dgnss_rebase_ref(num_sats, sdiffs, receiver_ecef, old_prns, sdiffs_with_ref_first);
 
   double dd_measurements[2*(num_sats-1)];
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
   /* all the added/dropped sat stuff */
-  dgnss_update_sats(num_sats, reciever_ecef, sdiffs_with_ref_first, dd_measurements);
+  dgnss_update_sats(num_sats, receiver_ecef, sdiffs_with_ref_first, dd_measurements);
 
   double ref_ecef[3];
   if (num_sats >= 5) {
-    dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
+    dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, receiver_ecef);
 
     double b2[3];
-    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
+    least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
 
-    ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
-    ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[1];
-    ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[2];
+    ref_ecef[0] = receiver_ecef[0] + 0.5 * b2[0];
+    ref_ecef[1] = receiver_ecef[1] + 0.5 * b2[1];
+    ref_ecef[2] = receiver_ecef[2] + 0.5 * b2[2];
   }
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
@@ -336,11 +336,11 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   if (DEBUG) {
     if (num_sats >=4) {
       double b3[3];
-      least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b3);
+      least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, receiver_ecef, b3);
 
-      ref_ecef[0] = reciever_ecef[0] + 0.5 * b3[0];
-      ref_ecef[1] = reciever_ecef[1] + 0.5 * b3[1];
-      ref_ecef[2] = reciever_ecef[2] + 0.5 * b3[2];
+      ref_ecef[0] = receiver_ecef[0] + 0.5 * b3[0];
+      ref_ecef[1] = receiver_ecef[1] + 0.5 * b3[1];
+      ref_ecef[2] = receiver_ecef[2] + 0.5 * b3[2];
       double bb[3];
       u8 num_used;
       dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,

@@ -57,9 +57,9 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double amb_drift_var, double amb_init_var,
                         double new_int_var);
 void make_measurements(u8 num_diffs, const sdiff_t *sdiffs, double *raw_measurements);
-void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
+void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3]);
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3]);
+void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
                       u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
 sats_management_t * get_sats_management(void);
