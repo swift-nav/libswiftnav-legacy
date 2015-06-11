@@ -551,8 +551,11 @@ float alias_detect_second(alias_detect_t *a, float I, float Q)
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq)
 {
+  float Tw0 = (2*M_PI*cutoff_freq) / loop_freq;
+  s->b = Tw0 / (Tw0 + 2);
+  s->a = (Tw0 - 2) / (Tw0 + 2);
+
   s->log_bw = 10.f*log10f(bw);
-  s->A = cutoff_freq / (loop_freq + cutoff_freq);
   s->I_prev_abs = -1.f;
   s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
 }
@@ -578,19 +581,18 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * Where \f$I_k\f$ is the in-phase output of the prompt correlator for the
  * \f$k\f$-th integration period.
  *
- * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a simple
- * low-pass IIR filter:
+ * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a first
+ * order low-pass IIR filter with transfer function:
  *
  * \f[
- *    {NSR}_k = A \frac{\hat P_{N, k}}{\hat P_{S, k}} + (1 - A) {NSR}_{k-1}
+ *    F(s) = \frac{\omega_0}{s + \omega_0}
  * \f]
- *
- * Where the IIR filter coefficient, \f$A\f$ can be calculated in terms of a
- * cutoff frequency \f$f_c\f$ and the loop update frequency \f$f = 1/T\f$.
- *
+ * The bilinear transform is applied to obtain a digital equivalent
  * \f[
- *    A = \frac{f_c}{f_c + f}
+ *    F(z) = \frac{b + bz^{-1}}{1 + az^{-1}}
  * \f]
+ * where \f$ b = \frac{T\omega_0}{T\omega_0 + 2} \f$
+ * and \f$ a = \frac{T\omega_0 - 2}{T\omega_0 + 2} \f$.
  *
  * The filtered NSR value is converted to a \f$ C / N_0 \f$ value and returned.
  *
@@ -625,7 +627,9 @@ float cn0_est(cn0_est_state_t *s, float I)
 
     s->I_prev_abs = fabsf(I);
 
-    s->nsr = s->A * (P_n / P_s) + (1.f - s->A) * s->nsr;
+    float tmp = s->b * P_n / P_s;
+    s->nsr = tmp + s->xn - s->a * s->nsr;
+    s->xn = tmp;
   }
 
   return s->log_bw - 10.f*log10f(s->nsr);
