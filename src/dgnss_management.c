@@ -381,11 +381,23 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     return -1;
   }
 
-  sdiff_t ambiguity_sdiffs[ambiguity_test.amb_check.num_matching_ndxs+1];
-  double dd_meas[2 * ambiguity_test.amb_check.num_matching_ndxs];
+  u8 num_dds = ambiguity_test.amb_check.num_matching_ndxs;
+  sdiff_t ambiguity_sdiffs[num_dds + 1];
+  double dd_meas[2 * num_dds];
+  u8 non_ref_prns[num_dds];
 
-  s8 valid_sdiffs = make_ambiguity_resolved_dd_measurements_and_sdiffs(
-      &ambiguity_test, num_sdiffs, sdiffs, dd_meas, ambiguity_sdiffs);
+  for (u8 i=0; i < num_dds; i++) {
+    non_ref_prns[i] = ambiguity_test.sats.prns[1 +
+        ambiguity_test.amb_check.matching_ndxs[i]];
+  }
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(
+        ambiguity_test.sats.prns[0],
+        non_ref_prns,
+        num_dds,
+        num_sdiffs,
+        sdiffs,
+        dd_meas,
+        ambiguity_sdiffs);
 
   if (valid_sdiffs != 0) {
     if (valid_sdiffs != -1) {
