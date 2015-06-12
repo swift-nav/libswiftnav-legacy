@@ -401,6 +401,7 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  *       returns index of removed observation if removed_obs ptr is passed
  *   -1: no reasonable solution possible
  */
+/* TODO(dsk) update all call sites to use n_used as calculated here. */
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
                         const double *N, const double *DE, double b[3],
                         u8 *n_used,

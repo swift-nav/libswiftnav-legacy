@@ -499,7 +499,6 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  // TODO(dsk) is this okay given that lesq may use variable number of sats?
   *num_used = sats_management.num_sats;
   DEBUG_EXIT();
   return 0;
