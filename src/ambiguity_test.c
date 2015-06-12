@@ -1451,15 +1451,23 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 }
 
 /** Add/drop satellites from the ambiguity test, changing reference if needed.
+ * Does the structural change on the satellite set, dropping sats if they
+ * aren't in the sdiffs anymore. We add new sats if we can fit them, and if the
+ * measurement is "trustworthy," as determined by is_bad_measurement.
  * INVALIDATES unanimous ambiguities
  * ^ TODO record this in the amb_test state?
- * \param amb_test    An ambiguity test whose tests to update.
- * \param num_sdiffs  The length of the sdiffs array.
- * \param sdiffs      The single differenced observations. Sorted by PRN.
- * \param float_sats  The satellites to correspond to the KF mean and cov.
- * \param float_mean  The KF state estimate.
- * \param float_cov_U The KF state estimate covariance U in UDU decomposiiton.
- * \param float_cov_D The KF state estimate covariance D in UDU decomposiiton.
+ * \param amb_test            An ambiguity test whose tests to update.
+ * \param num_sdiffs          The length of the sdiffs array.
+ * \param sdiffs              The single differenced observations. Sorted by
+ *                            PRN.
+ * \param float_sats          The satellites to correspond to the KF mean and
+ *                            cov.
+ * \param float_mean          The KF state estimate.
+ * \param float_cov_U         The KF state estimate covariance U in UDU
+ *                            decompositon.
+ * \param float_cov_D         The KF state estimate covariance D in UDU
+ *                            decompositon.
+ * \param is_bad_measurement  Whether we should trust this measurement.
  * \return  0 if we didn't change the sats
  *          1 if we did change the sats
  *          2 if we need to reset IAR TODO maybe do that in here?
@@ -1467,7 +1475,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const sdiff_t *sdiffs, const sats_management_t *float_sats,
                          const double *float_mean, const double *float_cov_U,
-                         const double *float_cov_D)
+                         const double *float_cov_D, u8 is_bad_measurement)
 {
   DEBUG_ENTRY();
 
@@ -1500,13 +1508,15 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
     if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
       changed_sats = 1;
     }
-    u8 incl = ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
-                float_sats, float_mean, float_cov_U, float_cov_D);
-    if (incl == 2) {
-      create_ambiguity_test(amb_test);
-      changed_sats = 1;
-    } else if (incl == 1) {
-      changed_sats = 1;
+    if (!is_bad_measurement) {
+      u8 incl = ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
+                  float_sats, float_mean, float_cov_U, float_cov_D);
+      if (incl == 2) {
+        create_ambiguity_test(amb_test);
+        changed_sats = 1;
+      } else if (incl == 1) {
+        changed_sats = 1;
+      }
     }
   }
   log_debug("changed_sats = %u\n", changed_sats);

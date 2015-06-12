@@ -285,6 +285,9 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
   /* all the added/dropped sat stuff */
   dgnss_update_sats(num_sats, receiver_ecef, sdiffs_with_ref_first, dd_measurements);
 
+  /* Unless the KF says otherwise, DONT TRUST THE MEASUREMENTS */
+  u8 is_bad_measurement = true;
+
   double ref_ecef[3];
   if (num_sats >= 5) {
     double b2[3];
@@ -301,19 +304,22 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
                      dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
                      sats_management.num_sats, sdiffs_with_ref_first, ref_ecef);
 
-    nkf_update(&nkf, dd_measurements);
+    is_bad_measurement = nkf_update(&nkf, dd_measurements);
   }
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
                                           &sats_management, nkf.state_mean,
-                                          nkf.state_cov_U, nkf.state_cov_D);
+                                          nkf.state_cov_U, nkf.state_cov_D,
+                                          is_bad_measurement);
 
   /* TODO: Refactor - looks like ref_ecef can be passed in uninitialized */
-  update_ambiguity_test(ref_ecef,
-                        dgnss_settings.phase_var_test,
-                        dgnss_settings.code_var_test,
-                        &ambiguity_test, nkf.state_dim,
-                        sdiffs, changed_sats);
+  if (!is_bad_measurement) {
+    update_ambiguity_test(ref_ecef,
+                          dgnss_settings.phase_var_test,
+                          dgnss_settings.code_var_test,
+                          &ambiguity_test, nkf.state_dim,
+                          sdiffs, changed_sats);
+  }
 
   update_unanimous_ambiguities(&ambiguity_test);
 

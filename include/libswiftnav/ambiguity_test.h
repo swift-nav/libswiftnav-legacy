@@ -94,7 +94,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *ambiguity_dd_measureme
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const sdiff_t *sdiffs, const sats_management_t *float_sats,
                          const double *float_mean, const double *float_cov_U,
-                         const double *float_cov_D);
+                         const double *float_cov_D, u8 is_bad_measurement);
 u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff_t *sdiffs_with_ref_first, u8 *intersection_ndxs);
 u8 ambiguity_iar_can_solve(ambiguity_test_t *ambiguity_test);
 s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
