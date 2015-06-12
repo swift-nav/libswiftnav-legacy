@@ -476,9 +476,20 @@ s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     DEBUG_EXIT();
     return -1;
   }
-  least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
-      float_sdiffs, float_dd_measurements, ref_ecef, b);
+
+  double DE[nkf.state_dim * 3];
+  assign_de_mtx(nkf.state_dim+1, float_sdiffs, ref_ecef, DE);
+
   *num_used = sats_management.num_sats;
+  s8 ret = lesq_solution_float(nkf.state_dim, float_dd_measurements,
+                               nkf.state_mean, DE, b, 0);
+  if (ret) {
+    log_error("dgnss_float_baseline: "
+              "lesq_solution returned error %d\n", ret);
+    DEBUG_EXIT();
+    return -1;
+  }
+
   DEBUG_EXIT();
   return 0;
 }
