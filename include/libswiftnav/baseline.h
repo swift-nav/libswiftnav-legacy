@@ -16,7 +16,6 @@
 #include "common.h"
 #include "single_diff.h"
 
-#define SITL_LOGGING true
 int LESQ_CALLER;
 extern int TIME_STEP;
 
@@ -40,6 +39,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
 
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
                         const double *N, const double *DE, double b[3],
+                        u8 *n_used,
                         double *residuals,
                         u8 *removed_obs);
 

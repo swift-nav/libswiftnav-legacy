@@ -187,7 +187,7 @@ START_TEST(test_lesq_solution4)
   }
   s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b);
 
-  fail_unless(ret > 0, "solution returned error %d", ret);
+  fail_unless(ret >= 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(fabs(b[i] - b_true[i]) < TOL,
@@ -232,6 +232,51 @@ START_TEST(test_lesq_solution5)
 }
 END_TEST
 
+START_TEST(test_lesq_repair1)
+{
+  /* Over constrained with bad DE row. */
+  double N[] = {0, 0, 0, 0, 0};
+  u8 num_dds = sizeof(N)/sizeof(N[0]);
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 1, 1, 1,
+                 22, 222, 2222};
+  double dd_obs[] = {1, 1, 1, 3, 1};
+
+  double b[3];
+  u8 bad_index;
+  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, &bad_index);
+
+  fail_unless(ret == 1,
+      "Expecting 1 for repaired solution, got: %i.\n", ret);
+  fail_unless(bad_index == 4,
+      "Expecting repaired solution (dropping index 4 of DE), got: %i.\n", bad_index);
+}
+END_TEST
+
+START_TEST(test_lesq_repair2)
+{
+  /* Bad DE row, not enough rows to repair. */
+  double N[] = {0, 0, 0, 0, 0};
+  u8 num_dds = sizeof(N)/sizeof(N[0]);
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 22, 222, 2222};
+  double dd_obs[] = {1, 1, 1, 1};
+
+  double b[3];
+  u8 bad_index;
+  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, &bad_index);
+
+  fail_unless(ret == -1,
+      "Expecting -1 for bad solution, got: %i.\n", ret);
+}
+END_TEST
+
 Suite* baseline_test_suite(void)
 {
   Suite *s = suite_create("Baseline Calculations");
@@ -245,6 +290,8 @@ Suite* baseline_test_suite(void)
   tcase_add_test(tc_core, test_lesq_solution3);
   tcase_add_test(tc_core, test_lesq_solution4);
   tcase_add_test(tc_core, test_lesq_solution5);
+  tcase_add_test(tc_core, test_lesq_repair1);
+  tcase_add_test(tc_core, test_lesq_repair2);
   suite_add_tcase(s, tc_core);
 
   return s;

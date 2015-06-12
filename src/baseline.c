@@ -162,7 +162,7 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
   for (u8 i=0; i<num_dds; i++) {
     N_float[i] = N[i];
   }
-  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b, 0, 0);
+  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b, 0, 0, 0);
 }
 
 /* TODO use the state covariance matrix for a better estimate:
@@ -394,16 +394,6 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
   return norm < BASELINE_RESIDUAL_THRESHOLD;
 }
 
-static void log_baseline(int okay, double b[3], int num_dds, double *residuals)
-{
-  if (SITL_LOGGING) {
-    double sigma = DEFAULT_PHASE_VAR_KF;
-    double norm = vector_norm(num_dds, residuals) / sqrt(sigma);
-    printf("SITL BASELINE %i %i %i %f %f %f %i %f\n",
-        TIME_STEP, LESQ_CALLER, okay, b[0], b[1], b[2], num_dds, norm);
-  }
-}
-
 /* See lesq_solution_float for argument documentation
  * Return values:
  *    0: solution with all dd's ok
@@ -413,6 +403,7 @@ static void log_baseline(int okay, double b[3], int num_dds, double *residuals)
  */
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
                         const double *N, const double *DE, double b[3],
+                        u8 *n_used,
                         double *ret_residuals,
                         u8 *removed_obs)
 {
@@ -425,15 +416,23 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
     double residual;
     if (chi_test(num_dds, residuals, &residual)) {
       /* Solution using all sats ok. */
-      log_baseline(0, b, num_dds, residuals);
       if (ret_residuals) {
         memcpy(ret_residuals, residuals, num_dds * sizeof(double));
       }
+      if (n_used) {
+        *n_used = num_dds;
+      }
       return 0;
     } else {
-      if (num_dds < 4) {
+      if (num_dds < 5) {
         /* We have just enough sats for a solution; can't search for solution
-         * after dropping one. */
+         * after dropping one.
+         * 5 are needed because a 3 dimensional system is exactly constrained,
+         * so the bad measurement can't be detected.
+         */
+        if (n_used) {
+          *n_used = 0;
+        }
         return -1;
       } else {
         u8 num_passing = 0;
@@ -456,14 +455,23 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
             *removed_obs = bad_sat;
           }
           if (ret_residuals) {
-            memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+            memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+          }
+          if (n_used) {
+            *n_used = num_dds-1;
           }
           return 1;
         } else if (num_passing == 0) {
           // ref sat is bad?
+          if (n_used) {
+            *n_used = 0;
+          }
           return -1;
         } else {
           // ?
+          if (n_used) {
+            *n_used = 0;
+          }
           return -1;
         }
       }
@@ -500,7 +508,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0);
+  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0, 0);
   DEBUG_EXIT();
   return code;
 }

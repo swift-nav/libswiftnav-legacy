@@ -334,19 +334,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     ref_ecef[0] = reciever_ecef[0] + 0.5 * b2[0];
     ref_ecef[1] = reciever_ecef[1] + 0.5 * b2[1];
     ref_ecef[2] = reciever_ecef[2] + 0.5 * b2[2];
-
-    if (SITL_LOGGING) {
-      // Calculate a baseline and calculate baselines for checking
-      u8 num_used;
-      double base[3];
-      LESQ_CALLER = 1;
-      dgnss_new_float_baseline(num_sats, sdiffs, ref_ecef,
-                               &num_used, base);
-      LESQ_CALLER = 2;
-      dgnss_fixed_baseline(num_sats, sdiffs, ref_ecef,
-                           &num_used, base);
-      LESQ_CALLER = 0;
-    }
   }
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,

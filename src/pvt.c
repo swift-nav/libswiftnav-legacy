@@ -299,11 +299,8 @@ static bool residual_test(u8 n_used, double omp[n_used],
   if (residual) {
     *residual = norm;
   }
-  printf("PVT NORM %i %f\n", n_used, norm);
-
   return norm < PVT_RESIDUAL_THRESHOLD;
 }
-
 
 /* Iterates pvt_solve until it converges or PVT_MAX_ITERATIONS is reached.
  * Return value:
@@ -425,8 +422,11 @@ static s8 pvt_solve_and_check(double rx_state[],
     return 0;
   } else {
     log_warn("PVT BAD RESIDUAL: %f n_used: %i\n", residual, n_used);
-    if (n_used < 5) {
-      /* Not enough measurements to repair. */
+    if (n_used < 6) {
+      /* Not enough measurements to repair.
+       * 6 are needed because a 4 dimensional system is exactly constrained,
+       * so the bad measurement can't be detected.
+       */
       return -1;
     }
     flag = pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
