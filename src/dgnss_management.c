@@ -245,7 +245,20 @@ static void dgnss_update_sats(u8 num_sdiffs, double reciever_ecef[3],
   DEBUG_EXIT();
 }
 
-static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
+/** Updates the float filter.
+ * It requires that the float filter structurally matches the inputs.
+ * That means that they must have the same satellite set and the same
+ * reference satellite.
+ *
+ * \param sdiffs          sdiffs, sorted by prn, with the ref sat first.
+ * \param dd_measurements Double differenced observation vector.
+ *                        For N+1 sats, the first N elements are the DD carrier
+ *                        phases and the other N are the DD pseudoranges.
+ * \param receiver_ecef   The ECEF coordinates of the other receiver.
+ * \return                Whether the float filter thinks the measurement was
+ *                        bad.
+ */
+static u8 dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measurements,
                                           double *reciever_ecef)
 {
   DEBUG_ENTRY();
@@ -265,8 +278,9 @@ static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measureme
                    dgnss_settings.phase_var_kf, dgnss_settings.code_var_kf,
                    sats_management.num_sats, sdiffs, ref_ecef);
 
-  nkf_update(&nkf, dd_measurements);
+  u8 is_bad_measurement = nkf_update(&nkf, dd_measurements);
   DEBUG_EXIT();
+  return is_bad_measurement;
 }
 
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
@@ -309,10 +323,14 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   /* all the added/dropped sat stuff */
   dgnss_update_sats(num_sats, reciever_ecef, sdiffs_with_ref_first, dd_measurements);
 
+  /* Unless the KF says otherwise, DONT TRUST THE MEASUREMENTS */
+  u8 is_bad_measurement = true;
+
   double ref_ecef[3];
   if (num_sats >= 5) {
-    dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
-
+    is_bad_measurement = dgnss_incorporate_observation(sdiffs_with_ref_first,
+                                                       dd_measurements,
+                                                       reciever_ecef);
     double b2[3];
     least_squares_solve_b(&nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
 
@@ -323,13 +341,16 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
 
   u8 changed_sats = ambiguity_update_sats(&ambiguity_test, num_sats, sdiffs,
                                           &sats_management, nkf.state_mean,
-                                          nkf.state_cov_U, nkf.state_cov_D);
+                                          nkf.state_cov_U, nkf.state_cov_D,
+                                          is_bad_measurement);
 
-  update_ambiguity_test(ref_ecef,
-                        dgnss_settings.phase_var_test,
-                        dgnss_settings.code_var_test,
-                        &ambiguity_test, nkf.state_dim,
-                        sdiffs, changed_sats);
+  if (!is_bad_measurement) {
+    update_ambiguity_test(ref_ecef,
+                          dgnss_settings.phase_var_test,
+                          dgnss_settings.code_var_test,
+                          &ambiguity_test, nkf.state_dim,
+                          sdiffs, changed_sats);
+  }
 
   update_unanimous_ambiguities(&ambiguity_test);
 
