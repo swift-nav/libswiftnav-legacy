@@ -469,7 +469,6 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
 s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                      double ref_ecef[3], u8 *num_used, double b[3])
 {
-  printf("LOW LAT FLOAT BASELINE\n");
   DEBUG_ENTRY();
   if (num_sdiffs < 4 || sats_management.num_sats < 4) {
     /* For a position solution, we need at least 4 sats. That means we must
@@ -535,7 +534,6 @@ s8 _dgnss_low_latency_float_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
 s8 _dgnss_low_latency_IAR_baseline(u8 num_sdiffs, sdiff_t *sdiffs,
                                    double ref_ecef[3], u8 *num_used, double b[3])
 {
-  printf("LOW LAT IAR BASELINE\n");
   DEBUG_ENTRY();
   assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {

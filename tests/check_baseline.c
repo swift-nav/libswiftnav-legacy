@@ -269,8 +269,7 @@ START_TEST(test_lesq_repair2)
   double dd_obs[] = {1, 1, 1, 1};
 
   double b[3];
-  u8 bad_index;
-  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, &bad_index);
+  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, 0);
 
   fail_unless(ret == -1,
       "Expecting -1 for bad solution, got: %i.\n", ret);

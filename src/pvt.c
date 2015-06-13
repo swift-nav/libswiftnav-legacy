@@ -465,6 +465,7 @@ s8 calc_PVT(const u8 n_used,
   /* Initial solution failed, but repair was successful. */
   if (flag == 1) {
     log_info("pvt_repair successful. dropped prn: %i.\n", removed_prn);
+    soln->n_used--;
   }
 
   /* Compute various dilution of precision metrics. */
