@@ -61,6 +61,19 @@ static navigation_measurement_t nm9 = {
 };
 
 
+START_TEST(test_pvt_failed_repair)
+{
+  u8 n_used = 5;
+  gnss_solution soln;
+  dops_t dops;
+
+  navigation_measurement_t nms[9] = {nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8};
+
+  calc_PVT(n_used, nms, &soln, &dops);
+  /* PVT repair requires at least 6 measurements. */
+  fail_unless(soln.valid == 0, "Solution should be invalid!");
+}
+END_TEST
 START_TEST(test_pvt_repair)
 {
   u8 n_used = 6;
@@ -75,18 +88,13 @@ START_TEST(test_pvt_repair)
 }
 END_TEST
 
-START_TEST(test_calc_PVT)
-{
-}
-END_TEST
-
 Suite* pvt_test_suite(void)
 {
   Suite *s = suite_create("PVT Solver");
 
   TCase *tc_core = tcase_create("Core");
-  tcase_add_test(tc_core, test_calc_PVT);
   tcase_add_test(tc_core, test_pvt_repair);
+  tcase_add_test(tc_core, test_pvt_failed_repair);
   suite_add_tcase(s, tc_core);
 
   return s;
