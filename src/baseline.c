@@ -25,8 +25,6 @@
 #include "filter_utils.h"
 #include "dgnss_management.h"
 
-int TIME_STEP = 0;
-
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
  * and ambiguities.

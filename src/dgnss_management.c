@@ -250,13 +250,6 @@ static void dgnss_incorporate_observation(sdiff_t *sdiffs, double * dd_measureme
 {
   DEBUG_ENTRY();
 
-  // TODO 2222
-  // move to dgnss_update?
-  // log timestep + sdiff prns (not off by one)
-  // join with residuals
-  // check sats on repair
-  TIME_STEP++;
-
   double b2[3];
   s8 code = least_squares_solve_b(&nkf, sdiffs, dd_measurements, reciever_ecef, b2);
   (void)code;
@@ -322,7 +315,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
     dgnss_incorporate_observation(sdiffs_with_ref_first, dd_measurements, reciever_ecef);
 
     double b2[3];
-    LESQ_CALLER = 0;
     s8 code = least_squares_solve_b(
         &nkf, sdiffs_with_ref_first, dd_measurements, reciever_ecef, b2);
 

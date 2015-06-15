@@ -16,9 +16,6 @@
 #include "common.h"
 #include "single_diff.h"
 
-int LESQ_CALLER;
-extern int TIME_STEP;
-
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs);
 
