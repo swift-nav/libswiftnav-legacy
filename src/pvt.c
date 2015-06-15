@@ -22,8 +22,6 @@
 #include "coord_system.h"
 #include "track.h"
 
-#include "baseline.h"
-
 #include "pvt.h"
 
 static double vel_solve(double rx_vel[],
@@ -429,8 +427,7 @@ static s8 pvt_solve_and_check(double rx_state[],
        */
       return -1;
     }
-    flag = pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
-    return flag;
+    return pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
   }
 }
 
