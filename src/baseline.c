@@ -399,7 +399,8 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  *       returns index of removed observation if removed_obs ptr is passed
  *   -1: no reasonable solution possible
  */
-/* TODO(dsk) update all call sites to use n_used as calculated here. */
+/* TODO(dsk) update all call sites to use n_used as calculated here.
+ * TODO(dsk) add warn/info logging to call sites when repair occurs. */
 s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
                         const double *N, const double *DE, double b[3],
                         u8 *n_used,
@@ -449,6 +450,7 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
         if (num_passing == 1) {
           /* bad_sat holds index of bad dd
            * Return solution without bad_sat. */
+          /* Recalculate this solution. */
           lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
           if (removed_obs) {
             *removed_obs = bad_sat;
@@ -461,13 +463,14 @@ s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
           }
           return 1;
         } else if (num_passing == 0) {
-          // ref sat is bad?
+          /* Ref sat is bad? */
           if (n_used) {
             *n_used = 0;
           }
           return -1;
         } else {
-          // ?
+          /* Had more than one acceptable solution.
+           * TODO(dsk) should we return the best one? */
           if (n_used) {
             *n_used = 0;
           }
