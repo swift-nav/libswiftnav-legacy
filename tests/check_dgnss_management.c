@@ -196,6 +196,7 @@ END_TEST
 START_TEST(test_dgnss_float_baseline_few_sats) {
   sats_management.prns[0] = 5;
   sats_management.num_sats = 1;
+  nkf.state_dim = 0;
 
   double b[3];
   u8 num_used;

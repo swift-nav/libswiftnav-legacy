@@ -374,53 +374,27 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
 s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                         const double ref_ecef[3], u8 *num_used, double b[3])
 {
-  DEBUG_ENTRY();
-  assert(num_sdiffs >= 4);
   if (!ambiguity_iar_can_solve(&ambiguity_test)) {
-    DEBUG_EXIT();
     return -1;
   }
 
   u8 num_dds = ambiguity_test.amb_check.num_matching_ndxs;
-  sdiff_t ambiguity_sdiffs[num_dds + 1];
-  double dd_meas[2 * num_dds];
-  u8 non_ref_prns[num_dds];
+  u8 amb_prns[num_dds+1];
+  double ambs[num_dds];
 
+  amb_prns[0] = ambiguity_test.sats.prns[0];
   for (u8 i=0; i < num_dds; i++) {
-    non_ref_prns[i] = ambiguity_test.sats.prns[1 +
+    amb_prns[i+1] = ambiguity_test.sats.prns[1 +
         ambiguity_test.amb_check.matching_ndxs[i]];
+    ambs[i] = ambiguity_test.amb_check.ambs[i];
   }
-  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(
-        ambiguity_test.sats.prns[0],
-        non_ref_prns,
-        num_dds,
-        num_sdiffs,
-        sdiffs,
-        dd_meas,
-        ambiguity_sdiffs);
 
-  if (valid_sdiffs != 0) {
-    if (valid_sdiffs != -1) {
-      log_error("dgnss_fixed_baseline: Invalid sdiffs.");
-    }
-    DEBUG_EXIT();
+  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef,
+                    num_dds, amb_prns, ambs,
+                    num_used, b);
+  if (ret < 0) {
     return -1;
   }
-
-  double DE[ambiguity_test.amb_check.num_matching_ndxs * 3];
-  assign_de_mtx(ambiguity_test.amb_check.num_matching_ndxs + 1,
-                ambiguity_sdiffs, ref_ecef, DE);
-  *num_used = ambiguity_test.amb_check.num_matching_ndxs + 1;
-  s8 ret = lesq_solution_int(ambiguity_test.amb_check.num_matching_ndxs,
-                             dd_meas, ambiguity_test.amb_check.ambs, DE, b, 0);
-  if (ret) {
-    log_error("dgnss_fixed_baseline: "
-              "lesq_solution returned error %d\n", ret);
-    DEBUG_EXIT();
-    return -1;
-  }
-
-  DEBUG_EXIT();
   return 0;
 }
 
@@ -453,44 +427,16 @@ s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
 s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                         const double ref_ecef[3], u8 *num_used, double b[3])
 {
-  DEBUG_ENTRY();
-  if (num_sdiffs < 4 || sats_management.num_sats < 4) {
-    /* For a position solution, we need at least 4 sats. That means we must
-     * have at least 4 sats in common between what the KF is tracking and
-     * the sdiffs we give this function. If either is less than 4,
-     * this criterion cannot be satisfied. */
-    log_debug("Low latency solution can't be computed. Too few observations"
-              " or too few sats in the current filter.\n");
-    DEBUG_EXIT();
+  if (sats_management.num_sats == 0) {
     return -1;
   }
-
-  double float_dd_measurements[2 * (sats_management.num_sats - 1)];
-  sdiff_t float_sdiffs[sats_management.num_sats];
-  s8 can_make_obs = make_dd_measurements_and_sdiffs(sats_management.prns[0],
-             &sats_management.prns[1], sats_management.num_sats - 1,
-             num_sdiffs, sdiffs,
-             float_dd_measurements, float_sdiffs);
-  if (can_make_obs == -1) {
-    log_debug("make_float_dd_measurements_and_sdiffs has error code -1\n");
-    DEBUG_EXIT();
+  assert(sats_management.num_sats == nkf.state_dim+1);
+  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef,
+                    sats_management.num_sats-1, sats_management.prns,
+                    nkf.state_mean, num_used, b);
+  if (ret < 0) {
     return -1;
   }
-
-  double DE[nkf.state_dim * 3];
-  assign_de_mtx(nkf.state_dim+1, float_sdiffs, ref_ecef, DE);
-
-  *num_used = sats_management.num_sats;
-  s8 ret = lesq_solution_float(nkf.state_dim, float_dd_measurements,
-                               nkf.state_mean, DE, b, 0);
-  if (ret) {
-    log_error("dgnss_float_baseline: "
-              "lesq_solution returned error %d\n", ret);
-    DEBUG_EXIT();
-    return -1;
-  }
-
-  DEBUG_EXIT();
   return 0;
 }
 

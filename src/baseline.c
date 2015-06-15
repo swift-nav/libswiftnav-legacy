@@ -384,5 +384,43 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   DEBUG_EXIT();
 }
 
+s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+            u8 num_ambs, const u8 *amb_prns, const double *ambs,
+            u8 *num_used, double b[3])
+{
+  if (num_sdiffs < 4 || (num_ambs+1) < 4) {
+    /* For a position solution, we need at least 4 sats. */
+    return -1;
+  }
+
+  double dd_meas[2 * num_ambs];
+  sdiff_t matched_sdiffs[num_ambs+1];
+
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(
+             amb_prns[0], &amb_prns[1], num_ambs,
+             num_sdiffs, sdiffs,
+             dd_meas, matched_sdiffs);
+
+  if (valid_sdiffs < 0) {
+    if (valid_sdiffs != -1) {
+      log_error("baseline: Invalid sdiffs\n");
+    }
+    return -1;
+  }
+
+  double DE[num_ambs * 3];
+  assign_de_mtx(num_ambs+1, matched_sdiffs, ref_ecef, DE);
+
+  *num_used = num_ambs;
+  s8 ret = lesq_solution_float(num_ambs, dd_meas, ambs, DE, b, 0);
+
+  if (ret < 0) {
+    log_error("baseline: lesq_solution returned error %d\n", ret);
+    return -2;
+  }
+
+  return 0;
+}
+
 /** \} */
 

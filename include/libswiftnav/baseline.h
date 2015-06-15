@@ -33,5 +33,9 @@ void least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3]);
 
+s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+            u8 num_ambs, const u8 *amb_prns, const double *ambs,
+            u8 *num_used, double b[3]);
+
 #endif /* LIBSWIFTNAV_BASELINE_H */
 
