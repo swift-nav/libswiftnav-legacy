@@ -44,5 +44,9 @@ s32 intersection_map(u32 na, size_t sa, const void *as,
                      void (*f)(void *context, u32 n,
                                const void *a, const void *b));
 
+s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
+                 u32 nb, size_t sb, const void *bs, void *b_out,
+                 cmp_fn cmp);
+
 #endif /* LIBSWIFTNAV_SET_H */
 

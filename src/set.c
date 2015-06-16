@@ -129,5 +129,52 @@ s32 intersection_map(u32 na, size_t sa, const void *as,
   return n;
 }
 
+struct intersection_context {
+  void *a_out;
+  size_t sa;
+  void *b_out;
+  size_t sb;
+};
+
+static void intersection_function(void *context, u32 n,
+                                  const void *a, const void *b)
+{
+  (void)n;
+  struct intersection_context *ctxt = (struct intersection_context *)context;
+
+  if (ctxt->a_out) {
+    memcpy(ctxt->a_out, a, ctxt->sa);
+    ctxt->a_out += ctxt->sa;
+  }
+  if (ctxt->b_out) {
+    memcpy(ctxt->b_out, b, ctxt->sb);
+    ctxt->b_out += ctxt->sb;
+  }
+}
+
+/** Take the intersection of two sets.
+ *
+ * Takes two arrays each representing a set and outputs two arrays containing
+ * the elemnts from the input arrays that are equal under a comparison function
+ * `cmp`.
+ */
+s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
+                 u32 nb, size_t sb, const void *bs, void *b_out,
+                 cmp_fn cmp)
+{
+  assert(a_out != NULL);
+  assert(b_out != NULL);
+
+  struct intersection_context ctxt = {
+    .a_out = a_out,
+    .sa = sa,
+    .b_out = b_out,
+    .sb = sb
+  };
+
+  return intersection_map(na, sa, as, nb, sb, bs,
+                          cmp, &ctxt, intersection_function);
+}
+
 /** \} */
 
