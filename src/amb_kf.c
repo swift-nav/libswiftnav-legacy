@@ -14,11 +14,7 @@
  * This is a Bierman-Thornton kalman filter implementation, as described in:
  *  [1] Gibbs, Bruce P. "Advanced Kalman Filtering, Least-Squares, and Modeling."
  *      John C. Wiley & Sons, Inc., 2011.
- * It has been modified to be more robust. It can be verified by following a
- * proof parallel to the one in Bierman's original derivation [2] of the U-D
- * updates with a data-scaled Kalman gain.
- *  [2] Bierman, Gerald J. "Factorization Methods for Discrete Sequential
-        Estimation" Academic Press, Inc., 1977.
+ * It has been modified to be more robust against outliers.
  */
 
 #include <string.h>
@@ -84,8 +80,6 @@ static double compute_innovation_terms(u32 state_dim, const double *h,
  * singular matrices, dictating that zeros from cov_D dominate in a particular
  * potential 0 / 0.
  * We also make it more robust, by multiplying k by k_scalar <=  1.
- * To still perform the update in factored form, we modified the derivation
- * in section V.3 of [2] to arrive at the following code.
  *
  * \param kf        The KF to update
  * \param R         The measurement variance
@@ -118,15 +112,11 @@ static void update_kf_state(nkf_t *kf, double R, double *f, double *g,
   memset(D_bar, 0,             state_dim * sizeof(double));
   memset(k,     0,             state_dim * sizeof(double));
 
-  /* Turns out that to use k' = k * k_scalar instead of k as the Kalman gain,
-   * the only change in the covariance calculation needed is the initialization
-   * of gamma (alpha_i in Bierman's old book [2] V.3) */
-  double gamma = R / k_scalar + g[0] * f[0];
-  if (k_scalar < 1) {
-    for (u8 i = 0; i < kf->state_dim; i++) {
-      gamma += (1 - k_scalar) / k_scalar * g[i] * f[i];
-    }
-  }
+  /* K is inversely proportional to alpha, so we scale alpha to scale K.
+   * Solving for an R that would give the properly scaled alpha and thus the
+   * correct K, we get the following: */
+  R += alpha * (1 - k_scalar) / k_scalar;
+  double gamma = R  + g[0] * f[0];
   if (D[0] == 0 || R == 0) {
     /*  This is just an expansion of the other branch with the proper
      *  0 `div` 0 definitions. */
