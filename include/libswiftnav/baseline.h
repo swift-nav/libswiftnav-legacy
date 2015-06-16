@@ -14,6 +14,7 @@
 #define LIBSWIFTNAV_BASELINE_H
 
 #include "common.h"
+#include "constants.h"
 #include "observation.h"
 
 /** \addtogroup baseline
