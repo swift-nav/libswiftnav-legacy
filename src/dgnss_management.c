@@ -345,99 +345,40 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
   return ret;
 }
 
-/** Constructs an integer resolved baseline measurement.
- * The sdiffs have no particular reason (other than a general tendency
- * brought by hysteresis) to match up with the IAR sats, so we have
- * to check if we can solve. For now, unless the sdiffs are a superset of the
- * IAR sats, we don't solve.
+/* Update ambiguity states from filter states.
+ * Updates the set of fixed and float ambiguities using the current filter
+ * state.
  *
- * Requires num_sdiffs >= 4.
- *
- * \TODO solve whenever we can (even if not strict superset)
- *
- * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
- * amb_test context, pull it into another file.
- *
- * \TODO pull this into the IAR file when we do the same for the float low lat
- *      solution.
- *
- * \param num_sdiffs The number of `sdiff_t`s in the input array.
- * \param sdiffs     Array of single difference observations (should be a
- *                   superset of the IAR resolved sats).
- * \param ref_ecef   The reference position used for solving and making
- *                   observation matrices.
- * \param num_used   The number of sats actually used in the baseline solution.
- * \param b          The baseline computed.
- * \return -1 if the fixed baseline can't be solved or if an error occurs
- *          0 if the baseline solution succeeded.
+ * \param s Pointer to ambiguity state structure
  */
-s8 dgnss_fixed_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
-                        const double ref_ecef[3], u8 *num_used, double b[3])
+void dgnss_update_ambiguity_state(ambiguity_state_t *s)
 {
-  if (!ambiguity_iar_can_solve(&ambiguity_test)) {
-    return -1;
+  /* Float filter */
+  /* NOTE: if sats_management.num_sats <= 1 the filter is not updated and
+   * nkf.state_dim may not match. */
+  if (sats_management.num_sats > 1) {
+    assert(sats_management.num_sats == nkf.state_dim+1);
+    s->float_ambs.n = nkf.state_dim;
+    memcpy(s->float_ambs.prns, sats_management.prns,
+           (nkf.state_dim+1) * sizeof(u8));
+    memcpy(s->float_ambs.ambs, nkf.state_mean,
+           nkf.state_dim * sizeof(double));
+  } else {
+    s->float_ambs.n = 0;
   }
 
-  u8 num_dds = ambiguity_test.amb_check.num_matching_ndxs;
-  u8 amb_prns[num_dds+1];
-  double ambs[num_dds];
-
-  amb_prns[0] = ambiguity_test.sats.prns[0];
-  for (u8 i=0; i < num_dds; i++) {
-    amb_prns[i+1] = ambiguity_test.sats.prns[1 +
-        ambiguity_test.amb_check.matching_ndxs[i]];
-    ambs[i] = ambiguity_test.amb_check.ambs[i];
+  /* Fixed filter */
+  if (ambiguity_iar_can_solve(&ambiguity_test)) {
+    s->fixed_ambs.n = ambiguity_test.amb_check.num_matching_ndxs;
+    s->fixed_ambs.prns [0] = ambiguity_test.sats.prns[0];
+    for (u8 i=0; i < s->fixed_ambs.n; i++) {
+      s->fixed_ambs.prns[i + 1] = ambiguity_test.sats.prns[1 +
+          ambiguity_test.amb_check.matching_ndxs[i]];
+      s->fixed_ambs.ambs[i] = ambiguity_test.amb_check.ambs[i];
+    }
+  } else {
+    s->fixed_ambs.n = 0;
   }
-
-  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef,
-                    num_dds, amb_prns, ambs,
-                    num_used, b);
-  if (ret < 0) {
-    return -1;
-  }
-  return 0;
-}
-
-/** Constructs a low latency float baseline measurement.
- * The sdiffs have no particular reason (other than a general tendency
- * brought by hysteresis) to match up with the float filter's sats, so we have
- * to check if we can solve. For now, unless the sdiffs are a superset of the
- * float sats, we don't solve.
- *
- * Requires num_sdiffs >= 4 and (global) sats_management.num_sats >= 4.
- *
- * \TODO solve whenever the information is there.
- *
- * \TODO since we're now using make_dd_measurements_and_sdiffs outside of the
- * amb_test context, pull it into another file.
- *
- * \TODO pull this function into the KF, once we pull the sats_management struct
- *      into the KF too. When we do, do the same for the IAR low lat solution.
- *
- * \param num_sdiffs  The number of sdiffs input. Must be >= 4.
- * \param sdiffs      The sdiffs used to measure. (These should be a superset
- *                    of the float sats).
- * \param ref_ecef    The reference position used for solving, and making
- *                    observation matrices.
- * \param num_used    The number of sats actually used to compute the baseline.
- * \param b           The baseline computed.
- * \return -1 if it can't solve.
- *          0 If it can solve.
- */
-s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
-                        const double ref_ecef[3], u8 *num_used, double b[3])
-{
-  if (sats_management.num_sats == 0) {
-    return -1;
-  }
-  assert(sats_management.num_sats == nkf.state_dim+1);
-  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef,
-                    sats_management.num_sats-1, sats_management.prns,
-                    nkf.state_mean, num_used, b);
-  if (ret < 0) {
-    return -1;
-  }
-  return 0;
 }
 
 /** Finds the baseline using low latency sdiffs.
@@ -457,35 +398,24 @@ s8 dgnss_float_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
  *         -1 if we can't give a baseline.
  */
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
-                  const double ref_ecef[3], u8 *num_used, double b[3])
+                  const double ref_ecef[3], const ambiguity_state_t *s,
+                  u8 *num_used, double b[3])
 {
-  DEBUG_ENTRY();
-  if (num_sdiffs < 4 || sats_management.num_sats < 4) {
-    /* For a position solution, we need at least 4 sats. That means we must
-     * have at least 4 sats in common between what the filters are tracking and
-     * the sdiffs we give this function. If num_sdiffs, or the number of KF
-     * sats is less than 4, this criterion cannot be satisfied. */
-    log_debug("Low latency solution can't be computed. Too few observations"
-              " or too few sats in the current filter.\n");
-    DEBUG_EXIT();
-    return -1;
-  }
-  if (0 == dgnss_fixed_baseline(num_sdiffs, sdiffs,
-                                ref_ecef, num_used, b)) {
-    log_debug("low latency IAR solution\n");
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b)
+        >= 0) {
+    log_debug("fixed solution\n");
     DEBUG_EXIT();
     return 1;
   }
-  /* if we get here, we weren't able to get an IAR resolved baseline.
-   * Check if we can get a float baseline. */
-  s8 float_ret_code = dgnss_float_baseline(num_sdiffs, sdiffs, ref_ecef,
-                                           num_used, b);
-  if (float_ret_code == 0) {
-    log_debug("low latency float solution\n");
+  /* We weren't able to get an IAR resolved baseline, check if we can get a
+   * float baseline. */
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b)
+        >= 0) {
+    log_debug("float solution\n");
     DEBUG_EXIT();
     return 2;
   }
-  log_debug("no low latency solution\n");
+  log_debug("no baseline solution\n");
   DEBUG_EXIT();
   return -1;
 }

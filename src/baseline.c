@@ -384,9 +384,9 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   DEBUG_EXIT();
 }
 
-s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            u8 num_ambs, const u8 *amb_prns, const double *ambs,
-            u8 *num_used, double b[3])
+s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+             u8 num_ambs, const u8 *amb_prns, const double *ambs,
+             u8 *num_used, double b[3])
 {
   if (num_sdiffs < 4 || (num_ambs+1) < 4) {
     /* For a position solution, we need at least 4 sats. */
@@ -411,7 +411,7 @@ s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   double DE[num_ambs * 3];
   assign_de_mtx(num_ambs+1, matched_sdiffs, ref_ecef, DE);
 
-  *num_used = num_ambs;
+  *num_used = num_ambs + 1;
   s8 ret = lesq_solution_float(num_ambs, dd_meas, ambs, DE, b, 0);
 
   if (ret < 0) {
@@ -420,6 +420,23 @@ s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   }
 
   return 0;
+}
+
+s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+            const ambiguities_t *ambs, u8 *num_used, double b[3])
+{
+  return baseline_(num_sdiffs, sdiffs, ref_ecef,
+                   ambs->n, ambs->prns, ambs->ambs, num_used, b);
+}
+
+/* Initialize a set of ambiguities.
+ * Initializes to an empty set.
+ *
+ * \param ambs Pointer to set of ambiguities
+ */
+void ambiguities_init(ambiguities_t *ambs)
+{
+  ambs->n = 0;
 }
 
 /** \} */

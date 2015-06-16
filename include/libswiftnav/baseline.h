@@ -16,6 +16,17 @@
 #include "common.h"
 #include "observation.h"
 
+/** \addtogroup baseline
+ * \{ */
+
+typedef struct {
+  double ambs[MAX_CHANNELS-1];
+  u8 prns[MAX_CHANNELS];
+  u8 n;
+} ambiguities_t;
+
+/** \} */
+
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs);
 
@@ -34,8 +45,12 @@ void least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const double ref_ecef[3], double b[3]);
 
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            u8 num_ambs, const u8 *amb_prns, const double *ambs,
-            u8 *num_used, double b[3]);
+            const ambiguities_t *ambs, u8 *num_used, double b[3]);
+s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+             u8 num_ambs, const u8 *amb_prns, const double *ambs,
+             u8 *num_used, double b[3]);
+
+void ambiguities_init(ambiguities_t *ambs);
 
 #endif /* LIBSWIFTNAV_BASELINE_H */
 
