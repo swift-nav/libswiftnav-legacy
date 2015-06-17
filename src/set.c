@@ -157,14 +157,28 @@ static void intersection_function(void *context, u32 n,
  * Takes two arrays each representing a set and outputs two arrays containing
  * the elemnts from the input arrays that are equal under a comparison function
  * `cmp`.
+ *
+ * Set A and B should be represented as sorted arrays with no repeated
+ * elements.
+ *
+ * \param na    Number of elements in set A
+ * \param sa    Size of each element of set A
+ * \param as    Array of elements in set A
+ * \param a_out Output array of matching elements from A
+ * \param nb    Number of elements in set B
+ * \param sb    Size of each element of set B
+ * \param as    Array of elements in set B
+ * \param b_out Output array of matching elements from B
+ * \param cmp    Pointer to a comparison function
+ *
+ * \return Number of elements in intersection on success,
+ *         -1 if A is not a valid set,
+ *         -2 if B is not a valid set
  */
 s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
                  u32 nb, size_t sb, const void *bs, void *b_out,
                  cmp_fn cmp)
 {
-  assert(a_out != NULL);
-  assert(b_out != NULL);
-
   struct intersection_context ctxt = {
     .a_out = a_out,
     .sa = sa,

@@ -21,22 +21,42 @@ void test_map_f(void *context, u32 n, const void *a_, const void *b_)
   c[n] = *a;
 }
 
-#define TEST_INTERSECTION(a, b, c) {                         \
-  s32 c_result[LEN(c)];                                      \
-                                                             \
-  qsort(a, LEN(a), sizeof(a[0]), cmp_s32);                   \
-  qsort(b, LEN(b), sizeof(b[0]), cmp_s32);                   \
-  qsort(c, LEN(c), sizeof(c[0]), cmp_s32);                   \
-                                                             \
-  s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,        \
-                             LEN(b), sizeof(b[0]), b,        \
-                             cmp_s32, c_result, test_map_f); \
-                                                             \
-  fail_unless(ret == LEN(c),                                 \
-      "Intersection length does not match test data");       \
-                                                             \
-  fail_unless(memcmp(c, c_result, sizeof(c)) == 0,           \
-      "Output of intersection does not match test data");    \
+#define TEST_INTERSECTION(a, b, c) {                                           \
+  s32 c_result[LEN(c)];                                                        \
+                                                                               \
+  qsort(a, LEN(a), sizeof(a[0]), cmp_s32);                                     \
+  qsort(b, LEN(b), sizeof(b[0]), cmp_s32);                                     \
+  qsort(c, LEN(c), sizeof(c[0]), cmp_s32);                                     \
+                                                                               \
+  s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,                          \
+                             LEN(b), sizeof(b[0]), b,                          \
+                             cmp_s32, c_result, test_map_f);                   \
+                                                                               \
+  fail_unless(ret == LEN(c),                                                   \
+      "Intersection length does not match test data");                         \
+                                                                               \
+  fail_unless(memcmp(c, c_result, sizeof(c)) == 0,                             \
+      "Output of intersection does not match test data");                      \
+                                                                               \
+  ret = intersection(LEN(a), sizeof(a[0]), a, c_result,                        \
+                     LEN(b), sizeof(b[0]), b, NULL,                            \
+                     cmp_s32);                                                 \
+                                                                               \
+  fail_unless(ret == LEN(c),                                                   \
+      "Intersection length does not match test data (2)");                     \
+                                                                               \
+  fail_unless(memcmp(c, c_result, sizeof(c)) == 0,                             \
+      "Output of intersection does not match test data (2)");                  \
+                                                                               \
+  ret = intersection(LEN(a), sizeof(a[0]), a, NULL,                            \
+                     LEN(b), sizeof(b[0]), b, c_result,                        \
+                     cmp_s32);                                                 \
+                                                                               \
+  fail_unless(ret == LEN(c),                                                   \
+      "Intersection length does not match test data (3)");                     \
+                                                                               \
+  fail_unless(memcmp(c, c_result, sizeof(c)) == 0,                             \
+      "Output of intersection does not match test data (3)");                  \
 }
 
 START_TEST(test_intersection_map_1)
