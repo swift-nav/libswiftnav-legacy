@@ -80,8 +80,10 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   return n;
 }
 
-/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
+/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first.
+ *  Inserts the old ref prn so the tail of the array is sorted.
  */
+/* TODO use the set abstraction fnoble is working on. */
 void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 {
   u8 old_ref = prns[0];
@@ -114,7 +116,9 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
+ *  Inserts the old ref prn so the tail of the sats_management array is sorted.
  */
+/* TODO use the set abstraction fnoble is working on. */
 static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
                               const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
