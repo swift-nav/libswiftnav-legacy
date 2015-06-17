@@ -5,10 +5,11 @@
 
 #include "check_utils.h"
 
-#define epsilon 0.0001
+/*#define epsilon 0.0001*/
+#define EPSILON 1e-5
 
 u8 within_epsilon(double a, double b) {
-  if (fabs(a - b) < epsilon) {
+  if (fabs(a - b) < EPSILON) {
     return 1;
   }
   return 0;

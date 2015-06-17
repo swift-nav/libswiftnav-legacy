@@ -9,8 +9,6 @@
 
 #include "check_utils.h"
 
-#define TOL 1e-10
-
 START_TEST(test_predict_carrier_obs)
 {
   double N[] = {22.2, 23.3, 34.4, 123.4};
@@ -32,7 +30,7 @@ START_TEST(test_predict_carrier_obs)
   predict_carrier_obs(num_dds, N, DE, b, dd_obs);
 
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(dd_obs[i] - dd_obs_expected[i]) < TOL,
+    fail_unless(within_epsilon(dd_obs[i], dd_obs_expected[i]),
                 "Observation mismatch: %lf vs %lf",
                 dd_obs[i], dd_obs_expected[i]);
   }
@@ -51,7 +49,7 @@ START_TEST(test_predict_carrier_obs2)
 
   predict_carrier_obs(1, N, DE, b, dd_obs);
 
-  fail_unless(fabs(dd_obs[0] - dd_obs_expected[0]) < TOL,
+  fail_unless(within_epsilon(dd_obs[0], dd_obs_expected[0]),
               "Observation mismatch: %lf vs %lf",
               dd_obs[0], dd_obs_expected[0]);
 }
@@ -74,7 +72,7 @@ START_TEST(test_amb_from_baseline)
   amb_from_baseline(num_dds, DE, dd_obs, b, N);
 
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(N_true[i] - N[i]) < TOL,
+    fail_unless(within_epsilon(N_true[i], N[i]),
                 "Ambiguity mismatch: %ld vs %lf",
                 N[i], N_true[i]);
   }
@@ -103,7 +101,7 @@ START_TEST(test_lesq_solution)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -114,7 +112,7 @@ START_TEST(test_lesq_solution)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -142,7 +140,7 @@ START_TEST(test_lesq_solution2)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -193,7 +191,7 @@ START_TEST(test_lesq_solution4)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -204,7 +202,7 @@ START_TEST(test_lesq_solution4)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -234,12 +232,12 @@ START_TEST(test_lesq_solution5)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_expected[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_expected[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(resid[i] - resid_expected[i]) < TOL,
+    fail_unless(within_epsilon(resid[i], resid_expected[i]),
                 "Residual mismatch: %lf vs %lf",
                 resid[i], resid_expected[i]);
   }
