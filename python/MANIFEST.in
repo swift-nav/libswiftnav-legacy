@@ -1,0 +1,17 @@
+include *.cfg
+include *.md
+include *.rst
+include *.py
+include *.sh
+include *.txt
+include .coveragerc
+include .gitignore
+include LICENSE
+include LICENSE.GPLv3
+include tox.ini
+recursive-include libswiftnav/ *
+prune libswiftnav/build/
+recursive-include swiftnav/ *.py
+recursive-include swiftnav/ *.pyx
+recursive-include swiftnav/ *.pyd
+prune docs/_build

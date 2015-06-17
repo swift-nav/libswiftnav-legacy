@@ -13,6 +13,10 @@
 #ifndef LIBSWIFTNAV_PRINTING_UTILS_H
 #define LIBSWIFTNAV_PRINTING_UTILS_H
 
+#include "ambiguity_test.h"
+#include "common.h"
+#include "memory_pool.h"
+
 void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
 void print_hyp(void *arg, element_t *elem);
 void print_double_mtx(double *m, u32 _r, u32 _c);
