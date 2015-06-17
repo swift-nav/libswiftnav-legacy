@@ -244,12 +244,12 @@ START_TEST(test_lesq_solution5)
 }
 END_TEST
 
-sdiff_t sdiffs[6];
-u8 num_sdiffs = sizeof(sdiffs) / sizeof(sdiffs[0]);
-double ref_ecef[3];
+static sdiff_t sdiffs[6];
+static u8 num_sdiffs = sizeof(sdiffs) / sizeof(sdiffs[0]);
+static double ref_ecef[3];
 
 /* Initialize sdiffs used in baseline() tests. */
-void check_baseline_setup()
+static void check_baseline_setup()
 {
   memset(ref_ecef, 0, sizeof(ref_ecef));
 
@@ -285,7 +285,7 @@ void check_baseline_setup()
 }
 
 /* No teardown required. */
-void check_baseline_teardown(void) {}
+static void check_baseline_teardown(void) {}
 
 START_TEST(test_baseline_ref_first)
 {

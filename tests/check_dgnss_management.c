@@ -141,6 +141,97 @@ START_TEST(test_dgnss_update_ambiguity_state_2)
 }
 END_TEST
 
+static sdiff_t sdiffs[6];
+static u8 num_sdiffs = sizeof(sdiffs) / sizeof(sdiffs[0]);
+static double ref_ecef[3];
+
+/* Initialize sdiffs used in baseline() tests. */
+static void check_dgnss_baseline_setup()
+{
+  memset(ref_ecef, 0, sizeof(ref_ecef));
+
+  sdiffs[0].prn = 1;
+  sdiffs[0].sat_pos[0] = 1;
+  sdiffs[0].sat_pos[1] = 1;
+  sdiffs[0].sat_pos[2] = 0;
+  sdiffs[0].carrier_phase = 1;
+
+  sdiffs[1].prn = 2;
+  sdiffs[1].sat_pos[0] = 1;
+  sdiffs[1].sat_pos[1] = 0;
+  sdiffs[1].sat_pos[2] = 0;
+  sdiffs[1].carrier_phase = 2;
+
+  sdiffs[2].prn = 3;
+  sdiffs[2].sat_pos[0] = 0;
+  sdiffs[2].sat_pos[1] = 1;
+  sdiffs[2].sat_pos[2] = 0;
+  sdiffs[2].carrier_phase = 3;
+
+  sdiffs[3].prn = 4;
+  sdiffs[3].sat_pos[0] = 0;
+  sdiffs[3].sat_pos[1] = 1;
+  sdiffs[3].sat_pos[2] = 1;
+  sdiffs[3].carrier_phase = 4;
+
+  sdiffs[4].prn = 5;
+  sdiffs[4].sat_pos[0] = 0;
+  sdiffs[4].sat_pos[1] = 0;
+  sdiffs[4].sat_pos[2] = 1;
+  sdiffs[4].carrier_phase = 5;
+}
+
+/* No teardown required. */
+static void check_dgnss_baseline_teardown(void) {}
+
+START_TEST(test_dgnss_baseline_1)
+{
+  ambiguity_state_t s = {
+    .float_ambs = {
+      .n = 4,
+      .prns = {1, 2, 3, 4, 5},
+      .ambs = {0, 0, 0, 0}
+    },
+    .fixed_ambs = {
+      .n = 4,
+      .prns = {2, 1, 3, 4, 5},
+      .ambs = {0, 0, 0, 0}
+    }
+  };
+
+  double b[3];
+  u8 num_used;
+
+  /* Float only */
+  s.fixed_ambs.n = 0;
+  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b);
+  fail_unless(valid == 2);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.742242));
+  fail_unless(within_epsilon(b[1], -0.492905));
+  fail_unless(within_epsilon(b[2], -0.0533294));
+
+  /* Fixed and float */
+  s.fixed_ambs.n = 4;
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b);
+  fail_unless(valid == 1);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.622609));
+  fail_unless(within_epsilon(b[1], -0.432371));
+  fail_unless(within_epsilon(b[2], -0.00461595));
+
+  /* No solution possible */
+  s.fixed_ambs.n = 0;
+  s.float_ambs.n = 0;
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b);
+  fail_unless(valid == -1);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.622609));
+  fail_unless(within_epsilon(b[1], -0.432371));
+  fail_unless(within_epsilon(b[2], -0.00461595));
+}
+END_TEST
+
 Suite* dgnss_management_test_suite(void)
 {
   Suite *s = suite_create("DGNSS Management");
@@ -149,6 +240,12 @@ Suite* dgnss_management_test_suite(void)
   tcase_add_test(tc_amb_state, test_dgnss_update_ambiguity_state_1);
   tcase_add_test(tc_amb_state, test_dgnss_update_ambiguity_state_2);
   suite_add_tcase(s, tc_amb_state);
+
+  TCase *tc_baseline = tcase_create("Baseline");
+  tcase_add_checked_fixture (tc_baseline, check_dgnss_baseline_setup,
+                                          check_dgnss_baseline_teardown);
+  tcase_add_test(tc_baseline, test_dgnss_baseline_1);
+  suite_add_tcase(s, tc_baseline);
 
   return s;
 }
