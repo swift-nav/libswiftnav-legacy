@@ -413,6 +413,10 @@ static s8 pvt_solve_and_check(double rx_state[],
   double omp[n_used];
   double residual = 0;
 
+  if (n_used < 4) {
+    return -1;
+  }
+
   s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
 
   if (flag == 0 && residual_test(n_used, omp, rx_state, &residual)) {
