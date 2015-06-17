@@ -82,7 +82,7 @@ void destroy_ambiguity_test(ambiguity_test_t *amb_test)
  * \param hyp_N       A pointer to the array of s32's to represent the output hyp.
  * \return            0 iff there only one hypothesis in the pool, -1 otherwise.
  */
-s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N)
+s8 get_single_hypothesis(const ambiguity_test_t *amb_test, s32 *hyp_N)
 {
   if (memory_pool_n_allocated(amb_test->pool) == 1) {
     hypothesis_t hyp;
@@ -130,7 +130,7 @@ static void fold_contains(void *x, element_t *elem)
  * \param ambs        The ambiguity hypothesis to look for.
  * \return            Whether or not the pool contains ambs.
  */
-u8 ambiguity_test_pool_contains(ambiguity_test_t *amb_test, double *ambs)
+u8 ambiguity_test_pool_contains(const ambiguity_test_t *amb_test, double *ambs)
 {
   fold_contains_t acc;
   acc.num_dds = amb_test->sats.num_sats-1;
@@ -183,7 +183,7 @@ static void fold_ll(void *x, element_t *elem)
  * \return            The pseudo log-likelihood of the hypothesis if it is
  *                    in the pool, and a positive number otherwise.
  */
-double ambiguity_test_pool_ll(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
+double ambiguity_test_pool_ll(const ambiguity_test_t *amb_test, u8 num_ambs, const double *ambs)
 {
   fold_ll_t acc;
   acc.num_dds = amb_test->sats.num_sats-1;
@@ -218,7 +218,7 @@ static void fold_prob(void *x, element_t *elem)
  * \return            The probability of the hypothesis if it is
  *                    in the pool, and a negative number otherwise.
  */
-double ambiguity_test_pool_prob(ambiguity_test_t *amb_test, u8 num_ambs, double *ambs)
+double ambiguity_test_pool_prob(const ambiguity_test_t *amb_test, u8 num_ambs, const double *ambs)
 {
   fold_ll_t acc;
   acc.num_dds = amb_test->sats.num_sats-1;
@@ -272,7 +272,7 @@ static void fold_mle(void *x, element_t *elem)
  * \param amb_test  The ambiguity test to perform MLE in.
  * \param ambs      The output MLE hypothesis.
  */
-void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
+void ambiguity_test_MLE_ambs(const ambiguity_test_t *amb_test, s32 *ambs)
 {
   fold_mle_t mle;
   mle.started = 0;
@@ -304,8 +304,8 @@ void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
  *
  *  INVALIDATES unanimous ambiguities
  */
-void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var,
-                           ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs,
+void update_ambiguity_test(const double ref_ecef[3], double phase_var, double code_var,
+                           ambiguity_test_t *amb_test, u8 state_dim, const sdiff_t *sdiffs,
                            u8 changed_sats)
 {
   DEBUG_ENTRY();
@@ -364,7 +364,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
  * \param amb_test    The ambiguity test whose number of hypotheses we want.
  * \return            The number of hypotheses currently in the ambiguity test.
  */
-u32 ambiguity_test_n_hypotheses(ambiguity_test_t *amb_test)
+u32 ambiguity_test_n_hypotheses(const ambiguity_test_t *amb_test)
 {
   return memory_pool_n_allocated(amb_test->pool);
 }
@@ -530,7 +530,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
 
 /* This says whether we can use the ambiguity_test to resolve a position in 3-space.
  */
-u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
+u8 ambiguity_iar_can_solve(const ambiguity_test_t *amb_test)
 {
   return amb_test->amb_check.initialized &&
          amb_test->amb_check.num_matching_ndxs >= 3;
@@ -557,7 +557,7 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
  * \return error code; see make_dd_measurements_and_sdiffs docstring.
  */
 s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
-            ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+            const ambiguity_test_t *amb_test, u8 num_sdiffs, const sdiff_t *sdiffs,
             double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   DEBUG_ENTRY();
@@ -603,13 +603,13 @@ s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
  *                                  constructed from the input sdiffs.
  * \return error code. see make_dd_measurements_and_sdiffs docstring.
  */
-s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
+s8 make_ambiguity_dd_measurements_and_sdiffs(const ambiguity_test_t *amb_test, u8 num_sdiffs, const sdiff_t *sdiffs,
                                                double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
 {
   DEBUG_ENTRY();
 
   u8 ref_prn = amb_test->sats.prns[0];
-  u8 *non_ref_prns = &amb_test->sats.prns[1];
+  const u8 *non_ref_prns = &amb_test->sats.prns[1];
   u8 num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,

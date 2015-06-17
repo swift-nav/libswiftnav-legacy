@@ -197,16 +197,16 @@ bool is_prn_set(u8 n, const u8 *prns)
  * \param num_dds                    The number of dds used in the IAR
  *                                   (length of non_ref_prns).
  * \param num_sdiffs                 The number of sdiffs being passed in.
- * \param sdiffs                     The sdiffs to pull measurements out of.
+ * \param sdiffs_in                  The sdiffs to pull measurements out of.
  * \param dd_meas  The output vector of DD measurements
  *                                   to be used to update the IAR.
- * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
+ * \param sdiffs_out                 The sdiffs that correspond to the IAR PRNs.
  * \return 0 if the input sdiffs are superset of the IAR sats,
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                   u8 num_sdiffs, sdiff_t *sdiffs_in,
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
   DEBUG_ENTRY();

@@ -43,8 +43,8 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
 
 bool is_prn_set(u8 len, const u8 *prns);
 
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                   u8 num_sdiffs, sdiff_t *sdiffs_in,
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out);
 
 s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);

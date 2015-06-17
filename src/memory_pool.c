@@ -179,7 +179,7 @@ s32 memory_pool_n_free(memory_pool_t *pool)
  * \param pool Pointer to a memory pool
  * \returns Number of allocated elements or `< 0` on an error.
  */
-s32 memory_pool_n_allocated(memory_pool_t *pool)
+s32 memory_pool_n_allocated(const memory_pool_t *pool)
 {
   u32 count = 0;
 
@@ -226,7 +226,7 @@ u32 memory_pool_n_elements(memory_pool_t *pool)
  * \param array Array to which the elements will be written
  * \return Number of elements written to the array or `< 0` on an error.
  */
-s32 memory_pool_to_array(memory_pool_t *pool, void *array)
+s32 memory_pool_to_array(const memory_pool_t *pool, void *array)
 {
   u32 count = 0;
 
