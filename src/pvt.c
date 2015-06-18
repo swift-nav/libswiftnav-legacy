@@ -354,7 +354,7 @@ static s8 pvt_repair(double rx_state[],
 {
   /* Try solving with n-1 navigation measurements. */
   navigation_measurement_t nav_meas_copy[n_used];
-  u8 one_less = n_used - 1;
+  s8 one_less = n_used - 1;
   s8 bad_sat = -1;
   u8 num_passing = 0;
 
@@ -370,6 +370,7 @@ static s8 pvt_repair(double rx_state[],
     nav_meas_copy[one_less] = temp;
 
     s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_copy, omp, H);
+
     if (flag == -1) {
       /* Didn't converge. */
       continue;
