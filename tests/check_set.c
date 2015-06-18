@@ -24,13 +24,13 @@ void test_map_f(void *context, u32 n, const void *a_, const void *b_)
 #define TEST_INTERSECTION(a, b, c) {                                           \
   s32 c_result[LEN(c)];                                                        \
                                                                                \
-  qsort(a, LEN(a), sizeof(a[0]), cmp_s32);                                     \
-  qsort(b, LEN(b), sizeof(b[0]), cmp_s32);                                     \
-  qsort(c, LEN(c), sizeof(c[0]), cmp_s32);                                     \
+  qsort(a, LEN(a), sizeof(a[0]), cmp_s32_s32);                                 \
+  qsort(b, LEN(b), sizeof(b[0]), cmp_s32_s32);                                 \
+  qsort(c, LEN(c), sizeof(c[0]), cmp_s32_s32);                                 \
                                                                                \
   s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,                          \
                              LEN(b), sizeof(b[0]), b,                          \
-                             cmp_s32, c_result, test_map_f);                   \
+                             cmp_s32_s32, c_result, test_map_f);               \
                                                                                \
   fail_unless(ret == LEN(c),                                                   \
       "Intersection length does not match test data");                         \
@@ -40,7 +40,7 @@ void test_map_f(void *context, u32 n, const void *a_, const void *b_)
                                                                                \
   ret = intersection(LEN(a), sizeof(a[0]), a, c_result,                        \
                      LEN(b), sizeof(b[0]), b, NULL,                            \
-                     cmp_s32);                                                 \
+                     cmp_s32_s32);                                             \
                                                                                \
   fail_unless(ret == LEN(c),                                                   \
       "Intersection length does not match test data (2)");                     \
@@ -50,7 +50,7 @@ void test_map_f(void *context, u32 n, const void *a_, const void *b_)
                                                                                \
   ret = intersection(LEN(a), sizeof(a[0]), a, NULL,                            \
                      LEN(b), sizeof(b[0]), b, c_result,                        \
-                     cmp_s32);                                                 \
+                     cmp_s32_s32);                                             \
                                                                                \
   fail_unless(ret == LEN(c),                                                   \
       "Intersection length does not match test data (3)");                     \
@@ -168,7 +168,7 @@ START_TEST(test_intersection_map_11)
 
   s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,
                              LEN(b), sizeof(b[0]), b,
-                             cmp_s32, c, test_map_f);
+                             cmp_s32_s32, c, test_map_f);
   fail_unless(ret == -1);
 }
 END_TEST
@@ -182,7 +182,7 @@ START_TEST(test_intersection_map_12)
 
   s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,
                              LEN(b), sizeof(b[0]), b,
-                             cmp_s32, c, test_map_f);
+                             cmp_s32_s32, c, test_map_f);
   fail_unless(ret == -2);
 }
 END_TEST

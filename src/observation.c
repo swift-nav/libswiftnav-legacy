@@ -30,7 +30,7 @@ int cmp_sdiff_prn(const void *a_, const void *b_)
 {
   const sdiff_t *a = (const sdiff_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
-  return cmp_u8(&(a->prn), &(b->prn));
+  return cmp_u8_u8(&(a->prn), &(b->prn));
 }
 
 /** Create a single difference from two observations.
