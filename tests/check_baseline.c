@@ -244,7 +244,7 @@ START_TEST(test_lesq_solution5)
 }
 END_TEST
 
-static sdiff_t sdiffs[6];
+static sdiff_t sdiffs[5];
 static u8 num_sdiffs = sizeof(sdiffs) / sizeof(sdiffs[0]);
 static double ref_ecef[3];
 
