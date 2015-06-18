@@ -669,8 +669,13 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                   kf->decor_obs_mtx);
 }
 
-/* Currently this function is only used to find the index of a prn in a
- * permuted basis, so all callsites assert the result is not -1. */
+/** Currently this function is only used to find the index of a prn in a
+ *  permuted basis, so all callsites assert the result is not -1.
+ *  \param num_elements Size of list
+ *  \param x the prn to search for
+ *  \param list the prn list to search
+ *  \return index of x in list, or -1 if no element is equal to x
+ */
 s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list)
 {
   for (u32 i=0; i<num_elements; i++) {
