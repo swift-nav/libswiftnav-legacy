@@ -362,7 +362,7 @@ static void diffuse_state(nkf_t *kf)
 }
 
 /** In place updating of the KF state mean and covariance.
- * Does both the temporal and measurement updates to the KF.
+ * Does both the prediction and measurement updates to the KF.
  *
  * \param kf            The KF to update
  * \param measurements  The observations. The first (kf->state_dim) elements are
@@ -383,7 +383,7 @@ bool nkf_update(nkf_t *kf, const double *measurements)
               kf->obs_dim, kf->decor_mtx, kf->obs_dim, /*  N, A, lda. */
               resid_measurements, 1); /*  X, incX. */
 
-  /*  Temporal update */
+  /*  Prediction update */
   diffuse_state(kf);
   /* Measurement update */
   bool is_bad_measurement = incorporate_obs(kf, resid_measurements);

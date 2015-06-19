@@ -15,7 +15,7 @@ u8 within_epsilon(double a, double b) {
   return 0;
 }
 
-u8 vec_within_epsilon(u32 n, const double *a, const double *b) {
+u8 arr_within_epsilon(u32 n, const double *a, const double *b) {
   for (u32 i=0; i < n; i++) {
     if (!within_epsilon(a[i], b[i])) {
       return false;
@@ -33,7 +33,7 @@ double frand(double fmin, double fmax) {
   return fmin + f * (fmax - fmin);
 }
 
-void vec_frand(u32 n, double fmin, double fmax, double *v)
+void arr_frand(u32 n, double fmin, double fmax, double *v)
 {
   for (u32 i=0; i < n; i++) {
     v[i] = frand(fmin, fmax);

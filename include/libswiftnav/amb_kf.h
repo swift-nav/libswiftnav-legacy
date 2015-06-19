@@ -31,22 +31,33 @@
 #define SOS_SWITCH 10.0f
 
 typedef struct {
+  /** The dimension of the state vector. */
   u32 state_dim;
+  /** The dimension of the observation vector. */
   u32 obs_dim;
+  /** The variance to use for the prediction update step (diffusion). */
   double amb_drift_var;
   /** The observation decorrelation matrix. Takes raw measurements and
    * decorrelates them. */
   double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM];
-  /* The observation matrix for decorrelated measurements. */
+  /** The observation matrix for decorrelated measurements. */
   double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM];
-  /* The diagonal of the decorrelated observation covariance (for cholesky it's
+  /** The diagonal of the decorrelated observation covariance (for cholesky it's
    * ones). */
   double decor_obs_cov[MAX_OBS_DIM];
+  /** A basis for the left nullspace usual DGNSS observatio matrix, made of
+   * the DD line of sight vectors from the receivers to the sats. Used to
+   * project out the baseline's influence from the observations. */
   double null_basis_Q[(MAX_STATE_DIM - 3) * MAX_OBS_DIM];
+  /** The current state estimate. */
   double state_mean[MAX_STATE_DIM];
+  /** The upper unit triangular U matrix of the UDU decomposition of the
+   * covariance of the current state estimate. Stored dense. */
   double state_cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
+  /** The diagonal D matrix of the UDU decomposition of the covariance of the current
+   * state estimate. Stored as a vector. */
   double state_cov_D[MAX_STATE_DIM];
-  /* A moving average of the log of the weighted sum of squares innovations. */
+  /** A moving average of the log of the weighted sum of squares innovations. */
   double l_sos_avg;
 } nkf_t;
 
