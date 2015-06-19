@@ -5,7 +5,7 @@
 
 #include <constants.h>
 #include <linear_algebra.h>
-#include <single_diff.h>
+#include <observation.h>
 #include <filter_utils.h>
 
 START_TEST(test_assign_de_mtx_1)

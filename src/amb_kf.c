@@ -244,14 +244,6 @@ void nkf_update(nkf_t *kf, double *measurements)
   DEBUG_EXIT();
 }
 
-void least_squares_solve_b(nkf_t *kf, const sdiff_t *sdiffs_with_ref_first,
-                      const double *dd_measurements, const double ref_ecef[3],
-                      double b[3])
-{
-  return least_squares_solve_b_external_ambs(kf->state_dim, kf->state_mean,
-      sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
-}
-
 /* Initializes the ambiguity means and variances.
  * Note that the covariance is  in UDU form, and U starts as identity. */
 static void initialize_state(nkf_t *kf, double *dd_measurements, double init_var)

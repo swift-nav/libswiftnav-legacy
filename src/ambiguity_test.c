@@ -21,7 +21,7 @@
 #include "common.h"
 #include "constants.h"
 #include "linear_algebra.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "amb_kf.h"
 #include "lambda.h"
 #include "memory_pool.h"
@@ -535,59 +535,6 @@ u8 ambiguity_iar_can_solve(ambiguity_test_t *amb_test)
   return amb_test->amb_check.initialized &&
          amb_test->amb_check.num_matching_ndxs >= 3;
 }
-
-/** Make the DD measurements and sdiffs that correspond to the resolved DDs in amb_test.
- * Assuming that amb_test has not been modified since the last check to see
- * whether it can resolve a fixed position (that is, amb_test->amb_check is up
- * to date, this will make a set of sdiffs and DD measurements that correspond
- * to the resolved sats.
- *
- * \todo If the input sdiffs are a subset of the resolved IAR sats, but still
- *       enough to compute a solution, do it.
- *
- * \param amb_test                  The local amb_test struct. Must have a
- *                                  current amb_check.
- * \param num_sdiffs                The number of sdiffs passed in.
- * \param sdiffs                    The sdiffs from which we make amb_sdiffs.
- * \param ambiguity_dd_measurements DD measurement vector for the amb_test's
- *                                  unanimously resolved sats.
- * \param amb_sdiffs                sdiffs that match the amb_test's unanimously
- *                                  resolved sats constructed from the input
- *                                  sdiffs.
- * \return error code; see make_dd_measurements_and_sdiffs docstring.
- */
-s8 make_ambiguity_resolved_dd_measurements_and_sdiffs(
-            ambiguity_test_t *amb_test, u8 num_sdiffs, sdiff_t *sdiffs,
-            double *ambiguity_dd_measurements, sdiff_t *amb_sdiffs)
-{
-  DEBUG_ENTRY();
-
-  if (DEBUG) {
-    printf("amb_test->sats.prns = {");
-    for (u8 i=0; i < amb_test->sats.num_sats; i++) {
-      printf("%u, ", amb_test->sats.prns[i]);
-    }
-    printf("}\n");
-  }
-
-  u8 ref_prn = amb_test->sats.prns[0];
-  u8 num_dds = amb_test->amb_check.num_matching_ndxs;
-  u8 non_ref_prns[num_dds];
-  for (u8 i=0; i < num_dds; i++) {
-    non_ref_prns[i] = amb_test->sats.prns[1 + amb_test->amb_check.matching_ndxs[i]];
-    log_debug("non_ref_prns[%u] = %u, \t (ndx=%u) \t amb[%u] = %"PRId32"\n",
-              i, non_ref_prns[i], amb_test->amb_check.matching_ndxs[i],
-              i, amb_test->amb_check.ambs[i]);
-  }
-  s8 valid_sdiffs =
-    make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns, num_dds, num_sdiffs,
-                                    sdiffs, ambiguity_dd_measurements,
-                                    amb_sdiffs);
-
-  DEBUG_EXIT();
-  return valid_sdiffs;
-}
-
 
 /** Make the DD measurements and sdiffs that correspond to the DDs in amb_test.
  * This will make a set of sdiffs and DD measurements that correspond to the

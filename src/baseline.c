@@ -23,6 +23,7 @@
 #include "amb_kf.h"
 #include "linear_algebra.h"
 #include "filter_utils.h"
+#include "set.h"
 
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
@@ -382,6 +383,104 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
                                DE, b, 0);
   (void)ret;
   DEBUG_EXIT();
+}
+
+/** Calculate least squares baseline solution from a set of single difference
+ * observations and carrier phase ambiguities.
+ *
+ * \param num_sdiffs Number of single difference observations
+ * \param sdiffs     Set of single differenced observations, length
+ *                   `num_sdiffs`, sorted by PRN
+ * \param ref_ecef   The reference position in ECEF frame, for computing the
+ *                   sat direction vectors
+ * \param num_ambs   Number of carrier phase ambiguities
+ * \param amb_prns   Element zero is the reference PRN and the subsequent
+ *                   elements are the set of PRNs corresponding to the
+ *                   ambiguities, length `num_ambs+1`, sorted by PRN
+ * \param ambs       Array of double differenced carrier phase ambiguities,
+ *                   length `num_ambs`
+ * \param num_used   Pointer to where to store number of satellites used in the
+ *                   baseline solution
+ * \param b          The output baseline in meters
+ * \return            0 on success,
+ *                   -1 if there were insufficient observations to calculate the
+ *                      baseline (the solution was under-constrained),
+ *                   -2 if an error occurred
+ */
+s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+             u8 num_ambs, const u8 *amb_prns, const double *ambs,
+             u8 *num_used, double b[3])
+{
+  assert(sdiffs != NULL);
+  assert(ref_ecef != NULL);
+  assert(amb_prns != NULL);
+  assert(ambs != NULL);
+  assert(num_used != NULL);
+  assert(b != NULL);
+
+  assert(is_prn_set(num_ambs, &amb_prns[1]));
+  assert(is_set(num_sdiffs, sizeof(sdiff_t), sdiffs, cmp_sdiff_prn));
+
+  if (num_sdiffs < 4 || (num_ambs+1) < 4) {
+    /* For a position solution, we need at least 4 sats. */
+    return -1;
+  }
+
+  double dd_meas[2 * num_ambs];
+  sdiff_t matched_sdiffs[num_ambs+1];
+
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(
+             amb_prns[0], &amb_prns[1], num_ambs,
+             num_sdiffs, sdiffs,
+             dd_meas, matched_sdiffs);
+
+  if (valid_sdiffs < 0) {
+    if (valid_sdiffs != -1) {
+      log_error("baseline: Invalid sdiffs\n");
+    }
+    return -2;
+  }
+
+  double DE[num_ambs * 3];
+  assign_de_mtx(num_ambs+1, matched_sdiffs, ref_ecef, DE);
+
+  *num_used = num_ambs + 1;
+
+  return lesq_solution_float(num_ambs, dd_meas, ambs, DE, b, 0);
+}
+
+/** Calculate least squares baseline solution from a set of single difference
+ * observations and carrier phase ambiguities.
+ *
+ * \param num_sdiffs Number of single difference observations
+ * \param sdiffs     Set of single differenced observations, length
+ *                   `num_sdiffs`, sorted by PRN
+ * \param ref_ecef   The reference position in ECEF frame, for computing the
+ *                   sat direction vectors
+ * \param ambs       Set of ambiguities as an `ambiguitites_t` structure
+ * \param num_used   Pointer to where to store number of satellites used in the
+ *                   baseline solution
+ * \param b          The output baseline in meters
+ * \return            0 on success,
+ *                   -1 if there were insufficient observations to calculate the
+ *                      baseline (the solution was under-constrained),
+ *                   -2 if an error occurred
+ */
+s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+            const ambiguities_t *ambs, u8 *num_used, double b[3])
+{
+  return baseline_(num_sdiffs, sdiffs, ref_ecef,
+                   ambs->n, ambs->prns, ambs->ambs, num_used, b);
+}
+
+/* Initialize a set of ambiguities.
+ * Initializes to an empty set.
+ *
+ * \param ambs Pointer to set of ambiguities
+ */
+void ambiguities_init(ambiguities_t *ambs)
+{
+  ambs->n = 0;
 }
 
 /** \} */

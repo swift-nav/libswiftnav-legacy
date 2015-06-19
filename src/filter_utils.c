@@ -17,7 +17,7 @@
 #include <assert.h>
 
 #include "logging.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "constants.h"
 #include "linear_algebra.h"
 #include "filter_utils.h"
@@ -47,6 +47,10 @@ double simple_amb_measurement(double carrier, double code)
 s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
                  const double ref_ecef[3], double *DE)
 {
+  assert(sats_with_ref_first != NULL);
+  assert(ref_ecef != NULL);
+  assert(DE != NULL);
+
   if (num_sats <= 1) {
     log_debug("assign_de_mtx: not enough sats\n");
     return -1;

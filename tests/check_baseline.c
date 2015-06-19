@@ -7,7 +7,7 @@
 #include <constants.h>
 #include <baseline.h>
 
-#define TOL 1e-10
+#include "check_utils.h"
 
 START_TEST(test_predict_carrier_obs)
 {
@@ -30,7 +30,7 @@ START_TEST(test_predict_carrier_obs)
   predict_carrier_obs(num_dds, N, DE, b, dd_obs);
 
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(dd_obs[i] - dd_obs_expected[i]) < TOL,
+    fail_unless(within_epsilon(dd_obs[i], dd_obs_expected[i]),
                 "Observation mismatch: %lf vs %lf",
                 dd_obs[i], dd_obs_expected[i]);
   }
@@ -49,7 +49,7 @@ START_TEST(test_predict_carrier_obs2)
 
   predict_carrier_obs(1, N, DE, b, dd_obs);
 
-  fail_unless(fabs(dd_obs[0] - dd_obs_expected[0]) < TOL,
+  fail_unless(within_epsilon(dd_obs[0], dd_obs_expected[0]),
               "Observation mismatch: %lf vs %lf",
               dd_obs[0], dd_obs_expected[0]);
 }
@@ -72,7 +72,7 @@ START_TEST(test_amb_from_baseline)
   amb_from_baseline(num_dds, DE, dd_obs, b, N);
 
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(N_true[i] - N[i]) < TOL,
+    fail_unless(within_epsilon(N_true[i], N[i]),
                 "Ambiguity mismatch: %ld vs %lf",
                 N[i], N_true[i]);
   }
@@ -101,7 +101,7 @@ START_TEST(test_lesq_solution)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -112,7 +112,7 @@ START_TEST(test_lesq_solution)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -140,7 +140,7 @@ START_TEST(test_lesq_solution2)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -191,7 +191,7 @@ START_TEST(test_lesq_solution4)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -202,7 +202,7 @@ START_TEST(test_lesq_solution4)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_true[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_true[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
@@ -232,15 +232,179 @@ START_TEST(test_lesq_solution5)
   fail_unless(ret == 0, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
-    fail_unless(fabs(b[i] - b_expected[i]) < TOL,
+    fail_unless(within_epsilon(b[i], b_expected[i]),
                 "Baseline mismatch: %lf vs %lf",
                 b[i], b_true[i]);
   }
   for (u8 i=0; i<num_dds; i++) {
-    fail_unless(fabs(resid[i] - resid_expected[i]) < TOL,
+    fail_unless(within_epsilon(resid[i], resid_expected[i]),
                 "Residual mismatch: %lf vs %lf",
                 resid[i], resid_expected[i]);
   }
+}
+END_TEST
+
+static sdiff_t sdiffs[5];
+static u8 num_sdiffs = sizeof(sdiffs) / sizeof(sdiffs[0]);
+static double ref_ecef[3];
+
+/* Initialize sdiffs used in baseline() tests. */
+static void check_baseline_setup()
+{
+  memset(ref_ecef, 0, sizeof(ref_ecef));
+
+  sdiffs[0].prn = 1;
+  sdiffs[0].sat_pos[0] = 1;
+  sdiffs[0].sat_pos[1] = 1;
+  sdiffs[0].sat_pos[2] = 0;
+  sdiffs[0].carrier_phase = 1;
+
+  sdiffs[1].prn = 2;
+  sdiffs[1].sat_pos[0] = 1;
+  sdiffs[1].sat_pos[1] = 0;
+  sdiffs[1].sat_pos[2] = 0;
+  sdiffs[1].carrier_phase = 2;
+
+  sdiffs[2].prn = 3;
+  sdiffs[2].sat_pos[0] = 0;
+  sdiffs[2].sat_pos[1] = 1;
+  sdiffs[2].sat_pos[2] = 0;
+  sdiffs[2].carrier_phase = 3;
+
+  sdiffs[3].prn = 4;
+  sdiffs[3].sat_pos[0] = 0;
+  sdiffs[3].sat_pos[1] = 1;
+  sdiffs[3].sat_pos[2] = 1;
+  sdiffs[3].carrier_phase = 4;
+
+  sdiffs[4].prn = 5;
+  sdiffs[4].sat_pos[0] = 0;
+  sdiffs[4].sat_pos[1] = 0;
+  sdiffs[4].sat_pos[2] = 1;
+  sdiffs[4].carrier_phase = 5;
+}
+
+/* No teardown required. */
+static void check_baseline_teardown(void) {}
+
+START_TEST(test_baseline_ref_first)
+{
+  /* Check that it works with the first sdiff as the reference sat.
+   * This should verify that the loop can start correctly. */
+  ambiguities_t ambs = {
+    .n = 4,
+    .prns = {1, 2, 3, 4, 5},
+    .ambs = {0, 0, 0, 0}
+  };
+
+  double b[3];
+  u8 num_used;
+
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+
+  fail_unless(valid == 0);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.742242));
+  fail_unless(within_epsilon(b[1], -0.492905));
+  fail_unless(within_epsilon(b[2], -0.0533294));
+}
+END_TEST
+
+START_TEST(test_baseline_ref_middle)
+{
+  /* Check that it works with a middle sdiff as the reference sat.
+   * This should verify that the induction works. */
+  ambiguities_t ambs = {
+    .n = 4,
+    .prns = {2, 1, 3, 4, 5},
+    .ambs = {0, 0, 0, 0}
+  };
+
+  double b[3];
+  u8 num_used;
+
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+
+  fail_unless(valid == 0);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.622609));
+  fail_unless(within_epsilon(b[1], -0.432371));
+  fail_unless(within_epsilon(b[2], -0.00461595));
+}
+END_TEST
+
+START_TEST(test_baseline_ref_end)
+{
+  /* Check that it works with the last sdiff as the reference sat.
+   * This should verify that the loop can terminate correctly.*/
+  ambiguities_t ambs = {
+    .n = 4,
+    .prns = {5, 1, 2, 3, 4},
+    .ambs = {0, 0, 0, 0}
+  };
+
+  double b[3];
+  u8 num_used;
+
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+
+  fail_unless(valid == 0);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], -0.589178));
+  fail_unless(within_epsilon(b[1], -0.35166));
+  fail_unless(within_epsilon(b[2], 0.0288157));
+}
+END_TEST
+
+START_TEST(test_baseline_fixed_point)
+{
+  /* Check that measurements generated from a baseline result in an estimate
+   * matching the baseline. */
+  ambiguities_t ambs = {
+    .n = 4,
+    .prns = {5, 1, 2, 3, 4},
+    .ambs = {0, 0, 0, 0}
+  };
+
+  double b_orig[3] = {1, 1, 1};
+
+  ref_ecef[0] = 0; /* Done so that we can just do the vector operations on  */
+  ref_ecef[1] = 0; /*  the sat_pos vectors themselves, instead of computing */
+  ref_ecef[2] = 0; /*  the line of sight vectors for each sdiff.            */
+
+  for (u8 i=0; i<5; i++) {
+    sdiffs[i].carrier_phase = vector_dot(3, b_orig, sdiffs[i].sat_pos) /
+                              vector_norm(3, sdiffs[i].sat_pos) /
+                              GPS_L1_LAMBDA_NO_VAC;
+  }
+
+  double b[3];
+  u8 num_used;
+
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+
+  fail_unless(valid == 0);
+  fail_unless(num_used == 5);
+  fail_unless(within_epsilon(b[0], b_orig[0]));
+  fail_unless(within_epsilon(b[1], b_orig[1]));
+  fail_unless(within_epsilon(b[2], b_orig[2]));
+}
+END_TEST
+
+START_TEST(test_baseline_few_sats)
+{
+  ambiguities_t ambs = {
+    .n = 0,
+    .prns = {5, 1, 2, 3, 4},
+    .ambs = {0, 0, 0, 0}
+  };
+
+  double b[3];
+  u8 num_used;
+
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+
+  fail_unless(valid == -1);
 }
 END_TEST
 
@@ -258,6 +422,16 @@ Suite* baseline_test_suite(void)
   tcase_add_test(tc_core, test_lesq_solution4);
   tcase_add_test(tc_core, test_lesq_solution5);
   suite_add_tcase(s, tc_core);
+
+  TCase *tc_baseline = tcase_create("Baseline");
+  tcase_add_checked_fixture (tc_baseline, check_baseline_setup,
+                                          check_baseline_teardown);
+  tcase_add_test(tc_baseline, test_baseline_ref_first);
+  tcase_add_test(tc_baseline, test_baseline_ref_middle);
+  tcase_add_test(tc_baseline, test_baseline_ref_end);
+  tcase_add_test(tc_baseline, test_baseline_fixed_point);
+  tcase_add_test(tc_baseline, test_baseline_few_sats);
+  suite_add_tcase(s, tc_baseline);
 
   return s;
 }

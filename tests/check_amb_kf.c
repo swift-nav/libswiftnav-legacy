@@ -1,8 +1,9 @@
 
 #include <check.h>
 
+#include "baseline.h"
 #include "amb_kf.h"
-#include "single_diff.h"
+#include "observation.h"
 #include "check_utils.h"
 
 START_TEST(test_lsq)
@@ -48,19 +49,22 @@ START_TEST(test_lsq)
   ref_ecef[1] = 0;
   ref_ecef[2] = 0;
 
-  least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
+  least_squares_solve_b_external_ambs(kf.state_dim, kf.state_mean,
+      sdiffs, meas, ref_ecef, b);
   fail_unless(within_epsilon(b[0], 0));
   fail_unless(within_epsilon(b[1], 0));
   fail_unless(within_epsilon(b[2], 0));
 
   meas[1] = 1;
-  least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
+  least_squares_solve_b_external_ambs(kf.state_dim, kf.state_mean,
+      sdiffs, meas, ref_ecef, b);
   fail_unless(within_epsilon(b[0], -0.324757)); /* check that it matches computation made elsewhere */
   fail_unless(within_epsilon(b[1], -0.134519));
   fail_unless(within_epsilon(b[2], -0.324757));
 
   meas[1] = 2;
-  least_squares_solve_b(&kf, sdiffs, &meas[0], ref_ecef, b);
+  least_squares_solve_b_external_ambs(kf.state_dim, kf.state_mean,
+      sdiffs, meas, ref_ecef, b);
   fail_unless(within_epsilon(b[0], -0.324757 * 2)); /* check that it's linear */
   fail_unless(within_epsilon(b[1], -0.134519 * 2));
   fail_unless(within_epsilon(b[2], -0.324757 * 2));

@@ -14,57 +14,117 @@
 
 #include "logging.h"
 #include "linear_algebra.h"
-#include "single_diff.h"
 #include "ephemeris.h"
 #include "constants.h"
 #include "sats_management.h"
+#include "set.h"
+#include "observation.h"
 
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
  * \{ */
 
-/** Calculate single difference observations.
+/** Comparison function for `sdiff_t` by PRN.
+ * See `cmp_fn`. */
+int cmp_sdiff_prn(const void *a_, const void *b_)
+{
+  const sdiff_t *a = (const sdiff_t *)a_;
+  const sdiff_t *b = (const sdiff_t *)b_;
+  return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+/** Create a single difference from two observations.
+ * Used by single_diff() to map two `navigation_measurement_t`s
+ * into an `sdiff_t`.
+ *
+ * SNR in the output is the lesser of the SNRs of inputs a and b.
+ *
+ * `sat_pos` and `sat_vel` are taken from input b.
+ *
+ * Called once for each pair of observations with matching PRNs.
+ */
+static void single_diff_(void *context, u32 n, const void *a, const void *b)
+{
+  const navigation_measurement_t *m_a = (const navigation_measurement_t *)a;
+  const navigation_measurement_t *m_b = (const navigation_measurement_t *)b;
+  sdiff_t *sds = (sdiff_t *)context;
+
+  sds[n].prn = m_a->prn;
+  sds[n].pseudorange = m_a->raw_pseudorange - m_b->raw_pseudorange;
+  sds[n].carrier_phase = m_a->carrier_phase - m_b->carrier_phase;
+  sds[n].doppler = m_a->raw_doppler - m_b->raw_doppler;
+  sds[n].snr = MIN(m_a->snr, m_b->snr);
+
+  /* NOTE: We use the position and velocity from B (this is required by
+   * make_propagated_sdiffs(). */
+  memcpy(&(sds[n].sat_pos), &(m_b->sat_pos), 3*sizeof(double));
+  memcpy(&(sds[n].sat_vel), &(m_b->sat_vel), 3*sizeof(double));
+}
+
+/** Calculate single differences from two sets of observations.
  * Undifferenced input observations are assumed to be both taken at the
  * same time, `t`.
  *
  * SNR in the output is the lesser of the SNRs of inputs a and b.
  *
- * `sat_pos` and `sat_vel` are taken from input a.
+ * `sat_pos` and `sat_vel` are taken from input b.
  *
- * \param n_a Number of measurements in `m_a`
- * \oaram m_a Array of undifferenced observations, sorted by PRN
- * \param n_b Number of measurements in `m_b`
- * \oaram m_new Array of b navigation measurements, sorted by PRN
+ * \param n_a Number of measurements in set `m_a`
+ * \oaram m_a Array of undifferenced observations, as a set sorted by PRN
+ * \param n_b Number of measurements in set `m_b`
+ * \oaram m_b Array of undifferenced observations, as a set sorted by PRN
  * \param sds Single difference observations
- * \return The number of observations written to `sds`
+ *
+ * \return The number of observations written to `sds` on success,
+ *         -1 if `m_a` is not a valid set,
+ *         -2 if `m_b` is not a valid set
  */
 u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
                sdiff_t *sds)
 {
-  u8 i, j, n = 0;
+  return intersection_map(n_a, sizeof(navigation_measurement_t), m_a,
+                          n_b, sizeof(navigation_measurement_t), m_b,
+                          nav_meas_cmp, sds, single_diff_);
+}
 
-  /* Loop over m_a and m_b and check if a PRN is present in both. */
-  for (i=0, j=0; i<n_a && j<n_b; i++, j++) {
-    if (m_a[i].prn < m_b[j].prn)
-      j--;
-    else if (m_a[i].prn > m_b[j].prn)
-      i--;
-    else {
-      sds[n].prn = m_a[i].prn;
-      sds[n].pseudorange = m_a[i].raw_pseudorange - m_b[j].raw_pseudorange;
-      sds[n].carrier_phase = m_a[i].carrier_phase - m_b[j].carrier_phase;
-      sds[n].doppler = m_a[i].raw_doppler - m_b[j].raw_doppler;
-      sds[n].snr = MIN(m_a[i].snr, m_b[j].snr);
+typedef struct {
+  sdiff_t *sds;
+  double *remote_pos_ecef;
+} make_propagated_sdiff_ctxt;
 
-      memcpy(&(sds[n].sat_pos), &(m_a[i].sat_pos), 3*sizeof(double));
-      memcpy(&(sds[n].sat_vel), &(m_a[i].sat_vel), 3*sizeof(double));
+static void make_propagated_sdiff_(void *context, u32 n,
+                                   const void *a, const void *b)
+{
+  const navigation_measurement_t *m_a = (const navigation_measurement_t *)a;
+  const navigation_measurement_t *m_b = (const navigation_measurement_t *)b;
+  make_propagated_sdiff_ctxt *ctxt = (make_propagated_sdiff_ctxt *)context;
 
-      n++;
-    }
-  }
+  /* Construct sds[n].
+   * NOTE: The resulting sds have sat_pos and sat_vel taken from b. */
+  single_diff_(ctxt->sds, n, a, b);
 
-  return n;
+  double old_dist = vector_distance(3, m_a->sat_pos, ctxt->remote_pos_ecef);
+  double new_dist = vector_distance(3, m_b->sat_pos, ctxt->remote_pos_ecef);
+  double dr = new_dist - old_dist;
+
+  ctxt->sds[n].pseudorange += dr;
+  ctxt->sds[n].carrier_phase -= dr / GPS_L1_LAMBDA_NO_VAC;
+}
+
+/** New more efficient version of make_propagated_sdiffs(), NOT WORKING!!!
+ * WIP */
+u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
+                              u8 n_remote, navigation_measurement_t *m_remote,
+                              double remote_pos_ecef[3], sdiff_t *sds)
+{
+  make_propagated_sdiff_ctxt ctxt = {
+    .sds = sds,
+    .remote_pos_ecef = remote_pos_ecef
+  };
+  return intersection_map(n_local, sizeof(navigation_measurement_t), m_local,
+                          n_remote, sizeof(navigation_measurement_t), m_remote,
+                          nav_meas_cmp, &ctxt, make_propagated_sdiff_);
 }
 
 int sdiff_search_prn(const void *a, const void *b)
@@ -160,28 +220,6 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   return n;
 }
 
-/* Tests if an array of PRNs form a sorted set with no duplicate elements.
- *
- * \param n Length of PRN array
- * \param prns Array of PRNs
- * \return `TRUE` if the PRNs form an ordered set, else `FALSE`
- */
-bool is_prn_set(u8 n, const u8 *prns)
-{
-  if (n == 0) {
-    return true;
-  }
-
-  u8 current = prns[0];
-  for (u8 i = 1; i < n; i++) {
-    if (prns[i] <= current) {
-      return false;
-    }
-    current = prns[i];
-  }
-  return true;
-}
-
 /* Constructs the double differenced measurements and sdiffs needed for IAR.
  * This requires that all IAR prns are in the sdiffs used (sdiffs is a superset
  * of IAR's PRNs), that the sdiffs are ordered by prn, and that the IAR
@@ -205,8 +243,8 @@ bool is_prn_set(u8 n, const u8 *prns)
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, u8 *non_ref_prns, u8 num_dds,
-                                   u8 num_sdiffs, sdiff_t *sdiffs_in,
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,
+                                   u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
   DEBUG_ENTRY();

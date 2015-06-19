@@ -14,7 +14,7 @@
 #define LIBSWIFTNAV_SATS_MANAGEMENT_H
 
 #include "constants.h"
-#include "single_diff.h"
+#include "observation.h"
 
 #define OLD_REF 0
 #define NEW_REF 1
