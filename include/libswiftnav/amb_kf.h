@@ -20,26 +20,39 @@
 #include "observation.h"
 #include "constants.h"
 
+/** \addtogroup amb_kf
+ * \{ */
+
 #define MAX_STATE_DIM (MAX_CHANNELS - 1)
 #define MAX_OBS_DIM (2 * MAX_CHANNELS - 5)
+/** The timescale for smoothing the innovation weighted sum of squares. */
 #define KF_SOS_TIMESCALE 7.0f
+/** The outlier cutoff for the highpassed innovation weighted sum of squares. */
 #define SOS_SWITCH 10.0f
 
 typedef struct {
   u32 state_dim;
   u32 obs_dim;
   double amb_drift_var;
-  double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM]; //the decorrelation matrix. takes raw measurements and decorrelates them
-  double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM]; //the observation matrix for decorrelated measurements
-  double decor_obs_cov[MAX_OBS_DIM]; //the diagonal of the decorrelated observation covariance (for cholesky is ones)
+  /** The observation decorrelation matrix. Takes raw measurements and
+   * decorrelates them. */
+  double decor_mtx[MAX_OBS_DIM * MAX_OBS_DIM];
+  /* The observation matrix for decorrelated measurements. */
+  double decor_obs_mtx[MAX_STATE_DIM * MAX_OBS_DIM];
+  /* The diagonal of the decorrelated observation covariance (for cholesky it's
+   * ones). */
+  double decor_obs_cov[MAX_OBS_DIM];
   double null_basis_Q[(MAX_STATE_DIM - 3) * MAX_OBS_DIM];
   double state_mean[MAX_STATE_DIM];
   double state_cov_U[MAX_STATE_DIM * MAX_STATE_DIM];
   double state_cov_D[MAX_STATE_DIM];
+  /* A moving average of the log of the weighted sum of squares innovations. */
   double l_sos_avg;
 } nkf_t;
 
-u8 nkf_update(nkf_t *kf, const double *measurements);
+/** \} */
+
+bool nkf_update(nkf_t *kf, const double *measurements);
 
 void assign_phase_obs_null_basis(u8 num_dds, double *DE_mtx, double *q);
 void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var, double amb_init_var,
@@ -67,7 +80,13 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
 void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
 
 double get_sos_innov(const nkf_t *kf, const double *decor_obs);
-u8 outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar);
+double compute_innovation_terms(u32 state_dim, const double *h,
+                                double R, const double *U,
+                                const double *D, double *f, double *g);
+bool outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar);
+void update_kf_state(nkf_t *kf, double R, const double *f, const double *g,
+                   double alpha, double k_scalar,
+                   double innov);
 
 #endif /* LIBSWIFTNAV_AMB_KF_H */
 

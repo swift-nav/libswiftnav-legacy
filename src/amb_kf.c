@@ -39,7 +39,7 @@
  * Preliminary integer ambiguity estimation with a Kalman Filter.
  * \{ */
 
-/**Calculation of vectors needed for the innovation scaling.
+/** Calculation of vectors needed for the innovation scaling.
  * We compute two vectors needed to make the Bierman update,
  * as well as the variance of the innovation.
  *
@@ -52,9 +52,9 @@
  * \param g         diag(D) * f.
  * \return          alpha = f * g + R, the innovation variance.
  */
-static double compute_innovation_terms(u32 state_dim, const double *h,
-                                       double R, const double *U,
-                                       const double *D, double *f, double *g)
+double compute_innovation_terms(u32 state_dim, const double *h,
+                                double R, const double *U,
+                                const double *D, double *f, double *g)
 {
   memcpy(f, h, state_dim * sizeof(double));
   /*  f = U^T * h. */
@@ -86,20 +86,25 @@ static double compute_innovation_terms(u32 state_dim, const double *h,
  * \param f         U^T * h
  * \param g         diag(D) * f
  * \param alpha     The innovation variance
- * \param k_scalar  A scalar to multiply the Kalman gain by (softens outliers)
+ * \param k_scalar  A scalar to multiply the Kalman gain by (softens outliers).
+ *                  Must be between 0 and 1 inclusive.
  * \param innov     The difference between the actual and predicted observation
  */
-static void update_kf_state(nkf_t *kf, double R, double *f, double *g,
-                            double alpha, double k_scalar,
-                            double innov)
+void update_kf_state(nkf_t *kf, double R, const double *f, const double *g,
+                     double alpha, double k_scalar,
+                     double innov)
 {
   DEBUG_ENTRY();
-
-  assert(k_scalar <= 1);
-  assert(k_scalar >= 0);
+  if (kf->state_dim == 0) {
+    return;
+  }
+  /* If we are scaling the update by 0, we aren't updating at all,
+   * so return early. */
   if (k_scalar == 0) {
     return;
   }
+  assert(k_scalar <= 1);
+  assert(k_scalar >= 0);
   u32 state_dim = kf->state_dim;
   double *U = kf->state_cov_U;
   double *D = kf->state_cov_D;
@@ -193,11 +198,14 @@ static void update_kf_state(nkf_t *kf, double R, double *f, double *g,
 /** Get the weighted sum of squared innovations.
  * It's a normalized error metric. High is bad.
  * More precisely, we square the difference between the predicted observations
- * and the actual observations, divide them by their variances (FPF' + R),
+ * and the actual observations, divide them by their variances (HPH' + R),
  * but pretending they're independent, and then sum them.
- * It's: sum_i (z - H * x)_i / (F * P * F' + R)_ii.
- * If FPF'+R was actually diagonal and these measurements were independent,
+ * It's: sum_i (z - H * x)_i / (H * P * H' + R)_ii.
+ * If HPH'+R was actually diagonal and the innovations were independent
  * these would be chi square with kf->obs_dim degrees of freedom.
+ *
+ * If either dimension (state or observation) is zero, we define the output
+ * to be zero.
  *
  * \param kf        Kalman filter struct
  * \param decor_obs Decorrelated observation vector
@@ -205,6 +213,12 @@ static void update_kf_state(nkf_t *kf, double R, double *f, double *g,
  */
 double get_sos_innov(const nkf_t *kf, const double *decor_obs)
 {
+  assert(kf != NULL);
+  assert(decor_obs != NULL);
+  if (kf->state_dim == 0 || kf->obs_dim == 0) {
+    return 0;
+  }
+
   double predicted_obs[kf->obs_dim];
   matrix_multiply(kf->obs_dim, kf->state_dim, 1,
                   kf->decor_obs_mtx, kf->state_mean, predicted_obs);
@@ -237,42 +251,54 @@ double get_sos_innov(const nkf_t *kf, const double *decor_obs)
  * This way, we soften the influence of any outliers, while eventually letting
  * change-points through.
  *
- * I have found this moving average in log space to work best, only
- * surpassed by a moving median. Both seem optimal with a timescale
- * of 7 observations, as per detecting change points, but if we reduce
- * the number of cycle slips, we may want to increase it.
+ * As of version 0.16 of piksi_firmware, this moving average in log space to
+ * work best, only surpassed by a moving median. Both seem optimal with a
+ * timescale of 7 observations, as per detecting change points, but if we
+ * reduce the number of cycle slips in future releases, we may want to increase
+ * it.
  *
- * \param kf        The Kalman filter
- * \param decor_obs Decorrelated observation vector
- * \param k_scalar
- * \return          A scalar to multiply Kalman gain by
+ * \param kf        The Kalman filter.
+ * \param decor_obs Decorrelated observation vector.
+ * \param k_scalar  A scalar to multiply Kalman gain by.
+ * \return          Whether we think the observation was an outlier (true=bad).
  */
-u8 outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar)
+bool outlier_check(nkf_t *kf, const double *decor_obs, double *k_scalar)
 {
+  assert (kf != NULL);
+  assert (decor_obs != NULL);
+  assert (k_scalar != NULL);
+  if (kf->state_dim == 0 || kf->obs_dim == 0) {
+    *k_scalar = 1;
+    return false;
+  }
+
   double sos = get_sos_innov(kf, decor_obs) / kf->obs_dim;
   double l_sos = log(MAX(1e-10,sos));
   double new_weight = 1.0f / KF_SOS_TIMESCALE;
-  *k_scalar =  MIN(1, SOS_SWITCH * exp(kf->l_sos_avg) / MAX(1e-10, sos));
-  kf->l_sos_avg = kf->l_sos_avg * (1 - new_weight) +
-                  l_sos * new_weight;
+  *k_scalar =  MIN(1, SOS_SWITCH * exp(kf->l_sos_avg - l_sos));
+  /* l_sos_avg is a simple weighted average of its previous value and the
+   * current l_sos:
+   * kf->l_sos_avg = kf->l_sos_avg * (1 - new_weight) + l_sos * new_weight.
+   * This can be simplified to the following: */
+  kf->l_sos_avg += (l_sos - kf->l_sos_avg) * new_weight;
   return (*k_scalar < 1);
 }
 
-/** In place updating of the state mean and covariances to use the (decorrelated) observations
+/** In place measurement update of the state mean and covariances.
  * A modification of the update in section 10.2.1 of Gibbs [1].
  * Changes are: -Scaling the kalman gain to deal with outliers.
  *              -Some minor tweaks to handle singular matrices.
  *
  * \param kf        Kalman filter to be updated.
- * \param decor_obs Decorrelated observation vector.
- * \return          Whether we think the observations were bad.
+ * \param decor_obs Decorrelated observation vector to be incorporated.
+ * \return          Whether we think the observations were bad. (true = bad).
  */
-static u8 incorporate_obs(nkf_t *kf, double *decor_obs)
+static bool incorporate_obs(nkf_t *kf, double *decor_obs)
 {
   DEBUG_ENTRY();
 
   double k_scalar;
-  u8 is_outlier = outlier_check(kf, decor_obs, &k_scalar);
+  bool is_outlier = outlier_check(kf, decor_obs, &k_scalar);
 
   for (u32 i=0; i<kf->obs_dim; i++) {
     double *h = &kf->decor_obs_mtx[kf->state_dim * i]; /* vector of length kf->state_dim. */
@@ -314,7 +340,10 @@ static void make_residual_measurements(const nkf_t *kf, const double *measuremen
   }
 }
 
-/** The temporal update step of the KF.
+/** The prediction step of the KF.
+ * Since we're just doing parameter estimation, where we allow the parameters
+ * to drift a bit (cycle slips and biases), we only update the covariances.
+ *
  * To be really strict, since changes are equally likely on all channels,
  * This should be += (I + 1 * 1^T)*var instead of I*var, but it's
  * unlikely to be significant.
@@ -340,9 +369,9 @@ static void diffuse_state(nkf_t *kf)
  *                      carrier phases, and the next (kf->state_dim) are
  *                      pseudoranges.
  * \return              Whether the KF thought the measurement was a bad
- *                      measurement.
+ *                      measurement. (true = bad)
  */
-u8 nkf_update(nkf_t *kf, const double *measurements)
+bool nkf_update(nkf_t *kf, const double *measurements)
 {
   DEBUG_ENTRY();
 
@@ -357,7 +386,7 @@ u8 nkf_update(nkf_t *kf, const double *measurements)
   /*  Temporal update */
   diffuse_state(kf);
   /* Measurement update */
-  u8 is_bad_measurement = incorporate_obs(kf, resid_measurements);
+  bool is_bad_measurement = incorporate_obs(kf, resid_measurements);
 
   if (DEBUG) {
     MAT_PRINTF(kf->state_cov_U, kf->state_dim, kf->state_dim);
