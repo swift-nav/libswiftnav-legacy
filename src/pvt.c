@@ -398,18 +398,21 @@ static s8 pvt_repair(double rx_state[],
 }
 
 /* Return values:
- *    0: inital solution ok
  *    1: repaired solution, using one fewer observation
  *       returns prn of removed measurement if removed_prn ptr is passed
+ *
+ *    0: inital solution ok
+ *
  *   -1: no reasonable solution possible
+ *   -2: not enough satellites to attempt repair
  *
  *  Results stored in rx_state, H
  */
-static s8 pvt_solve_and_check(double rx_state[],
-                              const u8 n_used,
-                              const navigation_measurement_t nav_meas[n_used],
-                              double H[4][4],
-                              u8 *removed_prn)
+static s8 pvt_solve_raim(double rx_state[],
+                         const u8 n_used,
+                         const navigation_measurement_t nav_meas[n_used],
+                         double H[4][4],
+                         u8 *removed_prn)
 {
   double omp[n_used];
   double residual = 0;
@@ -424,18 +427,39 @@ static s8 pvt_solve_and_check(double rx_state[],
     /* Solution ok. */
     return 0;
   } else {
+    // TODO(dsk) move this log
     log_warn("PVT BAD RESIDUAL: %f n_used: %i\n", residual, n_used);
     if (n_used < 6) {
       /* Not enough measurements to repair.
        * 6 are needed because a 4 dimensional system is exactly constrained,
        * so the bad measurement can't be detected.
        */
-      return -1;
+      return -2;
     }
     return pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
   }
 }
 
+/** Try to calculate a single point gps solution
+ *
+ * \param n_used number of measurments
+ * \param nav_meas array of measurements
+ * \param soln output solution struct
+ * \param dops output doppler information
+ * \return code return code. non-negative values indicate success
+ *
+ * possible codes:
+ * success:
+ *    1 RAIM check failed, RAIM repair successful
+ *    0 Solution successful
+ *    --------
+ *  failure:
+ *   -1 PDOP is too high to yield a good solution.
+ *   -2 Altitude is unreasonable.
+ *   -3 Velocity is greater than 1000kts.
+ *   -4 RAIM check failed and repair was unsuccessful
+ *   -5 RAIM check failed and repair was impossible (not enough measurements)
+ */
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
             gnss_solution *soln,
@@ -456,16 +480,18 @@ s8 calc_PVT(const u8 n_used,
   soln->n_used = n_used; // Keep track of number of working channels
 
   u8 removed_prn;
-  s8 flag = pvt_solve_and_check(rx_state, n_used, nav_meas, H, &removed_prn);
+  s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, H, &removed_prn);
 
-  if (flag < 0) {
+  if (raim_flag < 0) {
     /* Didn't converge or least squares integrity check failed. */
-    log_warn("PVT iteration failed with code: %i\n", flag);
-    return -4;
+    // TODO(dsk) move this log
+    log_warn("PVT iteration failed with code: %i\n", raim_flag);
+    return raim_flag - 3;
   }
 
   /* Initial solution failed, but repair was successful. */
-  if (flag == 1) {
+  if (raim_flag == 1) {
+    // TODO(dsk) move this log
     log_info("pvt_repair successful. dropped prn: %i.\n", removed_prn);
     soln->n_used--;
   }
@@ -517,6 +543,11 @@ s8 calc_PVT(const u8 n_used,
   }
 
   soln->valid = 1;
+
+  if (raim_flag == 1) {
+    return 1;
+  }
+
   return 0;
 }
 
