@@ -372,6 +372,8 @@ static s8 pvt_repair(double rx_state[],
 
     if (flag == -1) {
       /* Didn't converge. */
+      // TODO(dsk) this may be unnecessary
+      return -1;
       continue;
     }
 
@@ -402,8 +404,9 @@ static s8 pvt_repair(double rx_state[],
  *
  *    0: inital solution ok
  *
- *   -1: no reasonable solution possible
+ *   -1: repair failed
  *   -2: not enough satellites to attempt repair
+ *   -3: pvt_iter didn't converge
  *
  *  Results stored in rx_state, H
  */
@@ -422,7 +425,11 @@ static s8 pvt_solve_raim(double rx_state[],
 
   s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
 
-  if (flag == 0 && residual_test(n_used, omp, rx_state, &residual)) {
+  if (flag == -1) {
+    /* Iteration didn't converge. Don't attempt to repair; too CPU intensive. */
+    return -3;
+  }
+  if (flag >= 0 && residual_test(n_used, omp, rx_state, &residual)) {
     /* Solution ok. */
     return 0;
   } else {
@@ -453,11 +460,12 @@ static s8 pvt_solve_raim(double rx_state[],
  *    0 Solution successful
  *    --------
  *  failure:
- *   -1 PDOP is too high to yield a good solution.
- *   -2 Altitude is unreasonable.
- *   -3 Velocity is greater than 1000kts.
- *   -4 RAIM check failed and repair was unsuccessful
- *   -5 RAIM check failed and repair was impossible (not enough measurements)
+ *   -1: PDOP is too high to yield a good solution.
+ *   -2: Altitude is unreasonable.
+ *   -3: Velocity is greater than 1000kts.
+ *   -4: RAIM check failed and repair was unsuccessful
+ *   -5: RAIM check failed and repair was impossible (not enough measurements)
+ *   -6: pvt_iter didn't converge
  */
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
@@ -484,7 +492,7 @@ s8 calc_PVT(const u8 n_used,
   if (raim_flag < 0) {
     /* Didn't converge or least squares integrity check failed. */
     // TODO(dsk) move this log
-    log_warn("PVT iteration failed with code: %i\n", raim_flag);
+    log_warn("PVT repair failed with code: %i\n", raim_flag);
     return raim_flag - 3;
   }
 
