@@ -21,12 +21,72 @@ START_TEST(test_update_sats_same_sats)
                        {.prn = 4}};
   u8 num_sdiffs = 4;
 
-  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, NULL, NULL, NULL, NULL);
+  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, NULL, NULL, NULL, NULL, false);
 
   fail_unless(amb_test.sats.prns[0] == 3);
   fail_unless(amb_test.sats.prns[1] == 1);
   fail_unless(amb_test.sats.prns[2] == 2);
   fail_unless(amb_test.sats.prns[3] == 4);
+}
+END_TEST
+
+/* Assure that when the measurement is bad, we drop (but don't add) sats */
+START_TEST(test_bad_measurements)
+{
+  ambiguity_test_t amb_test;
+
+  sdiff_t sdiffs[5] = {{.prn = 1},
+                       {.prn = 2},
+                       {.prn = 3},
+                       {.prn = 5},
+                       {.prn = 6}};
+  u8 num_sdiffs = 5;
+
+
+  sats_management_t float_sats = {.num_sats = 5,
+                                  .prns = {3, 1, 2, 5, 6}};
+  double U[16];
+  matrix_eye(4, U);
+  double D[4] = {1, 1, 1, 1};
+  double est[5] = {1, 2, 5, 6};
+
+  sats_management_t amb_sats_init = {.num_sats = 5,
+                                     .prns = {3, 1, 2, 4, 5}};
+  hypothesis_t hyp_init = {.N = {1,2,4,5}};
+
+  create_empty_ambiguity_test(&amb_test);
+  memcpy(&amb_test.sats, &amb_sats_init, sizeof(sats_management_t));
+  hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
+  memcpy(hyp, &hyp_init, sizeof(hypothesis_t));
+  /* Test that with a good measurement, we get a projection and inclusion.
+   * It should have dropped PRN 4 and include PRN 6. */
+  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, est, U, D, false);
+  fail_unless(amb_test.sats.num_sats == 5);
+  fail_unless(amb_test.sats.prns[0] == 3);
+  fail_unless(amb_test.sats.prns[1] == 1);
+  fail_unless(amb_test.sats.prns[2] == 2);
+  fail_unless(amb_test.sats.prns[3] == 5);
+  fail_unless(amb_test.sats.prns[4] == 6);
+  /* Reset the amb_test to what it was before ambiguity_update_sats */
+  create_empty_ambiguity_test(&amb_test);
+  memcpy(&amb_test.sats, &amb_sats_init, sizeof(sats_management_t));
+  hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
+  memcpy(hyp, &hyp_init, sizeof(hypothesis_t));
+  /* Test that with a bad measurement, we get (only) a projection.
+   * It should have dropped PRN 4 and NOT include PRN 6. */
+  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, est, U, D, true);
+  fail_unless(amb_test.sats.num_sats == 4);
+  fail_unless(amb_test.sats.prns[0] == 3);
+  fail_unless(amb_test.sats.prns[1] == 1);
+  fail_unless(amb_test.sats.prns[2] == 2);
+  fail_unless(amb_test.sats.prns[3] == 5);
+  /* And it should have dropped PRN's value from the hypothesis,
+   * which should still be there and still be the only one. */
+  hyp = (hypothesis_t *) amb_test.pool->allocated_nodes_head->elem;
+  fail_unless(ambiguity_test_n_hypotheses(&amb_test) == 1);
+  fail_unless(hyp->N[0] == 1);
+  fail_unless(hyp->N[1] == 2);
+  fail_unless(hyp->N[2] == 5);
 }
 END_TEST
 
@@ -55,7 +115,7 @@ START_TEST(test_update_sats_rebase)
 
   sats_management_t float_sats = {.num_sats = 3};
 
-  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, NULL, NULL, NULL);
+  ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, NULL, NULL, NULL, false);
   fail_unless(amb_test.sats.num_sats == 3);
   fail_unless(amb_test.sats.prns[0] == 4);
   fail_unless(amb_test.sats.prns[1] == 1);
@@ -229,6 +289,7 @@ Suite* ambiguity_test_suite(void)
   tcase_add_test(tc_core, test_sats_match);
   tcase_add_test(tc_core, test_ambiguity_update_reference);
   tcase_add_test(tc_core, test_update_sats_same_sats);
+  tcase_add_test(tc_core, test_bad_measurements);
   // TODO add back
   //tcase_add_test(tc_core, test_update_sats_rebase);
   (void) test_update_sats_rebase;

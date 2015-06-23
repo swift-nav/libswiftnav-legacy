@@ -1451,15 +1451,23 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 }
 
 /** Add/drop satellites from the ambiguity test, changing reference if needed.
+ * Does the structural change on the satellite set, dropping sats if they
+ * aren't in the sdiffs anymore. We add new sats if we can fit them, and if the
+ * measurement is "trustworthy," as determined by is_bad_measurement.
  * INVALIDATES unanimous ambiguities
  * ^ TODO record this in the amb_test state?
- * \param amb_test    An ambiguity test whose tests to update.
- * \param num_sdiffs  The length of the sdiffs array.
- * \param sdiffs      The single differenced observations. Sorted by PRN.
- * \param float_sats  The satellites to correspond to the KF mean and cov.
- * \param float_mean  The KF state estimate.
- * \param float_cov_U The KF state estimate covariance U in UDU decomposiiton.
- * \param float_cov_D The KF state estimate covariance D in UDU decomposiiton.
+ * \param amb_test            An ambiguity test whose tests to update.
+ * \param num_sdiffs          The length of the sdiffs array.
+ * \param sdiffs              The single differenced observations. Sorted by
+ *                            PRN.
+ * \param float_sats          The satellites to correspond to the KF mean and
+ *                            cov.
+ * \param float_mean          The KF state estimate.
+ * \param float_cov_U         The KF state estimate covariance U in UDU
+ *                            decompositon.
+ * \param float_cov_D         The KF state estimate covariance D in UDU
+ *                            decompositon.
+ * \param is_bad_measurement  Whether we should trust this measurement.
  * \return  0 if we didn't change the sats
  *          1 if we did change the sats
  *          2 if we need to reset IAR TODO maybe do that in here?
@@ -1467,7 +1475,7 @@ s8 determine_sats_addition(ambiguity_test_t *amb_test,
 u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                          const sdiff_t *sdiffs, const sats_management_t *float_sats,
                          const double *float_mean, const double *float_cov_U,
-                         const double *float_cov_D)
+                         const double *float_cov_D, u8 is_bad_measurement)
 {
   DEBUG_ENTRY();
 
@@ -1477,29 +1485,35 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
     DEBUG_EXIT();
     return 0; // I chose 0 because it doesn't lead to anything dynamic
   }
-  //if the sats are the same, we're good
+  /* If the sats are the same, no changes are necessary */
+  if (sats_match(amb_test, num_sdiffs, sdiffs)) {
+    DEBUG_EXIT();
+    return 0;
+  }
   u8 changed_sats = 0;
-  if (!sats_match(amb_test, num_sdiffs, sdiffs)) {
-    sdiff_t sdiffs_with_ref_first[num_sdiffs];
-    if (amb_test->sats.num_sats >= 2) {
-      if (ambiguity_update_reference(amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first)) {
-       changed_sats=1;
-      }
-    } else {
-      create_ambiguity_test(amb_test);//we don't have what we need
+  sdiff_t sdiffs_with_ref_first[num_sdiffs];
+  /* Change the reference sat, if necessary/possible, resetting if we can't. */
+  if (amb_test->sats.num_sats >= 2) {
+    if (ambiguity_update_reference(amb_test, num_sdiffs, sdiffs, sdiffs_with_ref_first)) {
+     changed_sats=1;
     }
+  } else {
+    create_ambiguity_test(amb_test);//we don't have what we need
+  }
 
-    u8 intersection_ndxs[num_sdiffs];
-    u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
+  u8 intersection_ndxs[num_sdiffs];
+  u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
+  /* Reset the ambiguity test if we have no sats in common with the last step */
+  if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
+    create_ambiguity_test(amb_test);
+  }
 
-    if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
-      create_ambiguity_test(amb_test);
-    }
-
-    // u8 num_dds_in_intersection = ambiguity_order_sdiffs_with_intersection(amb_test, sdiffs, float_cov, intersection_ndxs);
-    if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
-      changed_sats = 1;
-    }
+  /* Project out and lost satellites if there were any. */
+  if (ambiguity_sat_projection(amb_test, num_dds_in_intersection, intersection_ndxs)) {
+    changed_sats = 1;
+  }
+  /* Add new sats if there were any and if we trust this measurement. */
+  if (!is_bad_measurement) {
     u8 incl = ambiguity_sat_inclusion(amb_test, num_dds_in_intersection,
                 float_sats, float_mean, float_cov_U, float_cov_D);
     if (incl == 2) {
