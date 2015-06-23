@@ -318,11 +318,10 @@ static s8 pvt_iter(double rx_state[],
     rx_state[i] = 0;
   }
 
-  double update;
   u8 iters;
   /* Newton-Raphson iteration. */
   for (iters=0; iters<PVT_MAX_ITERATIONS; iters++) {
-    if ((update = pvt_solve(rx_state, n_used, nav_meas, omp, H)) > 0) {
+    if (pvt_solve(rx_state, n_used, nav_meas, omp, H) > 0) {
       break;
     }
   }
