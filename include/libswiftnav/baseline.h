@@ -39,7 +39,7 @@ s8 lesq_solution_float(u8 num_dds, const double *dd_obs, const double *N,
                          __attribute__((warn_unused_result));
 
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3])
+                     const double *DE, double b[3], double *resid)
                        __attribute__((warn_unused_result));
 
 s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,

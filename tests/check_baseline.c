@@ -181,11 +181,24 @@ START_TEST(test_lesq_solution4)
   predict_carrier_obs(num_dds, N, DE, b_true, dd_obs);
 
   double b[3];
+  double resid[num_dds];
   s32 N_int[num_dds];
+
   for (u8 i=0; i<num_dds; i++) {
     N_int[i] = N[i];
   }
-  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b);
+  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, resid);
+
+  fail_unless(ret >= 0, "solution returned error %d", ret);
+
+  for (u8 i=0; i<3; i++) {
+    fail_unless(within_epsilon(b[i], b_true[i]),
+                "Baseline mismatch: %lf vs %lf",
+                b[i], b_true[i]);
+  }
+
+  /* Try with null resid */
+  ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, 0);
 
   fail_unless(ret >= 0, "solution returned error %d", ret);
 
@@ -411,7 +424,7 @@ START_TEST(test_lesq_repair1)
 
   double b[3];
   u8 bad_index;
-  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, &bad_index);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, 0, 0, &bad_index);
 
   fail_unless(ret == 1,
       "Expecting 1 for repaired solution, got: %i.\n", ret);
@@ -433,7 +446,7 @@ START_TEST(test_lesq_repair2)
   double dd_obs[] = {1, 1, 1, 1};
 
   double b[3];
-  s8 ret = lesq_solve_and_check(num_dds, dd_obs, N, DE, b, 0, 0, 0);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, 0, 0, 0);
 
   fail_unless(ret == -1,
       "Expecting -1 for bad solution, got: %i.\n", ret);

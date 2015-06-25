@@ -150,14 +150,14 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
  * \return        See lesq_solve_raim
  */
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3])
+                     const double *DE, double b[3], double *residuals)
 {
   assert(N != NULL);
   double N_float[num_dds];
   for (u8 i=0; i<num_dds; i++) {
     N_float[i] = N[i];
   }
-  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, 0, 0, 0);
+  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, 0, residuals, 0);
 }
 
 /* TODO use the state covariance matrix for a better estimate:
