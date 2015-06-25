@@ -160,7 +160,7 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
   for (u8 i=0; i<num_dds; i++) {
     N_float[i] = N[i];
   }
-  return lesq_solve_and_check(num_dds, dd_obs, N_float, DE, b, 0, 0, 0);
+  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, 0, 0, 0);
 }
 
 /* TODO use the state covariance matrix for a better estimate:
@@ -401,11 +401,11 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs. */
-s8 lesq_solve_and_check(u8 num_dds_u8, const double *dd_obs,
-                        const double *N, const double *DE, double b[3],
-                        u8 *n_used,
-                        double *ret_residuals,
-                        u8 *removed_obs)
+s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
+                   const double *N, const double *DE, double b[3],
+                   u8 *n_used,
+                   double *ret_residuals,
+                   u8 *removed_obs)
 {
   integer num_dds = num_dds_u8;
   double residuals[num_dds];
@@ -510,7 +510,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_and_check(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0, 0);
+  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0, 0);
   DEBUG_EXIT();
   return code;
 }
