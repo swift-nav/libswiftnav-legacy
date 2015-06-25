@@ -180,6 +180,12 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
                    float carr_freq, float carr_bw,
                    float carr_zeta, float carr_k,
                    float carr_freq_igain);
+
+void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
+                     float code_bw, float code_zeta, float code_k,
+                     float carr_bw, float carr_zeta, float carr_k,
+                     float carr_freq_b1);
+
 void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3]);
 
 void comp_tl_init(comp_tl_state_t *s, float loop_freq,

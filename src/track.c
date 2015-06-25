@@ -320,6 +320,19 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
   simple_lf_init(&(s->code_filt), code_freq, b0, b1);
 }
 
+void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
+                     float code_bw, float code_zeta, float code_k,
+                     float carr_bw, float carr_zeta, float carr_k,
+                     float carr_freq_b1)
+{
+  calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq,
+                  &s->carr_filt.b0, &s->carr_filt.b1);
+  s->carr_filt.aiding_igain = carr_freq_b1;
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq,
+                  &s->code_filt.b0, &s->code_filt.b1);
+}
+
 /** Update step for the aided tracking loop.
  *
  * Implements a basic second-order tracking loop. The code tracking loop is a
