@@ -24,7 +24,6 @@
 #include "linear_algebra.h"
 #include "filter_utils.h"
 #include "set.h"
-#include "dgnss_management.h"
 
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
