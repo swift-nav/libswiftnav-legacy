@@ -340,6 +340,7 @@ static s8 pvt_iter(double rx_state[],
 /* Return values:
  *    1: repaired solution, using one fewer observation
  *       returns prn of removed measurement if removed_prn ptr is passed
+ *
  *   -1: no reasonable solution possible
  *
  *  Results stored in rx_state, omp, H
@@ -399,6 +400,8 @@ static s8 pvt_repair(double rx_state[],
 }
 
 /* Return values:
+ *    2: solution ok, but raim check was not available (exactly 4 measurements)
+ *
  *    1: repaired solution, using one fewer observation
  *       returns prn of removed measurement if removed_prn ptr is passed
  *
@@ -431,6 +434,10 @@ static s8 pvt_solve_raim(double rx_state[],
   }
   if (flag >= 0 && residual_test(n_used, omp, rx_state, &residual)) {
     /* Solution ok. */
+    if (n_used == 4) {
+      /* Residual test couldn't have detected an error. */
+      return 2;
+    }
     return 0;
   } else {
     // TODO(dsk) move this log
@@ -456,8 +463,7 @@ static s8 pvt_solve_raim(double rx_state[],
  *
  * possible codes:
  * success:
- *    1 RAIM check failed, RAIM repair successful
- *    0 Solution successful
+ *    positive value: refer to pvt_solve_raim
  *    --------
  *  failure:
  *   -1: PDOP is too high to yield a good solution.
@@ -486,7 +492,7 @@ s8 calc_PVT(const u8 n_used,
   soln->valid = 0;
   soln->n_used = n_used; // Keep track of number of working channels
 
-  u8 removed_prn;
+  u8 removed_prn = -1;
   s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, H, &removed_prn);
 
   if (raim_flag < 0) {
@@ -551,10 +557,6 @@ s8 calc_PVT(const u8 n_used,
 
   soln->valid = 1;
 
-  if (raim_flag == 1) {
-    return 1;
-  }
-
-  return 0;
+  return raim_flag;
 }
 

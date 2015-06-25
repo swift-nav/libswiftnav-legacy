@@ -147,10 +147,7 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
  *                length `3 * num_dds`
  * \param b       The output baseline in meters.
  * \param resid   The output least squares residuals in cycles.
- * \return         0 on success,
- *                -1 if there were insufficient observations to calculate the
- *                   baseline (the solution was under-constrained),
- *                -2 if an error occurred
+ * \return        See lesq_solve_raim
  */
 s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
                      const double *DE, double b[3])
@@ -394,10 +391,16 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
 
 /* See lesq_solution_float for argument documentation
  * Return values:
- *    0: solution with all dd's ok
+ *    2: solution ok, but raim check was not available (exactly 3 dds)
+ *
  *    1: repaired solution, using one fewer observation
  *       returns index of removed observation if removed_obs ptr is passed
+ *
+ *    0: solution with all dd's ok
+ *
  *   -1: no reasonable solution possible
+ *
+ *   -2: not enough sats for repair
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs. */
@@ -412,75 +415,78 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
 
   s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
 
-  if (okay == 0) {
-    double residual;
-    if (chi_test(num_dds, residuals, &residual)) {
-      /* Solution using all sats ok. */
-      if (ret_residuals) {
-        memcpy(ret_residuals, residuals, num_dds * sizeof(double));
-      }
+  if (okay != 0) {
+    /* Not enough sats or other error returned by initial lesq solution. */
+    return -1;
+  }
+
+  double residual;
+  if (chi_test(num_dds, residuals, &residual)) {
+    /* Solution using all sats ok. */
+    if (ret_residuals) {
+      memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+    }
+    if (n_used) {
+      *n_used = num_dds;
+    }
+    if (num_dds == 3) {
+      return 2;
+    }
+    return 0;
+  } else {
+    if (num_dds < 5) {
+      /* We have just enough sats for a solution; can't search for solution
+       * after dropping one.
+       * 5 are needed because a 3 dimensional system is exactly constrained,
+       * so the bad measurement can't be detected.
+       */
       if (n_used) {
-        *n_used = num_dds;
+        *n_used = 0;
       }
-      return 0;
+      return -1;
     } else {
-      if (num_dds < 5) {
-        /* We have just enough sats for a solution; can't search for solution
-         * after dropping one.
-         * 5 are needed because a 3 dimensional system is exactly constrained,
-         * so the bad measurement can't be detected.
-         */
+      u8 num_passing = 0;
+      u8 bad_sat = -1;
+      u8 new_dds = num_dds - 1;
+
+      for (u8 i = 0; i < num_dds; i++) {
+        lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
+        if (chi_test(new_dds, residuals, &residual)) {
+          num_passing++;
+          bad_sat = i;
+        }
+      }
+
+      if (num_passing == 1) {
+        /* bad_sat holds index of bad dd
+         * Return solution without bad_sat. */
+        /* Recalculate this solution. */
+        lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
+        if (removed_obs) {
+          *removed_obs = bad_sat;
+        }
+        if (ret_residuals) {
+          memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+        }
+        if (n_used) {
+          *n_used = num_dds-1;
+        }
+        return 1;
+      } else if (num_passing == 0) {
+        /* Ref sat is bad? */
         if (n_used) {
           *n_used = 0;
         }
         return -1;
       } else {
-        u8 num_passing = 0;
-        u8 bad_sat = -1;
-        u8 new_dds = num_dds - 1;
-
-        for (u8 i = 0; i < num_dds; i++) {
-          lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
-          if (chi_test(new_dds, residuals, &residual)) {
-            num_passing++;
-            bad_sat = i;
-          }
+        /* Had more than one acceptable solution.
+         * TODO(dsk) should we return the best one? */
+        if (n_used) {
+          *n_used = 0;
         }
-
-        if (num_passing == 1) {
-          /* bad_sat holds index of bad dd
-           * Return solution without bad_sat. */
-          /* Recalculate this solution. */
-          lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
-          if (removed_obs) {
-            *removed_obs = bad_sat;
-          }
-          if (ret_residuals) {
-            memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
-          }
-          if (n_used) {
-            *n_used = num_dds-1;
-          }
-          return 1;
-        } else if (num_passing == 0) {
-          /* Ref sat is bad? */
-          if (n_used) {
-            *n_used = 0;
-          }
-          return -1;
-        } else {
-          /* Had more than one acceptable solution.
-           * TODO(dsk) should we return the best one? */
-          if (n_used) {
-            *n_used = 0;
-          }
-          return -1;
-        }
+        return -1;
       }
     }
-  } else {
-    /* Not enough sats or other error returned by initial lesq solution. */
-    return -1;
   }
 }
 
@@ -499,6 +505,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
  * \param ref_ecef              The reference position in ECEF frame, for
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
+ * \return                      See lesq_solve_raim
  */
 s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
