@@ -398,7 +398,7 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  *
  *    0: solution with all dd's ok
  *
- *   -1: no reasonable solution possible
+ *   -1: < 3 dds, or no reasonable solution possible
  *
  *   -2: not enough sats for repair
  */

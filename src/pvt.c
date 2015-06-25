@@ -422,10 +422,6 @@ static s8 pvt_solve_raim(double rx_state[],
   double omp[n_used];
   double residual = 0;
 
-  if (n_used < 4) {
-    return -1;
-  }
-
   s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
 
   if (flag == -1) {
@@ -472,6 +468,7 @@ static s8 pvt_solve_raim(double rx_state[],
  *   -4: RAIM check failed and repair was unsuccessful
  *   -5: RAIM check failed and repair was impossible (not enough measurements)
  *   -6: pvt_iter didn't converge
+ *   -7: < 4 measurements
  */
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
@@ -488,6 +485,10 @@ s8 calc_PVT(const u8 n_used,
   static double rx_state[8];
 
   double H[4][4];
+
+  if (n_used < 4) {
+    return -7;
+  }
 
   soln->valid = 0;
   soln->n_used = n_used; // Keep track of number of working channels
