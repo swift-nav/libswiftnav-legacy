@@ -131,35 +131,6 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-/** Calculate least squares baseline solution from a set of double difference
- * carrier phase observations and carrier phase ambiguities.
- *
- * For more details, see lesq_solution_float().
- *
- * \note This function takes integer valued carrier phase ambiguities. For real
- *       valued ambiguities, see lesq_solution_float().
- *
- * \param num_dds Number of double difference observations
- * \param dd_obs  Double differenced carrier phase observations in cycles,
- *                length `num_dds`
- * \param N       Carrier phase ambiguity vector, length `num_dds`
- * \param DE      Double differenced matrix of unit vectors to the satellites,
- *                length `3 * num_dds`
- * \param b       The output baseline in meters.
- * \param resid   The output least squares residuals in cycles.
- * \return        See lesq_solve_raim
- */
-s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3], double *residuals)
-{
-  assert(N != NULL);
-  double N_float[num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    N_float[i] = N[i];
-  }
-  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, 0, residuals, 0);
-}
-
 /* TODO use the state covariance matrix for a better estimate:
  *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
  *
@@ -391,7 +362,8 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
 
 /* See lesq_solution_float for argument documentation
  * Return values:
- *    2: solution ok, but raim check was not available (exactly 3 dds)
+ *    2: solution ok, but raim check was not available
+ *         (exactly 3 dds, or explicitly disabled)
  *
  *    1: repaired solution, using one fewer observation
  *       returns index of removed observation if removed_obs ptr is passed
@@ -403,9 +375,12 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  *   -2: not enough sats for repair
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
- * TODO(dsk) add warn/info logging to call sites when repair occurs. */
+ * TODO(dsk) add warn/info logging to call sites when repair occurs.
+ * TODO(dsk) make this static
+ */
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
                    const double *N, const double *DE, double b[3],
+                   bool disable_raim,
                    u8 *n_used,
                    double *ret_residuals,
                    u8 *removed_obs)
@@ -421,7 +396,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   }
 
   double residual;
-  if (chi_test(num_dds, residuals, &residual)) {
+  if (disable_raim || chi_test(num_dds, residuals, &residual)) {
     /* Solution using all sats ok. */
     if (ret_residuals) {
       memcpy(ret_residuals, residuals, num_dds * sizeof(double));
@@ -429,7 +404,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     if (n_used) {
       *n_used = num_dds;
     }
-    if (num_dds == 3) {
+    if (disable_raim || num_dds == 3) {
       return 2;
     }
     return 0;
@@ -443,7 +418,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
       if (n_used) {
         *n_used = 0;
       }
-      return -1;
+      return -2;
     } else {
       u8 num_passing = 0;
       u8 bad_sat = -1;
@@ -490,6 +465,35 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   }
 }
 
+/** Calculate least squares baseline solution from a set of double difference
+ * carrier phase observations and carrier phase ambiguities.
+ *
+ * For more details, see lesq_solution_float().
+ *
+ * \note This function takes integer valued carrier phase ambiguities. For real
+ *       valued ambiguities, see lesq_solution_float().
+ *
+ * \param num_dds Number of double difference observations
+ * \param dd_obs  Double differenced carrier phase observations in cycles,
+ *                length `num_dds`
+ * \param N       Carrier phase ambiguity vector, length `num_dds`
+ * \param DE      Double differenced matrix of unit vectors to the satellites,
+ *                length `3 * num_dds`
+ * \param b       The output baseline in meters.
+ * \param resid   The output least squares residuals in cycles.
+ * \return        See lesq_solve_raim
+ */
+s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
+                     const double *DE, double b[3], double *residuals)
+{
+  assert(N != NULL);
+  double N_float[num_dds];
+  for (u8 i=0; i<num_dds; i++) {
+    N_float[i] = N[i];
+  }
+  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, false, 0, residuals, 0);
+}
+
 /** A least squares solution for baseline from phases using the KF state.
  * This uses the current state of the KF and a set of phase observations to
  * solve for the current baseline.
@@ -517,7 +521,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, 0, 0, 0);
+  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, false, 0, 0, 0);
   DEBUG_EXIT();
   return code;
 }

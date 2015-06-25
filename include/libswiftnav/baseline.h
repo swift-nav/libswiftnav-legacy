@@ -55,9 +55,8 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
                    const double *N, const double *DE, double b[3],
-                   u8 *n_used,
-                   double *residuals,
-                   u8 *removed_obs);
+                   bool disable_raim,
+                   u8 *n_used, double *residuals, u8 *removed_obs);
 
 #endif /* LIBSWIFTNAV_BASELINE_H */
 

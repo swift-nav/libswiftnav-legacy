@@ -68,6 +68,7 @@ typedef struct __attribute__((packed)) {
 
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
+            bool disable_raim,
             gnss_solution *soln,
             dops_t *dops);
 
