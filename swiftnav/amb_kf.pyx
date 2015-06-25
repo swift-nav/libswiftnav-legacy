@@ -16,7 +16,7 @@ from almanac_c cimport *
 from gpstime cimport *
 from linear_algebra import *
 from gpstime_c cimport *
-from single_diff_c cimport *
+from observation_c cimport *
 from dgnss_management_c cimport *
 
 
