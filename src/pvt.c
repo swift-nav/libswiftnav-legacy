@@ -400,7 +400,8 @@ static s8 pvt_repair(double rx_state[],
 }
 
 /* Return values:
- *    2: solution ok, but raim check was not available (exactly 4 measurements)
+ *    2: solution ok, but raim check was not used
+ *         (exactly 4 measurements, or explicitly disabled)
  *
  *    1: repaired solution, using one fewer observation
  *       returns prn of removed measurement if removed_prn ptr is passed
@@ -416,6 +417,7 @@ static s8 pvt_repair(double rx_state[],
 static s8 pvt_solve_raim(double rx_state[],
                          const u8 n_used,
                          const navigation_measurement_t nav_meas[n_used],
+                         bool disable_raim,
                          double H[4][4],
                          u8 *removed_prn)
 {
@@ -428,9 +430,9 @@ static s8 pvt_solve_raim(double rx_state[],
     /* Iteration didn't converge. Don't attempt to repair; too CPU intensive. */
     return -3;
   }
-  if (flag >= 0 && residual_test(n_used, omp, rx_state, &residual)) {
-    /* Solution ok. */
-    if (n_used == 4) {
+  if (flag >= 0 && (disable_raim || residual_test(n_used, omp, rx_state, &residual))) {
+    /* Solution ok, or raim check disabled. */
+    if (disable_raim || n_used == 4) {
       /* Residual test couldn't have detected an error. */
       return 2;
     }
@@ -453,6 +455,7 @@ static s8 pvt_solve_raim(double rx_state[],
  *
  * \param n_used number of measurments
  * \param nav_meas array of measurements
+ * \param disable_raim passing True will omit raim check/repair functionality
  * \param soln output solution struct
  * \param dops output doppler information
  * \return code return code. non-negative values indicate success
@@ -472,6 +475,7 @@ static s8 pvt_solve_raim(double rx_state[],
  */
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
+            bool disable_raim,
             gnss_solution *soln,
             dops_t *dops)
 {
@@ -494,7 +498,8 @@ s8 calc_PVT(const u8 n_used,
   soln->n_used = n_used; // Keep track of number of working channels
 
   u8 removed_prn = -1;
-  s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, H, &removed_prn);
+  s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
+                                H, &removed_prn);
 
   if (raim_flag < 0) {
     /* Didn't converge or least squares integrity check failed. */

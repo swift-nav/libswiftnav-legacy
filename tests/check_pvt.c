@@ -68,11 +68,12 @@ START_TEST(test_pvt_failed_repair)
 
   navigation_measurement_t nms[9] = {nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8};
 
-  calc_PVT(n_used, nms, &soln, &dops);
+  calc_PVT(n_used, nms, false, &soln, &dops);
   /* PVT repair requires at least 6 measurements. */
   fail_unless(soln.valid == 0, "Solution should be invalid!");
 }
 END_TEST
+
 START_TEST(test_pvt_repair)
 {
   u8 n_used = 6;
@@ -81,11 +82,27 @@ START_TEST(test_pvt_repair)
 
   navigation_measurement_t nms[9] = {nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9};
 
-  s8 code = calc_PVT(n_used, nms, &soln, &dops);
+  s8 code = calc_PVT(n_used, nms, false, &soln, &dops);
   fail_unless(code == 1, "Return code should be 1 (pvt repair). Saw: %d\n", code);
   fail_unless(soln.n_used == n_used - 1, "PVT solver failed to repair solution.");
 }
 END_TEST
+
+START_TEST(test_disable_pvt_raim)
+{
+  u8 n_used = 6;
+  gnss_solution soln;
+  dops_t dops;
+
+  navigation_measurement_t nms[9] = {nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9};
+
+  /* disable raim check */
+  s8 code = calc_PVT(n_used, nms, true, &soln, &dops);
+  fail_unless(code == 2, "Return code should be 2 (raim not used). Saw: %d\n", code);
+  fail_unless(soln.valid == 1, "Solution should be valid!");
+}
+END_TEST
+
 
 Suite* pvt_test_suite(void)
 {
@@ -94,6 +111,7 @@ Suite* pvt_test_suite(void)
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_pvt_repair);
   tcase_add_test(tc_core, test_pvt_failed_repair);
+  tcase_add_test(tc_core, test_disable_pvt_raim);
   suite_add_tcase(s, tc_core);
 
   return s;
