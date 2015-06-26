@@ -288,23 +288,25 @@ float simple_lf_update(simple_lf_state_t *s, float error)
  *
  * For a full description of the loop filter parameters, see calc_loop_gains().
  *
- * TODO, add carrier aiding to the code loop.
- *
  * \param s The tracking loop state struct to initialise.
+ * \param loop_freq The loop update rate.
  * \param code_freq The initial code phase rate (i.e. frequency).
  * \param code_bw The code tracking loop noise bandwidth.
  * \param code_zeta The code tracking loop damping ratio.
  * \param code_k The code tracking loop gain.
+ * \param carr_to_code Ratio of carrier to code frequencies,
+ *                     or 0 to disable carrier aiding.
  * \param carr_freq The initial carrier frequency.
  * \param carr_bw The carrier tracking loop noise bandwidth.
  * \param carr_zeta The carrier tracking loop damping ratio.
  * \param carr_k The carrier tracking loop gain.
  */
 void aided_tl_init(aided_tl_state_t *s, float loop_freq,
-                   float code_freq, float code_bw,
-                   float code_zeta, float code_k,
-                   float carr_freq, float carr_bw,
-                   float carr_zeta, float carr_k,
+                   float code_freq,
+                   float code_bw, float code_zeta, float code_k,
+                   float carr_to_code,
+                   float carr_freq,
+                   float carr_bw, float carr_zeta, float carr_k,
                    float carr_freq_b1)
 {
   float b0, b1;
@@ -317,11 +319,15 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &b0, &b1);
   s->code_freq = code_freq;
-  simple_lf_init(&(s->code_filt), code_freq, b0, b1);
+  s->carr_to_code = carr_to_code;
+  /* If using carrier aiding, initialize code_freq in code loop filter
+     to zero to avoid double-counting. */
+  simple_lf_init(&(s->code_filt), carr_to_code ? 0 : code_freq, b0, b1);
 }
 
 void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
                      float code_bw, float code_zeta, float code_k,
+                     float carr_to_code,
                      float carr_bw, float carr_zeta, float carr_k,
                      float carr_freq_b1)
 {
@@ -331,6 +337,7 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
 
   calc_loop_gains(code_bw, code_zeta, code_k, loop_freq,
                   &s->code_filt.b0, &s->code_filt.b1);
+  s->carr_to_code = carr_to_code;
 }
 
 /** Update step for the aided tracking loop.
@@ -341,8 +348,6 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
  * costas_discriminator(), aided by a frequency discriminator using
  * frequency_discriminator().
  *
- * TODO, add carrier aiding to the code loop.
- *
  * The tracking loop output variables, i.e. code and carrier frequencies can be
  * read out directly from the state struct.
  *
@@ -352,14 +357,18 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
  */
 void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
 {
+  /* Carrier loop */
   float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
   float freq_error = frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
   s->prev_I = cs[1].I;
   s->prev_Q = cs[1].Q;
   s->carr_freq = aided_lf_update(&(s->carr_filt), carr_error, freq_error);
 
+  /* Code loop */
   float code_error = dll_discriminator(cs);
-  s->code_freq = simple_lf_update(&(s->code_filt), -code_error); // + s->carr_freq * SCALING_FACTOR
+  s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
+  if (s->carr_to_code) /* Optional carrier aiding of code loop */
+    s->code_freq += s->carr_freq / s->carr_to_code;
 }
 
 /** Initialise a simple tracking loop.
