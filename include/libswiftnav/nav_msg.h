@@ -19,28 +19,29 @@
 #define NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
 
 #define TOW_INVALID -1
+#define BITSYNC_UNSYNCED -1
 
 typedef struct {
   u32 subframe_bits[NAV_MSG_SUBFRAME_BITS_LEN];
   u16 subframe_bit_index;
   bool overrun;
-  /** Foo
+  /** subframe_start_index:
    * - 0 = no preamble found
    * - +x = preamble begins at bit index (x-1)
    * - -x = inverse preamble begins at (1-x)
    */
   s16 subframe_start_index;
   u8 bit_phase;
-  u8 bit_phase_ref;
-  u8 bit_phase_count;
-  s32 nav_bit_integrate;
+  s8 bit_phase_ref;  /**< -1 = not synced.*/
+  s32 bit_integrate;
 
   u32 frame_words[3][8];
   u8 next_subframe_id;
   u8 inverted;
 
-  s32 prev_corr;
-  float hist[20];
+  u8 bitsync_count;
+  s32 bitsync_prev_corr[20];
+  u32 bitsync_histogram[20];
 } nav_msg_t;
 
 void nav_msg_init(nav_msg_t *n);

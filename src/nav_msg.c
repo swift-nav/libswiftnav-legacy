@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "logging.h"
@@ -19,19 +20,16 @@
 #include "bits.h"
 #include "nav_msg.h"
 
-#define NAV_MSG_BIT_PHASE_THRES 10
+/* 22222 is somewhat conservative; experiment under bad RFI + clock
+   stress conditions shows false syncs could occur with thres <
+   10000 */
+#define BITSYNC_THRES 22222
 
 void nav_msg_init(nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
-  n->subframe_bit_index = 0;
-  n->bit_phase = 0;
-  n->bit_phase_ref = 0;
-  n->bit_phase_count = 0;
-  memset(n->hist, 0, sizeof(n->hist));
-  n->nav_bit_integrate = 0;
-  n->subframe_start_index = 0;
-  memset(n->subframe_bits, 0, sizeof(n->subframe_bits));
+  memset(n, 0, sizeof(nav_msg_t));
+  n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
 }
 
@@ -74,39 +72,40 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
-/* Check for a sign change in the correlation and add to the histogram.
- * After NAV_MSG_BIT_PHASE_THRES sign changes, the histogram is evaluated
- * and bit_phase_ref is updated.
+/* TODO: Bit synchronization that can operate with multi-ms integration times
+   e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
  */
-static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
 {
-  float dot = (float)corr_prompt_real * n->prev_corr;
-  n->prev_corr = corr_prompt_real;
+  /* Maintain a rolling sum of the 20 most recent correlations in
+     bit_integrate */
+  n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
+  n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
+  if (n->bitsync_count < 20)
+    return;  /* That rolling accumulator is not valid yet */
 
-  if (dot > 0)
-    return;
+  /* Add the accumulator to the histogram for the relevant phase */
+  n->bitsync_histogram[(n->bit_phase + 1) % 20] += abs(n->bit_integrate);
 
-  /* Sign change - Add to histogram */
-  n->hist[n->bit_phase] += -dot;
-
-  n->bit_phase_count++;
-  if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES)
-    return;
-
-  /* Find the max and run with it */
-  float max = 0;
-  u8 max_index = 0;
-  for (u8 i = 0; i < 20; i++) {
-    if (n->hist[i] > max) {
-      max = n->hist[i];
-      max_index = i;
+  if (n->bit_phase == 20 - 1) {
+    /* Histogram is valid.  Find the two highest values. */
+    u32 max = 0, next_best = 0;
+    u8 max_i = 0;
+    for (u8 i = 0; i < 20; i++) {
+      u32 v = n->bitsync_histogram[i];
+      if (v > max) {
+        next_best = max;
+        max = v;
+        max_i = i;
+      } else if (v > next_best) {
+        next_best = v;
+      }
     }
-    n->hist[i] = 0;
+    /* Form score from difference between the best and the second-best */
+    if (max - next_best > BITSYNC_THRES) {
+      n->bit_phase_ref = max_i;
+    }
   }
-
-  n->bit_phase_ref = (max_index + 20 - ms) % 20;
-
-  n->bit_phase_count = 0;
 }
 
 /** Navigation message decoding update.
@@ -127,22 +126,26 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   s32 TOW_ms = TOW_INVALID;
 
+  n->bitsync_count++;
+  n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
+    update_bit_sync(n, corr_prompt_real);
   n->bit_phase += ms;
   n->bit_phase %= 20;
 
-  update_bit_sync(n, corr_prompt_real, ms);
-
-  /* We have bit phase lock. */
-  n->nav_bit_integrate += corr_prompt_real;
-
   if (n->bit_phase != n->bit_phase_ref) {
+    /* Either we don't have bit phase lock, or this particular
+       integration is not aligned to a nav bit boundary. */
     return TOW_INVALID;
   }
 
   /* Dump the nav bit, i.e. determine the sign of the correlation over the
    * nav bit period. */
+  bool bit_val = n->bit_integrate > 0;
+  /* Zero the accumulator for the next nav bit. */
+  n->bit_integrate = 0;
 
   /* The following is offset by 27 to allow the handover word to be
    * overwritten.  This is not a problem as it's handled below and
@@ -157,12 +160,10 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
      * being used.
      */
     n->overrun = true;
-    n->nav_bit_integrate = 0;
     return -2;
   }
 
-  /* Is bit 1? */
-  if (n->nav_bit_integrate > 0) {
+  if (bit_val) {
     n->subframe_bits[n->subframe_bit_index >> 5] |= \
       1 << (31 - (n->subframe_bit_index & 0x1F));
   } else {
@@ -170,9 +171,6 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     n->subframe_bits[n->subframe_bit_index >> 5] &= \
       ~(1 << (31 - (n->subframe_bit_index & 0x1F)));
   }
-
-  /* Zero the integrator for the next nav bit. */
-  n->nav_bit_integrate = 0;
 
   n->subframe_bit_index++;
   if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
