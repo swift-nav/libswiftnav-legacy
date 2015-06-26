@@ -282,30 +282,30 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   // First things first - check the parity, and invert bits if necessary.
   // process the data, skipping the first word, TLM, and starting with HOW
-  /* Complain if buffer overrun */
-  if (n->overrun) {
-    log_warn("nav_msg subframe buffer overrun!\n");
-    n->overrun = false;
-  }
-
-  /* TODO: Check if inverted has changed and detect half cycle slip. */
-  if (n->inverted != (n->subframe_start_index < 0)) {
-    log_info("Nav phase flip\n");
-  }
-  n->inverted = (n->subframe_start_index < 0);
-
   if (!e) {
     log_error("process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
   }
+  /* TODO: Check if inverted has changed and detect half cycle slip. */
+  if (n->inverted != (n->subframe_start_index < 0)) {
+    log_warn("PRN %02d Nav phase flip\n", e->prn+1);
+  }
+  n->inverted = (n->subframe_start_index < 0);
+
+  /* Complain if buffer overrun */
+  if (n->overrun) {
+    log_error("PRN %02d nav_msg subframe buffer overrun!\n", e->prn+1);
+    n->overrun = false;
+  }
+
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-      log_info("subframe parity mismatch (word 2)\n");
-      n->subframe_start_index = 0;  // Mark the subframe as processed
-      n->next_subframe_id = 1;      // Make sure we start again next time
-      return -2;
+    log_info("PRN %02d subframe parity mismatch (word 2)\n", e->prn+1);
+    n->subframe_start_index = 0;  // Mark the subframe as processed
+    n->next_subframe_id = 1;      // Make sure we start again next time
+    return -2;
   }
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
@@ -316,7 +316,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        log_info("subframe parity mismatch (word %d)\n", w+3);
+        log_info("PRN %02d subframe parity mismatch (word %d)\n", e->prn+1, w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
         return -3;
