@@ -359,9 +359,12 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
 {
   /* Carrier loop */
   float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
-  float freq_error = frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
-  s->prev_I = cs[1].I;
-  s->prev_Q = cs[1].Q;
+  float freq_error = 0;
+  if (s->carr_filt.aiding_igain != 0) { /* Don't waste cycles if not using FLL */
+    freq_error = frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
+    s->prev_I = cs[1].I;
+    s->prev_Q = cs[1].Q;
+  }
   s->carr_freq = aided_lf_update(&(s->carr_filt), carr_error, freq_error);
 
   /* Code loop */
