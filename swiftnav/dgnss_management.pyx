@@ -114,7 +114,7 @@ def dgnss_baseline(sdiffs, ref_ecef, AmbiguityState s):
   cdef s8 flag = dgnss_management_c.dgnss_baseline(num_sdiffs, &sdiffs_[0],
                   &ref_ecef_[0], &s.ambiguity_state,
                   &num_used, &b[0])
-  return (flag, num_used, b)
+  return flag, num_used, b
 
 
 def dgnss_fixed_baseline(sdiffs, ref_ecef, AmbiguityState s):
@@ -128,7 +128,7 @@ def dgnss_fixed_baseline(sdiffs, ref_ecef, AmbiguityState s):
     np.empty(3, dtype=np.double)
   cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
                      &s.ambiguity_state.fixed_ambs, &num_used, &b[0]);
-  return (flag, num_used, b)
+  return flag, num_used, b
 
 def dgnss_float_baseline(sdiffs, ref_ecef, AmbiguityState s):
   cdef num_sdiffs = len(sdiffs)
@@ -141,7 +141,7 @@ def dgnss_float_baseline(sdiffs, ref_ecef, AmbiguityState s):
     np.empty(3, dtype=np.double)
   cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
                      &s.ambiguity_state.float_ambs, &num_used, &b[0]);
-  return (flag, num_used, b)
+  return flag, num_used, b
 
 def measure_float_b(sdiffs, reciever_ecef): #TODO eventually, want to get reciever_ecef from data
   num_sdiffs = len(sdiffs)
