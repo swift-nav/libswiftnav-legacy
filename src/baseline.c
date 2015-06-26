@@ -588,7 +588,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   *num_used = num_ambs + 1;
 
-  return lesq_solution_float(num_ambs, dd_meas, ambs, DE, b, 0);
+  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, false, 0, 0, 0);
 }
 
 /** Calculate least squares baseline solution from a set of single difference
