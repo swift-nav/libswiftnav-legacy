@@ -370,9 +370,10 @@ static bool chi_test(u8 num_dds, double *residuals, double *residual)
  *
  *    0: solution with all dd's ok
  *
- *   -1: < 3 dds, or no reasonable solution possible
- *
- *   -2: not enough sats for repair
+ *   -1: < 3 dds
+ *   -2: dgelsy  error (see lesq_solution_float)
+ *   -3: raim check failed, repair failed
+ *   -4: raim check failed, not enough sats for repair
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs.
@@ -387,15 +388,15 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
 {
   integer num_dds = num_dds_u8;
   double residuals[num_dds];
+  double residual;
 
   s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
 
   if (okay != 0) {
     /* Not enough sats or other error returned by initial lesq solution. */
-    return -1;
+    return okay;
   }
 
-  double residual;
   if (disable_raim || chi_test(num_dds, residuals, &residual)) {
     /* Solution using all sats ok. */
     if (ret_residuals) {
@@ -408,60 +409,60 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
       return 2;
     }
     return 0;
-  } else {
-    if (num_dds < 5) {
-      /* We have just enough sats for a solution; can't search for solution
-       * after dropping one.
-       * 5 are needed because a 3 dimensional system is exactly constrained,
-       * so the bad measurement can't be detected.
-       */
-      if (n_used) {
-        *n_used = 0;
-      }
-      return -2;
-    } else {
-      u8 num_passing = 0;
-      u8 bad_sat = -1;
-      u8 new_dds = num_dds - 1;
+  }
 
-      for (u8 i = 0; i < num_dds; i++) {
-        lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
-        if (chi_test(new_dds, residuals, &residual)) {
-          num_passing++;
-          bad_sat = i;
-        }
-      }
-
-      if (num_passing == 1) {
-        /* bad_sat holds index of bad dd
-         * Return solution without bad_sat. */
-        /* Recalculate this solution. */
-        lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
-        if (removed_obs) {
-          *removed_obs = bad_sat;
-        }
-        if (ret_residuals) {
-          memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
-        }
-        if (n_used) {
-          *n_used = num_dds-1;
-        }
-        return 1;
-      } else if (num_passing == 0) {
-        /* Ref sat is bad? */
-        if (n_used) {
-          *n_used = 0;
-        }
-        return -1;
-      } else {
-        /* Had more than one acceptable solution.
-         * TODO(dsk) should we return the best one? */
-        if (n_used) {
-          *n_used = 0;
-        }
-        return -1;
-      }
+  if (num_dds < 5) {
+    /* We have just enough sats for a solution; can't search for solution
+     * after dropping one.
+     * 5 are needed because a 3 dimensional system is exactly constrained,
+     * so the bad measurement can't be detected.
+     */
+    if (n_used) {
+      *n_used = 0;
     }
+    return -4;
+  }
+
+  u8 num_passing = 0;
+  u8 bad_sat = -1;
+  u8 new_dds = num_dds - 1;
+
+  for (u8 i = 0; i < num_dds; i++) {
+    lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
+    if (chi_test(new_dds, residuals, &residual)) {
+      num_passing++;
+      bad_sat = i;
+    }
+  }
+
+  if (num_passing == 1) {
+    /* bad_sat holds index of bad dd
+     * Return solution without bad_sat. */
+    /* Recalculate this solution. */
+    lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
+    if (removed_obs) {
+      *removed_obs = bad_sat;
+    }
+    if (ret_residuals) {
+      memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+    }
+    if (n_used) {
+      *n_used = num_dds-1;
+    }
+    return 1;
+  } else if (num_passing == 0) {
+    /* Ref sat is bad? */
+    if (n_used) {
+      *n_used = 0;
+    }
+    return -3;
+  } else {
+    /* Had more than one acceptable solution.
+     * TODO(dsk) should we return the best one? */
+    if (n_used) {
+      *n_used = 0;
+    }
+    return -3;
   }
 }
 
