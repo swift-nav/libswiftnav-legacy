@@ -473,8 +473,8 @@ START_TEST(test_lesq_repair2)
   double b[3];
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, 0, 0, 0);
 
-  fail_unless(ret == -2,
-      "Expecting -2 for not enough dds to repair, got: %i.\n", ret);
+  fail_unless(ret == -4,
+      "Expecting -4 for not enough dds to repair, got: %i.\n", ret);
 }
 END_TEST
 
