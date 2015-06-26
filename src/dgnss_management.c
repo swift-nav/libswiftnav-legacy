@@ -294,7 +294,13 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
     s8 code = least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
         sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
 
-    (void) code;
+    if (code < 0) {
+      log_warn("dgnss_update. baseline estimate error: %d\n", code);
+      /* Use b = 0, continue */
+      for (s32 i = 0; i < 3; i++) {
+        b2[i] = 0;
+      }
+    }
 
     double ref_ecef[3];
 
