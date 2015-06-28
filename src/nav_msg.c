@@ -30,6 +30,7 @@ void nav_msg_init(nav_msg_t *n)
   memset(n, 0, sizeof(nav_msg_t));
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
+  n->bit_polarity = BIT_POLARITY_UNKNOWN;
 }
 
 static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
@@ -315,19 +316,26 @@ bool subframe_ready(nav_msg_t *n) {
 s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   // Check parity and parse out the ephemeris from the most recently received subframe
 
-  // First things first - check the parity, and invert bits if necessary.
-  // process the data, skipping the first word, TLM, and starting with HOW
   if (!e) {
     log_error("process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
   }
-  /* TODO: Check if inverted has changed and detect half cycle slip. */
-  if (n->inverted != (n->subframe_start_index < 0)) {
-    log_warn("PRN %02d Nav phase flip\n", e->prn+1);
+
+  // First things first - check the parity, and invert bits if necessary.
+  // process the data, skipping the first word, TLM, and starting with HOW
+
+  /* Detect half cycle slip. */
+  s8 prev_bit_polarity = n->bit_polarity;
+  n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL :
+    BIT_POLARITY_INVERTED;
+  if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
+      && (prev_bit_polarity != n->bit_polarity)) {
+    log_error("PRN %02d Nav phase flip - half cycle slip detected, "
+              "but not corrected\n", e->prn+1);
+    /* TODO: declare phase ambiguity to IAR */
   }
-  n->inverted = (n->subframe_start_index < 0);
 
   /* Complain if buffer overrun */
   if (n->overrun) {
@@ -335,6 +343,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     n->overrun = false;
   }
 
+  /* Extract word 2, and the last two parity bits of word 1 */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
     log_info("PRN %02d subframe parity mismatch (word 2)\n", e->prn+1);

@@ -21,6 +21,10 @@
 #define TOW_INVALID -1
 #define BITSYNC_UNSYNCED -1
 
+#define BIT_POLARITY_NORMAL 0
+#define BIT_POLARITY_INVERTED 1
+#define BIT_POLARITY_UNKNOWN -1
+
 typedef struct {
   u32 subframe_bits[NAV_MSG_SUBFRAME_BITS_LEN];
   u16 subframe_bit_index;
@@ -37,7 +41,7 @@ typedef struct {
 
   u32 frame_words[3][8];
   u8 next_subframe_id;
-  u8 inverted;
+  s8 bit_polarity;
 
   u8 bitsync_count;
   s32 bitsync_prev_corr[20];
