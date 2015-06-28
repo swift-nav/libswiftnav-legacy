@@ -20,10 +20,9 @@
 #include "bits.h"
 #include "nav_msg.h"
 
-/* 22222 is somewhat conservative; experiment under bad RFI + clock
-   stress conditions shows false syncs could occur with thres <
-   10000 */
-#define BITSYNC_THRES 22222
+/* Approx number of nav bit edges needed to accept bit sync for a
+   strong signal (sync will take longer on a weak signal) */
+#define BITSYNC_THRES 22
 
 void nav_msg_init(nav_msg_t *n)
 {
@@ -77,19 +76,50 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
  */
 static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
 {
+  /* On 20th call:
+     bit_phase = 0
+     bitsync_count = 20
+     bit_integrate holds sum of first 20 correlations
+     bitsync_histogram is all zeros
+     bitsync_prev_corr[0]=0, others hold previous correlations ([1] = first)
+     In this function:
+       bitsync_prev_corr[0] <= corr_prompt_real (20th correlation)
+       bitsync_histogram[0] <= sum of corrs [0..19]
+     On 21st call:
+     bit_phase = 1
+     bit_integrate holds sum of corrs [0..20]
+       bit_integrate -= bitsync_prev_corr[1]
+         bit_integrate now holds sum of corrs [1..20]
+       bitsync_histogram[1] <= bit_integrate
+     ...
+     On 39th call:
+     bit_phase = 19
+00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
+____bit_integrate is sum of these after 20th call__________
+                                                         __________________after 39th call__________________________
+
+       after subtraction, bit_integrate holds sum of corrs [19..38]
+       bitsync_histogram[19] <= bit_integrate. Now fully populated.
+       Suppose first correlation happened to be first ms of a nav bit
+        then max_i = bit_phase_ref = 0.
+  */
+
   /* Maintain a rolling sum of the 20 most recent correlations in
      bit_integrate */
   n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
   n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
-  if (n->bitsync_count < 20)
+  if (n->bitsync_count < 20) {
+    n->bitsync_count++;
     return;  /* That rolling accumulator is not valid yet */
+  }
 
   /* Add the accumulator to the histogram for the relevant phase */
-  n->bitsync_histogram[(n->bit_phase + 1) % 20] += abs(n->bit_integrate);
+  n->bitsync_histogram[(n->bit_phase) % 20] += abs(n->bit_integrate);
 
   if (n->bit_phase == 20 - 1) {
     /* Histogram is valid.  Find the two highest values. */
     u32 max = 0, next_best = 0;
+    u32 max_prev_corr = 0;
     u8 max_i = 0;
     for (u8 i = 0; i < 20; i++) {
       u32 v = n->bitsync_histogram[i];
@@ -100,10 +130,18 @@ static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
       } else if (v > next_best) {
         next_best = v;
       }
+      /* Also find the highest value from the last 20 correlations.
+         We'll use this to normalize the threshold score. */
+      v = abs(n->bitsync_prev_corr[i]);
+      if (v > max_prev_corr)
+        max_prev_corr = v;
     }
     /* Form score from difference between the best and the second-best */
-    if (max - next_best > BITSYNC_THRES) {
+    if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
+      /* We are synchronized! */
       n->bit_phase_ref = max_i;
+      /* TODO: Subtract necessary older prev_corrs from bit_integrate to
+         ensure it will be correct for the upcoming first dump */
     }
   }
 }
@@ -126,14 +164,13 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   s32 TOW_ms = TOW_INVALID;
 
-  n->bitsync_count++;
+  n->bit_phase += ms;
+  n->bit_phase %= 20;
   n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
   if (n->bit_phase_ref == BITSYNC_UNSYNCED)
     update_bit_sync(n, corr_prompt_real);
-  n->bit_phase += ms;
-  n->bit_phase %= 20;
 
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
