@@ -38,19 +38,15 @@ s8 lesq_solution_float(u8 num_dds, const double *dd_obs, const double *N,
                        const double *DE, double b[3], double *resid)
                          __attribute__((warn_unused_result));
 
-s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3], double *resid)
-                       __attribute__((warn_unused_result));
-
 s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3]);
+         const double ref_ecef[3], double b[3], bool disable_raim);
 
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3]);
+            const ambiguities_t *ambs, u8 *num_used, double b[3], bool disable_raim);
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3]);
+             u8 *num_used, double b[3], bool disable_raim);
 
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
