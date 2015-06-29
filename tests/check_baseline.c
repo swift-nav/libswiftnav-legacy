@@ -182,12 +182,12 @@ START_TEST(test_lesq_solution4)
 
   double b[3];
   double resid[num_dds];
-  s32 N_int[num_dds];
+  double N_int[num_dds];
 
   for (u8 i=0; i<num_dds; i++) {
     N_int[i] = N[i];
   }
-  s8 ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, resid);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, 0, resid, 0);
 
   fail_unless(ret >= 0, "solution returned error %d", ret);
 
@@ -198,7 +198,7 @@ START_TEST(test_lesq_solution4)
   }
 
   /* Try with null resid */
-  ret = lesq_solution_int(num_dds, dd_obs, N_int, DE, b, 0);
+  ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, 0, 0, 0);
 
   fail_unless(ret >= 0, "solution returned error %d", ret);
 
@@ -301,7 +301,7 @@ START_TEST(test_baseline_ref_first)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -324,7 +324,7 @@ START_TEST(test_baseline_ref_middle)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -347,7 +347,7 @@ START_TEST(test_baseline_ref_end)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -382,7 +382,7 @@ START_TEST(test_baseline_fixed_point)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -403,7 +403,7 @@ START_TEST(test_baseline_few_sats)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
 
   fail_unless(valid == -1);
 }

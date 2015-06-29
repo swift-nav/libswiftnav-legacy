@@ -466,35 +466,6 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   }
 }
 
-/** Calculate least squares baseline solution from a set of double difference
- * carrier phase observations and carrier phase ambiguities.
- *
- * For more details, see lesq_solution_float().
- *
- * \note This function takes integer valued carrier phase ambiguities. For real
- *       valued ambiguities, see lesq_solution_float().
- *
- * \param num_dds Number of double difference observations
- * \param dd_obs  Double differenced carrier phase observations in cycles,
- *                length `num_dds`
- * \param N       Carrier phase ambiguity vector, length `num_dds`
- * \param DE      Double differenced matrix of unit vectors to the satellites,
- *                length `3 * num_dds`
- * \param b       The output baseline in meters.
- * \param resid   The output least squares residuals in cycles.
- * \return        See lesq_solve_raim
- */
-s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3], double *residuals)
-{
-  assert(N != NULL);
-  double N_float[num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    N_float[i] = N[i];
-  }
-  return lesq_solve_raim(num_dds, dd_obs, N_float, DE, b, false, 0, residuals, 0);
-}
-
 /** A least squares solution for baseline from phases using the KF state.
  * This uses the current state of the KF and a set of phase observations to
  * solve for the current baseline.
@@ -514,7 +485,8 @@ s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
  */
 s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3])
+         const double ref_ecef[3], double b[3],
+         bool disable_raim)
 {
   DEBUG_ENTRY();
 
@@ -522,7 +494,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, false, 0, 0, 0);
+  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, disable_raim, 0, 0, 0);
   DEBUG_EXIT();
   return code;
 }
@@ -551,7 +523,8 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
  */
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3])
+             u8 *num_used, double b[3],
+             bool disable_raim)
 {
   assert(sdiffs != NULL);
   assert(ref_ecef != NULL);
@@ -588,7 +561,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   *num_used = num_ambs + 1;
 
-  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, false, 0, 0, 0);
+  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, disable_raim, 0, 0, 0);
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -609,10 +582,12 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
  *                   -2 if an error occurred
  */
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3])
+            const ambiguities_t *ambs, u8 *num_used, double b[3],
+            bool disable_raim)
 {
   return baseline_(num_sdiffs, sdiffs, ref_ecef,
-                   ambs->n, ambs->prns, ambs->ambs, num_used, b);
+                   ambs->n, ambs->prns, ambs->ambs, num_used, b,
+                   disable_raim);
 }
 
 /* Initialize a set of ambiguities.
