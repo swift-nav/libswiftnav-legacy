@@ -87,6 +87,23 @@ typedef struct {
   float first_Q;    /**< First quadrature-phase sample. */
 } alias_detect_t;
 
+struct loop_detect_lpf {
+  float k1;                    /**< Filter coefficient. */
+  float y;                     /**< Output and state variable. */
+};
+
+/** State structure for basic lock detector with optimistic and pessimistic
+ *  indicators.
+ */
+typedef struct {
+  struct loop_detect_lpf lpfi; /**< I path LPF state. */
+  struct loop_detect_lpf lpfq; /**< Q path LPF state. */
+  float k2;                    /**< I Scale factor. */
+  u16 lo, lp;                  /**< Optimistic and pessimistic count threshold. */
+  u16 pcount1, pcount2;        /**< Counter state variables. */
+  bool outo, outp;             /**< Optimistic and pessimistic indicator. */
+} lock_detect_t;
+
 /** \} */
 
 /** Structure representing a complex valued correlation. */
@@ -193,6 +210,10 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
 void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff);
 void alias_detect_first(alias_detect_t *a, float I, float Q);
 float alias_detect_second(alias_detect_t *a, float I, float Q);
+
+void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
+void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
+void lock_detect_update(lock_detect_t *l, float I, float Q);
 
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
