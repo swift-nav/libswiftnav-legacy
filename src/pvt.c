@@ -16,7 +16,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "logging.h"
 #include "constants.h"
 #include "linear_algebra.h"
 #include "coord_system.h"
@@ -419,10 +418,10 @@ static s8 pvt_solve_raim(double rx_state[],
                          const navigation_measurement_t nav_meas[n_used],
                          bool disable_raim,
                          double H[4][4],
-                         u8 *removed_prn)
+                         u8 *removed_prn,
+                         double residual)
 {
   double omp[n_used];
-  double residual = 0;
 
   s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
 
@@ -438,8 +437,6 @@ static s8 pvt_solve_raim(double rx_state[],
     }
     return 0;
   } else {
-    // TODO(dsk) move this log
-    log_warn("PVT BAD RESIDUAL: %f n_used: %i\n", residual, n_used);
     if (n_used < 6) {
       /* Not enough measurements to repair.
        * 6 are needed because a 4 dimensional system is exactly constrained,
@@ -473,6 +470,18 @@ static s8 pvt_solve_raim(double rx_state[],
  *   -6: pvt_iter didn't converge
  *   -7: < 4 measurements
  */
+
+/* Negative return code labels. Used in piksi_firmware. */
+const char *pvt_err_msg[] = {
+  "PDOP too high",
+  "Altitude unreasonable",
+  "ITAR lockout",
+  "RAIM repair attempted, failed",
+  "RAIM repair impossible (not enough measurements)",
+  "Took too long to converge",
+  "Not enough measurements for solution (< 4)",
+};
+
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
             bool disable_raim,
@@ -499,19 +508,15 @@ s8 calc_PVT(const u8 n_used,
 
   u8 removed_prn = -1;
   s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
-                                H, &removed_prn);
+                                H, &removed_prn, 0);
 
   if (raim_flag < 0) {
     /* Didn't converge or least squares integrity check failed. */
-    // TODO(dsk) move this log
-    log_warn("PVT repair failed with code: %i\n", raim_flag);
     return raim_flag - 3;
   }
 
   /* Initial solution failed, but repair was successful. */
   if (raim_flag == 1) {
-    // TODO(dsk) move this log
-    log_info("pvt_repair successful. dropped prn: %i.\n", removed_prn);
     soln->n_used--;
   }
 
