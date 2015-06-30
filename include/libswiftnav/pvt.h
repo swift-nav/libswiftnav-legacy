@@ -27,6 +27,8 @@ typedef struct {
   double vdop;
 } dops_t;
 
+extern const char *pvt_err_msg[7];
+
 typedef struct __attribute__((packed)) {
   /*
    * Be careful of stuct packing to avoid (very mild) slowness,
