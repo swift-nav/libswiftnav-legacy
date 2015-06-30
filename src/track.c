@@ -581,6 +581,10 @@ static float lock_detect_lpf_update(struct loop_detect_lpf *lpf, float x)
 /** Update the lock detector with new prompt correlations.
  * \param I In-phase prompt correlation.
  * \param Q Quadrature prompt correlation.
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications.
+ *     Elliott D. Kaplan. Artech House, 1996.
  */
 void lock_detect_update(lock_detect_t *l, float I, float Q)
 {
