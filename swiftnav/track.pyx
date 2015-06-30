@@ -150,7 +150,7 @@ cdef class NavigationMeasurement:
 
 def calc_navigation_measurement(double t, chan_meas, es):
   n_channels = len(chan_meas)
-  nav_meas = [NavigationMeasurement(0, 0, 0, 0, 0, (0,0,0), (0,0,0), 0, 0, 0, 0, 0) for n in range(n_channels)]
+  nav_meas = [NavigationMeasurement(0, 0, 0, 0, 0, (0,0,0), (0,0,0), 0, 0, GpsTime(0,0), 0, 0) for n in range(n_channels)]
 
   cdef channel_measurement_t** chan_meas_ptrs = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t*))
   cdef navigation_measurement_t** nav_meas_ptrs = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t*))
@@ -448,22 +448,31 @@ cdef class AidedTrackingLoop:
   ----------
   code_params : (float, float, float)
     Code tracking loop parameter tuple, `(bw, zeta, k)`.
+  carr_params : (float, float, float)
+    Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
   loop_freq : float
     The frequency with which loop updates are performed.
+  carr_freq_igain : float
+    FLL aiding gain
+  carr_to_code : float
+    Ratio of carrier to code frequency (1540 for GPS L1 C/A) or zero
+    to disable carrier aiding.
 
   """
 
   cdef track_c.aided_tl_state_t s
   cdef float loop_freq
   cdef float code_bw, code_zeta, code_k
+  cdef float carr_to_code
   cdef float carr_bw, carr_zeta, carr_k
   cdef float carr_freq_igain
 
-  def __cinit__(self, code_params, carr_params, loop_freq, carr_freq_igain):
+  def __cinit__(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     self.loop_freq = loop_freq
     self.code_bw, self.code_zeta, self.code_k = code_params
     self.carr_bw, self.carr_zeta, self.carr_k = carr_params
     self.carr_freq_igain = carr_freq_igain
+    self.carr_to_code = carr_to_code
 
   def start(self, code_freq, carr_freq):
     """
@@ -478,11 +487,38 @@ cdef class AidedTrackingLoop:
 
     """
     track_c.aided_tl_init(&self.s, self.loop_freq,
-                           code_freq, self.code_bw,
-                           self.code_zeta, self.code_k,
-                           carr_freq, self.carr_bw,
-                           self.carr_zeta, self.carr_k,
+                           code_freq,
+                           self.code_bw, self.code_zeta, self.code_k,
+                           self.carr_to_code,
+                           carr_freq,
+                           self.carr_bw, self.carr_zeta, self.carr_k,
                            self.carr_freq_igain)
+
+  def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
+    """
+    Retune the tracking loop.
+
+    Parameters
+    ----------
+    code_params : (float, float, float)
+      Code tracking loop parameter tuple, `(bw, zeta, k)`.
+    carr_params : (float, float, float)
+      Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
+    loop_freq : float
+      The frequency with which loop updates are performed.
+    carr_freq_igain : float
+      FLL aiding gain
+
+    """
+    self.loop_freq = loop_freq
+    self.code_bw, self.code_zeta, self.code_k = code_params
+    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
+    self.carr_freq_igain = carr_freq_igain
+    track_c.aided_tl_retune(&self.s, self.loop_freq,
+                            self.code_bw, self.code_zeta, self.code_k,
+                            self.carr_to_code,
+                            self.carr_bw, self.carr_zeta, self.carr_k,
+                            self.carr_freq_igain)
 
   def update(self, complex e, complex p, complex l):
     """
@@ -524,7 +560,6 @@ cdef class AidedTrackingLoop:
     """The carrier frequency."""
     def __get__(self):
       return self.s.carr_freq
-
 
 cdef class CompTrackingLoop:
   """

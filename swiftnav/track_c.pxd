@@ -57,6 +57,7 @@ cdef extern from "libswiftnav/track.h":
     simple_lf_state_t code_filt
     float prev_I
     float prev_Q
+    float carr_to_code
 
   ctypedef struct comp_tl_state_t:
     float code_freq
@@ -93,11 +94,19 @@ cdef extern from "libswiftnav/track.h":
   void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
 
   void aided_tl_init(aided_tl_state_t *s, float loop_freq,
-                   float code_freq, float code_bw,
-                   float code_zeta, float code_k,
-                   float carr_freq, float carr_bw,
-                   float carr_zeta, float carr_k,
-                   float carr_freq_igain)
+                     float code_freq,
+                     float code_bw, float code_zeta, float code_k,
+                     float carr_to_code,
+                     float carr_freq,
+                     float carr_bw, float carr_zeta, float carr_k,
+                     float carr_freq_b1)
+
+  void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
+                       float code_bw, float code_zeta, float code_k,
+                       float carr_to_code,
+                       float carr_bw, float carr_zeta, float carr_k,
+                       float carr_freq_b1)
+
   void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
 
   void comp_tl_init(comp_tl_state_t *s, float loop_freq,
