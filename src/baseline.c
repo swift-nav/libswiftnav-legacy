@@ -481,7 +481,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
  * \param ref_ecef              The reference position in ECEF frame, for
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
- * \return                      See lesq_solve_raim
+ * \return                      See lesq_solve_raim()
  */
 s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
