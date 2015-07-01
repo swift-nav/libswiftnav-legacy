@@ -10,7 +10,7 @@
 from common cimport *
 from almanac_c cimport *
 from gpstime_c cimport *
-from single_diff_c cimport *
+from observation_c cimport *
 
 cdef extern from "libswiftnav/amb_kf.h":
   ctypedef struct nkf_t:

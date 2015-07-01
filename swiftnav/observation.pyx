@@ -9,7 +9,7 @@
 
 import numpy as np
 cimport numpy as np
-cimport single_diff_c
+cimport observation_c
 from libc.string cimport memcpy
 
 cdef class SingleDiff:

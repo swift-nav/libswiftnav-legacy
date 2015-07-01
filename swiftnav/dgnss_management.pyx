@@ -13,9 +13,10 @@ cimport dgnss_management_c
 from amb_kf import KalmanFilter
 from amb_kf cimport *
 from amb_kf_c cimport *
-from single_diff_c cimport *
-from single_diff import SingleDiff
-from single_diff cimport SingleDiff
+from baseline_c cimport *
+from observation_c cimport *
+from observation import SingleDiff
+from observation cimport SingleDiff
 from almanac cimport *
 from almanac_c cimport *
 from gpstime cimport *
@@ -45,13 +46,9 @@ def dgnss_init(sdiffs,
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(reciever_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
 
   dgnss_management_c.dgnss_init(num_sdiffs, &sdiffs_[0], &ref_ecef_[0])
-
 
 def dgnss_update(sdiffs,
                  reciever_ecef):
@@ -65,8 +62,6 @@ def dgnss_update(sdiffs,
     memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
 
   dgnss_management_c.dgnss_update(num_sdiffs, &sdiffs_[0], &ref_ecef_[0])
-
-
 
 def dgnss_iar_resolved():
   return dgnss_management_c.dgnss_iar_resolved() > 0
@@ -90,53 +85,66 @@ def get_sats_management():
   memcpy(&prns[0], sats_man.prns, sats_man.num_sats * sizeof(u8))
   return sats_man.num_sats, prns
 
-def dgnss_new_float_baseline(sdiffs, ref_ecef):
-  cdef u8 num_sats = len(sdiffs)
-  cdef u8 num_used
-  cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
-    np.array(ref_ecef, dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
-    np.empty(3, dtype=np.double)
-  dgnss_management_c.dgnss_new_float_baseline(num_sats,
-                                              &sdiffs_[0], &ref_ecef_[0],
-                                              &num_used, &b[0])
-  return num_used, b
+def dgnss_update_ambiguity_state(AmbiguityState s):
+  dgnss_management_c.dgnss_update_ambiguity_state(&s.ambiguity_state)
 
-def dgnss_fixed_baseline(sdiffs, ref_ecef):
-  cdef u8 num_sats = len(sdiffs)
+cdef mk_sdiff_array(py_sdiffs, u8 n_c_sdiffs, sdiff_t *c_sdiffs):
+  if n_c_sdiffs < len(py_sdiffs):
+    raise ValueError("The length of the c sdiffs array (" + str(n_c_sdiffs) + \
+                      ") must be at least the length of the python sdiffs array " + \
+                      str(len(py_sdiffs)) + ").")
+  cdef sdiff_t sd_
+  for (i,sdiff) in enumerate(py_sdiffs):
+    sd_ = (<SingleDiff> sdiff).sdiff
+    memcpy(&c_sdiffs[i], &sd_, sizeof(sdiff_t))
+
+def dgnss_baseline(sdiffs, ref_ecef, AmbiguityState s):
+  cdef u8 num_sdiffs = len(sdiffs)
   cdef u8 num_used
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(ref_ecef, dtype=np.double)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
-  cdef s8 flag = dgnss_management_c.dgnss_fixed_baseline(num_sats,
-                                                         &sdiffs_[0], &ref_ecef_[0],
-                                                         &num_used, &b[0])
-  if flag == 1:
-    return num_used, b
-  else:
-    return 0, np.array([np.nan]*3)
+  cdef s8 flag = dgnss_management_c.dgnss_baseline(num_sdiffs, &sdiffs_[0],
+                  &ref_ecef_[0], &s.ambiguity_state,
+                  &num_used, &b[0])
+  return flag, num_used, b
+
+
+def dgnss_fixed_baseline(sdiffs, ref_ecef, AmbiguityState s):
+  cdef num_sdiffs = len(sdiffs)
+  cdef u8 num_used
+  cdef sdiff_t sdiffs_[32]
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+  cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
+                     &s.ambiguity_state.fixed_ambs, &num_used, &b[0]);
+  return flag, num_used, b
+
+def dgnss_float_baseline(sdiffs, ref_ecef, AmbiguityState s):
+  cdef num_sdiffs = len(sdiffs)
+  cdef u8 num_used
+  cdef sdiff_t sdiffs_[32]
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
+    np.array(ref_ecef, dtype=np.double)
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
+    np.empty(3, dtype=np.double)
+  cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
+                     &s.ambiguity_state.float_ambs, &num_used, &b[0]);
+  return flag, num_used, b
 
 def measure_float_b(sdiffs, reciever_ecef): #TODO eventually, want to get reciever_ecef from data
   num_sdiffs = len(sdiffs)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(reciever_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-  
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
 
@@ -150,11 +158,7 @@ def measure_b_with_external_ambs(sdiffs, ambs, reciever_ecef): #TODO eventually,
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(reciever_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-  
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs_ = \
     np.array(ambs, dtype=np.double)
 
@@ -171,11 +175,7 @@ def measure_iar_b_with_external_ambs(sdiffs, ambs, reciever_ecef): #TODO eventua
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(reciever_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-  
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ambs_ = \
     np.array(ambs, dtype=np.double)
 
@@ -194,11 +194,7 @@ def get_float_de_and_phase(sdiffs, ref_ecef):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(ref_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=2, mode="c"] de = \
     np.empty((32,3), dtype=np.double)
 
@@ -217,11 +213,7 @@ def get_iar_de_and_phase(sdiffs, ref_ecef):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = \
     np.array(ref_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff> sdiff).sdiff
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
-  
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   cdef np.ndarray[np.double_t, ndim=2, mode="c"] de = \
     np.empty((32,3), dtype=np.double)
 

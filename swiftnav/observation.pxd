@@ -7,7 +7,8 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-cimport single_diff_c
+cimport observation_c
 
 cdef class SingleDiff:
-  cdef single_diff_c.sdiff_t sdiff
+  cdef observation_c.sdiff_t sdiff
+

@@ -8,10 +8,11 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from single_diff_c cimport *
+from observation_c cimport *
 from amb_kf_c cimport *
 from sats_management_c cimport *
 cimport ambiguity_test_c
+from baseline_c cimport *
 
 cdef extern from "libswiftnav/dgnss_management.h":
   void dgnss_set_settings(double phase_var_test, double code_var_test,
@@ -19,6 +20,9 @@ cdef extern from "libswiftnav/dgnss_management.h":
                         double amb_drift_var,
                         double amb_init_var,
                         double new_int_var)
+  ctypedef struct ambiguity_state_t:
+    ambiguities_t fixed_ambs
+    ambiguities_t float_ambs
   void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
   void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
   void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
@@ -28,9 +32,10 @@ cdef extern from "libswiftnav/dgnss_management.h":
   s8 dgnss_iar_get_single_hyp(double *hyp)
   nkf_t * get_dgnss_kf()
   sats_management_t * get_sats_management()
-  void dgnss_new_float_baseline(u8 num_sats, sdiff_t *sdiffs, double ref_ecef[3], u8 *num_used, double b[3])
-  s8 dgnss_fixed_baseline(u8 num_sdiffs, sdiff_t *sdiffs, double ref_ecef[3],
-                        u8 *num_used, double b[3])
+  void dgnss_update_ambiguity_state(ambiguity_state_t *s)
+  s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
+                  const double ref_ecef[3], const ambiguity_state_t *s,
+                  u8 *num_used, double b[3])
   void measure_amb_kf_b(double reciever_ecef[3],
                   		u8 num_sdiffs, sdiff_t *sdiffs,
                   		double *b)

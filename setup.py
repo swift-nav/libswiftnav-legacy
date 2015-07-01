@@ -129,7 +129,7 @@ if __name__ == "__main__":
     # 'swiftnav.float_kf',
     'swiftnav.amb_kf',
     'swiftnav.gpstime',
-    'swiftnav.single_diff',
+    'swiftnav.observation',
     'swiftnav.dgnss_management',
     'swiftnav.ambiguity_test'
   ]

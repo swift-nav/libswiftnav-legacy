@@ -7,16 +7,8 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-from common cimport *
-from almanac_c cimport *
-from gpstime_c cimport *
+cimport dgnss_management_c
 
-cdef extern from "libswiftnav/single_diff.h":
-  ctypedef struct sdiff_t:
-    double pseudorange
-    double carrier_phase
-    double doppler
-    double *sat_pos
-    double *sat_vel
-    double snr
-    u8 prn
+cdef class AmbiguityState:
+  cdef dgnss_management_c.ambiguity_state_t ambiguity_state
+
