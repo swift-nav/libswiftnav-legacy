@@ -25,7 +25,7 @@
 
 static double vel_solve(double rx_vel[],
                         const u8 n_used,
-                        const navigation_measurement_t nav_meas[n_used],
+                        const navigation_measurement_t *nav_meas[n_used],
                         const double G[n_used][4],
                         const double X[4][n_used])
 {
@@ -45,10 +45,10 @@ static double vel_solve(double rx_vel[],
      * and the geometry matix G which contains normalised line-of-sight
      * vectors to the satellites.
      */
-    pdot_pred = -vector_dot(3, G[j], nav_meas[j].sat_vel);
+    pdot_pred = -vector_dot(3, G[j], nav_meas[j]->sat_vel);
 
     /* The residual is due to the user's motion. */
-    tempvX[j] = -nav_meas[j].doppler * GPS_C / GPS_L1_HZ - pdot_pred;
+    tempvX[j] = -nav_meas[j]->doppler * GPS_C / GPS_L1_HZ - pdot_pred;
   }
 
   /* Use X to map our pseudorange rate residuals onto the Jacobian update.
@@ -130,7 +130,7 @@ static void compute_dops(const double H[4][4],
  */
 static double pvt_solve(double rx_state[],
                         const u8 n_used,
-                        const navigation_measurement_t nav_meas[n_used],
+                        const navigation_measurement_t *nav_meas[n_used],
                         double omp[n_used],
                         double H[4][4])
 {
@@ -167,7 +167,7 @@ static double pvt_solve(double rx_state[],
     /* TODO: Explain more about how this corrects for the Sagnac effect. */
 
     /* Magnitude of range vector converted into an approximate time in secs. */
-    vector_subtract(3, rx_state, nav_meas[j].sat_pos, tempv);
+    vector_subtract(3, rx_state, nav_meas[j]->sat_pos, tempv);
     double tau = vector_norm(3, tempv) / GPS_C;
 
     /* Rotation of Earth during time of flight in radians. */
@@ -181,9 +181,9 @@ static double pvt_solve(double rx_state[],
      *
      * Making a small angle approximation here leads to less than 1mm error in
      * the satellite position. */
-    xk_new[0] = nav_meas[j].sat_pos[0] + wEtau * nav_meas[j].sat_pos[1];
-    xk_new[1] = nav_meas[j].sat_pos[1] - wEtau * nav_meas[j].sat_pos[0];
-    xk_new[2] = nav_meas[j].sat_pos[2];
+    xk_new[0] = nav_meas[j]->sat_pos[0] + wEtau * nav_meas[j]->sat_pos[1];
+    xk_new[1] = nav_meas[j]->sat_pos[1] - wEtau * nav_meas[j]->sat_pos[0];
+    xk_new[2] = nav_meas[j]->sat_pos[2];
 
     /* Line of sight vector. */
     vector_subtract(3, xk_new, rx_state, los);
@@ -195,7 +195,7 @@ static double pvt_solve(double rx_state[],
      * prediction error vector (or innovation vector in Kalman/LS
      * filtering terms).
      */
-    omp[j] = nav_meas[j].pseudorange - p_pred[j];
+    omp[j] = nav_meas[j]->pseudorange - p_pred[j];
 
     /* Construct a geometry matrix.  Each row (satellite) is
      * independently normalized into a unit vector. */
@@ -308,7 +308,7 @@ static bool residual_test(u8 n_used, double omp[n_used],
  */
 static s8 pvt_iter(double rx_state[],
                    const u8 n_used,
-                   const navigation_measurement_t nav_meas[n_used],
+                   const navigation_measurement_t *nav_meas[n_used],
                    double omp[n_used],
                    double H[4][4])
 {
@@ -344,6 +344,7 @@ static s8 pvt_iter(double rx_state[],
  *
  *  Results stored in rx_state, omp, H
  */
+
 static s8 pvt_repair(double rx_state[],
                      const u8 n_used,
                      const navigation_measurement_t nav_meas[n_used],
@@ -352,23 +353,27 @@ static s8 pvt_repair(double rx_state[],
                      u8 *removed_prn)
 {
   /* Try solving with n-1 navigation measurements. */
-  navigation_measurement_t nav_meas_copy[n_used];
   s8 one_less = n_used - 1;
   s8 bad_sat = -1;
   u8 num_passing = 0;
 
-  memcpy(nav_meas_copy, nav_meas, n_used * sizeof(navigation_measurement_t));
+  const navigation_measurement_t *nav_meas_subset[n_used];
+  for (s8 i = 0; i < n_used; i++) {
+    nav_meas_subset[i] = &nav_meas[i];
+  }
 
-  /* Carefully ordered */
+  /* Carefully ordered.
+   * Permutes nav measurements so that each one is excluded from one test.
+   */
   for (s8 drop = one_less; drop >= 0; drop--) {
     /* Swaps the last omitted value with the one at index `drop'.
      * On first iteration, does nothing (omits last nav_meas) */
-    navigation_measurement_t temp;
-    temp = nav_meas_copy[drop];
-    nav_meas_copy[drop] = nav_meas_copy[one_less];
-    nav_meas_copy[one_less] = temp;
+    const navigation_measurement_t *temp;
+    temp = nav_meas_subset[drop];
+    nav_meas_subset[drop] = nav_meas_subset[one_less];
+    nav_meas_subset[one_less] = temp;
 
-    s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_copy, omp, H);
+    s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_subset, omp, H);
 
     if (flag == -1) {
       /* Didn't converge. */
@@ -385,9 +390,11 @@ static s8 pvt_repair(double rx_state[],
 
   if (num_passing == 1) {
     /* Repair is possible by omitting bad_sat. Recalculate that solution. */
-    memcpy(nav_meas_copy, nav_meas, n_used * sizeof(navigation_measurement_t));
-    nav_meas_copy[bad_sat] = nav_meas_copy[one_less];
-    s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_copy, omp, H);
+    for (s8 i = 0; i < n_used; i++) {
+      nav_meas_subset[i] = &nav_meas[i];
+    }
+    nav_meas_subset[bad_sat] = nav_meas_subset[one_less];
+    s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_subset, omp, H);
     assert(flag == 0);
     if (removed_prn) {
       *removed_prn = nav_meas[bad_sat].prn;
@@ -423,7 +430,12 @@ static s8 pvt_solve_raim(double rx_state[],
 {
   double omp[n_used];
 
-  s8 flag = pvt_iter(rx_state, n_used, nav_meas, omp, H);
+  const navigation_measurement_t *nav_meas_ptrs[n_used];
+  for (s8 i = 0; i < n_used; i++) {
+    nav_meas_ptrs[i] = &nav_meas[i];
+  }
+
+  s8 flag = pvt_iter(rx_state, n_used, nav_meas_ptrs, omp, H);
 
   if (flag == -1) {
     /* Iteration didn't converge. Don't attempt to repair; too CPU intensive. */
