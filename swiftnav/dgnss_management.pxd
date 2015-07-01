@@ -11,3 +11,4 @@ cimport dgnss_management_c
 
 cdef class AmbiguityState:
   cdef dgnss_management_c.ambiguity_state_t ambiguity_state
+

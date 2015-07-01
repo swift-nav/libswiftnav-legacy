@@ -50,8 +50,6 @@ def dgnss_init(sdiffs,
 
   dgnss_management_c.dgnss_init(num_sdiffs, &sdiffs_[0], &ref_ecef_[0])
 
-
-
 def dgnss_update(sdiffs,
                  reciever_ecef):
   num_sdiffs = len(sdiffs)
@@ -64,8 +62,6 @@ def dgnss_update(sdiffs,
     memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
 
   dgnss_management_c.dgnss_update(num_sdiffs, &sdiffs_[0], &ref_ecef_[0])
-
-
 
 def dgnss_iar_resolved():
   return dgnss_management_c.dgnss_iar_resolved() > 0

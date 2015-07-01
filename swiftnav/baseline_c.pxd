@@ -16,4 +16,5 @@ cdef extern from "libswiftnav/amb_kf.h":
     u8 *prns
     u8 n
   s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3])
+              const ambiguities_t *ambs, u8 *num_used, double b[3])
+

@@ -11,3 +11,4 @@ cimport observation_c
 
 cdef class SingleDiff:
   cdef observation_c.sdiff_t sdiff
+
