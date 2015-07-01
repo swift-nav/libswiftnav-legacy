@@ -25,7 +25,7 @@
 /** Offset between GPS and UTC times in seconds.
  * Update when a new leap second is inserted and be careful about times in the
  * past when this offset was different. */
-#define GPS_MINUS_UTC_SECS 16
+#define GPS_MINUS_UTC_SECS 17
 
 /** Unix timestamp of the GPS epoch 1980-01-06 00:00:00 UTC */
 #define GPS_EPOCH 315964800
