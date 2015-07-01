@@ -448,29 +448,6 @@ static s8 pvt_solve_raim(double rx_state[],
   }
 }
 
-/** Try to calculate a single point gps solution
- *
- * \param n_used number of measurments
- * \param nav_meas array of measurements
- * \param disable_raim passing True will omit raim check/repair functionality
- * \param soln output solution struct
- * \param dops output doppler information
- * \return code return code. non-negative values indicate success
- *
- * possible codes:
- * success:
- *    positive value: refer to pvt_solve_raim
- *    --------
- *  failure:
- *   -1: PDOP is too high to yield a good solution.
- *   -2: Altitude is unreasonable.
- *   -3: Velocity is greater than 1000kts.
- *   -4: RAIM check failed and repair was unsuccessful
- *   -5: RAIM check failed and repair was impossible (not enough measurements)
- *   -6: pvt_iter didn't converge
- *   -7: < 4 measurements
- */
-
 /* Negative return code labels. Used in piksi_firmware. */
 const char *pvt_err_msg[] = {
   "PDOP too high",
@@ -481,6 +458,27 @@ const char *pvt_err_msg[] = {
   "Took too long to converge",
   "Not enough measurements for solution (< 4)",
 };
+
+/** Try to calculate a single point gps solution
+ *
+ * \param n_used number of measurments
+ * \param nav_meas array of measurements
+ * \param disable_raim passing True will omit raim check/repair functionality
+ * \param soln output solution struct
+ * \param dops output doppler information
+ * \return Non-negative values indicate success; refer to pvt_solve_raim.
+ *         For negative values, refer to pvt_err_msg().
+ */
+/*
+ *  failure:
+ *   -1: PDOP is too high to yield a good solution.
+ *   -2: Altitude is unreasonable.
+ *   -3: Velocity is greater than 1000kts.
+ *   -4: RAIM check failed and repair was unsuccessful
+ *   -5: RAIM check failed and repair was impossible (not enough measurements)
+ *   -6: pvt_iter didn't converge
+ *   -7: < 4 measurements
+ */
 
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
