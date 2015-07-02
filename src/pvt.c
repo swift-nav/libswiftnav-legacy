@@ -460,7 +460,9 @@ static s8 pvt_solve_raim(double rx_state[],
   }
 }
 
-/* Negative return code labels. Used in piksi_firmware. */
+/** Error strings for calc_PVT() negative (failure) return codes.
+ *  e.g. `pvt_err_msg[-ret - 1]`
+ *    where `ret` is the return value of calc_PVT(). */
 const char *pvt_err_msg[] = {
   "PDOP too high",
   "Altitude unreasonable",
