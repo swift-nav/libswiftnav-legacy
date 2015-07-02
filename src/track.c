@@ -582,6 +582,7 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
 
   s->log_bw = 10.f*log10f(bw);
   s->I_prev_abs = -1.f;
+  s->Q_prev_abs = -1.f;
   s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
 }
 
@@ -637,20 +638,22 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * \param I The prompt in-phase correlation from the tracking correlators.
  * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
  */
-float cn0_est(cn0_est_state_t *s, float I)
+float cn0_est(cn0_est_state_t *s, float I, float Q)
 {
   float P_n, P_s;
 
   if (s->I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
-    s->I_prev_abs = fabs(I);
+    s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
   } else {
-    P_n = fabsf(I) - s->I_prev_abs;
+    P_n = fabsf(Q) - s->Q_prev_abs;
     P_n = P_n*P_n;
 
     P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
 
     s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
 
     float tmp = s->b * P_n / P_s;
     s->nsr = tmp + s->xn - s->a * s->nsr;

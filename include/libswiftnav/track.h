@@ -105,6 +105,7 @@ typedef struct {
   float b;          /**< IIR filter coeff. */
   float a;          /**< IIR filter coeff. */
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
+  float Q_prev_abs; /**< Abs. value of the previous quadrature correlation. */
   float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
   float xn;         /**< Last pre-filter sample. */
 } cn0_est_state_t;
@@ -206,7 +207,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q);
 
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
-float cn0_est(cn0_est_state_t *s, float I);
+float cn0_est(cn0_est_state_t *s, float I, float Q);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
