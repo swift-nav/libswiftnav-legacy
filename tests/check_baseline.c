@@ -410,6 +410,34 @@ START_TEST(test_baseline_few_sats)
 END_TEST
 
 /* Test raim repair */
+START_TEST(test_lesq_repair8)
+{
+  /* Over constrained with bad DE row. */
+  double N[] = {0,0,0,0,0,0,0,0};
+  u8 num_dds = sizeof(N)/sizeof(N[0]);
+
+  double DE[] = {1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 1,
+                 1, 1, 1,
+                 1, 1, 1,
+                 1, 1, 1,
+                 1, 1, 1,
+                 22, 222, 2222};
+  double dd_obs[] = {1, 1, 1, 3, 3,3,3,3};
+
+  double b[3];
+  u8 bad_index;
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, 0, 0, &bad_index);
+
+  fail_unless(ret == 1,
+      "Expecting 1 for repaired solution, got: %i.\n", ret);
+  fail_unless(bad_index == 7,
+      "Expecting repaired solution (dropping index 4 of DE), got: %i.\n", bad_index);
+}
+END_TEST
+
+/* Test raim repair */
 START_TEST(test_lesq_repair1)
 {
   /* Over constrained with bad DE row. */
@@ -493,6 +521,7 @@ Suite* baseline_test_suite(void)
   tcase_add_test(tc_core, test_lesq_solution5);
   tcase_add_test(tc_core, test_lesq_repair1);
   tcase_add_test(tc_core, test_lesq_repair2);
+  tcase_add_test(tc_core, test_lesq_repair8);
   tcase_add_test(tc_core, test_lesq_repair_disabled);
 
   suite_add_tcase(s, tc_core);

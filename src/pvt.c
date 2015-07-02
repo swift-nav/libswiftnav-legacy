@@ -379,7 +379,7 @@ static s8 pvt_repair(double rx_state[],
       /* Didn't converge. */
       // TODO(dsk) this may be unnecessary
       return -1;
-      continue;
+      //continue;
     }
 
     if (residual_test(n_used-1, omp, rx_state, 0)) {

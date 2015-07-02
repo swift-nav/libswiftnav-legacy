@@ -1,3 +1,4 @@
+#include <stdio.h>
 
 #include <check.h>
 
@@ -294,6 +295,37 @@ START_TEST(test_kf_update)
 }
 END_TEST
 
+void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
+                             const u8 *new_prns, double *rebase_mtx);
+
+START_TEST(test_rebase_state)
+{
+  int num_sats = 6;
+  int dim = num_sats - 1;
+
+  double m1[dim*dim];
+  double m2[dim*dim];
+
+  double m3[dim*dim];
+  double m4[dim*dim];
+  double id[dim*dim];
+
+  u8 prns1[] = {2,1,3,4,5,6};
+  u8 prns2[] = {5,1,2,3,4,6};
+
+  assign_state_rebase_mtx(num_sats, prns1, prns2, m1);
+  assign_state_rebase_mtx(num_sats, prns2, prns1, m2);
+
+  matrix_multiply(dim, dim, dim, m1, m2, m3);
+  matrix_multiply(dim, dim, dim, m2, m1, m4);
+
+  matrix_eye(dim, id);
+
+  fail_unless(arr_within_epsilon(dim*dim, m3, id));
+  fail_unless(arr_within_epsilon(dim*dim, m4, id));
+}
+END_TEST
+
 Suite* amb_kf_test_suite(void)
 {
   Suite *s = suite_create("Ambiguity Kalman Filter");
@@ -306,6 +338,7 @@ Suite* amb_kf_test_suite(void)
   tcase_add_test(tc_core, test_outlier_dims);
   tcase_add_test(tc_core, test_kf_update_noop);
   tcase_add_test(tc_core, test_kf_update);
+  tcase_add_test(tc_core, test_rebase_state);
   suite_add_tcase(s, tc_core);
 
   return s;
