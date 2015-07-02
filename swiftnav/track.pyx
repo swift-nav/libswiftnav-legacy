@@ -690,14 +690,16 @@ cdef class CN0Estimator:
   def __cinit__(self, bw, cn0_0, cutoff_freq, loop_freq):
     track_c.cn0_est_init(&self.s, bw, cn0_0, cutoff_freq, loop_freq)
 
-  def update(self, I):
+  def update(self, I, Q):
     """
     Wraps the function :libswiftnav:`cn0_est`.
 
     Parameters
     ----------
     I : float
-      The prompt in-phase correlation from the tracking correlators.
+      The prompt in-phase correlation from the tracking correlator.
+    Q : float
+      The prompt quadrature correlation from the tracking correlator.
 
     Returns
     -------
@@ -705,5 +707,5 @@ cdef class CN0Estimator:
       The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
 
     """
-    return track_c.cn0_est(&self.s, I)
+    return track_c.cn0_est(&self.s, I, Q)
 

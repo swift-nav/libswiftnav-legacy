@@ -119,7 +119,7 @@ cdef extern from "libswiftnav/track.h":
 
   void cn0_est_init(cn0_est_state_t* s, float bw, float cn0_0,
                     float cutoff_freq, float loop_freq)
-  float cn0_est(cn0_est_state_t* s, float I)
+  float cn0_est(cn0_est_state_t* s, float I, float Q)
 
 
 
