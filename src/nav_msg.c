@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "logging.h"
@@ -19,20 +20,17 @@
 #include "bits.h"
 #include "nav_msg.h"
 
-#define NAV_MSG_BIT_PHASE_THRES 10
+/* Approx number of nav bit edges needed to accept bit sync for a
+   strong signal (sync will take longer on a weak signal) */
+#define BITSYNC_THRES 22
 
 void nav_msg_init(nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
-  n->subframe_bit_index = 0;
-  n->bit_phase = 0;
-  n->bit_phase_ref = 0;
-  n->bit_phase_count = 0;
-  memset(n->hist, 0, sizeof(n->hist));
-  n->nav_bit_integrate = 0;
-  n->subframe_start_index = 0;
-  memset(n->subframe_bits, 0, sizeof(n->subframe_bits));
+  memset(n, 0, sizeof(nav_msg_t));
+  n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
+  n->bit_polarity = BIT_POLARITY_UNKNOWN;
 }
 
 static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
@@ -74,39 +72,79 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
-/* Check for a sign change in the correlation and add to the histogram.
- * After NAV_MSG_BIT_PHASE_THRES sign changes, the histogram is evaluated
- * and bit_phase_ref is updated.
+/* TODO: Bit synchronization that can operate with multi-ms integration times
+   e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
  */
-static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
 {
-  float dot = (float)corr_prompt_real * n->prev_corr;
-  n->prev_corr = corr_prompt_real;
+  /* On 20th call:
+     bit_phase = 0
+     bitsync_count = 20
+     bit_integrate holds sum of first 20 correlations
+     bitsync_histogram is all zeros
+     bitsync_prev_corr[0]=0, others hold previous correlations ([1] = first)
+     In this function:
+       bitsync_prev_corr[0] <= corr_prompt_real (20th correlation)
+       bitsync_histogram[0] <= sum of corrs [0..19]
+     On 21st call:
+     bit_phase = 1
+     bit_integrate holds sum of corrs [0..20]
+       bit_integrate -= bitsync_prev_corr[1]
+         bit_integrate now holds sum of corrs [1..20]
+       bitsync_histogram[1] <= bit_integrate
+     ...
+     On 39th call:
+     bit_phase = 19
+00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
+____bit_integrate is sum of these after 20th call__________
+                                                         __________________after 39th call__________________________
 
-  if (dot > 0)
-    return;
+       after subtraction, bit_integrate holds sum of corrs [19..38]
+       bitsync_histogram[19] <= bit_integrate. Now fully populated.
+       Suppose first correlation happened to be first ms of a nav bit
+        then max_i = bit_phase_ref = 0.
+  */
 
-  /* Sign change - Add to histogram */
-  n->hist[n->bit_phase] += -dot;
-
-  n->bit_phase_count++;
-  if (n->bit_phase_count < NAV_MSG_BIT_PHASE_THRES)
-    return;
-
-  /* Find the max and run with it */
-  float max = 0;
-  u8 max_index = 0;
-  for (u8 i = 0; i < 20; i++) {
-    if (n->hist[i] > max) {
-      max = n->hist[i];
-      max_index = i;
-    }
-    n->hist[i] = 0;
+  /* Maintain a rolling sum of the 20 most recent correlations in
+     bit_integrate */
+  n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
+  n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
+  if (n->bitsync_count < 20) {
+    n->bitsync_count++;
+    return;  /* That rolling accumulator is not valid yet */
   }
 
-  n->bit_phase_ref = (max_index + 20 - ms) % 20;
+  /* Add the accumulator to the histogram for the relevant phase */
+  n->bitsync_histogram[(n->bit_phase) % 20] += abs(n->bit_integrate);
 
-  n->bit_phase_count = 0;
+  if (n->bit_phase == 20 - 1) {
+    /* Histogram is valid.  Find the two highest values. */
+    u32 max = 0, next_best = 0;
+    u32 max_prev_corr = 0;
+    u8 max_i = 0;
+    for (u8 i = 0; i < 20; i++) {
+      u32 v = n->bitsync_histogram[i];
+      if (v > max) {
+        next_best = max;
+        max = v;
+        max_i = i;
+      } else if (v > next_best) {
+        next_best = v;
+      }
+      /* Also find the highest value from the last 20 correlations.
+         We'll use this to normalize the threshold score. */
+      v = abs(n->bitsync_prev_corr[i]);
+      if (v > max_prev_corr)
+        max_prev_corr = v;
+    }
+    /* Form score from difference between the best and the second-best */
+    if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
+      /* We are synchronized! */
+      n->bit_phase_ref = max_i;
+      /* TODO: Subtract necessary older prev_corrs from bit_integrate to
+         ensure it will be correct for the upcoming first dump */
+    }
+  }
 }
 
 /** Navigation message decoding update.
@@ -127,22 +165,25 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   s32 TOW_ms = TOW_INVALID;
 
-  /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
-   * offsets corresponds to the nav bit edges?) */
   n->bit_phase += ms;
   n->bit_phase %= 20;
-
-  update_bit_sync(n, corr_prompt_real, ms);
-
-  /* We have bit phase lock. */
-  n->nav_bit_integrate += corr_prompt_real;
+  n->bit_integrate += corr_prompt_real;
+  /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
+   * offsets corresponds to the nav bit edges?) */
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
+    update_bit_sync(n, corr_prompt_real);
 
   if (n->bit_phase != n->bit_phase_ref) {
+    /* Either we don't have bit phase lock, or this particular
+       integration is not aligned to a nav bit boundary. */
     return TOW_INVALID;
   }
 
   /* Dump the nav bit, i.e. determine the sign of the correlation over the
    * nav bit period. */
+  bool bit_val = n->bit_integrate > 0;
+  /* Zero the accumulator for the next nav bit. */
+  n->bit_integrate = 0;
 
   /* The following is offset by 27 to allow the handover word to be
    * overwritten.  This is not a problem as it's handled below and
@@ -157,12 +198,10 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
      * being used.
      */
     n->overrun = true;
-    n->nav_bit_integrate = 0;
     return -2;
   }
 
-  /* Is bit 1? */
-  if (n->nav_bit_integrate > 0) {
+  if (bit_val) {
     n->subframe_bits[n->subframe_bit_index >> 5] |= \
       1 << (31 - (n->subframe_bit_index & 0x1F));
   } else {
@@ -170,9 +209,6 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     n->subframe_bits[n->subframe_bit_index >> 5] &= \
       ~(1 << (31 - (n->subframe_bit_index & 0x1F)));
   }
-
-  /* Zero the integrator for the next nav bit. */
-  n->nav_bit_integrate = 0;
 
   n->subframe_bit_index++;
   if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
@@ -280,32 +316,40 @@ bool subframe_ready(nav_msg_t *n) {
 s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   // Check parity and parse out the ephemeris from the most recently received subframe
 
-  // First things first - check the parity, and invert bits if necessary.
-  // process the data, skipping the first word, TLM, and starting with HOW
-  /* Complain if buffer overrun */
-  if (n->overrun) {
-    log_warn("nav_msg subframe buffer overrun!\n");
-    n->overrun = false;
-  }
-
-  /* TODO: Check if inverted has changed and detect half cycle slip. */
-  if (n->inverted != (n->subframe_start_index < 0)) {
-    log_info("Nav phase flip\n");
-  }
-  n->inverted = (n->subframe_start_index < 0);
-
   if (!e) {
     log_error("process_subframe: CALLED WITH e = NULL!\n");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
   }
+
+  // First things first - check the parity, and invert bits if necessary.
+  // process the data, skipping the first word, TLM, and starting with HOW
+
+  /* Detect half cycle slip. */
+  s8 prev_bit_polarity = n->bit_polarity;
+  n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL :
+    BIT_POLARITY_INVERTED;
+  if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
+      && (prev_bit_polarity != n->bit_polarity)) {
+    log_error("PRN %02d Nav phase flip - half cycle slip detected, "
+              "but not corrected\n", e->prn+1);
+    /* TODO: declare phase ambiguity to IAR */
+  }
+
+  /* Complain if buffer overrun */
+  if (n->overrun) {
+    log_error("PRN %02d nav_msg subframe buffer overrun!\n", e->prn+1);
+    n->overrun = false;
+  }
+
+  /* Extract word 2, and the last two parity bits of word 1 */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-      log_info("subframe parity mismatch (word 2)\n");
-      n->subframe_start_index = 0;  // Mark the subframe as processed
-      n->next_subframe_id = 1;      // Make sure we start again next time
-      return -2;
+    log_info("PRN %02d subframe parity mismatch (word 2)\n", e->prn+1);
+    n->subframe_start_index = 0;  // Mark the subframe as processed
+    n->next_subframe_id = 1;      // Make sure we start again next time
+    return -2;
   }
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
@@ -316,7 +360,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        log_info("subframe parity mismatch (word %d)\n", w+3);
+        log_info("PRN %02d subframe parity mismatch (word %d)\n", e->prn+1, w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
         return -3;
