@@ -593,12 +593,12 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * Signal-to-Noise Ratio (SNR). To reduce memory utilisation a simple IIR
  * low-pass filter is used instead.
  *
- * The noise and signal powers estimates for the \f$k\f$-th observation,
+ * The noise and signal power estimates for the \f$k\f$-th observation,
  * \f$\hat P_{N, k}\f$ and \f$\hat P_{S, k}\f$, are calculated as follows:
  *
  * \f[
- *    \hat P_{N, k} = \left( \left| I_k \right| -
- *                    \left| I_{k-1} \right| \right)^2
+ *    \hat P_{N, k} = \left( \left| Q_k \right| -
+ *                    \left| Q_{k-1} \right| \right)^2
  * \f]
  * \f[
  *    \hat P_{S, k} = \frac{1}{2} \left( I_k^2 + I_{k-1}^2 \right)
@@ -635,7 +635,8 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  *       Inside GNSS, Jan / Feb 2010.
  *
  * \param s The estimator state struct to initialise.
- * \param I The prompt in-phase correlation from the tracking correlators.
+ * \param I The prompt in-phase correlation from the tracking correlator.
+ * \param Q The prompt quadrature correlation from the tracking correlator.
  * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
  */
 float cn0_est(cn0_est_state_t *s, float I, float Q)
