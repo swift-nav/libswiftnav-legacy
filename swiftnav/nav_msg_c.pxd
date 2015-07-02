@@ -13,6 +13,8 @@ from libcpp cimport bool
 
 cdef extern from "libswiftnav/nav_msg.h":
   ctypedef struct nav_msg_t:
+    u8 bit_phase
+    s8 bit_phase_ref
     pass
 
   void nav_msg_init(nav_msg_t *n)

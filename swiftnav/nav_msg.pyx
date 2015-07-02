@@ -11,9 +11,13 @@ cdef class NavMsg:
   def __cinit__(self):
     nav_msg_c.nav_msg_init(&self.state)
     self.eph_valid = False
+    self.bit_phase = 0
+    self.bit_phase_ref = -1
 
   def update(self, corr_prompt_real, ms):
     tow = nav_msg_c.nav_msg_update(&self.state, corr_prompt_real, ms)
+    self.bit_phase = self.state.bit_phase
+    self.bit_phase_ref = self.state.bit_phase_ref
     if nav_msg_c.subframe_ready(&self.state):
       #self.eph.valid = 0
       nav_msg_c.process_subframe(&self.state, &self.eph)
