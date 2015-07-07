@@ -739,3 +739,15 @@ cdef class LockDetector:
   def update(self, P, coherent_ms):
     track_c.lock_detect_update(&self.ld, P.real, P.imag, coherent_ms)
     return (self.ld.outo, self.ld.outp)
+
+
+cdef class AliasDetector:
+  cdef track_c.alias_detect_t ad
+  def __cinit__(self, acc_len, time_diff):
+    track_c.alias_detect_init(&self.ad, acc_len, time_diff)
+
+  def first(self, P):
+    track_c.alias_detect_first(&self.ad, P.real, P.imag)
+
+  def second(self, P):
+    return track_c.alias_detect_second(&self.ad, P.real, P.imag)

@@ -73,6 +73,15 @@ cdef extern from "libswiftnav/track.h":
     bool outo
     bool outp
 
+  ctypedef struct alias_detect_t:
+    u8 acc_len
+    float dt
+    float dot
+    float cross
+    u8 fl_count
+    float first_I
+    float first_Q
+
   ctypedef struct correlation_t:
     float I
     float Q
@@ -132,4 +141,6 @@ cdef extern from "libswiftnav/track.h":
   void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
   void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 
-
+  void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff)
+  void alias_detect_first(alias_detect_t *a, float I, float Q)
+  float alias_detect_second(alias_detect_t *a, float I, float Q)
