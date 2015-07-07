@@ -709,3 +709,33 @@ cdef class CN0Estimator:
     """
     return track_c.cn0_est(&self.s, I, Q)
 
+cdef class LockDetector:
+  """
+  Wraps the `libswiftnav` PLL lock detector implementation.
+
+  The detector state, :libswiftnav:`lock_detect_t` is maintained by
+  the class instance.
+
+  Parameters
+  ----------
+  k1 : float
+    Low-pass filter coefficient
+  k2 : float
+    I arm divisor
+  lp : u16
+    Pessimistic count threshold
+  lo : u16
+    Optimistic count threshold
+  """
+
+  cdef track_c.lock_detect_t ld
+
+  def __cinit__(self, k1, k2, lp, lo):
+    track_c.lock_detect_init(&self.ld, k1, k2, lp, lo)
+
+  def reinit(self, k1, k2, lp, lo):
+    track_c.lock_detect_reinit(&self.ld, k1, k2, lp, lo)
+
+  def update(self, P, coherent_ms):
+    track_c.lock_detect_update(&self.ld, P.real, P.imag, coherent_ms)
+    return (self.ld.outo, self.ld.outp)

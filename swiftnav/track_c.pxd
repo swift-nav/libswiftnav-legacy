@@ -10,6 +10,7 @@
 from common cimport *
 from ephemeris_c cimport ephemeris_t
 from gpstime_c cimport gps_time_t
+from libcpp cimport bool
 
 cdef extern from "libswiftnav/track.h":
   ctypedef struct channel_measurement_t:
@@ -66,6 +67,12 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct cn0_est_state_t:
     pass
 
+  ctypedef struct lock_detect_t:
+    u16 lo, lp
+    u16 pcount1, pcount2
+    bool outo
+    bool outp
+
   ctypedef struct correlation_t:
     float I
     float Q
@@ -121,5 +128,8 @@ cdef extern from "libswiftnav/track.h":
                     float cutoff_freq, float loop_freq)
   float cn0_est(cn0_est_state_t* s, float I, float Q)
 
+  void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
+  void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
+  void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 
 
