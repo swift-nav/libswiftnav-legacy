@@ -242,6 +242,13 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -1;
   }
 
+
+  assert(num_dds_u8 < MAX_CHANNELS);
+
+  for(int i = 0; i < num_dds_u8 * 3; i++) {
+    assert(isfinite(DE[i]));
+  }
+
   integer num_dds = num_dds_u8;
   double DET[num_dds * 3];
   matrix_transpose(num_dds, 3, DE, DET);
@@ -296,6 +303,8 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -2;
   }
 
+  assert(num_dds == num_dds_u8);
+
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
@@ -330,6 +339,9 @@ static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
 static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
                   const double *N, const double *DE, double b[3], double *resid)
 {
+  assert(num_dds > 3);
+  assert(num_dds < MAX_CHANNELS);
+
   u8 new_dds = num_dds - 1;
   double new_obs[new_dds];
   double new_N[new_dds];
@@ -350,6 +362,8 @@ static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
  */
 static bool chi_test(u8 num_dds, double *residuals, double *residual)
 {
+  assert(num_dds < MAX_CHANNELS);
+
   double sigma = DEFAULT_PHASE_VAR_KF;
   /* 5.5 seems adequate for float/fixed baseline residuals. */
 #define BASELINE_RESIDUAL_THRESHOLD 5.5
@@ -390,6 +404,9 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   double residuals[num_dds];
   double residual;
 
+  assert(num_dds < MAX_CHANNELS);
+  assert(num_dds_u8 < MAX_CHANNELS);
+
   s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
 
   if (okay != 0) {
@@ -428,10 +445,11 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   u8 new_dds = num_dds - 1;
 
   for (u8 i = 0; i < num_dds; i++) {
-    lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals);
-    if (chi_test(new_dds, residuals, &residual)) {
-      num_passing++;
-      bad_sat = i;
+    if (0 == lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals)) {
+      if (chi_test(new_dds, residuals, &residual)) {
+        num_passing++;
+        bad_sat = i;
+      }
     }
   }
 
@@ -439,7 +457,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     /* bad_sat holds index of bad dd
      * Return solution without bad_sat. */
     /* Recalculate this solution. */
-    lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
+    (void)lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
     if (removed_obs) {
       *removed_obs = bad_sat;
     }
@@ -540,6 +558,8 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
     /* For a position solution, we need at least 4 sats. */
     return -1;
   }
+
+  assert(num_sdiffs <= MAX_CHANNELS);
 
   double dd_meas[2 * num_ambs];
   sdiff_t matched_sdiffs[num_ambs+1];
