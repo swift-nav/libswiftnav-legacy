@@ -430,6 +430,8 @@ static s8 pvt_solve_raim(double rx_state[],
 {
   double omp[n_used];
 
+  assert(n_used < MAX_CHANNELS);
+
   const navigation_measurement_t *nav_meas_ptrs[n_used];
   for (s8 i = 0; i < n_used; i++) {
     nav_meas_ptrs[i] = &nav_meas[i];

@@ -390,6 +390,9 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   double residuals[num_dds];
   double residual;
 
+  assert(num_dds < MAX_CHANNELS);
+  assert(num_dds_u8 < MAX_CHANNELS);
+
   s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
 
   if (okay != 0) {
