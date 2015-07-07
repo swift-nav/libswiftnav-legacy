@@ -224,7 +224,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q);
 
 void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
-void lock_detect_update(lock_detect_t *l, float I, float Q);
+void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
 
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
