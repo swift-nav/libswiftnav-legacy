@@ -561,6 +561,81 @@ float alias_detect_second(alias_detect_t *a, float I, float Q)
   return 0;
 }
 
+/** Initialise the lock detector state.
+ * \param k1 LPF coefficient.
+ * \param k2 I Scale factor.
+ * \param lp Pessimistic count threshold.
+ * \param lo Optimistic count threshold
+ */
+void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
+{
+  memset(l, 0, sizeof(*l)); /* sets l->lpf[iq].y = 0 */
+  lock_detect_reinit(l, k1, k2, lp, lo);
+}
+
+/** Update the lock detector parameters, preserving internal state.
+ * \param k1 LPF coefficient.
+ * \param k2 I Scale factor.
+ * \param lp Pessimistic count threshold.
+ * \param lo Optimistic count threshold
+ */
+void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
+{
+  /* Adjust LPF coefficient */
+  l->lpfi.k1 = k1;
+  l->lpfq.k1 = k1;
+
+  l->k2 = k2;
+  l->lp = lp;
+  l->lo = lo;
+}
+
+static float lock_detect_lpf_update(struct loop_detect_lpf *lpf, float x)
+{
+  lpf->y += lpf->k1 * (x - lpf->y);
+  return lpf->y;
+}
+
+/** Update the lock detector with new prompt correlations.
+ * \param I In-phase prompt correlation.
+ * \param Q Quadrature prompt correlation.
+ * \param DT Integration time
+ *
+ * References:
+ *  -# Understanding GPS: Principles and Applications, 2nd Edition
+ *     Section 5.11.2, pp 233-235
+ *     Elliott D. Kaplan. Artech House, 1996.
+ */
+void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
+{
+  float a, b;
+  /* Calculated low-pass filtered prompt correlations */
+  a = lock_detect_lpf_update(&l->lpfi, fabs(I) / DT) / l->k2;
+  b = lock_detect_lpf_update(&l->lpfq, fabs(Q) / DT);
+
+  if (a > b) {
+    /* In-phase > quadrature, looks like we're locked */
+    l->outo = true;
+    l->pcount2 = 0;
+    /* Wait before raising the pessimistic indicator */
+    if (l->pcount1 > l->lp) {
+      l->outp = true;
+    } else {
+      l->pcount1++;
+    }
+  } else {
+    /* In-phase < quadrature, looks like we're not locked */
+    l->outp = false;
+    l->pcount1 = 0;
+    /* Wait before lowering the optimistic indicator */
+    if (l->pcount2 > l->lo) {
+      l->outo = false;
+    } else {
+      l->pcount2++;
+    }
+  }
+}
+
 /** \} */
 
 /** Initialise the \f$ C / N_0 \f$ estimator state.
