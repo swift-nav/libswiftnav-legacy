@@ -6,6 +6,7 @@
 #include <linear_algebra.h>
 #include <constants.h>
 #include <baseline.h>
+#include <cblas.h>
 
 #include "check_utils.h"
 
