@@ -11,6 +11,7 @@
  */
 
 #include <string.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "linear_algebra.h"
@@ -54,6 +55,7 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
   sds[n].carrier_phase = m_a->carrier_phase - m_b->carrier_phase;
   sds[n].doppler = m_a->raw_doppler - m_b->raw_doppler;
   sds[n].snr = MIN(m_a->snr, m_b->snr);
+  sds[n].lock_counter = m_a->lock_counter + m_b->lock_counter;
 
   /* NOTE: We use the position and velocity from B (this is required by
    * make_propagated_sdiffs(). */
@@ -218,6 +220,45 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   }
 
   return n;
+}
+
+/* Checks to see if any satellites have had their lock counter values have
+ * changed.
+ *
+ * If the lock counter changes it indicates that the satellite should be
+ * reinitialized in the filter. This function checks the current lock counter
+ * values in a set of single difference observations with a stored state
+ * (`lock_counters`).
+ *
+ * It outputs a the number of satellites which have had their lock counter
+ * change and a list of the corresponding PRNs.
+ *
+ * The lock counter values are then updated to reflect their changed values.
+ *
+ * \param n_sds        Number of single difference observations passed in
+ * \param sds          Array of single difference observations
+ * \param lock_counter Array of lock counter values, indexed by PRN
+ * \param sats_to_drop Output array of PRNs for which the lock counter value
+ *                     has changed
+ * \return Number of sats with changed lock counter
+ */
+u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
+                       u8 *sats_to_drop)
+{
+  assert(sds != NULL);
+  assert(lock_counters != NULL);
+  assert(sats_to_drop != NULL);
+
+  u8 num_sats_to_drop = 0;
+  for (u8 i = 0; i<n_sds; i++) {
+    u8 prn = sds[i].prn;
+    u16 new_count = sds[i].lock_counter;
+    if (new_count != lock_counters[prn]) {
+      sats_to_drop[num_sats_to_drop++] = prn;
+      lock_counters[prn] = new_count;
+    }
+  }
+  return num_sats_to_drop;
 }
 
 /* Constructs the double differenced measurements and sdiffs needed for IAR.
