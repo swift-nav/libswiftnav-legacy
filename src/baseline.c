@@ -242,7 +242,12 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -1;
   }
 
+
   assert(num_dds_u8 < MAX_CHANNELS);
+
+  for(int i = 0; i < num_dds_u8 * 3; i++) {
+    assert(isfinite(DE[i]));
+  }
 
   integer num_dds = num_dds_u8;
   double DET[num_dds * 3];
