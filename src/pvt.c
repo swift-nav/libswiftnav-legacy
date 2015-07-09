@@ -11,12 +11,14 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+
 #include <assert.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "constants.h"
+#include <logging.h>
 #include "linear_algebra.h"
 #include "coord_system.h"
 #include "track.h"
@@ -430,7 +432,12 @@ static s8 pvt_solve_raim(double rx_state[],
 {
   double omp[n_used];
 
-  assert(n_used < MAX_CHANNELS);
+  if (n_used > MAX_CHANNELS) {
+    log_error("n_used exceeds MAX_CHANNELS: %d\n", n_used);
+    /* Fail */
+    assert(false);
+  }
+  assert(n_used <= MAX_CHANNELS);
 
   const navigation_measurement_t *nav_meas_ptrs[n_used];
   for (s8 i = 0; i < n_used; i++) {
