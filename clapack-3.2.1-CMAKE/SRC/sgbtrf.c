@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -34,10 +35,19 @@ static real c_b31 = 1.f;
 	    integer *, real *, integer *, real *, integer *);
     real temp;
     extern /* Subroutine */ int sscal_(integer *, real *, real *, integer *), 
-	    sgemm_(char *, char *, integer *, integer *, integer *, real *, 
-	    real *, integer *, real *, integer *, real *, real *, integer *);
-    real work13[4160]	/* was [65][64] */, work31[4160]	/* was [65][
-	    64] */;
+      sgemm_(char *, char *, integer *, integer *, integer *, real *, 
+      real *, integer *, real *, integer *, real *, real *, integer *);
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+  	  real work13[1]	/* was [65][64] */, work31[1]	/* was [65][
+  	    64] */;
+  	  /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "sgbtrf_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      real work13[4160]	/* was [65][64] */, work31[4160]	/* was [65][
+  	    64] */;
+    #endif
     extern /* Subroutine */ int scopy_(integer *, real *, integer *, real *, 
 	    integer *), sswap_(integer *, real *, integer *, real *, integer *
 ), strsm_(char *, char *, char *, char *, integer *, integer *, 

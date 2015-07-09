@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -38,8 +39,17 @@ static integer c__65 = 65;
 	    integer *, integer *, doublecomplex *, doublecomplex *, integer *, 
 	     doublecomplex *, integer *, doublecomplex *, doublecomplex *, 
 	    integer *);
-    doublecomplex work13[4160]	/* was [65][64] */, work31[4160]	/* 
-	    was [65][64] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      doublecomplex work13[1]	/* was [65][64] */, work31[1]	/* 
+        was [65][64] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "zgbtrf_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      doublecomplex work13[4160]	/* was [65][64] */, work31[4160]	/* 
+        was [65][64] */;
+    #endif
     extern /* Subroutine */ int zgeru_(integer *, integer *, doublecomplex *, 
 	    doublecomplex *, integer *, doublecomplex *, integer *, 
 	    doublecomplex *, integer *), zcopy_(integer *, doublecomplex *, 

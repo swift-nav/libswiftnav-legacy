@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -32,7 +33,15 @@ static doublereal c_b26 = 1.;
 
     /* Local variables */
     integer i__, j;
-    doublereal t[4160]	/* was [65][64] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      doublereal t[1] /* was [65][64] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "dgehrd_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      doublereal t[4160]	/* was [65][64] */;
+    #endif
     integer ib;
     doublereal ei;
     integer nb, nh, nx, iws;

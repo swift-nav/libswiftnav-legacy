@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -41,8 +42,17 @@ static integer c__65 = 65;
 	    complex *, integer *), ccopy_(integer *, complex *, integer *, 
 	    complex *, integer *), cswap_(integer *, complex *, integer *, 
 	    complex *, integer *);
-    complex work13[4160]	/* was [65][64] */, work31[4160]	/* 
-	    was [65][64] */;
+	  #ifdef LAPACK_DISABLE_MEMORY_HOGS
+		  complex work13[1]	/* was [65][64] */, work31[1]	/* 
+		    was [65][64] */;
+	    /** This function uses too much memory, so we stopped allocating the memory
+	     * above and assert false here. */
+	    assert(0 && "cgbtrf_ was called. This function allocates too much"
+	                " memory and has been disabled.");
+	  #else
+	    complex work13[4160]	/* was [65][64] */, work31[4160]	/* 
+		    was [65][64] */;
+	  #endif
     extern /* Subroutine */ int ctrsm_(char *, char *, char *, char *, 
 	    integer *, integer *, complex *, complex *, integer *, complex *, 
 	    integer *), cgbtf2_(integer *, 
@@ -150,6 +160,7 @@ static integer c__65 = 65;
 /*     .. Intrinsic Functions .. */
 /*     .. */
 /*     .. Executable Statements .. */
+
 
 /*     KV is the number of superdiagonals in the factor U, allowing for */
 /*     fill-in */

@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -41,8 +42,17 @@ static doublereal c_b31 = 1.;
 	    integer *, doublereal *, integer *, doublereal *, integer *), 
 	    dswap_(integer *, doublereal *, integer *, doublereal *, integer *
 );
-    doublereal work13[4160]	/* was [65][64] */, work31[4160]	/* 
-	    was [65][64] */;
+	  #ifdef LAPACK_DISABLE_MEMORY_HOGS
+		  doublereal work13[1]	/* was [65][64] */, work31[1]	/* 
+		   was [65][64] */;
+		    /** This function uses too much memory, so we stopped allocating the memory
+	     * above and assert false here. */
+	    assert(0 && "dgbtrf_ was called. This function allocates too much"
+	                " memory and has been disabled.");
+    #else
+	    doublereal work13[4160]	/* was [65][64] */, work31[4160]	/* 
+		   was [65][64] */;
+    #endif
     extern /* Subroutine */ int dtrsm_(char *, char *, char *, char *, 
 	    integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, integer *), dgbtf2_(
