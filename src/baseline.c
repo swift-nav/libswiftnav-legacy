@@ -357,24 +357,25 @@ static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
 /** Approximate chi square test
  * Scales least squares residuals by estimated variance, compares against threshold.
  *
- * \param num_dds length of residuals
- * \param residuals residual vector calculated by lesq_solution_float
- * \param residual if not null, used to output double value of scaled residual
+ * \param threshold The test threshold.
+ *                  Value 5.5 recommended for float/fixed baseline residuals.
+ * \param num_dds Length of residuals.
+ * \param residuals Residual vector calculated by lesq_solution_float.
+ * \param residual If not null, used to output double value of scaled residual.
  *
  * \return true if norm is below threshold.
  */
-static bool chi_test(u8 num_dds, const double *residuals, double *residual)
+static bool chi_test(double threshold, u8 num_dds,
+                     const double *residuals, double *residual)
 {
   assert(num_dds < MAX_CHANNELS);
 
   double sigma = DEFAULT_PHASE_VAR_KF;
-  /* 5.5 seems adequate for float/fixed baseline residuals. */
-#define BASELINE_RESIDUAL_THRESHOLD 5.5
   double norm = vector_norm(num_dds, residuals) / sqrt(sigma);
   if (residual) {
     *residual = norm;
   }
-  return norm < BASELINE_RESIDUAL_THRESHOLD;
+  return norm < threshold;
 }
 
 /* See lesq_solution_float for argument documentation
@@ -398,10 +399,8 @@ static bool chi_test(u8 num_dds, const double *residuals, double *residual)
  */
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
                    const double *N, const double *DE, double b[3],
-                   bool disable_raim,
-                   u8 *n_used,
-                   double *ret_residuals,
-                   u8 *removed_obs)
+                   bool disable_raim, double raim_threshold,
+                   u8 *n_used, double *ret_residuals, u8 *removed_obs)
 {
   integer num_dds = num_dds_u8;
   double residuals[num_dds];
@@ -417,7 +416,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     return okay;
   }
 
-  if (disable_raim || chi_test(num_dds, residuals, &residual)) {
+  if (disable_raim || chi_test(raim_threshold, num_dds, residuals, &residual)) {
     /* Solution using all sats ok. */
     if (ret_residuals) {
       memcpy(ret_residuals, residuals, num_dds * sizeof(double));
@@ -449,7 +448,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
 
   for (u8 i = 0; i < num_dds; i++) {
     if (0 == lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals)) {
-      if (chi_test(new_dds, residuals, &residual)) {
+      if (chi_test(raim_threshold, new_dds, residuals, &residual)) {
         num_passing++;
         bad_sat = i;
       }
@@ -507,7 +506,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
 s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
          const double ref_ecef[3], double b[3],
-         bool disable_raim)
+         bool disable_raim, double raim_threshold)
 {
   DEBUG_ENTRY();
 
@@ -515,7 +514,8 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b, disable_raim, 0, 0, 0);
+  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b,
+                            disable_raim, raim_threshold, 0, 0, 0);
   DEBUG_EXIT();
   return code;
 }
@@ -545,7 +545,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const u8 *amb_prns, const double *ambs,
              u8 *num_used, double b[3],
-             bool disable_raim)
+             bool disable_raim, double raim_threshold)
 {
   assert(sdiffs != NULL);
   assert(ref_ecef != NULL);
@@ -584,7 +584,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   *num_used = num_ambs + 1;
 
-  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, disable_raim, 0, 0, 0);
+  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, disable_raim, raim_threshold, 0, 0, 0);
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -599,6 +599,8 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
  * \param num_used   Pointer to where to store number of satellites used in the
  *                   baseline solution
  * \param b          The output baseline in meters
+ * \param disable_raim True disables raim check/repair
+ * \param raim_threshold Threshold for raim checks. Value 5.5 has been extensively tested.
  * \return            0 on success,
  *                   -1 if there were insufficient observations to calculate the
  *                      baseline (the solution was under-constrained),
@@ -606,11 +608,11 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
  */
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
             const ambiguities_t *ambs, u8 *num_used, double b[3],
-            bool disable_raim)
+            bool disable_raim, double raim_threshold)
 {
   return baseline_(num_sdiffs, sdiffs, ref_ecef,
                    ambs->n, ambs->prns, ambs->ambs, num_used, b,
-                   disable_raim);
+                   disable_raim, raim_threshold);
 }
 
 /* Initialize a set of ambiguities.
