@@ -28,6 +28,9 @@ typedef struct {
 
 /** \} */
 
+/* Default threshold value for lesq baseline raim check. */
+#define DEFAULT_RAIM_THRESHOLD 5.5
+
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs);
 
@@ -40,18 +43,20 @@ s8 lesq_solution_float(u8 num_dds, const double *dd_obs, const double *N,
 
 s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3], bool disable_raim);
+         const double ref_ecef[3], double b[3],
+         bool disable_raim, double raim_threshold);
 
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3], bool disable_raim);
+            const ambiguities_t *ambs, u8 *num_used, double b[3],
+            bool disable_raim, double raim_threshold);
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3], bool disable_raim);
+             u8 *num_used, double b[3], bool disable_raim, double raim_threshold);
 
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
                    const double *N, const double *DE, double b[3],
-                   bool disable_raim,
+                   bool disable_raim, double raim_threshold,
                    u8 *n_used, double *residuals, u8 *removed_obs);
 
 #endif /* LIBSWIFTNAV_BASELINE_H */

@@ -188,7 +188,7 @@ START_TEST(test_lesq_solution4)
   for (u8 i=0; i<num_dds; i++) {
     N_int[i] = N[i];
   }
-  s8 ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, 0, resid, 0);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, DEFAULT_RAIM_THRESHOLD, 0, resid, 0);
 
   fail_unless(ret >= 0, "solution returned error %d", ret);
 
@@ -199,7 +199,7 @@ START_TEST(test_lesq_solution4)
   }
 
   /* Try with null resid */
-  ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, 0, 0, 0);
+  ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b, false, DEFAULT_RAIM_THRESHOLD, 0, 0, 0);
 
   fail_unless(ret >= 0, "solution returned error %d", ret);
 
@@ -302,7 +302,7 @@ START_TEST(test_baseline_ref_first)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -325,7 +325,7 @@ START_TEST(test_baseline_ref_middle)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -348,7 +348,7 @@ START_TEST(test_baseline_ref_end)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -383,7 +383,7 @@ START_TEST(test_baseline_fixed_point)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
@@ -404,7 +404,7 @@ START_TEST(test_baseline_few_sats)
   double b[3];
   u8 num_used;
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == -1);
 }
@@ -429,7 +429,7 @@ START_TEST(test_lesq_repair8)
 
   double b[3];
   u8 bad_index;
-  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, 0, 0, &bad_index);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
   fail_unless(ret == 1,
       "Expecting 1 for repaired solution, got: %i.\n", ret);
@@ -454,7 +454,7 @@ START_TEST(test_lesq_repair1)
 
   double b[3];
   u8 bad_index;
-  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, 0, 0, &bad_index);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
   fail_unless(ret == 1,
       "Expecting 1 for repaired solution, got: %i.\n", ret);
@@ -480,7 +480,7 @@ START_TEST(test_lesq_repair_disabled)
   double b[3];
   u8 bad_index;
   /* DISABLE raim */
-  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, true, 0, 0, &bad_index);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, true, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
   fail_unless(ret == 2,
       "Expecting 1 for repaired solution, got: %i.\n", ret);
@@ -500,7 +500,7 @@ START_TEST(test_lesq_repair2)
   double dd_obs[] = {1, 1, 1, 1};
 
   double b[3];
-  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, 0, 0, 0);
+  s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b, false, DEFAULT_RAIM_THRESHOLD, 0, 0, 0);
 
   fail_unless(ret == -4,
       "Expecting -4 for not enough dds to repair, got: %i.\n", ret);
