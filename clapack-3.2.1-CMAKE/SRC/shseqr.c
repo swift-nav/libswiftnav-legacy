@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -36,7 +37,15 @@ static integer c__49 = 49;
 
     /* Local variables */
     integer i__;
-    real hl[2401]	/* was [49][49] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      real hl[1]    /* was [49][49] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "shseqr_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      real hl[2401]	/* was [49][49] */;
+    #endif
     integer kbot, nmin;
     extern logical lsame_(char *, char *);
     logical initz;
