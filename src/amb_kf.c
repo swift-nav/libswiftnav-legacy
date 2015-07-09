@@ -719,10 +719,8 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
   memcpy(mean, new_mean, (state_dim) * sizeof(double));
 }
 
-void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
-                                    const u8 *new_prns, double *rebase_mtx);
 /* REQUIRES num_sats > 1 */
-void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
+static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
                                     const u8 *new_prns, double *rebase_mtx)
 {
   assert(num_sats > 1);

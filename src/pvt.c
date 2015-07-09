@@ -279,7 +279,7 @@ static u8 filter_solution(gnss_solution* soln, dops_t* dops)
   return 0;
 }
 
-/* Checks pvt_iter residuals; can detect erroneous input measurements.
+/** Checks pvt_iter residuals; can detect erroneous input measurements.
  * Returns true if residual is sufficiently small.
  */
 static bool residual_test(u8 n_used, double omp[n_used],
@@ -301,7 +301,7 @@ static bool residual_test(u8 n_used, double omp[n_used],
   return norm < PVT_RESIDUAL_THRESHOLD;
 }
 
-/* Iterates pvt_solve until it converges or PVT_MAX_ITERATIONS is reached.
+/** Iterates pvt_solve until it converges or PVT_MAX_ITERATIONS is reached.
  * Return value:
  *   0: solution converged
  *  -1: solution failed to converge
@@ -379,9 +379,8 @@ static s8 pvt_repair(double rx_state[],
 
     if (flag == -1) {
       /* Didn't converge. */
-      // TODO(dsk) this may be unnecessary
+      // TODO(dsk) this may be unnecessary; use continue instead
       return -1;
-      //continue;
     }
 
     if (residual_test(n_used-1, omp, rx_state, 0)) {
@@ -580,7 +579,7 @@ s8 calc_PVT(const u8 n_used,
   u8 ret;
   if ((ret = filter_solution(soln, dops))) {
     memset(soln, 0, sizeof(*soln));
-    /* Reset state if solution fails */
+    /* Reset position elements of state if solution fails. */
     rx_state[0] = 0;
     rx_state[1] = 0;
     rx_state[2] = 0;

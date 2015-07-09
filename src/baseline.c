@@ -354,13 +354,16 @@ static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
   return lesq_solution_float(new_dds, new_obs, new_N, new_DE, b, resid);
 }
 
-/* Approximate chi square test
- * Scales least squares residuals by estimated covariance, compares against threshold.
- * Returns true if norm is below threshold.
+/** Approximate chi square test
+ * Scales least squares residuals by estimated variance, compares against threshold.
  *
- * Returns residual value in `residual' if non-null.
+ * \param num_dds length of residuals
+ * \param residuals residual vector calculated by lesq_solution_float
+ * \param residual if not null, used to output double value of scaled residual
+ *
+ * \return true if norm is below threshold.
  */
-static bool chi_test(u8 num_dds, double *residuals, double *residual)
+static bool chi_test(u8 num_dds, const double *residuals, double *residual)
 {
   assert(num_dds < MAX_CHANNELS);
 
