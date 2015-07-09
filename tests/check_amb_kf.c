@@ -8,6 +8,9 @@
 #include "linear_algebra.h"
 #include "check_utils.h"
 
+/* Need static method assign_state_rebase_mtx */
+#include "amb_kf.c"
+
 START_TEST(test_lsq)
 {
   sdiff_t sdiffs[5];
