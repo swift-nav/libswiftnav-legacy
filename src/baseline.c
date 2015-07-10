@@ -131,38 +131,6 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
   }
 }
 
-/** Calculate least squares baseline solution from a set of double difference
- * carrier phase observations and carrier phase ambiguities.
- *
- * For more details, see lesq_solution_float().
- *
- * \note This function takes integer valued carrier phase ambiguities. For real
- *       valued ambiguities, see lesq_solution_float().
- *
- * \param num_dds Number of double difference observations
- * \param dd_obs  Double differenced carrier phase observations in cycles,
- *                length `num_dds`
- * \param N       Carrier phase ambiguity vector, length `num_dds`
- * \param DE      Double differenced matrix of unit vectors to the satellites,
- *                length `3 * num_dds`
- * \param b       The output baseline in meters.
- * \param resid   The output least squares residuals in cycles.
- * \return         0 on success,
- *                -1 if there were insufficient observations to calculate the
- *                   baseline (the solution was under-constrained),
- *                -2 if an error occurred
- */
-s8 lesq_solution_int(u8 num_dds, const double *dd_obs, const s32 *N,
-                     const double *DE, double b[3], double *resid)
-{
-  assert(N != NULL);
-  double N_float[num_dds];
-  for (u8 i=0; i<num_dds; i++) {
-    N_float[i] = N[i];
-  }
-  return lesq_solution_float(num_dds, dd_obs, N_float, DE, b, resid);
-}
-
 /* TODO use the state covariance matrix for a better estimate:
  *    That is, decorrelate and scale the LHS of y = A * x before solving for x.
  *
@@ -274,6 +242,13 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -1;
   }
 
+
+  assert(num_dds_u8 < MAX_CHANNELS);
+
+  for(int i = 0; i < num_dds_u8 * 3; i++) {
+    assert(isfinite(DE[i]));
+  }
+
   integer num_dds = num_dds_u8;
   double DET[num_dds * 3];
   matrix_transpose(num_dds, 3, DE, DET);
@@ -328,6 +303,8 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     return -2;
   }
 
+  assert(num_dds == num_dds_u8);
+
   b[0] = phase_ranges[0] * GPS_L1_LAMBDA_NO_VAC;
   b[1] = phase_ranges[1] * GPS_L1_LAMBDA_NO_VAC;
   b[2] = phase_ranges[2] * GPS_L1_LAMBDA_NO_VAC;
@@ -353,6 +330,180 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   return 0;
 }
 
+static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
+{
+  memcpy(to, from, index*size*sizeof(double));
+  memcpy(to + index*size,
+         from + (index + 1)*size,
+         (len - index - 1)*size*sizeof(double));
+}
+
+static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
+                         const double *N, const double *DE, double b[3],
+                         double *resid)
+{
+  assert(num_dds > 3);
+  assert(num_dds < MAX_CHANNELS);
+
+  u8 new_dds = num_dds - 1;
+  double new_obs[new_dds];
+  double new_N[new_dds];
+  double new_DE[new_dds * 3];
+
+  drop_i(dropped_dd, num_dds, 1, dd_obs, new_obs);
+  drop_i(dropped_dd, num_dds, 1, N, new_N);
+  drop_i(dropped_dd, num_dds, 3, DE, new_DE);
+
+  return lesq_solution_float(new_dds, new_obs, new_N, new_DE, b, resid);
+}
+
+/** Approximate chi square test
+ * Scales least squares residuals by estimated variance,
+ *   compares against threshold.
+ *
+ * \param threshold The test threshold.
+ *                  Value 5.5 recommended for float/fixed baseline residuals.
+ * \param num_dds Length of residuals.
+ * \param residuals Residual vector calculated by lesq_solution_float.
+ * \param residual If not null, used to output double value of scaled residual.
+ *
+ * \return true if norm is below threshold.
+ */
+static bool chi_test(double threshold, u8 num_dds,
+                     const double *residuals, double *residual)
+{
+  assert(num_dds < MAX_CHANNELS);
+
+  double sigma = DEFAULT_PHASE_VAR_KF;
+  double norm = vector_norm(num_dds, residuals) / sqrt(sigma);
+  if (residual) {
+    *residual = norm;
+  }
+  return norm < threshold;
+}
+
+/** Calculate lesq baseline with raim check/repair
+ *
+ * \param num_dds_u8 Number of double difference observations
+ * \param dd_obs  Double differenced carrier phase observations in cycles,
+ *                length `num_dds_u8`
+ * \param N       Carrier phase ambiguity vector, length `num_dds`
+ * \param DE      Double differenced matrix of unit vectors to the satellites,
+ *                length `3 * num_dds`
+ * \param b       The output baseline in meters.
+ * \param disable_raim if true raim check/repair will not be performed
+ * \param raim_threshold test threshold for check
+ * \param n_used if not null, outputs num obs used in solution
+ * \param ret_residuals if not null, returns residual vector
+ * \param removed_obs if not null and repair performed,
+ *                    returns removed obs index
+ * \return positive value on success, negative error code on failure
+ *    -`2`: solution ok, but raim check was not available
+ *          (exactly 3 dds, or explicitly disabled)
+ *
+ *    -`1`: repaired solution, using one fewer observation
+ *          returns index of removed observation if removed_obs ptr is passed
+ *
+ *    -`0`: solution with all dd's ok
+ *
+ *   -`-1`: < 3 dds
+ *   -`-2`: dgelsy  error (see lesq_solution_float)
+ *   -`-3`: raim check failed, repair failed
+ *   -`-4`: raim check failed, not enough sats for repair
+ */
+/* TODO(dsk) update all call sites to use n_used as calculated here.
+ * TODO(dsk) add warn/info logging to call sites when repair occurs.
+ * TODO(dsk) make this static
+ */
+s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
+                   const double *N, const double *DE, double b[3],
+                   bool disable_raim, double raim_threshold,
+                   u8 *n_used, double *ret_residuals, u8 *removed_obs)
+{
+  integer num_dds = num_dds_u8;
+  double residuals[num_dds];
+  double residual;
+
+  assert(num_dds < MAX_CHANNELS);
+  assert(num_dds_u8 < MAX_CHANNELS);
+
+  s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
+
+  if (okay != 0) {
+    /* Not enough sats or other error returned by initial lesq solution. */
+    return okay;
+  }
+
+  if (disable_raim || chi_test(raim_threshold, num_dds, residuals, &residual)) {
+    /* Solution using all sats ok. */
+    if (ret_residuals) {
+      memcpy(ret_residuals, residuals, num_dds * sizeof(double));
+    }
+    if (n_used) {
+      *n_used = num_dds;
+    }
+    if (disable_raim || num_dds == 3) {
+      return 2;
+    }
+    return 0;
+  }
+
+  if (num_dds < 5) {
+    /* We have just enough sats for a solution; can't search for solution
+     * after dropping one.
+     * 5 are needed because a 3 dimensional system is exactly constrained,
+     * so the bad measurement can't be detected.
+     */
+    if (n_used) {
+      *n_used = 0;
+    }
+    return -4;
+  }
+
+  u8 num_passing = 0;
+  u8 bad_sat = -1;
+  u8 new_dds = num_dds - 1;
+
+  for (u8 i = 0; i < num_dds; i++) {
+    if (0 == lesq_without_i(i, num_dds, dd_obs, N, DE, b, residuals)) {
+      if (chi_test(raim_threshold, new_dds, residuals, &residual)) {
+        num_passing++;
+        bad_sat = i;
+      }
+    }
+  }
+
+  if (num_passing == 1) {
+    /* bad_sat holds index of bad dd
+     * Return solution without bad_sat. */
+    /* Recalculate this solution. */
+    (void)lesq_without_i(bad_sat, num_dds, dd_obs, N, DE, b, residuals);
+    if (removed_obs) {
+      *removed_obs = bad_sat;
+    }
+    if (ret_residuals) {
+      memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+    }
+    if (n_used) {
+      *n_used = num_dds-1;
+    }
+    return 1;
+  } else if (num_passing == 0) {
+    /* Ref sat is bad? */
+    if (n_used) {
+      *n_used = 0;
+    }
+    return -3;
+  } else {
+    /* Had more than one acceptable solution.
+     * TODO(dsk) should we return the best one? */
+    if (n_used) {
+      *n_used = 0;
+    }
+    return -3;
+  }
+}
+
 /** A least squares solution for baseline from phases using the KF state.
  * This uses the current state of the KF and a set of phase observations to
  * solve for the current baseline.
@@ -368,10 +519,12 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
  * \param ref_ecef              The reference position in ECEF frame, for
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
+ * \return                      See lesq_solve_raim()
  */
-void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
+s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
          const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements,
-         const double ref_ecef[3], double b[3])
+         const double ref_ecef[3], double b[3],
+         bool disable_raim, double raim_threshold)
 {
   DEBUG_ENTRY();
 
@@ -379,10 +532,10 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
   double DE[num_dds * 3];
   assign_de_mtx(num_dds+1, sdiffs_with_ref_first, ref_ecef, DE);
 
-  s8 ret = lesq_solution_float(num_dds_u8, dd_measurements, state_mean,
-                               DE, b, 0);
-  (void)ret;
+  s8 code = lesq_solve_raim(num_dds_u8, dd_measurements, state_mean, DE, b,
+                            disable_raim, raim_threshold, 0, 0, 0);
   DEBUG_EXIT();
+  return code;
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -409,7 +562,8 @@ void least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean
  */
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3])
+             u8 *num_used, double b[3],
+             bool disable_raim, double raim_threshold)
 {
   assert(sdiffs != NULL);
   assert(ref_ecef != NULL);
@@ -425,6 +579,8 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
     /* For a position solution, we need at least 4 sats. */
     return -1;
   }
+
+  assert(num_sdiffs <= MAX_CHANNELS);
 
   double dd_meas[2 * num_ambs];
   sdiff_t matched_sdiffs[num_ambs+1];
@@ -446,7 +602,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   *num_used = num_ambs + 1;
 
-  return lesq_solution_float(num_ambs, dd_meas, ambs, DE, b, 0);
+  return lesq_solve_raim(num_ambs, dd_meas, ambs, DE, b, disable_raim, raim_threshold, 0, 0, 0);
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -461,16 +617,21 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
  * \param num_used   Pointer to where to store number of satellites used in the
  *                   baseline solution
  * \param b          The output baseline in meters
+ * \param disable_raim True disables raim check/repair
+ * \param raim_threshold Threshold for raim checks.
+ *                       Value 5.5 has been extensively tested.
  * \return            0 on success,
  *                   -1 if there were insufficient observations to calculate the
  *                      baseline (the solution was under-constrained),
  *                   -2 if an error occurred
  */
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3])
+            const ambiguities_t *ambs, u8 *num_used, double b[3],
+            bool disable_raim, double raim_threshold)
 {
   return baseline_(num_sdiffs, sdiffs, ref_ecef,
-                   ambs->n, ambs->prns, ambs->ambs, num_used, b);
+                   ambs->n, ambs->prns, ambs->ambs, num_used, b,
+                   disable_raim, raim_threshold);
 }
 
 /* Initialize a set of ambiguities.

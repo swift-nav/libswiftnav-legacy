@@ -19,6 +19,7 @@ else (CMAKE_CROSSCOMPILING)
     endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
+    include_directories("${PROJECT_SOURCE_DIR}/src")
 
     add_executable(test_libswiftnav
       check_main.c
@@ -28,6 +29,7 @@ else (CMAKE_CROSSCOMPILING)
       check_baseline.c
       check_amb_kf.c
       check_observation.c
+      check_pvt.c
       check_edc.c
       check_bits.c
       check_memory_pool.c

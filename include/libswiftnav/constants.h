@@ -73,6 +73,30 @@
 
 /* \} */
 
+/** \defgroup dgnss_constants DGNSS
+ * Approximate variance values used by the KF and IAR hypothesis test.
+ * \{ */
+
+/** The default DD carrier phase variance to use in the hypothesis testing. */
+#define DEFAULT_PHASE_VAR_TEST  (9e-4 * 16)
+/** The default DD pseudorange variance to use in the hypothesis testing. */
+#define DEFAULT_CODE_VAR_TEST   (100 * 400)
+/** The default DD carrier phase variance to use in the Kalman filter. */
+#define DEFAULT_PHASE_VAR_KF    (9e-4 * 16)
+/** The default DD pseudorange variance to use in the Kalman filter. */
+#define DEFAULT_CODE_VAR_KF     (100 * 400)
+/** The default variance of the process noise Kalman filter. Its particular use
+ * is different from that of a normal KF process noise. It's still a random
+ * walk, but in a special space. Look at the code for its current usage.*/
+#define DEFAULT_AMB_DRIFT_VAR   1e-8
+/** The variance with which to initialize the Kalman Filter. */
+#define DEFAULT_AMB_INIT_VAR    1e25
+/** The variance with which to add new sats to the Kalman Filter.
+ * TODO deprecate in lieu of amb_init_var once we do some tuning. */
+#define DEFAULT_NEW_INT_VAR     1e25
+
+/* \} */
+
 /* \} */
 
 #endif /* LIBSWIFTNAV_CONSTANTS_H */

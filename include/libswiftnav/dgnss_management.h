@@ -17,24 +17,7 @@
 #include "sats_management.h"
 #include "ambiguity_test.h"
 #include "baseline.h"
-
-/* The default DD carrier phase variance to use in the hypothesis testing. */
-#define DEFAULT_PHASE_VAR_TEST  (9e-4 * 16)
-/* The default DD pseudorange variance to use in the hypothesis testing. */
-#define DEFAULT_CODE_VAR_TEST   (100 * 400)
-/* The default DD carrier phase variance to use in the Kalman filter. */
-#define DEFAULT_PHASE_VAR_KF    (9e-4 * 16)
-/* The default DD pseudorange variance to use in the Kalman filter. */
-#define DEFAULT_CODE_VAR_KF     (100 * 400)
-/* The default variance of the process noise Kalman filter. Its particular use
- * is different from that of a normal KF process noise. It's still a random
- * walk, but in a special space. Look at the code for its current usage.*/
-#define DEFAULT_AMB_DRIFT_VAR   1e-8
-/* The variance with which to initialize the Kalman Filter. */
-#define DEFAULT_AMB_INIT_VAR    1e25
-/* The variance with which to add new sats to the Kalman Filter.
- * TODO deprecate in lieu of amb_init_var once we do some tuning. */
-#define DEFAULT_NEW_INT_VAR     1e25
+#include "constants.h"
 
 typedef struct {
   double phase_var_test;
@@ -64,7 +47,8 @@ void dgnss_set_settings(double phase_var_test, double code_var_test,
                         double new_int_var);
 void make_measurements(u8 num_diffs, const sdiff_t *sdiffs, double *raw_measurements);
 void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
+                  bool disable_raim, double raim_threshold);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
                       u8 old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
@@ -80,7 +64,8 @@ void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ece
 void dgnss_update_ambiguity_state(ambiguity_state_t *s);
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3]);
+                  u8 *num_used, double b[3],
+                  bool disable_raim, double raim_threshold);
 void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
                       const double receiver_ecef[3], double *b);
 void measure_b_with_external_ambs(u8 state_dim, const double *state_mean,

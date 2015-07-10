@@ -245,7 +245,8 @@ static void dgnss_update_sats(u8 num_sdiffs, double receiver_ecef[3],
   DEBUG_EXIT();
 }
 
-void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
+void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
+                  bool disable_raim, double raim_threshold)
 {
   DEBUG_ENTRY();
   if (DEBUG) {
@@ -291,8 +292,15 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3])
   double ref_ecef[3];
   if (num_sats >= 5) {
     double b2[3];
-    least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
-        sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2);
+    s8 code = least_squares_solve_b_external_ambs(nkf.state_dim, nkf.state_mean,
+        sdiffs_with_ref_first, dd_measurements, receiver_ecef, b2,
+        disable_raim, raim_threshold);
+
+    if (code < 0) {
+      log_warn("dgnss_update. baseline estimate error: %d\n", code);
+      /* Use b = 0, continue */
+      memset(b2, 0, sizeof(b2));
+    }
 
     double ref_ecef[3];
 
@@ -405,9 +413,11 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  */
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3])
+                  u8 *num_used, double b[3],
+                  bool disable_raim, double raim_threshold)
 {
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b)
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
+               disable_raim, raim_threshold)
         >= 0) {
     log_debug("fixed solution\n");
     DEBUG_EXIT();
@@ -415,7 +425,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b)
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
+               disable_raim, raim_threshold)
         >= 0) {
     log_debug("float solution\n");
     DEBUG_EXIT();
@@ -492,7 +503,7 @@ static void measure_b(u8 state_dim, const double *state_mean,
   ref_ecef[2] = receiver_ecef[2];
 
   least_squares_solve_b_external_ambs(state_dim, state_mean,
-      sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+      sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, DEFAULT_RAIM_THRESHOLD);
 
   while (vector_distance(3, b_old, b) > 1e-4) {
     memcpy(b_old, b, sizeof(double)*3);
@@ -500,7 +511,7 @@ static void measure_b(u8 state_dim, const double *state_mean,
     ref_ecef[1] = receiver_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = receiver_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(state_dim, state_mean,
-        sdiffs_with_ref_first, dd_measurements, ref_ecef, b);
+        sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, DEFAULT_RAIM_THRESHOLD);
   }
 }
 

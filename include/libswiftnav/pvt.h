@@ -17,7 +17,7 @@
 #include "common.h"
 #include "track.h"
 
-#define PVT_MAX_ITERATIONS 20
+#define PVT_MAX_ITERATIONS 10
 
 typedef struct {
   double pdop;
@@ -26,6 +26,8 @@ typedef struct {
   double hdop;
   double vdop;
 } dops_t;
+
+extern const char *pvt_err_msg[7];
 
 typedef struct __attribute__((packed)) {
   /*
@@ -68,6 +70,7 @@ typedef struct __attribute__((packed)) {
 
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
+            bool disable_raim,
             gnss_solution *soln,
             dops_t *dops);
 
