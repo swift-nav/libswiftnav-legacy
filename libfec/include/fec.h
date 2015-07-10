@@ -12,42 +12,44 @@
  */
 #define V27POLYA  0x4f
 #define V27POLYB  0x6d
+#define SBAS_BLK_LEN 250
+
+typedef union {
+  unsigned int w[64];
+} metric_t;
+
+typedef union {
+  unsigned long w[2];
+} decision_t;
+
+static union branchtab27 {
+  unsigned char c[32];
+} Branchtab27[2] __attribute__ ((aligned(16)));
+
+/* State info for instance of Viterbi decoder
+ */
+struct v27 {
+  metric_t metrics1; /* path metric buffer 1 */
+  metric_t metrics2; /* path metric buffer 2 */
+  decision_t *dp;          /* Pointer to current decision */
+  metric_t *old_metrics,*new_metrics; /* Pointers to path metrics, swapped on every bit */
+  decision_t decisions[SBAS_BLK_LEN * 6 + 6];   /* Beginning of decisions for block */
+};
 
 void *create_viterbi27(int len);
 void set_viterbi27_polynomial(int polys[2]);
-int init_viterbi27(void *vp, int starting_state);
-int update_viterbi27_blk(void *vp, unsigned char sym[], int npairs);
-int chainback_viterbi27(void *vp, unsigned char *data, unsigned int nbits,
+void init_viterbi27(struct v27 *vp, int starting_state);
+int update_viterbi27_blk(struct v27 *p, unsigned char sym[], int npairs);
+int chainback_viterbi27(struct v27 *p, unsigned char *data, unsigned int nbits,
                         unsigned int endstate);
-void delete_viterbi27(void *vp);
 
-void *create_viterbi27_port(int len);
-void set_viterbi27_polynomial_port(int polys[2]);
-int init_viterbi27_port(void *p, int starting_state);
-int chainback_viterbi27_port(void *p, unsigned char *data, unsigned int nbits,
-                             unsigned int endstate);
-void delete_viterbi27_port(void *p);
-int update_viterbi27_blk_port(void *p, unsigned char *syms, int nbits);
-
-void partab_init(void);
-
-static inline int parityb(unsigned char x){
-  extern unsigned char Partab[256];
-  extern int P_init;
-  if(!P_init){
-    partab_init();
-  }
-  return Partab[x];
+static inline int parity(int x)
+{
+  x ^= x >> 16;
+  x ^= x >> 8;
+  x ^= x >> 4;
+  x &= 0xf;
+  return (0x6996 >> x) & 1;
 }
 
-static inline int parity(int x){
-  /* Fold down to one byte */
-  x ^= (x >> 16);
-  x ^= (x >> 8);
-  return parityb(x);
-}
-
-extern int Bitcnt[];
-
-#endif /* _FEC_H_ */
-
+#endif
