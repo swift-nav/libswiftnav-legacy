@@ -690,14 +690,16 @@ cdef class CN0Estimator:
   def __cinit__(self, bw, cn0_0, cutoff_freq, loop_freq):
     track_c.cn0_est_init(&self.s, bw, cn0_0, cutoff_freq, loop_freq)
 
-  def update(self, I):
+  def update(self, I, Q):
     """
     Wraps the function :libswiftnav:`cn0_est`.
 
     Parameters
     ----------
     I : float
-      The prompt in-phase correlation from the tracking correlators.
+      The prompt in-phase correlation from the tracking correlator.
+    Q : float
+      The prompt quadrature correlation from the tracking correlator.
 
     Returns
     -------
@@ -705,5 +707,47 @@ cdef class CN0Estimator:
       The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
 
     """
-    return track_c.cn0_est(&self.s, I)
+    return track_c.cn0_est(&self.s, I, Q)
 
+cdef class LockDetector:
+  """
+  Wraps the `libswiftnav` PLL lock detector implementation.
+
+  The detector state, :libswiftnav:`lock_detect_t` is maintained by
+  the class instance.
+
+  Parameters
+  ----------
+  k1 : float
+    Low-pass filter coefficient
+  k2 : float
+    I arm divisor
+  lp : u16
+    Pessimistic count threshold
+  lo : u16
+    Optimistic count threshold
+  """
+
+  cdef track_c.lock_detect_t ld
+
+  def __cinit__(self, k1, k2, lp, lo):
+    track_c.lock_detect_init(&self.ld, k1, k2, lp, lo)
+
+  def reinit(self, k1, k2, lp, lo):
+    track_c.lock_detect_reinit(&self.ld, k1, k2, lp, lo)
+
+  def update(self, P, coherent_ms):
+    track_c.lock_detect_update(&self.ld, P.real, P.imag, coherent_ms)
+    return (self.ld.outo, self.ld.outp)
+
+
+cdef class AliasDetector:
+  cdef track_c.alias_detect_t ad
+  def __cinit__(self, acc_len, time_diff):
+    track_c.alias_detect_init(&self.ad, acc_len, time_diff)
+
+  def first(self, P):
+    track_c.alias_detect_first(&self.ad, P.real, P.imag)
+
+  def second(self, P):
+    return track_c.alias_detect_second(&self.ad, P.real, P.imag)
