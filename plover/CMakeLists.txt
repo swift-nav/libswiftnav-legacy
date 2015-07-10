@@ -8,47 +8,67 @@ set (PLOVER_GENERATED_H_DIR ${CMAKE_SOURCE_DIR}/include/libswiftnav/plover CACHE
 file(MAKE_DIRECTORY ${PLOVER_GENERATED_H_DIR})
 
 # Find default cabal
-find_program(CMAKE_cabal NAMES cabal)
+find_program(CMAKE_CABAL NAMES cabal)
+# Find plover executable
+find_program(CMAKE_PLOVER NAMES plover)
 
 if (DEFINED ENV{CABAL})
-  message("Saw cabal flag: $ENV{CABAL}")
-  set (CMAKE_cabal $ENV{CABAL})
+  message("Saw CABAL flag: $ENV{CABAL}")
+  set (CMAKE_CABAL $ENV{CABAL})
 else ()
-  message("Environment variable 'CABAL' not set. Defaulting to ${CMAKE_cabal}.")
+  message("Environment variable 'CABAL' not set. Defaulting to ${CMAKE_CABAL}.")
+endif ()
+if (DEFINED ENV{PLOVER})
+  message("Saw PLOVER flag. Using $ENV{PLOVER}")
+  set (CMAKE_PLOVER $ENV{PLOVER})
+else ()
+  message("Environment variable 'PLOVER' not set. Defaulting to ${CMAKE_PLOVER}.")
 endif ()
 
-set (plover_HS_SRCS
-  Main.hs
-  AmbiguityTest.hs
+# Haskell files with macro plover definitions
+# TODO implement build step
+set (PLOVER_HS_SRCS
 )
 
-set (plover_SRCS
-  ${PLOVER_GENERATED_C_DIR}/ambiguity_test.c
-  CACHE INTERNAL ""
+# For each unit in PLOVER_UNITS:
+#   Expects ${unit}.plv in PLOVER_DIR
+#   Generates ${unit}.c in PLOVER_GENERATED_C_DIR
+#         and ${unit}.h in PLOVER_GENERATED_H_DIR
+# TODO add qr, pvt
+set (PLOVER_UNITS
 )
 
-set (plover_HDRS
-  ${PLOVER_GENERATED_H_DIR}/ambiguity_test.h
-  CACHE INTERNAL ""
-)
+foreach(unit ${PLOVER_UNITS})
+  list(APPEND PLOVER_CFILES "${PLOVER_GENERATED_C_DIR}/${unit}.c")
+  list(APPEND PLOVER_HFILES "${PLOVER_GENERATED_H_DIR}/${unit}.h")
+  list(APPEND PLOVER_SRC    "${PLOVER_DIR}/${unit}.plv")
+endforeach(unit)
 
-if (CMAKE_cabal)
-  message("\nFound Haskell tools. Adding code generation step (to be run if Haskell subproject is modified).\n")
-  add_custom_command(
-    OUTPUT ${plover_SRCS} ${plover_HDRS}
-    COMMAND ${CMAKE_cabal} run "${PLOVER_GENERATED_C_DIR}" "${PLOVER_GENERATED_H_DIR}"
-    WORKING_DIRECTORY ${PLOVER_DIR}
-    DEPENDS ${plover_HS_SRCS})
+# Main project depends on generated code
+add_custom_target(generate DEPENDS ${PLOVER_CFILES} ${PLOVER_HFILES})
+
+
+if (CMAKE_CABAL AND CMAKE_PLOVER)
+  message("\nFound Plover tools.")
+  # Don't add step if no UNITS are specified
+  if (PLOVER_CFILES OR PLOVER_HFILES)
+    message("Adding code generation step. \
+Will run if plover subproject is modified and after make clean.")
+    add_custom_command(
+      OUTPUT ${PLOVER_CFILES} ${PLOVER_HFILES}
+      COMMAND ${CMAKE_PLOVER} --include "${PLOVER_DIR}"
+        --output_c "${PLOVER_GENERATED_C_DIR}" --output_h "${PLOVER_GENERATED_H_DIR}"
+      WORKING_DIRECTORY ${PLOVER_DIR}
+      DEPENDS ${PLOVER_HS_SRCS} ${PLOVER_SRCS})
+  endif ()
+  message("")
+
 else ()
-  message("\nNo Haskell toolchain (cabal) found. Code generation with Plover is disabled.\n")
+  message("\nNo Plover toolchain found. Code generation is disabled.\n")
 endif ()
 
-add_custom_target(clean_generate
+add_custom_target(clean-generate
   COMMAND ${CMAKE_COMMAND} -E remove_directory ${PLOVER_DIR}/dist
   COMMAND ${CMAKE_COMMAND} -E remove ${PLOVER_GENERATED_C_DIR}/*
   COMMAND ${CMAKE_COMMAND} -E remove ${PLOVER_GENERATED_H_DIR}/*
 )
-
-# Main project depends on generated code
-add_custom_target(generate DEPENDS ${plover_SRCS} ${plover_HDRS})
-
