@@ -97,7 +97,7 @@ static void compute_dops(const double H[4][4],
 }
 
 
-/* This function is the key to GPS solution, so it's commented
+/** This function is the key to GPS solution, so it's commented
  * liberally.  It does a single step of a multi-dimensional
  * Newton-Raphson solution for the variables X, Y, Z (in ECEF) plus
  * the clock offset for each receiver used to make pseudorange
@@ -279,8 +279,14 @@ static u8 filter_solution(gnss_solution* soln, dops_t* dops)
   return 0;
 }
 
-/** Checks pvt_iter residuals; can detect erroneous input measurements.
- * Returns true if residual is sufficiently small.
+/** Checks pvt_iter residuals.
+ *
+ * \param n_used length of omp
+ * \param omp residual vector calculated by pvt_solve
+ * \param rx_state reference to pvt solver state allocated in calc_PVT
+ * \param residual If not null, used to output double value of residual
+ *
+ * \return residual < PVT_RESIDUAL_THRESHOLD
  */
 static bool residual_test(u8 n_used, double omp[n_used],
                           const double rx_state[],
@@ -302,9 +308,10 @@ static bool residual_test(u8 n_used, double omp[n_used],
 }
 
 /** Iterates pvt_solve until it converges or PVT_MAX_ITERATIONS is reached.
- * Return value:
- *   0: solution converged
- *  -1: solution failed to converge
+ *
+ * \return
+ *   - `0`: solution converged
+ *   - `-1`: solution failed to converge
  *
  *  Results stored in rx_state, omp, H
  */
@@ -338,15 +345,14 @@ static s8 pvt_iter(double rx_state[],
   return 0;
 }
 
-/* Return values:
- *    1: repaired solution, using one fewer observation
- *       returns prn of removed measurement if removed_prn ptr is passed
+/** See pvt_solve_raim() for parameter meanings.
  *
- *   -1: no reasonable solution possible
+ * \return
+ *   - `1`: repaired solution, using one fewer observation
+ *          returns prn of removed measurement if removed_prn ptr is passed
  *
- *  Results stored in rx_state, omp, H
+ *   - `-1`: no reasonable solution possible
  */
-
 static s8 pvt_repair(double rx_state[],
                      const u8 n_used,
                      const navigation_measurement_t nav_meas[n_used],
@@ -379,7 +385,7 @@ static s8 pvt_repair(double rx_state[],
 
     if (flag == -1) {
       /* Didn't converge. */
-      // TODO(dsk) this may be unnecessary; use continue instead
+      /* TODO(dsk) this may be unnecessary; use continue instead. */
       return -1;
     }
 
@@ -406,18 +412,31 @@ static s8 pvt_repair(double rx_state[],
   }
 }
 
-/* Return values:
- *    2: solution ok, but raim check was not used
- *         (exactly 4 measurements, or explicitly disabled)
+/** Calculate pvt solution, perform RAIM check, attempt to repair if needed.
  *
- *    1: repaired solution, using one fewer observation
- *       returns prn of removed measurement if removed_prn ptr is passed
+ * See calc_PVT for parameter meanings.
+ * \param rx_state reference to pvt solver state allocated in calc_PVT
+ * \param n_used number of measurments
+ * \param nav_meas array of measurements
+ * \param disable_raim passing True will omit raim check/repair functionality
+ * \param H see pvt_solve
+ * \param removed_prn if not null and repair occurs, returns dropped prn
+ * \param residual if not null, return double value of residual
  *
- *    0: inital solution ok
+ * \return Non-negative values indicate success; see below
+ *         For negative values, refer to pvt_err_msg().
+ * Return values:
+ *    `-2`: solution ok, but raim check was not used
+ *        (exactly 4 measurements, or explicitly disabled)
  *
- *   -1: repair failed
- *   -2: not enough satellites to attempt repair
- *   -3: pvt_iter didn't converge
+ *    `-1`: repaired solution, using one fewer observation
+ *        returns prn of removed measurement if removed_prn ptr is passed
+ *
+ *    `-0`: inital solution ok
+ *
+ *   - `-1`: repair failed
+ *   - `-2`: not enough satellites to attempt repair
+ *   - `-3`: pvt_iter didn't converge
  *
  *  Results stored in rx_state, H
  */
@@ -431,11 +450,6 @@ static s8 pvt_solve_raim(double rx_state[],
 {
   double omp[n_used];
 
-  if (n_used > MAX_CHANNELS) {
-    log_error("n_used exceeds MAX_CHANNELS: %d\n", n_used);
-    /* Fail */
-    assert(false);
-  }
   assert(n_used <= MAX_CHANNELS);
 
   const navigation_measurement_t *nav_meas_ptrs[n_used];
@@ -489,19 +503,15 @@ const char *pvt_err_msg[] = {
  * \param soln output solution struct
  * \param dops output doppler information
  * \return Non-negative values indicate success; refer to pvt_solve_raim.
- *         For negative values, refer to pvt_err_msg().
+ *         For negative values, refer to #pvt_err_msg.
+ *   - `-1`: PDOP is too high to yield a good solution.
+ *   - `-2`: Altitude is unreasonable.
+ *   - `-3`: Velocity is greater than 1000kts.
+ *   - `-4`: RAIM check failed and repair was unsuccessful
+ *   - `-5`: RAIM check failed and repair was impossible (not enough measurements)
+ *   - `-6`: pvt_iter didn't converge
+ *   - `-7`: < 4 measurements
  */
-/*
- *  failure:
- *   -1: PDOP is too high to yield a good solution.
- *   -2: Altitude is unreasonable.
- *   -3: Velocity is greater than 1000kts.
- *   -4: RAIM check failed and repair was unsuccessful
- *   -5: RAIM check failed and repair was impossible (not enough measurements)
- *   -6: pvt_iter didn't converge
- *   -7: < 4 measurements
- */
-
 s8 calc_PVT(const u8 n_used,
             const navigation_measurement_t nav_meas[n_used],
             bool disable_raim,

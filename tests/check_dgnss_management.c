@@ -204,7 +204,8 @@ START_TEST(test_dgnss_baseline_1)
 
   /* Float only */
   s.fixed_ambs.n = 0;
-  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+    false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 2);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.742242));
@@ -213,7 +214,8 @@ START_TEST(test_dgnss_baseline_1)
 
   /* Fixed and float */
   s.fixed_ambs.n = 4;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+    false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 1);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.622609));
@@ -223,7 +225,8 @@ START_TEST(test_dgnss_baseline_1)
   /* No solution possible */
   s.fixed_ambs.n = 0;
   s.float_ambs.n = 0;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b, false, DEFAULT_RAIM_THRESHOLD);
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+    false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == -1);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.622609));

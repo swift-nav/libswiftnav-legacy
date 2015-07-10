@@ -333,11 +333,14 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
 static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
 {
   memcpy(to, from, index*size*sizeof(double));
-  memcpy(to + index*size, from + (index + 1)*size, (len - index - 1)*size*sizeof(double));
+  memcpy(to + index*size,
+         from + (index + 1)*size,
+         (len - index - 1)*size*sizeof(double));
 }
 
 static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
-                  const double *N, const double *DE, double b[3], double *resid)
+                         const double *N, const double *DE, double b[3],
+                         double *resid)
 {
   assert(num_dds > 3);
   assert(num_dds < MAX_CHANNELS);
@@ -355,7 +358,8 @@ static s8 lesq_without_i(u8 dropped_dd, u8 num_dds, const double *dd_obs,
 }
 
 /** Approximate chi square test
- * Scales least squares residuals by estimated variance, compares against threshold.
+ * Scales least squares residuals by estimated variance,
+ *   compares against threshold.
  *
  * \param threshold The test threshold.
  *                  Value 5.5 recommended for float/fixed baseline residuals.
@@ -378,20 +382,34 @@ static bool chi_test(double threshold, u8 num_dds,
   return norm < threshold;
 }
 
-/* See lesq_solution_float for argument documentation
- * Return values:
- *    2: solution ok, but raim check was not available
- *         (exactly 3 dds, or explicitly disabled)
+/** Calculate lesq baseline with raim check/repair
  *
- *    1: repaired solution, using one fewer observation
- *       returns index of removed observation if removed_obs ptr is passed
+ * \param num_dds_u8 Number of double difference observations
+ * \param dd_obs  Double differenced carrier phase observations in cycles,
+ *                length `num_dds_u8`
+ * \param N       Carrier phase ambiguity vector, length `num_dds`
+ * \param DE      Double differenced matrix of unit vectors to the satellites,
+ *                length `3 * num_dds`
+ * \param b       The output baseline in meters.
+ * \param disable_raim if true raim check/repair will not be performed
+ * \param raim_threshold test threshold for check
+ * \param n_used if not null, outputs num obs used in solution
+ * \param ret_residuals if not null, returns residual vector
+ * \param removed_obs if not null and repair performed,
+ *                    returns removed obs index
+ * \return positive value on success, negative error code on failure
+ *    -`2`: solution ok, but raim check was not available
+ *          (exactly 3 dds, or explicitly disabled)
  *
- *    0: solution with all dd's ok
+ *    -`1`: repaired solution, using one fewer observation
+ *          returns index of removed observation if removed_obs ptr is passed
  *
- *   -1: < 3 dds
- *   -2: dgelsy  error (see lesq_solution_float)
- *   -3: raim check failed, repair failed
- *   -4: raim check failed, not enough sats for repair
+ *    -`0`: solution with all dd's ok
+ *
+ *   -`-1`: < 3 dds
+ *   -`-2`: dgelsy  error (see lesq_solution_float)
+ *   -`-3`: raim check failed, repair failed
+ *   -`-4`: raim check failed, not enough sats for repair
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs.
@@ -600,7 +618,8 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
  *                   baseline solution
  * \param b          The output baseline in meters
  * \param disable_raim True disables raim check/repair
- * \param raim_threshold Threshold for raim checks. Value 5.5 has been extensively tested.
+ * \param raim_threshold Threshold for raim checks.
+ *                       Value 5.5 has been extensively tested.
  * \return            0 on success,
  *                   -1 if there were insufficient observations to calculate the
  *                      baseline (the solution was under-constrained),

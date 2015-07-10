@@ -299,9 +299,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
     if (code < 0) {
       log_warn("dgnss_update. baseline estimate error: %d\n", code);
       /* Use b = 0, continue */
-      for (s32 i = 0; i < 3; i++) {
-        b2[i] = 0;
-      }
+      memset(b2, 0, sizeof(b2));
     }
 
     double ref_ecef[3];
@@ -418,7 +416,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   u8 *num_used, double b[3],
                   bool disable_raim, double raim_threshold)
 {
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b, disable_raim, raim_threshold)
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
+               disable_raim, raim_threshold)
         >= 0) {
     log_debug("fixed solution\n");
     DEBUG_EXIT();
@@ -426,7 +425,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b, disable_raim, raim_threshold)
+  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
+               disable_raim, raim_threshold)
         >= 0) {
     log_debug("float solution\n");
     DEBUG_EXIT();
@@ -503,7 +503,7 @@ static void measure_b(u8 state_dim, const double *state_mean,
   ref_ecef[2] = receiver_ecef[2];
 
   least_squares_solve_b_external_ambs(state_dim, state_mean,
-      sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, 5.5);
+      sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, DEFAULT_RAIM_THRESHOLD);
 
   while (vector_distance(3, b_old, b) > 1e-4) {
     memcpy(b_old, b, sizeof(double)*3);
@@ -511,7 +511,7 @@ static void measure_b(u8 state_dim, const double *state_mean,
     ref_ecef[1] = receiver_ecef[1] + 0.5 * b_old[1];
     ref_ecef[2] = receiver_ecef[2] + 0.5 * b_old[2];
     least_squares_solve_b_external_ambs(state_dim, state_mean,
-        sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, 5.5);
+        sdiffs_with_ref_first, dd_measurements, ref_ecef, b, false, DEFAULT_RAIM_THRESHOLD);
   }
 }
 

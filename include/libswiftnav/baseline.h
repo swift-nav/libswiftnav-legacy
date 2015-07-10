@@ -28,7 +28,7 @@ typedef struct {
 
 /** \} */
 
-/* Default threshold value for lesq baseline raim check. */
+/** Default threshold value for lesq baseline raim check. */
 #define DEFAULT_RAIM_THRESHOLD 5.5
 
 void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
