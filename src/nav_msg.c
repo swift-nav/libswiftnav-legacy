@@ -332,7 +332,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     BIT_POLARITY_INVERTED;
   if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
       && (prev_bit_polarity != n->bit_polarity)) {
-    log_error("PRN %02d Nav phase flip - half cycle slip detected, "
+    log_warn("PRN %02d Nav phase flip - half cycle slip detected, "
               "but not corrected\n", e->prn+1);
     /* TODO: declare phase ambiguity to IAR */
   }
