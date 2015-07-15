@@ -235,32 +235,36 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     else if (preamble_candidate == 0x74) {
        n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
     }
-
+    
     if (n->subframe_start_index) {
       // Looks like we found a preamble, but let's confirm.
       if (extract_word(n, 300, 8, 0) == 0x8B) {
         // There's another preamble in the following subframe.  Looks good so far.
         // Extract the TOW:
+        unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0));
+        /* (bit 29 is D30* for the second word, where the TOW resides) */
+        if (TOW_trunc < 7*24*60*10) {
+          /* TOW in valid range */
+          TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
+          if (TOW_trunc == 7*24*60*10)  // Handle end of week rollover
+            TOW_trunc = 0;
 
-        unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0)); // bit 29 is D30* for the second word, where the TOW resides.
-        TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
-        if (TOW_trunc >= 7*24*60*10)  // Handle end of week rollover
-          TOW_trunc = 0;
-
-        if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
-          // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
-
-          // The TOW in the message is for the start of the NEXT subframe.
-          // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
-          if (TOW_trunc)
-            TOW_ms = TOW_trunc * 6000 - (300-60)*20;
-          else  // end of week special case
-            TOW_ms = 7*24*60*60*1000 - (300-60)*20;
-
-        } else
-          n->subframe_start_index = 0;  // the TOW counts didn't match - disregard.
-      } else
-        n->subframe_start_index = 0;    // didn't find a second preamble in the right spot - disregard.
+          if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
+            // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
+            /* TODO: should still check parity? */
+            // The TOW in the message is for the start of the NEXT subframe.
+            // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
+            if (TOW_trunc == 0)
+              /* end-of-week special case */
+              TOW_ms = 7*24*60*60*1000 - (300-60)*20;
+            else
+              TOW_ms = TOW_trunc * 6000 - (300-60)*20;
+          }
+        }
+      }
+      /* If we didn't find a matching pair of preambles + TOWs, this offset can't be right. Move on. */
+      if (TOW_ms < 0)
+        n->subframe_start_index = 0;
     }
   }
   return TOW_ms;
