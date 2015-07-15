@@ -201,6 +201,11 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     return -2;
   }
 
+  if (n->subframe_bit_index >= NAV_MSG_SUBFRAME_BITS_LEN*32) {
+    log_error("subframe bit index gone wild %d\n", (int)n->subframe_bit_index);
+    return -22;
+  }
+  
   if (bit_val) {
     n->subframe_bits[n->subframe_bit_index >> 5] |= \
       1 << (31 - (n->subframe_bit_index & 0x1F));
