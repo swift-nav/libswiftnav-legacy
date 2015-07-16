@@ -416,9 +416,11 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   u8 *num_used, double b[3],
                   bool disable_raim, double raim_threshold)
 {
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
-               disable_raim, raim_threshold)
-        >= 0) {
+  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
+                    disable_raim, raim_threshold);
+  if (ret >= 0) {
+    if (ret == 1) /* TODO: Export this rather than just printing */
+      log_warn("dgnss_baseline: Fixed baseline RAIM repair\n");
     log_debug("fixed solution\n");
     DEBUG_EXIT();
     return 1;
