@@ -488,7 +488,7 @@ static s8 pvt_solve_raim(double rx_state[],
 const char *pvt_err_msg[] = {
   "PDOP too high",
   "Altitude unreasonable",
-  "ITAR lockout",
+  "Velocity >= 1000 kts",
   "RAIM repair attempted, failed",
   "RAIM repair impossible (not enough measurements)",
   "Took too long to converge",
@@ -508,7 +508,7 @@ const char *pvt_err_msg[] = {
  *   -  `0`: Solution converged and verified by RAIM
  *   - `-1`: PDOP is too high to yield a good solution.
  *   - `-2`: Altitude is unreasonable.
- *   - `-3`: Velocity is greater than 1000kts.
+ *   - `-3`: Velocity is greater than or equal to 1000 kts.
  *   - `-4`: RAIM check failed and repair was unsuccessful
  *   - `-5`: RAIM check failed and repair was impossible (not enough measurements)
  *   - `-6`: pvt_iter didn't converge
