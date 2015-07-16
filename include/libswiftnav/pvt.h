@@ -29,6 +29,17 @@ typedef struct {
 
 extern const char *pvt_err_msg[7];
 
+#define PVT_CONVERGED_NO_RAIM        2
+#define PVT_CONVERGED_RAIM_REPAIR    1
+#define PVT_CONVERGED_RAIM_OK        0
+#define PVT_PDOP_TOO_HIGH           -1
+#define PVT_BAD_ALTITUDE            -2
+#define PVT_VELOCITY_LOCKOUT        -3
+#define PVT_RAIM_REPAIR_FAILED      -4
+#define PVT_RAIM_REPAIR_IMPOSSIBLE  -5
+#define PVT_UNCONVERGED             -6
+#define PVT_INSUFFICENT_MEAS        -7
+
 typedef struct __attribute__((packed)) {
   /*
    * Be careful of stuct packing to avoid (very mild) slowness,

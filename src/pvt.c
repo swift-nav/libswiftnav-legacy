@@ -426,13 +426,13 @@ static s8 pvt_repair(double rx_state[],
  * \return Non-negative values indicate success; see below
  *         For negative values, refer to pvt_err_msg().
  * Return values:
- *    `-2`: solution ok, but raim check was not used
+ *    `2`: solution ok, but raim check was not used
  *        (exactly 4 measurements, or explicitly disabled)
  *
- *    `-1`: repaired solution, using one fewer observation
+ *    `1`: repaired solution, using one fewer observation
  *        returns prn of removed measurement if removed_prn ptr is passed
  *
- *    `-0`: inital solution ok
+ *    `0`: initial solution ok
  *
  *   - `-1`: repair failed
  *   - `-2`: not enough satellites to attempt repair
@@ -488,7 +488,7 @@ static s8 pvt_solve_raim(double rx_state[],
 const char *pvt_err_msg[] = {
   "PDOP too high",
   "Altitude unreasonable",
-  "ITAR lockout",
+  "Velocity >= 1000 kts",
   "RAIM repair attempted, failed",
   "RAIM repair impossible (not enough measurements)",
   "Took too long to converge",
@@ -502,11 +502,13 @@ const char *pvt_err_msg[] = {
  * \param disable_raim passing True will omit raim check/repair functionality
  * \param soln output solution struct
  * \param dops output doppler information
- * \return Non-negative values indicate success; refer to pvt_solve_raim.
- *         For negative values, refer to #pvt_err_msg.
+ * \return Non-negative values indicate a valid solution.
+ *   -  `2`: Solution converged but RAIM unavailable or disabled
+ *   -  `1`: Solution converged, failed RAIM but was successfully repaired
+ *   -  `0`: Solution converged and verified by RAIM
  *   - `-1`: PDOP is too high to yield a good solution.
  *   - `-2`: Altitude is unreasonable.
- *   - `-3`: Velocity is greater than 1000kts.
+ *   - `-3`: Velocity is greater than or equal to 1000 kts.
  *   - `-4`: RAIM check failed and repair was unsuccessful
  *   - `-5`: RAIM check failed and repair was impossible (not enough measurements)
  *   - `-6`: pvt_iter didn't converge
