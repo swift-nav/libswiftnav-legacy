@@ -427,9 +427,11 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if (baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
-               disable_raim, raim_threshold)
+  if ((ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
+                      disable_raim, raim_threshold))
         >= 0) {
+    if (ret == 1) /* TODO: Export this rather than just printing */
+      log_warn("dgnss_baseline: Float baseline RAIM repair\n");
     log_debug("float solution\n");
     DEBUG_EXIT();
     return 2;
