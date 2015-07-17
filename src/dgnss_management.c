@@ -438,7 +438,7 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
   log_debug("no baseline solution\n");
   DEBUG_EXIT();
-  return -1;
+  return ret;
 }
 
 void dgnss_reset_iar()
