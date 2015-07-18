@@ -279,8 +279,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  * \param sdiffs                     The sdiffs to pull measurements out of.
  * \param dd_meas  The output vector of DD measurements
  *                                   to be used to update the IAR.
- * \param sdiffs_out                 The sdiffs that correspond to the IAR PRNs.
- *                                   Should have length = num_dds+1.
+ * \param amb_sdiffs                 The sdiffs that correspond to the IAR PRNs.
  * \return 0 if the input sdiffs are superset of the IAR sats,
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
@@ -290,11 +289,6 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
   DEBUG_ENTRY();
-
-  /* Can't be a subset if num_dds+1 > num_sdiffs. */
-  if (num_dds >= num_sdiffs) {
-    return -1;
-  }
 
   if (DEBUG) {
     printf("ref_prn = %u\nnon_ref_prns = {", ref_prn);

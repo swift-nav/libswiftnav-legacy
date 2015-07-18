@@ -669,13 +669,6 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                   kf->decor_obs_mtx);
 }
 
-/** Currently this function is only used to find the index of a prn in a
- *  permuted basis, so all callsites assert the result is not -1.
- *  \param num_elements Size of list
- *  \param x the prn to search for
- *  \param list the prn list to search
- *  \return index of x in list, or -1 if no element is equal to x
- */
 s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list)
 {
   for (u32 i=0; i<num_elements; i++) {
@@ -695,15 +688,8 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  if (old_ref == new_ref) {
-    /* Nothing needs to be done; same basis. */
-    return;
-  }
-
   double new_mean[state_dim];
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
-  assert(index_of_new_ref_in_old != -1);
-
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats, new_ref, &old_prns[1]);
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
   for (u8 i=0; i<state_dim; i++) {
     u8 new_prn = new_prns[1+i];
@@ -711,8 +697,7 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
       new_mean[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prn, &old_prns[1]);
-      assert(index_of_this_sat_in_old_basis != -1);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats, new_prn, &old_prns[1]);
       new_mean[i] = mean[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
   }
@@ -730,22 +715,12 @@ static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
   u8 old_ref = old_prns[0];
   u8 new_ref = new_prns[0];
 
-  if (old_ref == new_ref) {
-    /* No rebase needs to occur, return identity. */
-    matrix_eye(state_dim, rebase_mtx);
-    return;
-  }
-
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
-  assert(index_of_new_ref_in_old != -1);
-  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(num_sats-1, old_ref, &new_prns[1]);
-  assert(index_of_old_ref_in_new != -1);
-
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(state_dim, new_ref, &old_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_element_in_u8s(state_dim, old_ref, &new_prns[1]);
   for (u8 i=0; i<state_dim; i++) {
     rebase_mtx[i*state_dim + index_of_new_ref_in_old] = -1;
     if (i != (u8) index_of_old_ref_in_new) {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prns[i+1], &old_prns[1]);
-      assert(index_of_this_sat_in_old_basis != -1);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(state_dim, new_prns[i+1], &old_prns[1]);
       rebase_mtx[i*state_dim + index_of_this_sat_in_old_basis] = 1;
     }
   }

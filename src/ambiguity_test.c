@@ -633,9 +633,7 @@ static void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it d
   u8 new_ref = new_prns[0];
 
   s32 new_N[num_sats-1];
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
-  assert(index_of_new_ref_in_old != -1);
-
+  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats, new_ref, &old_prns[1]);
   s32 val_for_new_ref_in_old_basis = hypothesis->N[index_of_new_ref_in_old];
   for (u8 i=0; i<num_sats-1; i++) {
     u8 new_prn = new_prns[1+i];
@@ -643,8 +641,7 @@ static void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it d
       new_N[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prn, &old_prns[1]);
-      assert(index_of_this_sat_in_old_basis != -1);
+      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats, new_prn, &old_prns[1]);
       new_N[i] = hypothesis->N[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
   }
