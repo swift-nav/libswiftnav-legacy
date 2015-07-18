@@ -59,5 +59,7 @@ void wgsned2ecef_d(const double ned[3], const double ref_ecef[3],
 void wgsecef2azel(const double ecef[3], const double ref_ecef[3],
                   double* azimuth, double* elevation);
 
+void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]);
+
 #endif /* LIBSWIFTNAV_COORD_SYSTEM_H */
 

@@ -217,15 +217,15 @@ void wgsecef2llh(const double ecef[3], double llh[3]) {
   llh[2] = (p*e_c*C + fabs(ecef[2])*S - WGS84_A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
 }
 
-/** Helper function which populates a provided 3x3 matrix with the
- * appropriate rotation matrix to transform from ECEF to NED coordinates,
- * given the provided ECEF reference vector.
+/** Populates a provided 3x3 matrix with the appropriate rotation
+ * matrix to transform from ECEF to NED coordinates, given the
+ * provided ECEF reference vector.
  *
  * \param ref_ecef Cartesian coordinates of reference vector, passed as
  *                 [X, Y, Z], all in meters.
  * \param M        3x3 matrix to be populated with rotation matrix.
  */
-static void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
+void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
   double hyp_az, hyp_el;
   double sin_el, cos_el, sin_az, cos_az;
 
