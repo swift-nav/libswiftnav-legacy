@@ -109,6 +109,42 @@ START_TEST(test_disable_pvt_raim)
 }
 END_TEST
 
+START_TEST(test_dops)
+{
+  u8 n_used = 6;
+  gnss_solution soln;
+  dops_t dops = {.pdop = 22, .gdop = 22, .tdop = 22, .hdop = 22, .vdop = 22};
+  dops_t truedops = {.pdop = 2.69955, .gdop = 3.07696, .tdop = 1.47652,
+                     .hdop = 1.75922, .vdop = 2.04761};
+
+  const double dop_tol = 1e-3;
+  
+  navigation_measurement_t nms[6] =
+    {nm1, nm2, nm3, nm4, nm5, nm6};
+
+  /* disable raim check */
+  s8 code = calc_PVT(n_used, nms, false, &soln, &dops);
+  fail_unless(code >= 0,
+    "Return code should be >=0 (success). Saw: %d\n", code);
+  fail_unless(soln.valid == 1,
+    "Solution should be valid!");
+  fail_unless(fabs(dops.pdop * dops.pdop -
+                   (dops.vdop * dops.vdop + dops.hdop * dops.hdop))
+              < dop_tol,
+              "HDOP^2 + VDOP^2 != PDOP^2.  Saw: %.5f, %.5f, %.5f, %.5f, %.5f\n",
+              dops.pdop, dops.gdop, dops.tdop, dops.hdop, dops.vdop);
+  double dop_err = fabs(dops.pdop - truedops.pdop)
+                 + fabs(dops.gdop - truedops.gdop)
+                 + fabs(dops.tdop - truedops.tdop)
+                 + fabs(dops.hdop - truedops.hdop)
+                 + fabs(dops.vdop - truedops.vdop);
+  fail_unless(dop_err < dop_tol,
+              "DOPs don't match hardcoded correct values.  "
+              "Saw: %.5f, %.5f, %.5f, %.5f, %.5f\n",
+              dops.pdop, dops.gdop, dops.tdop, dops.hdop, dops.vdop);
+}
+END_TEST
+
 
 Suite* pvt_test_suite(void)
 {
@@ -118,6 +154,7 @@ Suite* pvt_test_suite(void)
   tcase_add_test(tc_core, test_pvt_repair);
   tcase_add_test(tc_core, test_pvt_failed_repair);
   tcase_add_test(tc_core, test_disable_pvt_raim);
+  tcase_add_test(tc_core, test_dops);
   suite_add_tcase(s, tc_core);
 
   return s;
