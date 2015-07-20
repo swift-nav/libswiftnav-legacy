@@ -39,6 +39,8 @@ void dmtx_printi(s32 *mtx, u32 m, u32 n);
 void submatrix(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
                const u32 *new_row_to_old, const u32 *new_col_to_old,
                double *new);
+void submatrix_ul(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
+                  double *new);
 s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r);
 s32 qrdecomp(const double *a, u32 rows, u32 cols, double *qt, double *r);
 void qtmult(const double *qt, u32 n, const double *b, double *x);

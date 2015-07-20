@@ -67,33 +67,28 @@ static void compute_dops(const double H[4][4],
                          const double pos_ecef[3],
                          dops_t *dops)
 {
-  double H_pos_diag[3];
-  double H_ned[3];
-
-  dops->gdop = dops->pdop = dops->tdop = dops->hdop = dops->vdop = 0;
-
   /* PDOP is the norm of the position elements of tr(H) */
-  for (u8 i=0; i<3; i++) {
-    dops->pdop += H[i][i];
-    /* Also get the trace of H position states for use in HDOP/VDOP
-     * calculations.
-     */
-    H_pos_diag[i] = H[i][i];
-  }
-  dops->pdop = sqrt(dops->pdop);
+  double pdop_sq = H[0][0] + H[1][1] + H[2][2];
+  dops->pdop = sqrt(pdop_sq);
 
   /* TDOP is like PDOP but for the time state. */
   dops->tdop = sqrt(H[3][3]);
 
   /* Calculate the GDOP -- ||tr(H)|| = sqrt(PDOP^2 + TDOP^2) */
-  dops->gdop = sqrt(dops->tdop*dops->tdop + dops->pdop*dops->pdop);
+  dops->gdop = sqrt(pdop_sq + H[3][3]);
 
-  /* HDOP and VDOP are Horizontal and Vertical; we need to rotate the
-   * PDOP into NED frame and then take the separate components.
-   */
-  wgsecef2ned(H_pos_diag, pos_ecef, H_ned);
-  dops->vdop = sqrt(H_ned[2]*H_ned[2]);
-  dops->hdop = sqrt(H_ned[0]*H_ned[0] + H_ned[1]*H_ned[1]);
+  /* HDOP and VDOP are Horizontal and Vertical; we need to rotate H
+   * into NED frame and then take the separate components. */
+  double M[3][3], Mt[3][3];
+  double H_3x3[3][3], HM[3][3], H_ned[3][3];
+  /* TODO: save a little CPU by taking advantage of symmetry */
+  submatrix_ul(3, 3, 4, (double *)H, (double *)H_3x3);
+  ecef2ned_matrix(pos_ecef, M);
+  matrix_transpose(3, 3, (double *)M, (double *)Mt);
+  matrix_multiply(3, 3, 3, (double *)M, (double *)H_3x3, (double *)HM);
+  matrix_multiply(3, 3, 3, (double *)HM, (double *)Mt, (double *)H_ned);
+  dops->hdop = sqrt(H_ned[0][0] + H_ned[1][1]);
+  dops->vdop = sqrt(H_ned[2][2]);
 }
 
 
@@ -175,7 +170,7 @@ static double pvt_solve(double rx_state[],
     /* Rotation of Earth during time of flight in radians. */
     double wEtau = GPS_OMEGAE_DOT * tau;
 
-    /* Apply linearlised rotation about Z-axis which will adjust for the
+    /* Apply linearised rotation about Z-axis which will adjust for the
      * satellite's position at time t-tau. Note the rotation is through
      * -wEtau because it is the ECEF frame that is rotating with the Earth and
      * hence in the ECEF frame free falling bodies appear to rotate in the

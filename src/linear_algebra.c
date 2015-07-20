@@ -70,6 +70,24 @@ void submatrix(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
   }
 }
 
+/** Extract the submatrix B at the upper-left corner of matrix A.
+ *
+ *  \param new_rows     How many rows in B
+ *  \param new_cols     How many cols in B
+ *  \param old_cols     How many cols in A
+ *  \param old          Input matrix A
+ *  \param new          Output matrix B
+ */
+void submatrix_ul(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
+                  double *new)
+{
+  for (u32 i = 0; i < new_rows; i++) {
+    for (u32 j = 0; j < new_cols; j++) {
+      new[i*new_cols + j] = old[i*old_cols + j];
+    }
+  }
+}
+
 /** QR decomposition of a square matrix.
  * Compute the QR decomposition of a square matrix \f$ A \in
  * \mathbb{R}^{N \times N} \f$: \f$ A = Q \cdot R \f$ where \f$ Q \in
