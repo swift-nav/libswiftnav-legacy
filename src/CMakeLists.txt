@@ -15,6 +15,7 @@ set_source_files_properties(${plover_SRCS} PROPERTIES GENERATED TRUE)
 set_source_files_properties(${plover_HDRS} PROPERTIES GENERATED TRUE)
 
 set(libswiftnav_SRCS
+  logging.c
   ephemeris.c
   nav_msg.c
   pvt.c
