@@ -61,7 +61,7 @@ extern void log_(u8 level, const char *msg, ...);
 #define log_debug(args...)  \
 do {                        \
   if (DEBUG) {              \
-    log_(LOG_DEBUG, args); \
+    log_(LOG_DEBUG, args);  \
   }                         \
 } while (0)
 
