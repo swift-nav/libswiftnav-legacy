@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_LOGGING_H
 #define LIBSWIFTNAV_LOGGING_H
 
-#include <stdio.h>
+#include "common.h"
 
 /* DEBUG off by default, enable it on a per-file basis. */
 #ifndef DEBUG
@@ -31,20 +31,27 @@
  *
  * \{ */
 
+extern void log_(u8 level, const char *msg, ...);
+
+#define LOG_DEBUG 0
+#define LOG_INFO  1
+#define LOG_WARN  2
+#define LOG_ERROR 3
+
 /** Log an error.
  * \param args `printf` style format and arguments.
  */
-#define log_error(args...) printf("ERROR: " args)
+#define log_error(args...) log_(LOG_ERROR, args)
 
 /** Log a warning.
  * \param args `printf` style format and arguments.
  */
-#define log_warn(args...)  printf("WARNING: " args)
+#define log_warn(args...)  log_(LOG_WARN, args)
 
 /** Log an information message.
  * \param args `printf` style format and arguments.
  */
-#define log_info(args...)  printf("INFO: " args)
+#define log_info(args...)  log_(LOG_INFO, args)
 
 /** Log a debugging message.
  * \param args `printf` style format and arguments.
@@ -52,7 +59,7 @@
 #define log_debug(args...)  \
 do {                        \
   if (DEBUG) {              \
-    printf("DEBUG: " args); \
+    log_(LOG_DEBUG, args); \
   }                         \
 } while (0)
 
