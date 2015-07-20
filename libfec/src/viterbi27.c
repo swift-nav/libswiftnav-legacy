@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include "fec.h"
 
+static union branchtab27 Branchtab27[2] __attribute__ ((aligned(16)));
+
 void set_viterbi27_polynomial(int polys[2])
 {
   int state;

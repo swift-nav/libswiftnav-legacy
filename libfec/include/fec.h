@@ -22,9 +22,9 @@ typedef union {
   unsigned long w[2];
 } decision_t;
 
-static union branchtab27 {
+union branchtab27 {
   unsigned char c[32];
-} Branchtab27[2] __attribute__ ((aligned(16)));
+};
 
 /* State info for instance of Viterbi decoder
  */

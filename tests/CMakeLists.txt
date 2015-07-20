@@ -11,8 +11,7 @@ else (CMAKE_CROSSCOMPILING)
     include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
 
     include_directories(${CHECK_INCLUDE_DIRS})
-    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapack cblas m)
-
+    set(TEST_LIBS ${TEST_LIBS} ${CHECK_LIBRARIES} pthread swiftnav lapack cblas m fec)
     # Check needs to be linked against Librt on Linux
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       set(TEST_LIBS ${TEST_LIBS} rt)
@@ -20,6 +19,7 @@ else (CMAKE_CROSSCOMPILING)
 
     include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
     include_directories("${PROJECT_SOURCE_DIR}/src")
+    include_directories("${PROJECT_SOURCE_DIR}/libfec/include")
 
     add_executable(test_libswiftnav
       check_main.c
@@ -40,6 +40,7 @@ else (CMAKE_CROSSCOMPILING)
       check_filter_utils.c
       check_ephemeris.c
       check_set.c
+      check_viterbi.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})
@@ -48,6 +49,8 @@ else (CMAKE_CROSSCOMPILING)
       COMMENT "Running unit tests"
       COMMAND test_libswiftnav
     )
+    file(COPY waas_check.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+    file(COPY waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
