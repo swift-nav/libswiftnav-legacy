@@ -77,18 +77,20 @@ static void compute_dops(const double H[4][4],
   /* Calculate the GDOP -- ||tr(H)|| = sqrt(PDOP^2 + TDOP^2) */
   dops->gdop = sqrt(pdop_sq + H[3][3]);
 
-  /* HDOP and VDOP are Horizontal and Vertical; we need to rotate H
-   * into NED frame and then take the separate components. */
-  double M[3][3], Mt[3][3];
-  double H_3x3[3][3], HM[3][3], H_ned[3][3];
-  /* TODO: save a little CPU by taking advantage of symmetry */
-  submatrix_ul(3, 3, 4, (double *)H, (double *)H_3x3);
+  /* HDOP and VDOP are Horizontal and Vertical.  We could rotate H
+   * into NED frame and then take the separate components, but a more
+   * computationally efficient approach is to find the vector in the
+   * ECEF frame that represents the Down unit vector, and project it
+   * through H.  That gives us VDOP^2, then we find HDOP from the
+   * relation PDOP^2 = HDOP^2 + VDOP^2. */
+  double M[3][3];
   ecef2ned_matrix(pos_ecef, M);
-  matrix_transpose(3, 3, (double *)M, (double *)Mt);
-  matrix_multiply(3, 3, 3, (double *)M, (double *)H_3x3, (double *)HM);
-  matrix_multiply(3, 3, 3, (double *)HM, (double *)Mt, (double *)H_ned);
-  dops->hdop = sqrt(H_ned[0][0] + H_ned[1][1]);
-  dops->vdop = sqrt(H_ned[2][2]);
+  double down_ecef[4] = {M[2][0], M[2][1], M[2][2], 0};
+  double tmp[3];
+  matrix_multiply(3, 4, 1, (double *)H, down_ecef, tmp);
+  double vdop_sq = vector_dot(3, down_ecef, tmp);
+  dops->vdop = sqrt(vdop_sq);
+  dops->hdop = sqrt(pdop_sq - vdop_sq);
 }
 
 
