@@ -94,16 +94,17 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
     memcpy(old_prns, prns, num_sats * sizeof(u8));
     u8 set_old_yet = 0;
     prns[0] = ref_prn;
-    for (u8 i=1; i<num_sats; ) {
+    for (u8 i=1; i<num_sats; i++) {
       if (old_prns[i] != ref_prn) {
         if (old_prns[i]>old_ref && set_old_yet == 0) {
           prns[j] = old_ref;
           j++;
+          i--;
           set_old_yet++;
         }
         else {
           prns[j] = old_prns[i];
-          i++, j++;
+          j++;
         }
       }
     }
@@ -135,16 +136,17 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
     memcpy(old_prns, sats_management->prns, sats_management->num_sats * sizeof(u8));
     u8 set_old_yet = 0;
     sats_management->prns[0] = ref_prn;
-    for (u8 i=1; i<sats_management->num_sats; ) {
+    for (u8 i=1; i<sats_management->num_sats; i++) {
       if (old_prns[i] != ref_prn) {
         if (old_prns[i]>old_ref && set_old_yet == 0) {
           sats_management->prns[j] = old_ref;
           j++;
+          i--;
           set_old_yet++;
         }
         else {
           sats_management->prns[j] = old_prns[i];
-          i++, j++;
+          j++;
         }
       }
     }
