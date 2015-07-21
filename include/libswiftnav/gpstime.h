@@ -45,6 +45,7 @@ gps_time_t normalize_gps_time(gps_time_t);
 time_t gps2time(gps_time_t t);
 
 double gpsdifftime(gps_time_t end, gps_time_t beginning);
+void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
 
 #endif /* LIBSWIFTNAV_TIME_H */
 
