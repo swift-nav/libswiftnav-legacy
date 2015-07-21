@@ -767,12 +767,10 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
     TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
 
-    /** \todo Handle GPS time properly here, e.g. week rollover */
-    nav_meas[i]->tot.wn = ephemerides[i]->toe.wn;
+    /** \todo Maybe keep track of week number in tracking channel
+        state or derive it from system time. */
     nav_meas[i]->tot.tow = TOTs[i];
-
-    if (gpsdifftime(nav_meas[i]->tot, ephemerides[i]->toe) > 3*24*3600)
-      nav_meas[i]->tot.wn -= 1;
+    gps_time_match_weeks(&nav_meas[i]->tot, &ephemerides[i]->toe);
 
     nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;

@@ -83,3 +83,19 @@ double gpsdifftime(gps_time_t end, gps_time_t beginning)
   }
   return dt;
 }
+
+/** Set the week number of t so as to minimize the magnitude of the
+ * time difference between t and ref.
+ *
+ * \param t Pointer to GPS time whose week number will be set
+ * \param ref Reference GPS time
+ */
+void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref)
+{
+  t->wn = ref->wn;
+  double dt = t->tow - ref->tow;
+  if (dt > WEEK_SECS / 2)
+    t->wn--;
+  else if (dt < -WEEK_SECS / 2)
+    t->wn++;
+}
