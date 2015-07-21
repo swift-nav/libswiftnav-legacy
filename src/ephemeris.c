@@ -20,6 +20,9 @@
 #include "constants.h"
 #include "ephemeris.h"
 
+#define EPHEMERIS_VALID_TIME (4*60*60) /* seconds +/- from epoch.
+                                          TODO: should be 2 hrs? */
+
 /** Calculate satellite position, velocity and clock offset from ephemeris.
  *
  * References:
@@ -59,8 +62,8 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
   dt = gpsdifftime(t, ephemeris->toe);
 
   /* If dt is greater than 4 hours our ephemeris isn't valid. */
-  if (fabs(dt) > 4*3600) {
-    log_warn("Using ephemeris older (or newer!) than 4 hours.\n");
+  if (fabs(dt) > EPHEMERIS_VALID_TIME) {
+    log_error("Using ephemeris outside validity period, dt = %+.0f\n", dt);
     return -1;
   }
 
@@ -168,7 +171,7 @@ u8 ephemeris_good(ephemeris_t *eph, gps_time_t t)
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  return (eph->valid && eph->healthy && fabs(dt) < 4*3600);
+  return (eph->valid && eph->healthy && fabs(dt) < EPHEMERIS_VALID_TIME);
 }
 
 /** Decode ephemeris from L1 C/A GPS navigation message frames.
