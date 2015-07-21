@@ -77,6 +77,10 @@ typedef struct __attribute__((packed)) {
   u8 valid;
   /* Number of channels used in the soluton. */
   u8 n_used;
+  /* bit 0: raim available?
+   * bit 1: raim repair used?
+   */
+  u8 raim_flag;
 } gnss_solution;
 
 s8 calc_PVT(const u8 n_used,
