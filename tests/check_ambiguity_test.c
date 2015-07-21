@@ -133,10 +133,12 @@ START_TEST(test_ambiguity_update_reference)
                                         .prns = {3,1,2,4}}};
   create_empty_ambiguity_test(&amb_test);
 
+  amb_test.sats.num_sats = 4;
+
   sdiff_t sdiffs[4] = {{.prn = 1, .snr = 0},
                        {.prn = 2, .snr = 0},
                        {.prn = 4, .snr = 1}};
-  u8 num_sdiffs = 4;
+  u8 num_sdiffs = 3;
 
   for (u32 i=0; i<3; i++) {
     hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
