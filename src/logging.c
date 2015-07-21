@@ -18,7 +18,16 @@
  * Logging functions.
  * \{ */
 
-const char *level_string[] = {"DEBUG", "INFO", "WARNING", "ERROR"};
+const char *level_string[] = {
+  "EMERGENCY",
+  "ALERT",
+  "CRITICAL",
+  "ERROR",
+  "WARNING",
+  "NOTICE",
+  "INFO",
+  "DEBUG",
+};
 
 /** Log message by level.
  *
