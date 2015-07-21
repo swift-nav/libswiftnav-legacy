@@ -62,6 +62,7 @@ s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_update_ambiguity_state(ambiguity_state_t *s);
+u8 baseline_flag(s8 ret, bool fixed);
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
                   u8 *num_used, double b[3],
