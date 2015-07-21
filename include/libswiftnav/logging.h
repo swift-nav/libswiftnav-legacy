@@ -35,10 +35,29 @@
 
 extern void log_(u8 level, const char *msg, ...) __attribute__ ((weak));
 
-#define LOG_DEBUG 0
-#define LOG_INFO  1
-#define LOG_WARN  2
-#define LOG_ERROR 3
+#define LOG_EMERG       0       /* system is unusable */
+#define LOG_ALERT       1       /* action must be taken immediately */
+#define LOG_CRIT        2       /* critical conditions */
+#define LOG_ERROR       3       /* error conditions */
+#define LOG_WARN        4       /* warning conditions */
+#define LOG_NOTICE      5       /* normal but significant condition */
+#define LOG_INFO        6       /* informational */
+#define LOG_DEBUG       7       /* debug-level messages */
+
+/** Log an emergency.
+ * \param args `printf` style format and arguments.
+ */
+#define log_emerg(args...) log_(LOG_EMERG, args)
+
+/** Log an alert.
+ * \param args `printf` style format and arguments.
+ */
+#define log_alert(args...) log_(LOG_ALERT, args)
+
+/** Log a critical event.
+ * \param args `printf` style format and arguments.
+ */
+#define log_crit(args...) log_(LOG_CRIT, args)
 
 /** Log an error.
  * \param args `printf` style format and arguments.
@@ -49,6 +68,11 @@ extern void log_(u8 level, const char *msg, ...) __attribute__ ((weak));
  * \param args `printf` style format and arguments.
  */
 #define log_warn(args...)  log_(LOG_WARN, args)
+
+/** Log a notice.
+ * \param args `printf` style format and arguments.
+ */
+#define log_notice(args...)  log_(LOG_NOTICE, args)
 
 /** Log an information message.
  * \param args `printf` style format and arguments.
