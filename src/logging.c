@@ -12,7 +12,7 @@
 
 #include "logging.h"
 
-void log_default(u8 level, const char *msg, ...)
+void log_(u8 level, const char *msg, ...)
 {
   (void)level;
   (void)msg;

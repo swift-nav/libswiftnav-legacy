@@ -8,11 +8,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-if (APPLE)
-  # Mac-specific flag for weak log_ reference
-  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-U,_log_")
-endif ()
-
 # Setup flags for Code Coverage build mode
 set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage" CACHE STRING
     "Flags used by the C++ compiler for building with code coverage."
