@@ -23,6 +23,7 @@ set(libswiftnav_SRCS
   correlate.c
   coord_system.c
   linear_algebra.c
+  logging.c
   prns.c
   almanac.c
   gpstime.c

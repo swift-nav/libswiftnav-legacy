@@ -33,7 +33,13 @@
  *
  * \{ */
 
+#ifdef __APPLE__
 extern void log_(u8 level, const char *msg, ...);
+#else
+extern void log_(u8 level, const char *msg, ...) __attribute__ ((weak, alias ("_log_default")));
+#endif
+
+void log_default(u8 level, const char *msg, ...);
 
 #define LOG_DEBUG 0
 #define LOG_INFO  1
