@@ -10,10 +10,29 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdarg.h>
+
 #include "logging.h"
 
+/** \defgroup logging Logging
+ * Logging functions.
+ * \{ */
+
+const char *level_string[] = {"DEBUG", "INFO", "WARNING", "ERROR"};
+
+/** Log message by level.
+ *
+ * \param level Log level
+ * \param msg Log contents
+ */
 void log_(u8 level, const char *msg, ...)
 {
-  (void)level;
-  (void)msg;
+  va_list ap;
+
+  printf("%s: ", level_string[level]);
+  va_start(ap, msg);
+  vprintf(msg, ap);
+  va_end(ap);
 }
+
+/* \} */
