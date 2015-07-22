@@ -12,7 +12,6 @@
  */
 #define V27POLYA  0x4f
 #define V27POLYB  0x6d
-#define SBAS_BLK_LEN 250
 
 typedef union {
   unsigned int w[64];
@@ -33,13 +32,13 @@ struct v27 {
   metric_t metrics2; /* path metric buffer 2 */
   decision_t *dp;          /* Pointer to current decision */
   metric_t *old_metrics,*new_metrics; /* Pointers to path metrics, swapped on every bit */
-  decision_t decisions[SBAS_BLK_LEN * 6 + 6];   /* Beginning of decisions for block */
+  decision_t *decisions;   /* Beginning of decisions for block */
 };
 
-void *create_viterbi27(int len);
-void set_viterbi27_polynomial(int polys[2]);
+void set_decisions_viterbi27(struct v27 *vp, decision_t *dec);
 void init_viterbi27(struct v27 *vp, int starting_state);
-int update_viterbi27_blk(struct v27 *p, unsigned char sym[], int npairs);
+void set_viterbi27_polynomial(int polys[2]);
+int update_viterbi27_blk(struct v27 *p, const unsigned char sym[], int npairs);
 int chainback_viterbi27(struct v27 *p, unsigned char *data, unsigned int nbits,
                         unsigned int endstate);
 

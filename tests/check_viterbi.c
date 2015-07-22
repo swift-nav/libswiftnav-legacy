@@ -43,6 +43,7 @@ START_TEST(test_viterbi27)
   FILE *waas_data = NULL;
   FILE *tmp = NULL;
   FILE *check = NULL;
+  decision_t decisions[250 * 6];
 
   int output = open ("tmp.bin", O_WRONLY | O_CREAT, 0644);
   waas_data = fopen("waas_data.bin", "r");
@@ -72,6 +73,7 @@ START_TEST(test_viterbi27)
       buffer[i] = 0x00;
   }
 
+  set_decisions_viterbi27(&vp, decisions);
   init_viterbi27(&vp, 0);
   update_viterbi27_blk(&vp, buffer, 250 * 6);
   chainback_viterbi27(&vp, data, 250 * 6, 0);

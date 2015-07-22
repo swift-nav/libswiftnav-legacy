@@ -89,7 +89,7 @@ unsigned int metric,m0,m1,decision;\
  * Note that nbits is the number of decoded data bits, not the number
  * of symbols!
  */
-int update_viterbi27_blk(struct v27 *vp, unsigned char *syms, int nbits)
+int update_viterbi27_blk(struct v27 *vp, const unsigned char *syms, int nbits)
 {
   void *tmp;
   decision_t *d;
@@ -148,4 +148,10 @@ int update_viterbi27_blk(struct v27 *vp, unsigned char *syms, int nbits)
 
   vp->dp = d;
   return 0;
+}
+
+
+void set_decisions_viterbi27(struct v27 *vp, decision_t *dec)
+{
+  vp->decisions = dec;
 }
