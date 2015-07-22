@@ -34,6 +34,7 @@ cdef extern from "libswiftnav/pvt.h":
 
   u8 calc_PVT(u8 n_used,
               navigation_measurement_t nav_meas[],
+              u8 disable_raim,
               gnss_solution *soln,
               dops_t *dops)
 

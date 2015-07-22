@@ -61,7 +61,8 @@ def dgnss_update(sdiffs,
     s_ = (<SingleDiff> sdiff).sdiff
     memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
 
-  dgnss_management_c.dgnss_update(num_sdiffs, &sdiffs_[0], &ref_ecef_[0])
+  dgnss_management_c.dgnss_update(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
+                                  False, DEFAULT_RAIM_THRESHOLD);
 
 def dgnss_iar_resolved():
   return dgnss_management_c.dgnss_iar_resolved() > 0
@@ -109,7 +110,8 @@ def dgnss_baseline(sdiffs, ref_ecef, AmbiguityState s):
     np.empty(3, dtype=np.double)
   cdef s8 flag = dgnss_management_c.dgnss_baseline(num_sdiffs, &sdiffs_[0],
                   &ref_ecef_[0], &s.ambiguity_state,
-                  &num_used, &b[0])
+                  &num_used, &b[0],
+                  False, DEFAULT_RAIM_THRESHOLD);
   return flag, num_used, b
 
 
@@ -123,7 +125,8 @@ def dgnss_fixed_baseline(sdiffs, ref_ecef, AmbiguityState s):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
   cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
-                     &s.ambiguity_state.fixed_ambs, &num_used, &b[0]);
+                     &s.ambiguity_state.fixed_ambs, &num_used, &b[0],
+                     False, DEFAULT_RAIM_THRESHOLD);
   return flag, num_used, b
 
 def dgnss_float_baseline(sdiffs, ref_ecef, AmbiguityState s):
@@ -136,7 +139,8 @@ def dgnss_float_baseline(sdiffs, ref_ecef, AmbiguityState s):
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] b = \
     np.empty(3, dtype=np.double)
   cdef s8 flag = dgnss_management_c.baseline(num_sdiffs, &sdiffs_[0], &ref_ecef_[0],
-                     &s.ambiguity_state.float_ambs, &num_used, &b[0]);
+                     &s.ambiguity_state.float_ambs, &num_used, &b[0],
+                     False, DEFAULT_RAIM_THRESHOLD);
   return flag, num_used, b
 
 def measure_float_b(sdiffs, reciever_ecef): #TODO eventually, want to get reciever_ecef from data
