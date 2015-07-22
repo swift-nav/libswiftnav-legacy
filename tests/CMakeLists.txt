@@ -36,6 +36,7 @@ else (CMAKE_CROSSCOMPILING)
       check_rtcm3.c
       check_coord_system.c
       check_linear_algebra.c
+      check_sats_management.c
       check_ambiguity_test.c
       check_filter_utils.c
       check_ephemeris.c

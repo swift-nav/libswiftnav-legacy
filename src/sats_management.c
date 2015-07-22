@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,8 +80,10 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   return n;
 }
 
-/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first
+/** Updates the ref prn for a sorted prn array.
+ *  Inserts the old ref prn so the tail of the array is sorted.
  */
+/* TODO use the set abstraction fnoble is working on. */
 void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 {
   u8 old_ref = prns[0];
@@ -97,23 +100,27 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
           prns[j] = old_ref;
           j++;
           i--;
-          set_old_yet = 1;
+          set_old_yet++;
         }
         else {
           prns[j] = old_prns[i];
           j++;
         }
       }
-      else if (i == num_sats-1) {
-        prns[j] = old_ref;
-      }
     }
+    if (set_old_yet == 0) {
+      prns[j] = old_ref;
+      set_old_yet++;
+    }
+    assert(set_old_yet == 1);
   }
 }
 
 
 /** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
+ *  Inserts the old ref prn so the tail of the sats_management array is sorted.
  */
+/* TODO use the set abstraction fnoble is working on. */
 static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
                               const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -135,18 +142,21 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
           sats_management->prns[j] = old_ref;
           j++;
           i--;
-          set_old_yet = 1;
+          set_old_yet++;
         }
         else {
           sats_management->prns[j] = old_prns[i];
           j++;
         }
       }
-      else if (i == sats_management->num_sats-1) {
-        sats_management->prns[j] = old_ref;
-      }
     }
+    if (set_old_yet == 0) {
+      sats_management->prns[j] = old_ref;
+      set_old_yet++;
+    }
+    assert(set_old_yet == 1);
   }
+
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn != ref_prn) {
@@ -240,7 +250,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   }
   else {
     sdiff_t intersection_sats[num_sdiffs];
-    u8 num_intersection = intersect_sats(sats_management->num_sats, num_sdiffs,
+    u8 num_intersection = intersect_sats(sats_management->num_sats-1, num_sdiffs,
                                          &(sats_management->prns[1]), sdiffs, intersection_sats);
     if (num_intersection < INTERSECTION_SATS_THRESHOLD_SIZE) {
       DEBUG_EXIT();

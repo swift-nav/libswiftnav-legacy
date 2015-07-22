@@ -12,6 +12,7 @@ Suite* bits_suite(void);
 Suite* memory_pool_suite(void);
 Suite* edc_suite(void);
 Suite* linear_algebra_suite(void);
+Suite* sats_management_test_suite(void);
 Suite* ambiguity_test_suite(void);
 Suite* filter_utils_suite(void);
 Suite* ephemeris_suite(void);
