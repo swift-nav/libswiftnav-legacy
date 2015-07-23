@@ -18,7 +18,7 @@ typedef union {
 } metric_t;
 
 typedef union {
-  unsigned long w[2];
+  unsigned int w[2];
 } decision_t;
 
 union branchtab27 {
