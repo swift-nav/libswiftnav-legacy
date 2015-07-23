@@ -412,6 +412,21 @@ u8 baseline_flag(s8 ret, bool fixed)
        | fixed;           /* Fixed mode? */
 }
 
+u8 flag_raim_repaired(u8 flag)
+{
+  return flag & (1 << 4);
+}
+
+u8 flag_raim_available(u8 flag)
+{
+  return flag & (1 << 3);
+}
+
+u8 flag_fixed_mode(u8 flag)
+{
+  return flag & 1;
+}
+
 /** Finds the baseline using low latency sdiffs.
  * The low latency sdiffs are not guaranteed to match up with either the
  * amb_test's or the float sdiffs, and thus care must be taken to transform them
