@@ -39,11 +39,11 @@ typedef struct {
 
 /** \} */
 
-void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
+void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
                             double pos[3], double vel[3]);
-void calc_sat_az_el_almanac(almanac_t* alm, double t, s16 week,
+void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
                             double ref[3], double* az, double* el);
-double calc_sat_doppler_almanac(almanac_t* alm, double t, s16 week,
+double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
                                 double ref[3]);
 
 #endif /* LIBSWIFTNAV_ALMANAC_H */
