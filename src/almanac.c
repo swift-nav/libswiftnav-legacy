@@ -36,7 +36,7 @@
  * \param vel  The satellite velocity in ECEF coordinates is returned in this
  *             vector. Ignored if NULL.
  */
-void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
+void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
                             double pos[3], double vel[3])
 {
   /* Seconds since the almanac reference epoch. */
@@ -135,8 +135,8 @@ void calc_sat_state_almanac(almanac_t* alm, double t, s16 week,
  * \param az   Pointer to where to store the calculated azimuth output.
  * \param el   Pointer to where to store the calculated elevation output.
  */
-void calc_sat_az_el_almanac(almanac_t* alm, double t, s16 week,
-                            double ref[3], double* az, double* el)
+void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
+                            const double ref[3], double* az, double* el)
 {
   double sat_pos[3];
   calc_sat_state_almanac(alm, t, week, sat_pos, 0);
@@ -155,8 +155,8 @@ void calc_sat_az_el_almanac(almanac_t* alm, double t, s16 week,
  *             meters.
  * \return     The Doppler shift in Hz.
  */
-double calc_sat_doppler_almanac(almanac_t* alm, double t, s16 week,
-                                double ref[3])
+double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
+                                const double ref[3])
 {
   double sat_pos[3];
   double sat_vel[3];
