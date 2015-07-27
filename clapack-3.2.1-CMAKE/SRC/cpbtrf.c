@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -31,7 +32,15 @@ static integer c__33 = 33;
 
     /* Local variables */
     integer i__, j, i2, i3, ib, nb, ii, jj;
-    complex work[1056]	/* was [33][32] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+	    complex work[1]	/* was [33][32] */;
+	    /** This function uses too much memory, so we stopped allocating the memory
+	     * above and assert false here. */
+	    assert(0 && "cpbtrf_ was called. This function allocates too much"
+	                " memory and has been disabled.");
+    #else
+      complex work[1056]	/* was [33][32] */;
+    #endif
     extern /* Subroutine */ int cgemm_(char *, char *, integer *, integer *, 
 	    integer *, complex *, complex *, integer *, complex *, integer *, 
 	    complex *, complex *, integer *), cherk_(char *, 

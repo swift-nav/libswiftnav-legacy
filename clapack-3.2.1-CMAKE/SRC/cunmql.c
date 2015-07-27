@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -35,7 +36,15 @@ static integer c__65 = 65;
 
     /* Local variables */
     integer i__;
-    complex t[4160]	/* was [65][64] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      complex t[1]  /* was [65][64] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "cunmql_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      complex t[4160]	/* was [65][64] */;
+    #endif
     integer i1, i2, i3, ib, nb, mi, ni, nq, nw, iws;
     logical left;
     extern logical lsame_(char *, char *);

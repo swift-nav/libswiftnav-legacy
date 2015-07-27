@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -31,7 +32,15 @@ static integer c__33 = 33;
 
     /* Local variables */
     integer i__, j, i2, i3, ib, nb, ii, jj;
-    doublecomplex work[1056]	/* was [33][32] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      doublecomplex work[1]	/* was [33][32] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "zpbtrf_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+    	doublecomplex work[1056]	/* was [33][32] */;
+    #endif
     extern logical lsame_(char *, char *);
     extern /* Subroutine */ int zgemm_(char *, char *, integer *, integer *, 
 	    integer *, doublecomplex *, doublecomplex *, integer *, 

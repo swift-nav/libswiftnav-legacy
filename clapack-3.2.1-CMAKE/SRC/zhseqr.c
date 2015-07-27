@@ -12,6 +12,7 @@
 
 #include "f2c.h"
 #include "blaswrap.h"
+#include "assert.h"
 
 /* Table of constant values */
 
@@ -38,7 +39,15 @@ static integer c__49 = 49;
     /* Subroutine */ int s_cat(char *, char **, integer *, integer *, ftnlen);
 
     /* Local variables */
-    doublecomplex hl[2401]	/* was [49][49] */;
+    #ifdef LAPACK_DISABLE_MEMORY_HOGS
+      doublecomplex hl[1] /* was [49][49] */;
+      /** This function uses too much memory, so we stopped allocating the memory
+       * above and assert false here. */
+      assert(0 && "zhseqr_ was called. This function allocates too much"
+                  " memory and has been disabled.");
+    #else
+      doublecomplex hl[2401]	/* was [49][49] */;
+    #endif
     integer kbot, nmin;
     extern logical lsame_(char *, char *);
     logical initz;
