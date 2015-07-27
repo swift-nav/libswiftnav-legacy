@@ -10,11 +10,17 @@
 from common cimport *
 from observation_c cimport *
 
+cdef extern from "libswiftnav/baseline.h":
+  # HACK: This is declared as an enum so that Cython knows its a constant
+  # https://groups.google.com/d/msg/cython-users/-fLG08E5lYM/xC93UHSvLF0J
+  enum: DEFAULT_RAIM_THRESHOLD
+
 cdef extern from "libswiftnav/amb_kf.h":
   ctypedef struct ambiguities_t:
     double *ambs
     u8 *prns
     u8 n
   s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-              const ambiguities_t *ambs, u8 *num_used, double b[3])
+              const ambiguities_t *ambs, u8 *num_used, double b[3],
+              u8 disable_raim, double raim_threshold)
 

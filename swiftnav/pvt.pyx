@@ -72,7 +72,7 @@ def calc_PVT(nav_meas):
     nav_meas_array[n] = (<NavigationMeasurement?>nav_meas[n]).meas
 
   s = Solution()
-  pvt_c.calc_PVT(n_used, nav_meas_array, &(s.soln), &(s.dops))
+  pvt_c.calc_PVT(n_used, nav_meas_array, False, &(s.soln), &(s.dops))
 
   free(nav_meas_array)
 

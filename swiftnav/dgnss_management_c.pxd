@@ -25,7 +25,8 @@ cdef extern from "libswiftnav/dgnss_management.h":
     ambiguities_t float_ambs
   void make_measurements(u8 num_diffs, sdiff_t *sdiffs, double *raw_measurements)
   void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
-  void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3])
+  void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
+          u8 disable_raim, double raim_threshold)
   s8 dgnss_iar_resolved()
   u32 dgnss_iar_num_hyps()
   u32 dgnss_iar_num_sats()
@@ -35,7 +36,8 @@ cdef extern from "libswiftnav/dgnss_management.h":
   void dgnss_update_ambiguity_state(ambiguity_state_t *s)
   s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3])
+                  u8 *num_used, double b[3],
+                  u8 disable_raim, double raim_threshold)
   void measure_amb_kf_b(double reciever_ecef[3],
                   		u8 num_sdiffs, sdiff_t *sdiffs,
                   		double *b)
