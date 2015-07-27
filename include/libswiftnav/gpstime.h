@@ -24,16 +24,20 @@
 
 /** Offset between GPS and UTC times in seconds.
  * Update when a new leap second is inserted and be careful about times in the
- * past when this offset was different. */
+ * past when this offset was different.
+ * TODO handle leap seconds properly!
+ */
 #define GPS_MINUS_UTC_SECS 17
 
 /** Unix timestamp of the GPS epoch 1980-01-06 00:00:00 UTC */
 #define GPS_EPOCH 315964800
 
+#define WN_UNKNOWN -1
+
 /** Structure representing a GPS time. */
 typedef struct __attribute__((packed)) {
   double tow; /**< Seconds since the GPS start of week. */
-  u16 wn;     /**< GPS week number. */
+  s16 wn;     /**< GPS week number. */
 } gps_time_t;
 
 gps_time_t normalize_gps_time(gps_time_t);
@@ -41,6 +45,7 @@ gps_time_t normalize_gps_time(gps_time_t);
 time_t gps2time(gps_time_t t);
 
 double gpsdifftime(gps_time_t end, gps_time_t beginning);
+void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
 
 #endif /* LIBSWIFTNAV_TIME_H */
 

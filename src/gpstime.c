@@ -11,8 +11,12 @@
  */
 
 #include <math.h>
-
 #include "gpstime.h"
+
+#define WEEK_SECS (7*24*60*60)
+
+/* TODO: does it make sense to be passing structs by value in all
+   these functions? */
 
 /** Normalize a `gps_time_t` GPS time struct.
  * Ensures that the time of week is greater than zero and less than one week by
@@ -25,12 +29,12 @@
 gps_time_t normalize_gps_time(gps_time_t t)
 {
   while(t.tow < 0) {
-    t.tow += 3600*24*7;
+    t.tow += WEEK_SECS;
     t.wn += 1;
   }
 
-  while(t.tow > 3600*24*7) {
-    t.tow -= 3600*24*7;
+  while(t.tow > WEEK_SECS) {
+    t.tow -= WEEK_SECS;
     t.wn -= 1;
   }
 
@@ -47,13 +51,16 @@ time_t gps2time(gps_time_t gps_t)
 {
   time_t t = GPS_EPOCH - GPS_MINUS_UTC_SECS;
 
-  t += 7*24*3600*gps_t.wn;
+  t += WEEK_SECS*gps_t.wn;
   t += (s32)gps_t.tow;
 
   return t;
 }
 
 /** Time difference in seconds between two GPS times.
+ * If the week number field of either time is unspecified, the result
+ * will be as if the week numbers had been chosen for the times to be
+ * as close as possible.
  * \param end Higher bound of the time interval whose length is calculated.
  * \param beginning Lower bound of the time interval whose length is
  *                  calculated. If this describes a time point later than end,
@@ -62,8 +69,33 @@ time_t gps2time(gps_time_t gps_t)
  */
 double gpsdifftime(gps_time_t end, gps_time_t beginning)
 {
-  return (end.wn - beginning.wn)*7*24*3600 + \
-         end.tow - beginning.tow;
+  double dt = end.tow - beginning.tow;
+  if (end.wn == WN_UNKNOWN || beginning.wn == WN_UNKNOWN) {
+    /* One or both of the week numbers is unspecified.  Assume times
+       are within +/- 0.5 weeks of each other. */
+    if (dt > WEEK_SECS / 2)
+      dt -= WEEK_SECS;
+    if (dt < -WEEK_SECS / 2)
+      dt += WEEK_SECS;
+  } else {
+    /* Week numbers were provided - use them. */
+    dt += (end.wn - beginning.wn) * WEEK_SECS;
+  }
+  return dt;
 }
 
-
+/** Set the week number of t so as to minimize the magnitude of the
+ * time difference between t and ref.
+ *
+ * \param t Pointer to GPS time whose week number will be set
+ * \param ref Reference GPS time
+ */
+void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref)
+{
+  t->wn = ref->wn;
+  double dt = t->tow - ref->tow;
+  if (dt > WEEK_SECS / 2)
+    t->wn--;
+  else if (dt < -WEEK_SECS / 2)
+    t->wn++;
+}
