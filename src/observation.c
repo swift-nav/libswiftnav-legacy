@@ -309,7 +309,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
   }
 
   if (!is_prn_set(num_dds, non_ref_prns)) {
-    log_error("There is disorder in the amb_test sats.\n");
+    log_error("There is disorder in the amb_test sats.");
     printf("amb_test sat prns = {%u, ", ref_prn);
     for (u8 k=0; k < num_dds; k++) {
       printf("%u, ", non_ref_prns[k]);
@@ -444,7 +444,7 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
  */
 void debug_sdiff(sdiff_t sd)
 {
-  log_debug("sdiff_t:\n"
+  log_debug("sdiff_t:"
     "\tprn = %u\n"
     "\tsnr = %f\n"
     "\tpseudorange   = %f\n"
@@ -464,11 +464,11 @@ void debug_sdiff(sdiff_t sd)
  */
 void debug_sdiffs(u8 n, sdiff_t *sds)
 {
-  log_debug("[\n");
+  log_debug("[");
   for (u8 i=0; i<n; i++) {
     debug_sdiff(sds[i]);
   }
-  log_debug("]\n");
+  log_debug("]");
 }
 
 /** \} */

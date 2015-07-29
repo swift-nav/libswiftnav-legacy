@@ -55,15 +55,15 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   /* Loop over sats1 and sdffs and check if a PRN is present in both. */
   for (i=0, j=0; i<num_sats1 && j<num_sdiffs; i++, j++) {
     if (sats1[i] < sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++\n", n, i, sats1[i], j, sdiffs[j].prn);
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++", n, i, sats1[i], j, sdiffs[j].prn);
       j--;
     }
     else if (sats1[i] > sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++\n", n, i, sats1[i], j, sdiffs[j].prn);
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++", n, i, sats1[i], j, sdiffs[j].prn);
       i--;
     }
     else {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++\n", n, i, sats1[i], j, sdiffs[j].prn);
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++", n, i, sats1[i], j, sdiffs[j].prn);
       memcpy(&intersection_sats[n], &sdiffs[j], sizeof(sdiff_t));
       n++;
     }
@@ -127,8 +127,8 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
   DEBUG_ENTRY();
 
   u8 old_ref = sats_management->prns[0];
-  log_debug("ref_prn = %u\n", ref_prn);
-  log_debug("old_ref = %u\n", old_ref);
+  log_debug("ref_prn = %u", ref_prn);
+  log_debug("old_ref = %u", old_ref);
   u8 j;
   if (old_ref != ref_prn) {
     j = 1;
@@ -160,11 +160,11 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
     if (sdiffs[i].prn != ref_prn) {
-      log_debug("prn[%u] = %u\n", j, sdiffs[i].prn);
+      log_debug("prn[%u] = %u", j, sdiffs[i].prn);
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     } else {
-      log_debug("prn[0] = %u\n", sdiffs[i].prn);
+      log_debug("prn[0] = %u", sdiffs[i].prn);
       memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
     }
   }

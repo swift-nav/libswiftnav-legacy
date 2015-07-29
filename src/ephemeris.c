@@ -63,7 +63,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 
   /* If dt is greater than 4 hours our ephemeris isn't valid. */
   if (fabs(dt) > EPHEMERIS_VALID_TIME) {
-    log_error("Using ephemeris outside validity period, dt = %+.0f\n", dt);
+    log_error("Using ephemeris outside validity period, dt = %+.0f", dt);
     return -1;
   }
 
