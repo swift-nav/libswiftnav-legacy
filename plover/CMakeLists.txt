@@ -36,6 +36,7 @@ set (PLOVER_HS_SRCS
 #         and ${unit}.h in PLOVER_GENERATED_H_DIR
 # TODO add qr, pvt
 set (PLOVER_UNITS
+  qr
 )
 
 foreach(unit ${PLOVER_UNITS})
@@ -44,22 +45,27 @@ foreach(unit ${PLOVER_UNITS})
   list(APPEND PLOVER_SRC    "${PLOVER_DIR}/${unit}.plv")
 endforeach(unit)
 
-# Main project depends on generated code
+# Main project depends on generate. generate depends on generated files.
 add_custom_target(generate DEPENDS ${PLOVER_CFILES} ${PLOVER_HFILES})
-
 
 if (CMAKE_CABAL AND CMAKE_PLOVER)
   message("\nFound Plover tools.")
   # Don't add step if no UNITS are specified
   if (PLOVER_CFILES OR PLOVER_HFILES)
-    message("Adding code generation step. \
-Will run if plover subproject is modified and after make clean.")
-    add_custom_command(
-      OUTPUT ${PLOVER_CFILES} ${PLOVER_HFILES}
-      COMMAND ${CMAKE_PLOVER} --include "${PLOVER_DIR}"
-        --output_c "${PLOVER_GENERATED_C_DIR}" --output_h "${PLOVER_GENERATED_H_DIR}"
-      WORKING_DIRECTORY ${PLOVER_DIR}
-      DEPENDS ${PLOVER_HS_SRCS} ${PLOVER_SRCS})
+    message("Adding code generation steps, one for each plv unit.\n\
+Will run if plover subproject is modified and after make clean or clean-generate.")
+    foreach(unit ${PLOVER_UNITS})
+      add_custom_command(
+        OUTPUT "${PLOVER_GENERATED_C_DIR}/${unit}.c" "${PLOVER_GENERATED_H_DIR}/${unit}.h"
+        COMMAND ${CMAKE_PLOVER}
+        # TODO compiler support for plv file imports
+        #--include "${PLOVER_DIR}"
+          --out ${unit}
+          --c_output "${PLOVER_GENERATED_C_DIR}" --h_output "${PLOVER_GENERATED_H_DIR}"
+          "${PLOVER_DIR}/${unit}.plv"
+        WORKING_DIRECTORY ${PLOVER_DIR}
+        DEPENDS "${PLOVER_DIR}/${unit}.plv")
+    endforeach(unit)
   endif ()
   message("")
 
