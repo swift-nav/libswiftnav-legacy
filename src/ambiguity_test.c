@@ -324,7 +324,7 @@ void update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var
 
   /* Error */
   if (valid_sdiffs != 0) {
-    log_error("update_ambiguity_test: invalid sdiffs. return code: %i\n", valid_sdiffs);
+    log_error("update_ambiguity_test: invalid sdiffs. return code: %i", valid_sdiffs);
     DEBUG_EXIT();
     return;
   }
@@ -509,7 +509,7 @@ void test_ambiguities(ambiguity_test_t *amb_test, double *dd_measurements)
   memory_pool_filter(amb_test->pool, (void *) &x, &update_and_get_max_ll);
   memory_pool_filter(amb_test->pool, (void *) &x, &filter_and_renormalize);
   if (memory_pool_empty(amb_test->pool)) {
-    log_debug("Ambiguity pool empty\n");
+    log_debug("Ambiguity pool empty");
     /* Initialize pool with single element with num_dds = 0, i.e.
      * zero length N vector, i.e. no satellites. When we take the
      * product of this single element with the set of new satellites
@@ -583,7 +583,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     printf("}\n");
   }
   if (amb_test->sats.num_sats != num_sdiffs) {
-    log_debug("sats don't match (different length)\n");
+    log_debug("sats don't match (different length)");
     DEBUG_EXIT();
     return 0;
   }
@@ -592,7 +592,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
-      log_debug("sats don't match\n");
+      log_debug("sats don't match");
       DEBUG_EXIT();
       return 0;
     }
@@ -604,7 +604,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       i--;
     }
     else {
-      log_debug("sats don't match\n");
+      log_debug("sats don't match");
       DEBUG_EXIT();
       return 0;
     }
@@ -675,7 +675,7 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
 
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   if (sats_management_code != OLD_REF) {
-    log_debug("updating iar reference sat\n");
+    log_debug("updating iar reference sat");
     changed_ref = 1;
     if (sats_management_code == NEW_REF_START_OVER) {
       create_ambiguity_test(amb_test);
@@ -752,7 +752,7 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
 
   u8 num_dds_before_proj = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   if (num_dds_before_proj == num_dds_in_intersection) {
-    log_debug("no need for projection\n");
+    log_debug("no need for projection");
     DEBUG_EXIT();
     return 0;
   }
@@ -761,13 +761,13 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
   memcpy(intersection.intersection_ndxs, dd_intersection_ndxs, num_dds_in_intersection * sizeof(u8));
 
 
-  log_info("IAR: %"PRIu32" hypotheses before projection\n", memory_pool_n_allocated(amb_test->pool));
+  log_info("IAR: %"PRIu32" hypotheses before projection", memory_pool_n_allocated(amb_test->pool));
   memory_pool_group_by(amb_test->pool,
                        &intersection, &projection_comparator,
                        &intersection, sizeof(intersection),
                        &projection_aggregator);
-  log_info("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
-  log_info("After projection, num_sats = %d\n", num_dds_in_intersection + 1);
+  log_info("IAR: updates to %"PRIu32"", memory_pool_n_allocated(amb_test->pool));
+  log_info("After projection, num_sats = %d", num_dds_in_intersection + 1);
   u8 work_prns[MAX_CHANNELS];
   memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
@@ -902,7 +902,7 @@ static void remap_prns(ambiguity_test_t *amb_test, u8 ref_prn,
       j++;
       k++;
     } else {
-      log_error("remap_prns: impossible condition reached.\n");
+      log_error("remap_prns: impossible condition reached.");
       printf("old_prns = [");
       for (u8 ii=0; ii < x->old_dim; ii++) {
         printf("%d, ",old_prns[ii]);
@@ -1001,8 +1001,8 @@ static s32 add_sats(ambiguity_test_t *amb_test,
                   &intersection_hypothesis_prod);
   (void) count;
   s32 num_hyps = memory_pool_n_allocated(amb_test->pool);
-  log_info("IAR: updates to %"PRIu32"\n", num_hyps);
-  log_info("add_sats. num sats: %i\n", amb_test->sats.num_sats);
+  log_info("IAR: updates to %"PRIu32"", num_hyps);
+  log_info("add_sats. num sats: %i", amb_test->sats.num_sats);
   return num_hyps;
 }
 
@@ -1071,18 +1071,18 @@ static u8 inclusion_loop_body(
   compute_Z(num_current_dds, num_dds_to_add, x->Z1, x->Z2_inv, x->Z);
 
   if (full_size <= max_num_hyps) {
-    log_debug("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
+    log_debug("BRANCH 1: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"", num_dds_to_add, full_size, box_size);
     /* The hypotheses generated for these double-differences fit. */
     return 1;
   } else if (box_size * current_num_hyps <= max_iteration_size) {
-    log_debug("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"\n", num_dds_to_add, full_size, box_size);
+    log_debug("BRANCH 2: num dds: %i. full size: %"PRIu32", itr size: %"PRIu32"", num_dds_to_add, full_size, box_size);
 
     x->intersection_size = 0;
 
     /* Do intersection */
     memory_pool_fold(pool, (void *)x, &fold_intersection_count);
 
-    log_debug("intersection size: %i\n", x->intersection_size);
+    log_debug("intersection size: %i", x->intersection_size);
 
     if (x->intersection_size < max_num_hyps) {
       /* The hypotheses generated for these double-differences fit. */
@@ -1264,7 +1264,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
       }
     }
   }
-  log_debug("BRANCH 3: covariance too large. full: %"PRIu32"\n", full_size);
+  log_debug("BRANCH 3: covariance too large. full: %"PRIu32"", full_size);
   /* Covariance too large, nothing added. */
   return 0;
 }
@@ -1277,7 +1277,7 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   DEBUG_ENTRY();
 
   if (float_sats->num_sats <= num_dds_in_intersection + 1 || float_sats->num_sats < 2) {
-    log_debug("no need for inclusion\n");
+    log_debug("no need for inclusion");
     DEBUG_EXIT();
     return 0;
   }
@@ -1340,11 +1340,11 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
                                             Z_inv);
   if (add_any_sats == 1) {
     add_sats_old(amb_test, float_prns[0], num_dds_to_add, new_dd_prns, lower_bounds, upper_bounds, Z_inv);
-    log_debug("adding sats\n");
+    log_debug("adding sats");
     DEBUG_EXIT();
     return 1;
   } else {
-    log_debug("not adding sats\n");
+    log_debug("not adding sats");
     DEBUG_EXIT();
     return 0;
   }
@@ -1484,7 +1484,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
 
   if (num_sdiffs < 2) {
     create_ambiguity_test(amb_test);
-    log_debug("< 2 sdiffs, starting over\n");
+    log_debug("< 2 sdiffs, starting over");
     DEBUG_EXIT();
     return 0; // I chose 0 because it doesn't lead to anything dynamic
   }
@@ -1526,7 +1526,7 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
       changed_sats = 1;
     }
   }
-  log_debug("changed_sats = %u\n", changed_sats);
+  log_debug("changed_sats = %u", changed_sats);
 
   DEBUG_EXIT();
   return changed_sats;
@@ -1559,7 +1559,7 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
   u8 k = 0;
   while (i < amb_test->sats.num_sats && j < num_sdiffs) {
     if (amb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn) {
-      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn; i,j,k++\n",
+      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn; i,j,k++",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       intersection_ndxs[k] = i-1;
       i++;
@@ -1567,12 +1567,12 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
       k++;
     }
     else if (amb_test->sats.prns[i] < sdiffs_with_ref_first[j].prn) {
-      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] <  sdiffs_with_ref_first[j].prn; i++\n",
+      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] <  sdiffs_with_ref_first[j].prn; i++",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       i++;
     }
     else {
-      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] >  sdiffs_with_ref_first[j].prn; j++\n",
+      log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] >  sdiffs_with_ref_first[j].prn; j++",
                 i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
       j++;
     }
@@ -1685,7 +1685,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
       j++;
       k++;
     } else {
-      log_error("add_sats_old: impossible condition reached.\n");
+      log_error("add_sats_old: impossible condition reached.");
       printf("old_prns = [");
       for (u8 ii=0; ii < x0.num_old_dds; ii++) {
         printf("%d, ",old_prns[ii]);
@@ -1708,7 +1708,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
     empty_element->ll = 0; // only in init
   }
 
-  log_info("IAR: %"PRIu32" hypotheses before inclusion\n", memory_pool_n_allocated(amb_test->pool));
+  log_info("IAR: %"PRIu32" hypotheses before inclusion", memory_pool_n_allocated(amb_test->pool));
   if (DEBUG) {
     memory_pool_map(amb_test->pool, &x0.num_old_dds, &print_hyp);
   }
@@ -1716,7 +1716,7 @@ void add_sats_old(ambiguity_test_t *amb_test,
   /* Take the product of our current hypothesis state with the generator, recorrelating the new ones as we go. */
   memory_pool_product_generator(amb_test->pool, &x0, MAX_HYPOTHESES, sizeof(x0),
                                 &no_init, &generate_next_hypothesis, &hypothesis_prod);
-  log_info("IAR: updates to %"PRIu32"\n", memory_pool_n_allocated(amb_test->pool));
+  log_info("IAR: updates to %"PRIu32"", memory_pool_n_allocated(amb_test->pool));
   if (DEBUG) {
     memory_pool_map(amb_test->pool, &k, &print_hyp);
   }

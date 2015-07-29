@@ -52,7 +52,7 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   assert(DE != NULL);
 
   if (num_sats <= 1) {
-    log_debug("assign_de_mtx: not enough sats\n");
+    log_debug("assign_de_mtx: not enough sats");
     return -1;
   }
 

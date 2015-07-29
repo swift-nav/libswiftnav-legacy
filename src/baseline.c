@@ -299,7 +299,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
           &info);                 /* INFO. */
 
   if (info != 0) {
-    log_error("dgelsy returned error %"PRId32"\n", info);
+    log_error("dgelsy returned error %"PRId32"", info);
     return -2;
   }
 
@@ -592,7 +592,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   if (valid_sdiffs < 0) {
     if (valid_sdiffs != -1) {
-      log_error("baseline: Invalid sdiffs\n");
+      log_error("baseline: Invalid sdiffs");
     }
     return -2;
   }

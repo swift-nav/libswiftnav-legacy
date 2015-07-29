@@ -51,7 +51,7 @@ static int LD(int n, const double *Q, double *L, double *D)
     }
     if (info) {
         log_error("%s : LD factorization error, trying UD from Gibbs "
-                  "(col major UD = LD)\n", __FILE__);
+                  "(col major UD = LD)", __FILE__);
         double Qcopy[n * n];
         memcpy(Qcopy, Q, n * n * sizeof(double));
         matrix_udu(n, Qcopy, L, D);
@@ -163,7 +163,7 @@ static int search(int n, int m, const double *L, const double *D,
     }
 
     if (c>=LOOPMAX) {
-        log_error("LAMBDA search loop count overflow\n");
+        log_error("LAMBDA search loop count overflow");
         return -1;
     }
     return 0;

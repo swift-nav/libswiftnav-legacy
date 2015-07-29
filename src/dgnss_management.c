@@ -138,7 +138,7 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double receiver_ecef[3], u
   /* all the ref sat stuff */
   s8 sats_management_code = rebase_sats_management(&sats_management, num_sdiffs, sdiffs, corrected_sdiffs);
   if (sats_management_code == NEW_REF_START_OVER) {
-    log_info("Unable to rebase to new ref, resetting filters and starting over\n");
+    log_info("Unable to rebase to new ref, resetting filters and starting over");
     dgnss_init(num_sdiffs, sdiffs, receiver_ecef);
     memcpy(old_prns, sats_management.prns, sats_management.num_sats * sizeof(u8));
     if (num_sdiffs >= 1) {
@@ -297,7 +297,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
         disable_raim, raim_threshold);
 
     if (code < 0) {
-      log_warn("dgnss_update. baseline estimate error: %d\n", code);
+      log_warn("dgnss_update. baseline estimate error: %d", code);
       /* Use b = 0, continue */
       memset(b2, 0, sizeof(b2));
     }
@@ -420,8 +420,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                     disable_raim, raim_threshold);
   if (ret >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
-      log_warn("dgnss_baseline: Fixed baseline RAIM repair\n");
-    log_debug("fixed solution\n");
+      log_warn("dgnss_baseline: Fixed baseline RAIM repair");
+    log_debug("fixed solution");
     DEBUG_EXIT();
     return 1;
   }
@@ -431,12 +431,12 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                       disable_raim, raim_threshold))
         >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
-      log_warn("dgnss_baseline: Float baseline RAIM repair\n");
-    log_debug("float solution\n");
+      log_warn("dgnss_baseline: Float baseline RAIM repair");
+    log_debug("float solution");
     DEBUG_EXIT();
     return 2;
   }
-  log_debug("no baseline solution\n");
+  log_debug("no baseline solution");
   DEBUG_EXIT();
   return ret;
 }
@@ -597,7 +597,7 @@ static u8 get_de_and_phase(sats_management_t *sats_man,
     }
     else if (sdiffs[j].prn > sats_man->prns[i]) {
       /* This should never happen. */
-      log_warn("sdiffs should be a super set of sats_man prns\n");
+      log_warn("sdiffs should be a super set of sats_man prns");
       i++;
     }
     else {  /* else they match */
