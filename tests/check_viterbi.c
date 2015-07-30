@@ -45,7 +45,7 @@ START_TEST(test_viterbi27)
   FILE *check = NULL;
   decision_t decisions[250 * 6];
 
-  int output = open ("tmp.bin", O_WRONLY | O_CREAT, 0644);
+  int output = open("tmp.bin", O_WRONLY | O_CREAT, 0644);
   waas_data = fopen("waas_data.bin", "r");
   check = fopen("waas_check.bin", "r");
 

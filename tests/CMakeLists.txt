@@ -51,8 +51,8 @@ else (CMAKE_CROSSCOMPILING)
       COMMENT "Running unit tests"
       COMMAND test_libswiftnav
     )
-    file(COPY waas_check.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
-    file(COPY waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+    file(COPY data/waas_check.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+    file(COPY data/waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
