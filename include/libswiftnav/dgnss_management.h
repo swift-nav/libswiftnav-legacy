@@ -39,6 +39,19 @@ typedef struct {
   ambiguities_t float_ambs;
 } ambiguity_state_t;
 
+typedef struct {
+  /* Baseline estimate */
+  double b[3];
+  /* Number of sdiffs used in the soluton. */
+  u8 num_used;
+  /* bool: fixed or float filter derived */
+  u8 fixed_mode;
+  /* bool: raim available for least squares baseline estimate */
+  u8 raim_available;
+  /* bool: raim used to repair baseline */
+  u8 raim_repair;
+} dgnss_baseline_t;
+
 extern dgnss_settings_t dgnss_settings;
 
 void dgnss_set_settings(double phase_var_test, double code_var_test,
@@ -62,13 +75,10 @@ s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_update_ambiguity_state(ambiguity_state_t *s);
-u8 baseline_flag(s8 ret, bool fixed);
-u8 flag_raim_repaired(u8 flag);
-u8 flag_raim_available(u8 flag);
-u8 flag_fixed_mode(u8 flag);
+void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution);
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3],
+                  dgnss_baseline_t *solution,
                   bool disable_raim, double raim_threshold);
 void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
                       const double receiver_ecef[3], double *b);
