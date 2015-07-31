@@ -5,6 +5,7 @@
 #include "check_utils.h"
 #include "dgnss_management.h"
 #include "ambiguity_test.h"
+#include "printing_utils.h"
 #include "amb_kf.h"
 #include "printing_utils.h"
 
@@ -205,41 +206,38 @@ START_TEST(test_dgnss_baseline_1)
     }
   };
 
-  double b[3];
-  u8 num_used;
+  dgnss_baseline_t solution;
 
   /* Float only */
   s.fixed_ambs.n = 0;
-  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &solution,
     false, DEFAULT_RAIM_THRESHOLD);
   /* baseline_flag(initial solution ok, float mode) */
-  fail_unless(valid == baseline_flag(0, false));
-  fail_unless(num_used == 5);
-  fail_unless(within_epsilon(b[0], -0.742242));
-  fail_unless(within_epsilon(b[1], -0.492905));
-  fail_unless(within_epsilon(b[2], -0.0533294));
+  fail_unless(valid == 0);
+  fail_unless(solution.fixed_mode == 0);
+  fail_unless(solution.num_used == 5);
+  double expected1[] = {-0.742242, -0.492905, -0.0533294};
+  fail_unless(arr_within_epsilon(3, solution.b, expected1));
 
   /* Fixed and float */
   s.fixed_ambs.n = 4;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &solution,
     false, DEFAULT_RAIM_THRESHOLD);
   /* baseline_flag(initial solution ok, fixed mode) */
-  fail_unless(valid == baseline_flag(0, true));
-  fail_unless(num_used == 5);
-  fail_unless(within_epsilon(b[0], -0.417486));
-  fail_unless(within_epsilon(b[1], -0.358386));
-  fail_unless(within_epsilon(b[2],  0.271427));
+  fail_unless(valid == 0);
+  fail_unless(solution.fixed_mode == 1);
+  fail_unless(solution.num_used == 5);
+  double expected2[] = {-0.622609, -0.432371, -0.00461595};
+  fail_unless(arr_within_epsilon(3, solution.b, expected2));
 
   /* No solution possible */
   s.fixed_ambs.n = 0;
   s.float_ambs.n = 0;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &solution,
     false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == -1);
-  fail_unless(num_used == 5);
-  fail_unless(within_epsilon(b[0], -0.417486));
-  fail_unless(within_epsilon(b[1], -0.358386));
-  fail_unless(within_epsilon(b[2],  0.271427));
+  fail_unless(solution.num_used == 5);
+  fail_unless(arr_within_epsilon(3, solution.b, expected2));
 }
 END_TEST
 
