@@ -686,7 +686,21 @@ s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *l
   return -1;
 }
 
-/* REQUIRES num_sats > 1 */
+/** Changes the reference sat for a vector from one basis to another.
+ * This modifies a vector of double differenced values corresponding to the PRNs in
+ * old_prns, to correspond to the PRNS in new_prns.
+ *
+ * old_prns and new_prns must have the same values, just in different orders.
+ * old_prns and new_prns must be sorted after the first entry, which is the reference.
+ * num_sats must be at least 2.
+ *
+ * \param mean      On entry, an ambiguity state vector corresponding to
+ *                  old_prns's basis. On exit, it corresponds to new_prns's
+ *                  basis. Has length num_sats-1.
+ * \param num_sats  The length of old_prns and new_prns.
+ * \param old_prns  The PRNs for the old basis for mean. Restrictions above.
+ * \param new_prns  The PRNS for the new basis for mean. Restrictions above.
+ */
 void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
@@ -719,7 +733,19 @@ void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8
   memcpy(mean, new_mean, (state_dim) * sizeof(double));
 }
 
-/* REQUIRES num_sats > 1 */
+/** Creates a matrix whose action is to change the reference sat for a vector
+ * from one basis to another. It modifies a vector of double differenced values
+ * corresponding to the PRNs in old_prns, to correspond to the PRNS in new_prns.
+ *
+ * old_prns and new_prns must have the same values, just in different orders.
+ * old_prns and new_prns must be sorted after the first entry, which is the reference.
+ * num_sats must be at least 2.
+ *
+ * \param num_sats    The length of old_prns and new_prns.
+ * \param old_prns    The PRNs for the old basis for mean. Restrictions above.
+ * \param new_prns    The PRNS for the new basis for mean. Restrictions above.
+ * \param rebase_mtx  The change of reference matrix.
+ */
 static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
                                     const u8 *new_prns, double *rebase_mtx)
 {
@@ -751,7 +777,22 @@ static void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
   }
 }
 
-/* REQUIRES num_sats > 1 */
+/** Changes the reference sat for a covariance matrix from one basis to another.
+ * This modifies a covariance matrix corresponding to a vector of double
+ * differenced values corresponding to the PRNs in old_prns, to correspond to
+ * the PRNS in new_prns.
+ *
+ * old_prns and new_prns must have the same values, just in different orders.
+ * old_prns and new_prns must be sorted after the first entry, which is the reference.
+ * num_sats must be at least 2.
+ *
+ * \param state_cov On entry, an ambiguity state covariance corresponding to
+ *                  old_prns's basis. On exit, it corresponds to new_prns's
+ *                  basis. Has size (num_sats - 1)^2
+ * \param num_sats  The length of old_prns and new_prns.
+ * \param old_prns  The PRNs for the old basis for mean. Restrictions above.
+ * \param new_prns  The PRNS for the new basis for mean. Restrictions above.
+ */
 void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
@@ -776,8 +817,29 @@ void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old
               0, state_cov, state_dim);                /* beta, double *C, int ldc. */
 }
 
-/* REQUIRES num_sats > 1 */
-void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns)
+/** Changes the reference sat for a covariance matrix from one basis to another
+ * in UDU' form.
+ * This modifies a covariance matrix corresponding to a vector of double
+ * differenced values corresponding to the PRNs in old_prns, to correspond to
+ * the PRNS in new_prns.
+ *
+ * old_prns and new_prns must have the same values, just in different orders.
+ * old_prns and new_prns must be sorted after the first entry, which is the reference.
+ * num_sats must be at least 2.
+ *
+ * \param state_cov_U On entry, an ambiguity state covariance's U factor 
+ *                    corresponding to old_prns's basis. On exit, it
+ *                    corresponds to new_prns's basis. Has size (num_sats-1)^1
+ *                    and is upper unit triangular.
+ * \param state_cov_U On entry, an ambiguity state covariance's D factor
+ *                    corresponding to old_prns's basis. On exit, it
+ *                    corresponds to new_prns's basis. Has length num_sats-1
+ *                    and is stored as a vector.
+ * \param num_sats  The length of old_prns and new_prns.
+ * \param old_prns  The PRNs for the old basis for mean. Restrictions above.
+ * \param new_prns  The PRNS for the new basis for mean. Restrictions above.
+ */
+void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -789,18 +851,47 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 }
 
 
-/* REQUIRES num_sats > 1 */
-void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns)
+/** Changes the reference sat for the KF  from one basis to another.
+ * This modifies the mean and covariance of the KF corresponding to the PRNs in
+ * old_prns, to correspond to the PRNS in new_prns.
+ *
+ * old_prns and new_prns must have the same values, just in different orders.
+ * old_prns and new_prns must be sorted after the first entry, which is the reference.
+ * num_sats must be at least 2.
+ *
+ * \param kf        On entry, has mean and covariance corresponding to
+ *                  old_prns's basis. On exit, it corresponds to new_prns's
+ *                  basis.
+ * \param num_sats  The length of old_prns and new_prns.
+ * \param old_prns  The PRNs for the old basis for mean. Restrictions above.
+ * \param new_prns  The PRNS for the new basis for mean. Restrictions above.
+ */
+void rebase_nkf(nkf_t *kf, u8 num_sats, const u8 *old_prns, const u8 *new_prns)
 {
   assert(num_sats > 1);
   rebase_mean_N(kf->state_mean, num_sats, old_prns, new_prns);
   rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
 }
 
+/** Projects out certain (non-reference) satellites from the KF state.
+ * \param kf                    On entry, a KF tracking num_old_non_ref_sats.
+ *                              On exit, a KF tracking num_new_non_ref_sats,
+ *                              for which those states whose indices are not in
+ *                              ndx_of_new_sat_in_old have been dropped.
+ *                              The observation fields (dim, matrix, cov,...)
+ *                              will not be updated, only the state
+ *                              (dim, mean,cov) is projected.
+ * \param num_old_non_ref_sats  The number of non-reference sats the KF is
+ *                              tracking to begin with.
+ * \param num_new_non_ref_sats  The number of non-reference sats the KF is
+ *                              keeping.
+ * \param ndx_of_new_sat_in_old The indices of the states to keep. Has length
+ *                              num_new_non_ref_sats
+ */
 void nkf_state_projection(nkf_t *kf,
-                                    u8 num_old_non_ref_sats,
-                                    u8 num_new_non_ref_sats,
-                                    u8 *ndx_of_new_sat_in_old)
+                          u8 num_old_non_ref_sats,
+                          u8 num_new_non_ref_sats,
+                          u8 *ndx_of_new_sat_in_old)
 {
   u8 old_state_dim = num_old_non_ref_sats;
   double old_cov[old_state_dim * old_state_dim];
@@ -822,10 +913,11 @@ void nkf_state_projection(nkf_t *kf,
   /* Put it all back into the kf. */
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
   matrix_udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
+  kf->state_dim = new_state_dim;
   /* NOTE: IT DOESN'T UPDATE THE OBSERVATION OR TRANSITION MATRICES, JUST THE STATE. */
 }
 
-/** Add new sats to the Kalman Filter
+/** Add new sats to the Kalman Filter state.
  * Given some space Z = X x Y, and some state mean/cov on X,
  * we construct a state mean/cov on Z by doing the inclusion of X
  * in Z and making initial estimates for the state of the Y elements
@@ -878,6 +970,7 @@ void nkf_state_inclusion(nkf_t *kf,
   }
   matrix_udu(new_state_dim, new_cov, kf->state_cov_U, kf->state_cov_D);
   memcpy(kf->state_mean, new_mean, new_state_dim * sizeof(double));
+  kf->state_dim = new_state_dim;
 }
 
 /** \} */

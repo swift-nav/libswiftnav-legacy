@@ -298,6 +298,221 @@ START_TEST(test_kf_update)
 }
 END_TEST
 
+
+static void kf_test_setup(nkf_t *kf, nkf_t *kf_old, double sigma[4*4])
+{
+  kf->state_dim = 4;
+  memcpy(kf->state_mean, (double [4]){1,2,3,4}, 4*sizeof(double));
+  memcpy(sigma, (double [16]){9, 4, 8, 6,
+                              4, 6, 4, 7,
+                              8, 4, 8, 5,
+                              6, 7, 5, 10}, 16*sizeof(double));
+  double sig_test[4*4];
+  memcpy(sig_test, sigma, 4*4*sizeof(double));
+  matrix_udu(4, sig_test, kf->state_cov_U, kf->state_cov_D);
+  /* Make sure we have a properly decomposable input matrix */
+  matrix_reconstruct_udu(4, kf->state_cov_U, kf->state_cov_D, sig_test);
+  fail_unless(arr_within_epsilon(16, sigma, sig_test));
+  memcpy(kf_old, kf, sizeof(nkf_t));
+}
+
+static bool is_upper_unit(u8 n, double *u)
+{
+  for (u8 i=0; i < n; i++) {
+    for (u8 j=0; j <= n; j++) {
+      double uij = u[i * n + j];
+      if (j < i && !within_epsilon(uij, 0)) {
+        return false;
+      }
+      if (j == i && !within_epsilon(uij, 1)) {
+        return false;
+      }
+      if (!isfinite(uij)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+static bool is_nonneg_arr(u8 n, double *a)
+{
+  for (u8 i=0; i < n; i++) {
+    if (a[i] < 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool kf_state_valid(nkf_t *kf)
+{
+  if (!is_upper_unit(kf->state_dim, kf->state_cov_U)) return false;
+  if (!is_nonneg_arr(kf->state_dim, kf->state_cov_D)) return false;
+  for (u8 i=0; i<kf->state_dim; i++) {
+    if (!isfinite(kf->state_mean[i])) return false;
+    if (!isfinite(kf->state_cov_D[i])) return false;
+    for (u8 j=0; j<kf->state_dim; j++) {
+      if (!isfinite(kf->state_cov_U[i*kf->state_dim + j])) return false;
+    }
+  }
+  return true;
+}
+
+static bool kf_state_match(nkf_t *kf1, nkf_t *kf2)
+{
+  if (kf1->state_dim != kf2->state_dim) return false;
+  if (!arr_within_epsilon(kf1->state_dim,
+                          kf1->state_mean, kf2->state_mean)) return false;
+  if (!arr_within_epsilon(kf1->state_dim,
+                          kf1->state_cov_D, kf2->state_cov_D)) return false;
+  if (!arr_within_epsilon(kf1->state_dim*kf1->state_dim,
+                          kf1->state_cov_U, kf2->state_cov_U)) return false;
+  return true;
+}
+
+static void check_inverse(u8 num_sats, const u8 *old_prns, const u8 *new_prns,
+                          nkf_t *kf, nkf_t *kf_old)
+{
+  rebase_nkf(kf, num_sats, old_prns, new_prns);
+  rebase_nkf(kf, num_sats, new_prns, old_prns);
+  u8 dim = CLAMP_DIFF(num_sats, 1);
+  fail_unless(kf->state_dim == dim);
+  fail_unless(kf_state_match(kf, kf_old));
+  fail_unless(kf_state_valid(kf));
+}
+
+START_TEST(test_rebase_nkf_inverse)
+{
+  nkf_t kf, kf_old;
+  double sig_old[4*4];
+  kf_test_setup(&kf, &kf_old, sig_old);
+
+  /* Tests with old ref at the beginning */
+  u8 old_prns[5] = {1,2,3,4,5};
+  /* Rebase back and forth with new ref at beginning. */
+  check_inverse(5, old_prns, (u8 [5]){2,1,3,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in middle. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){3,1,2,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in end. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){3,1,2,4,5}, &kf, &kf_old);
+
+  /* Tests with old ref at the middle */
+  memcpy(old_prns, (u8 [5]){3,1,2,4,5}, 5*sizeof(u8));
+  /* Rebase back and forth with new ref at beginning. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){1,2,3,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in middle. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){2,1,3,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in end. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){5,1,2,3,4}, &kf, &kf_old);
+
+  /* Tests with old ref at the end */
+  memcpy(old_prns, (u8 [5]){5,1,2,3,4}, 5*sizeof(u8));
+  /* Rebase back and forth with new ref at beginning. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){1,2,3,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in middle. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){2,1,3,4,5}, &kf, &kf_old);
+  /* Reset and test again with new ref in end. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  check_inverse(5, old_prns, (u8 [5]){4,1,2,3,5}, &kf, &kf_old);
+}
+END_TEST
+
+static void check_identity(u8 num_sats, const u8 *old_prns, const u8 *new_prns,
+                          nkf_t *kf, nkf_t *kf_old)
+{
+  rebase_nkf(kf, num_sats, new_prns, old_prns);
+  u8 dim = CLAMP_DIFF(num_sats, 1);
+  fail_unless(kf->state_dim == dim);
+  fail_unless(kf_state_match(kf, kf_old));
+  fail_unless(kf_state_valid(kf));
+}
+
+START_TEST(test_rebase_nkf_identity)
+{
+  nkf_t kf, kf_old;
+  double sig_old[4 * 4];
+  kf_test_setup(&kf, &kf_old, sig_old);
+
+  /* Tests with refs at the beginning */
+  u8 old_prns[5] = {1,2,3,4,5};
+  u8 new_prns[5] = {1,2,3,4,5};
+  check_identity(5, old_prns, new_prns, &kf, &kf_old);
+  /* Reset and test again with refs in middle. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  memcpy(old_prns, (u8 [5]){3,1,2,4,5}, 5*sizeof(u8));
+  memcpy(new_prns, (u8 [5]){3,1,2,4,5}, 5*sizeof(u8));
+  check_identity(5, old_prns, new_prns, &kf, &kf_old);
+  /* Reset and test again with refs at end. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  memcpy(old_prns, (u8 [5]){5,1,2,3,4}, 5*sizeof(u8));
+  memcpy(new_prns, (u8 [5]){5,1,2,3,4}, 5*sizeof(u8));
+  check_identity(5, old_prns, new_prns, &kf, &kf_old);
+}
+END_TEST
+
+START_TEST(test_rebase_nkf)
+{
+  nkf_t kf, kf_old;
+  double sig_old[4*4];
+  kf_test_setup(&kf, &kf_old, sig_old);
+  double sig_new[4*4];
+  u8 old_prns[5];
+  u8 new_prns[5];
+  /* sig_old should now be {9, 4, 8, 6,
+                            4, 6, 4, 7,
+                            8, 4, 8, 5,
+                            6, 7, 5, 10} */
+
+  memcpy(old_prns, (u8 [5]){3,1,2,4,5}, 5*sizeof(u8));
+  /* Rebase back and forth with new ref at beginning. */
+  memcpy(new_prns, (u8 [5]){1,2,3,4,5}, 5*sizeof(u8));
+  rebase_nkf(&kf, 5, new_prns, old_prns);
+  matrix_reconstruct_udu(4, kf.state_cov_U, kf.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(16, sig_new,
+    (double[16]) {6, 2, 2, -1,
+                  2, 7, 6,  1,
+                  2, 6, 6,  0,
+                 -1, 1, 0,  2}));
+  fail_unless(arr_within_epsilon(4, kf.state_mean,
+    (double[4]) {-2, -1, 1, 2}));
+  fail_unless(kf_state_valid(&kf));
+  /* Reset and test again with new ref in middle. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  memcpy(new_prns, (u8 [5]){2,1,3,4,5}, 5*sizeof(u8));
+  rebase_nkf(&kf, 5, new_prns, old_prns);
+  matrix_reconstruct_udu(4, kf.state_cov_U, kf.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(16, sig_new,
+    (double[16]) {7,  2, 6,  1,
+                  2,  6, 2, -1,
+                  6,  2, 6,  0,
+                  1, -1, 0,  2}));
+  fail_unless(arr_within_epsilon(4, kf.state_mean,
+    (double[4]) {-1, -2, 1, 2}));
+  fail_unless(kf_state_valid(&kf));
+  /* Reset and test again with new ref in end. */
+  memcpy(&kf, &kf_old, sizeof(nkf_t));
+  memcpy(new_prns, (u8 [5]){5,1,2,3,4}, 5*sizeof(u8));
+  rebase_nkf(&kf, 5, new_prns, old_prns);
+  matrix_reconstruct_udu(4, kf.state_cov_U, kf.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(16, sig_new,
+    (double[16]) {1, 0, 1, 0,
+                  0, 6, 6, 4,
+                  1, 6, 8, 3,
+                  0, 4, 3, 8}));
+  fail_unless(arr_within_epsilon(4, kf.state_mean,
+    (double[4]) {-2, -1, 1, -3}));
+  fail_unless(kf_state_valid(&kf));
+}
+END_TEST
+
 void assign_state_rebase_mtx(const u8 num_sats, const u8 *old_prns,
                              const u8 *new_prns, double *rebase_mtx);
 
@@ -329,6 +544,169 @@ START_TEST(test_rebase_state)
 }
 END_TEST
 
+
+START_TEST(test_projection_identity)
+{
+  nkf_t kf, kf_old;
+  double sig_old[4*4];
+  kf_test_setup(&kf, &kf_old, sig_old);
+
+  /* Test projecting onto itself. (shouldn't change anything) */
+  nkf_state_projection(&kf, 4, 4, (u8 [4]){0,1,2,3});
+  fail_unless(kf.state_dim == 4);
+  fail_unless(kf_state_match(&kf, &kf_old));
+}
+END_TEST
+
+
+START_TEST(test_projection_commutativity)
+{
+  nkf_t kf1, kf2, kf3;
+  double sig[4*4];
+  kf_test_setup(&kf1, &kf2, sig);
+  memcpy(&kf3, &kf1, sizeof(nkf_t));
+  fail_unless(kf_state_valid(&kf1));
+
+  /* Project out 3 then 2 */
+  nkf_state_projection(&kf1, 4, 3, (u8 [3]) {0,1,2}); /* 0,1,2,3 -> 0,1,2 */
+  nkf_state_projection(&kf1, 3, 2, (u8 [2]) {0,1}); /* 0,1,2 -> 0,1 */
+
+  /* Project out 2 then 3 */
+  nkf_state_projection(&kf2, 4, 3, (u8 [3]) {0,1,3}); /* 0,1,2,3 -> 0,1,3 */
+  nkf_state_projection(&kf2, 3, 2, (u8 [2]) {0,1}); /* 0,1,3 -> 0,1 */
+
+  /* Project out 2 and 3 together */
+  nkf_state_projection(&kf3, 4, 2, (u8 [2]) {0,1}); /* 0,1,2,3 -> 0,1 */
+
+  /* Make sure they all match and are valid */
+  fail_unless(kf_state_valid(&kf1));
+  fail_unless(kf_state_match(&kf1, &kf2));
+  fail_unless(kf_state_match(&kf2, &kf3));
+}
+END_TEST
+
+START_TEST(test_projection)
+{
+  nkf_t kf_old, kf_new;
+  double sig_old[4*4];
+  kf_test_setup(&kf_old, &kf_new, sig_old);
+  /* kf_new.state_mean should now be {1,2,3,4}
+     sig_old should now be {9, 4, 8, 6,
+                            4, 6, 4, 7,
+                            8, 4, 8, 5,
+                            6, 7, 5, 10} */
+  fail_unless(kf_state_valid(&kf_old));
+  double sig_new[3*3];
+  /* Test dropping last sat. */
+  nkf_state_projection(&kf_new, 4, 3, (u8 [3]){0,1,2});
+  assert(kf_state_valid(&kf_new));
+  matrix_reconstruct_udu(3, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(9, sig_new, (double [3*3]) {9, 4, 8,
+                                                             4, 6, 4,
+                                                             8, 4, 8}));
+  fail_unless(arr_within_epsilon(3, kf_new.state_mean, (double [3]) {1,2,3}));
+  /* Test dropping middle sat. */
+  memcpy(&kf_new, &kf_old, sizeof(nkf_t));
+  nkf_state_projection(&kf_new, 4, 3, (u8 [3]) {0,2,3});
+  assert(kf_state_valid(&kf_new));
+  matrix_reconstruct_udu(3, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(9, sig_new, (double [3*3]) {9, 8, 6,
+                                                             8, 8, 5,
+                                                             6, 5, 10}));
+  fail_unless(arr_within_epsilon(3, kf_new.state_mean, (double [3]) {1,3,4}));
+  /*Test dropping first sat. */
+  memcpy(&kf_new, &kf_old, sizeof(nkf_t));
+  nkf_state_projection(&kf_new, 4, 3, (u8 [3])  {1,2,3});
+  assert(kf_state_valid(&kf_new));
+  matrix_reconstruct_udu(3, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(arr_within_epsilon(9, sig_new, (double [3*3]) {6, 4, 7,
+                                                             4, 8, 5,
+                                                             7, 5, 10}));
+  fail_unless(arr_within_epsilon(3, kf_new.state_mean, (double [3]) {2,3,4}));
+}
+END_TEST
+
+bool kf_inclusion_projection_match(nkf_t *kf_old, nkf_t *kf_new,
+                                   u8 dim1, u8 dim2, u8 *index)
+{
+  double est[dim2];
+  memset(est, 0, dim2*sizeof(double));
+  memcpy(kf_new, kf_old, sizeof(nkf_t));
+  nkf_state_inclusion(kf_new, dim1, dim2, index, est, 10);
+  nkf_state_projection(kf_new, dim2, dim1, index);
+  return kf_state_match(kf_old, kf_new);
+}
+
+START_TEST(test_inclusion_inversion)
+{
+  nkf_t kf_old, kf_new;
+  double sig_old[4*4];
+  kf_test_setup(&kf_old, &kf_new, sig_old);
+  /* kf_new.state_mean should now be {1,2,3,4}
+     sig_old should now be {9, 4, 8, 6,
+                            4, 6, 4, 7,
+                            8, 4, 8, 5,
+                            6, 7, 5, 10} */
+  fail_unless(kf_state_valid(&kf_old));
+  /* Test with adding/dropping at the end. */
+  fail_unless(kf_inclusion_projection_match(&kf_old, &kf_new, 4, 5, (u8 [4]){0,1,2,3}));
+  /* Test with adding/dropping at the middle. */
+  fail_unless(kf_inclusion_projection_match(&kf_old, &kf_new, 4, 5, (u8 [4]){0,1,3,4}));
+  /* Test with adding/dropping at the beginning. */
+  fail_unless(kf_inclusion_projection_match(&kf_old, &kf_new, 4, 5, (u8 [4]){1,2,3,4}));
+}
+END_TEST
+
+START_TEST(test_inclusion)
+{
+  nkf_t kf_old, kf_new;
+  double sig_old[4*4], sig_new[5*5];
+  kf_test_setup(&kf_old, &kf_new, sig_old);
+  /* kf_new.state_mean should now be {1,2,3,4}
+     sig_old should now be {9, 4, 8, 6,
+                            4, 6, 4, 7,
+                            8, 4, 8, 5,
+                            6, 7, 5, 10} */
+  fail_unless(kf_state_valid(&kf_old));
+  double est[5] = {0,0,0,0,0};
+  /* Test with adding at the end. */
+  nkf_state_inclusion(&kf_new, 4, 5, (u8 [4]){0,1,2,3}, est, 10);
+  matrix_reconstruct_udu(5, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(kf_state_valid(&kf_new));
+  fail_unless(arr_within_epsilon(5*5, sig_new, (double [5*5])
+    {9, 4, 8, 6,  0,
+     4, 6, 4, 7,  0,
+     8, 4, 8, 5,  0,
+     6, 7, 5, 10, 0,
+     0, 0, 0, 0,  10}));
+  fail_unless(arr_within_epsilon(5, kf_new.state_mean, (double [5]){1,2,3,4,0}));
+  /* Test with adding at the middle */
+  memcpy(&kf_new, &kf_old, sizeof(nkf_t));
+  nkf_state_inclusion(&kf_new, 4, 5, (u8 [4]){0,1,3,4}, est, 10);
+  matrix_reconstruct_udu(5, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(kf_state_valid(&kf_new));
+  fail_unless(arr_within_epsilon(5*5, sig_new, (double [5*5])
+    {9, 4, 0,  8, 6,
+     4, 6, 0,  4, 7,
+     0, 0, 10, 0, 0,
+     8, 4, 0,  8, 5,
+     6, 7, 0,  5, 10}));
+  fail_unless(arr_within_epsilon(5, kf_new.state_mean, (double [5]){1,2,0,3,4}));
+  /* Test with adding at the beginning */
+  memcpy(&kf_new, &kf_old, sizeof(nkf_t));
+  nkf_state_inclusion(&kf_new, 4, 5, (u8 [4]){1,2,3,4}, est, 10);
+  matrix_reconstruct_udu(5, kf_new.state_cov_U, kf_new.state_cov_D, sig_new);
+  fail_unless(kf_state_valid(&kf_new));
+  fail_unless(arr_within_epsilon(5*5, sig_new, (double [5*5])
+    {10, 0, 0, 0, 0,
+     0,  9, 4, 8, 6,
+     0,  4, 6, 4, 7,
+     0,  8, 4, 8, 5,
+     0,  6, 7, 5, 10}));
+  fail_unless(arr_within_epsilon(5, kf_new.state_mean, (double [5]){0,1,2,3,4}));
+}
+END_TEST
+
 Suite* amb_kf_test_suite(void)
 {
   Suite *s = suite_create("Ambiguity Kalman Filter");
@@ -342,8 +720,15 @@ Suite* amb_kf_test_suite(void)
   tcase_add_test(tc_core, test_kf_update_noop);
   tcase_add_test(tc_core, test_kf_update);
   tcase_add_test(tc_core, test_rebase_state);
+  tcase_add_test(tc_core, test_rebase_nkf_inverse);
+  tcase_add_test(tc_core, test_rebase_nkf_identity);
+  tcase_add_test(tc_core, test_rebase_nkf);
+  tcase_add_test(tc_core, test_projection_identity);
+  tcase_add_test(tc_core, test_projection_commutativity);
+  tcase_add_test(tc_core, test_projection);
+  tcase_add_test(tc_core, test_inclusion_inversion);
+  tcase_add_test(tc_core, test_inclusion);
   suite_add_tcase(s, tc_core);
-
   return s;
 }
 
