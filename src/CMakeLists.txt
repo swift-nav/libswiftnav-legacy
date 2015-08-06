@@ -41,6 +41,7 @@ set(libswiftnav_SRCS
   ambiguity_test.c
   printing_utils.c
   filter_utils.c
+
   ${PLOVER_CFILES}
 )
 

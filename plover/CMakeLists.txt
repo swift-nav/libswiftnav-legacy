@@ -36,6 +36,7 @@ set (PLOVER_HS_SRCS
 #         and ${unit}.h in PLOVER_GENERATED_H_DIR
 # TODO add qr, pvt
 set (PLOVER_UNITS
+  plvstdlib
   qr
 )
 
@@ -44,6 +45,10 @@ foreach(unit ${PLOVER_UNITS})
   list(APPEND PLOVER_HFILES "${PLOVER_GENERATED_H_DIR}/${unit}.h")
   list(APPEND PLOVER_SRC    "${PLOVER_DIR}/${unit}.plv")
 endforeach(unit)
+
+# Make available to src/ CMakeLists
+set(PLOVER_CFILES ${PLOVER_CFILES} PARENT_SCOPE)
+set(PLOVER_HFILES ${PLOVER_HFILES} PARENT_SCOPE)
 
 # Main project depends on generate. generate depends on generated files.
 add_custom_target(generate DEPENDS ${PLOVER_CFILES} ${PLOVER_HFILES})
@@ -59,9 +64,10 @@ Will run if plover subproject is modified and after make clean or clean-generate
         OUTPUT "${PLOVER_GENERATED_C_DIR}/${unit}.c" "${PLOVER_GENERATED_H_DIR}/${unit}.h"
         COMMAND ${CMAKE_PLOVER}
         # TODO compiler support for plv file imports
-        #--include "${PLOVER_DIR}"
-          --out ${unit}
-          --c_output "${PLOVER_GENERATED_C_DIR}" --h_output "${PLOVER_GENERATED_H_DIR}"
+          -I "${PLOVER_DIR}"
+          #--out ${unit}
+          --cdir "${PLOVER_GENERATED_C_DIR}" --hdir "${PLOVER_GENERATED_H_DIR}"
+          --libprefix "plover"
           "${PLOVER_DIR}/${unit}.plv"
         WORKING_DIRECTORY ${PLOVER_DIR}
         DEPENDS "${PLOVER_DIR}/${unit}.plv")

@@ -43,6 +43,8 @@ else (CMAKE_CROSSCOMPILING)
       check_set.c
       check_viterbi.c
       check_gpstime.c
+
+      check_qr.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})

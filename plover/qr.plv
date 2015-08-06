@@ -1,7 +1,4 @@
-extern fabs (x :: double) :: double;
-extern sqrt (x :: double) :: double;
-extern printf (x :: string) (v :: double) :: ();
-extern puts (x :: string) :: ();
+import plvstdlib;
 
 newline () :: () := puts "";
 
@@ -32,19 +29,22 @@ qr_solve {m, n}
   (inout b :: double[m])
 
   (out solution :: double[n])
+  (out residual :: *double)
 
-  :: double := (
+  :: s8 := (
 
   qr_update b A;
 
   -- A is now upper triangular; backsolve it into b
-  backsolve A[0:n, 0:n] b[0:n];
+  code := backsolve A[0:n, 0:n] b[0:n];
 
   -- Solution stored in first n elements
   solution <- b[0:n];
 
   -- Norm of error = norm of last m-n elements
-  norm b[n:m];
+  *residual <- norm b[n:m];
+
+  return code;
 );
 
 qr_update {m, n}
@@ -74,39 +74,16 @@ qr_update {m, n}
 static backsolve {n}
   (U :: double[n,n])
   (inout b :: double[n])
-  :: Void := (
+  :: s8 := (
+    for i in 0:n -> (
+      if fabs(U[i,i]) < MATRIX_EPSILON then
+        return -1;
+    );
     b[n-1] <- b[n-1]/U[n-1, n-1];
 
     for i in n-1 .. 1 : -1 -> (
       b[i-1] <- (b[i-1] - U[i-1, i : n] * b[i : n]) / U[i-1, i-1];
-    )
+    );
+
+    return 0;
 );
-
-
--- "Unit test"
-main () :: s32 := (
-  m :=
-   vec(vec(1.0, 0, 2),
-       vec(1,   1, -1),
-       vec(0,   0, 1),
-       vec(0,   0, 22));
-  A := m;
-
-  b := vec(5.0, 4, 1.1, 22);
-  v := b;
-
-  solution :: double[3];
-
-  residual := qr_solve m b solution;
-
-  print_matrix m;
-
-  newline();
-
-  printf "residual:\n%f\n" residual;
-  puts "solution:";
-  print_matrix vec(solution);
-  puts "residual vector:";
-  print_matrix vec(A * b[0:3] - v);
-  0;
-)

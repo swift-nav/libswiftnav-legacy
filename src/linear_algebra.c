@@ -41,20 +41,6 @@
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
 
-/** \defgroup numerical_params Numerical Parameters
- * Parameters that define singularity, convergence, and similar
- * numerical properties.
- * \{ */
-
-/** Tolerance for matrix inverses.
- * If the determinant is smaller than this value, we consider it
- * singular and error out.
- */
-#define MATRIX_EPSILON (1e-60)
-
-
-/* \} */
-
 /** \defgroup matrices Matrix Mathematics
  *  Routines for working with matrices.
  * \{ */

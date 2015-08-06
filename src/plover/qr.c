@@ -1,12 +1,18 @@
-#include "qr.h"
+#include "plover/qr.h"
+
 
 #include <math.h>
 #include <stdio.h>
 #include "linear_algebra.h"
-static void backsolve (const s32 n, const double * U, double * b);
+static s8 backsolve (const s32 n, const double * U, double * b);
 static void givens (const double a, const double b, double * result);
-void backsolve (const s32 n, const double * U, double * b)
+s8 backsolve (const s32 n, const double * U, double * b)
 {
+    for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
+        if (fabs(U[n * i + i]) < MATRIX_EPSILON) {
+            return -1;
+        }
+    }
     b[n - 1] = b[n - 1] / U[n * (n - 1) + (n - 1)];
     for (s32 i = n - 1, idx = 0; idx < -1 + n; i += -1, idx++) {
         double sum = 0;
@@ -16,6 +22,7 @@ void backsolve (const s32 n, const double * U, double * b)
         }
         b[i - 1] = (b[i - 1] - sum) / U[n * (i - 1) + (i - 1)];
     }
+    return 0;
 }
 void givens (const double a, const double b, double * result)
 {
@@ -44,82 +51,10 @@ void givens (const double a, const double b, double * result)
             s = c * tau;
         }
     }
-    result[2 * 0 + 0] = c;
+    result[2 * 0] = c;
     result[2 * 0 + 1] = s;
-    result[2 * 1 + 0] = -s;
+    result[2 * 1] = -s;
     result[2 * 1 + 1] = c;
-}
-s32 main (void)
-{
-    double m [4 * 3];
-    
-    m[3 * 0 + 0] = 1.0;
-    m[3 * 0 + 1] = 0;
-    m[3 * 0 + 2] = 2;
-    m[3 * 1 + 0] = 1;
-    m[3 * 1 + 1] = 1;
-    m[3 * 1 + 2] = -1;
-    m[3 * 2 + 0] = 0;
-    m[3 * 2 + 1] = 0;
-    m[3 * 2 + 2] = 1;
-    m[3 * 3 + 0] = 0;
-    m[3 * 3 + 1] = 0;
-    m[3 * 3 + 2] = 22;
-    
-    double A [4 * 3];
-    
-    for (s32 idx = 0; idx < 4; idx++) {
-        for (s32 idx2 = 0; idx2 < 3; idx2++) {
-            A[3 * idx + idx2] = m[3 * idx + idx2];
-        }
-    }
-    
-    double b [4];
-    
-    b[0] = 5.0;
-    b[1] = 4;
-    b[2] = 1.1;
-    b[3] = 22;
-    
-    double v [4];
-    
-    for (s32 idx = 0; idx < 4; idx++) {
-        v[idx] = b[idx];
-    }
-    
-    double solution [3];
-    double residual;
-    
-    residual = qr_solve(4, 3, m, b, solution);
-    print_matrix(4, 3, m);
-    newline();
-    printf("residual:\n%f\n", residual);
-    puts("solution:");
-    
-    double loc [1 * 3];
-    
-    for (s32 idx = 0; idx < 3; idx++) {
-        loc[3 * 0 + idx] = solution[idx];
-    }
-    print_matrix(1, 3, loc);
-    puts("residual vector:");
-    
-    double loc2 [1 * 4];
-    double loc3 [4];
-    
-    for (s32 idx = 0; idx < 4; idx++) {
-        double sum = 0;
-        
-        for (s32 idx2 = 0; idx2 < 3; idx2++) {
-            sum += A[3 * idx + idx2] * b[idx2];
-        }
-        loc3[idx] = sum;
-    }
-    for (s32 idx = 0; idx < 4; idx++) {
-        loc2[4 * 0 + idx] = loc3[idx] - v[idx];
-    }
-    print_matrix(1, 4, loc2);
-    return 0;
 }
 void newline (void)
 {
@@ -143,11 +78,12 @@ void print_matrix (const s32 n, const s32 m, const double * A)
         newline();
     }
 }
-double qr_solve (const s32 m, const s32 n, double * A, double * b,
-                 double * solution)
+s8 qr_solve (const s32 m, const s32 n, double * A, double * b,
+             double * solution, double * residual)
 {
     qr_update(m, n, b, A);
     
+    s8 code;
     double arg [n * n];
     double arg2 [n];
     
@@ -159,7 +95,7 @@ double qr_solve (const s32 m, const s32 n, double * A, double * b,
     for (s32 idx = 0; idx < n; idx++) {
         arg2[idx] = b[idx];
     }
-    backsolve(n, arg, arg2);
+    code = backsolve(n, arg, arg2);
     for (s32 idx = 0; idx < n; idx++) {
         b[idx] = arg2[idx];
     }
@@ -172,7 +108,8 @@ double qr_solve (const s32 m, const s32 n, double * A, double * b,
     for (s32 idx = 0; idx < m + -n; idx++) {
         arg3[idx] = b[n + idx];
     }
-    return norm(m + -n, arg3);
+    *residual = norm(m + -n, arg3);
+    return code;
 }
 void qr_update (const s32 m, const s32 n, double * b, double * A)
 {
