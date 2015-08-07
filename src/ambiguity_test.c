@@ -1508,6 +1508,8 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
   u8 num_dds_in_intersection = find_indices_of_intersection_sats(amb_test, num_sdiffs, sdiffs_with_ref_first, intersection_ndxs);
   /* Reset the ambiguity test if we have no sats in common with the last step */
   if (amb_test->sats.num_sats > 1 && num_dds_in_intersection == 0) {
+    /* This seems to be dead code, because INTERSECTION_SATS_THRESHOLD_SIZE in sats_management
+     * (used in rebase_sats_management) is currently 2. */
     create_ambiguity_test(amb_test);
   }
 
@@ -1521,6 +1523,9 @@ u8 ambiguity_update_sats(ambiguity_test_t *amb_test, const u8 num_sdiffs,
                 float_sats, float_mean, float_cov_U, float_cov_D);
     if (incl == 2) {
       create_ambiguity_test(amb_test);
+      /* Should try to add sats again off the KF. */
+      ambiguity_sat_inclusion(amb_test, 0, float_sats, float_mean,
+        float_cov_U, float_cov_D);
       changed_sats = 1;
     } else if (incl == 1) {
       changed_sats = 1;

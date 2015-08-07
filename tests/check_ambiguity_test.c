@@ -1,10 +1,12 @@
 #include <check.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <linear_algebra.h>
 #include <ambiguity_test.h>
 #include <printing_utils.h>
+#include <lambda.h>
 
 #include "check_utils.h"
 
@@ -87,6 +89,125 @@ START_TEST(test_bad_measurements)
   fail_unless(hyp->N[0] == 1);
   fail_unless(hyp->N[1] == 2);
   fail_unless(hyp->N[2] == 5);
+}
+END_TEST
+
+static void amb_test_setup(ambiguity_test_t *amb_test)
+{
+  create_empty_ambiguity_test(amb_test);
+  memcpy(&amb_test->sats, &((sats_management_t) {.num_sats = 5,
+                                                .prns = {3, 1, 2, 4, 5}}),
+    sizeof(sats_management_t));
+  hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test->pool);
+  memcpy(hyp, &((hypothesis_t) {.N = {1,2,4,5}}), sizeof(hypothesis_t));
+  hyp = (hypothesis_t *)memory_pool_add(amb_test->pool);
+  memcpy(hyp, &((hypothesis_t) {.N = {1,2,4,6}}), sizeof(hypothesis_t));
+}
+
+START_TEST(test_update_sats_reset)
+{
+  /* Tests that end with a reset */
+  ambiguity_test_t amb_test;
+  /* Make sure the ambiguity test fails when given only one sdiff */
+  amb_test_setup(&amb_test);
+  fail_unless(0 == ambiguity_update_sats(&amb_test, 1,
+                         NULL, NULL, NULL, NULL, NULL, false));
+  fail_unless(memory_pool_n_allocated(amb_test.pool) == 1);
+  fail_unless(amb_test.sats.num_sats == 0);
+  /* Make sure the ambiguity test fails when given zero sdiffs */
+  amb_test_setup(&amb_test);
+  fail_unless(0 == ambiguity_update_sats(&amb_test, 0,
+                         NULL, NULL, NULL, NULL, NULL, false));
+  fail_unless(memory_pool_n_allocated(amb_test.pool) == 1);
+  fail_unless(amb_test.sats.num_sats == 0);
+}
+END_TEST
+
+static bool sats_man_match(sats_management_t *sats1, sats_management_t *sats2)
+{
+  if (sats1->num_sats != sats2->num_sats) return false;
+  for (u8 i=0; i < sats1->num_sats; i++) {
+    if (sats1->prns[i] != sats2->prns[i]) return false;
+  }
+  return true;
+}
+
+static bool hyp_pool_match(ambiguity_test_t *amb_test1, ambiguity_test_t *amb_test2)
+{
+  if (memory_pool_n_allocated(amb_test1->pool) != memory_pool_n_allocated(amb_test2->pool))
+      return false;
+  /* TODO use some kind of "and $ zipWith (==) pool1 pool2" */
+  return true;
+}
+
+static bool amb_tests_match(ambiguity_test_t *amb_test1, ambiguity_test_t *amb_test2)
+{
+  if (!sats_man_match(&amb_test1->sats, &amb_test2->sats)) return false;
+  return hyp_pool_match(amb_test1, amb_test2);
+}
+
+START_TEST(test_update_sats_intermediate_reset)
+{
+  /* Tests that reset somewhere along the way.
+     (Any of these should give the same output as an empty pool */
+  ambiguity_test_t amb_test, amb_test2;
+  double u[5*5];
+  matrix_eye(5, u);
+  double d[5] = {1e-5,1e-5,1e-5,1e-5,1e-5};
+  double float_mean[5] = {0,-1,-2,-3,-4};
+  // double float_mean[5] = {0,0,0,0,0};
+  sdiff_t sdiffs[6];
+  sdiffs[0].prn = 0; sdiffs[0].snr = 1;
+  sdiffs[1].prn = 1; sdiffs[1].snr = 0;
+  sdiffs[2].prn = 2; sdiffs[2].snr = 0;
+  sdiffs[3].prn = 3; sdiffs[3].snr = 0;
+  sdiffs[4].prn = 4; sdiffs[4].snr = 0;
+  sdiffs[5].prn = 5; sdiffs[5].snr = 0;
+  sats_management_t float_sats = {.num_sats = 6, .prns={3, 0,1,2,4,5}};
+  /* num_sats == 0 should trigger a reset */
+  create_empty_ambiguity_test(&amb_test);
+  memcpy(&amb_test.sats, &((sats_management_t) {.num_sats = 0}),
+    sizeof(sats_management_t));
+  memory_pool_add(amb_test.pool);
+  create_ambiguity_test(&amb_test2);
+  ambiguity_update_sats(&amb_test, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  ambiguity_update_sats(&amb_test2, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  fail_unless(amb_tests_match(&amb_test, &amb_test2));
+  /* num_sats == 1 should trigger a reset */
+  create_empty_ambiguity_test(&amb_test);
+  memcpy(&amb_test.sats, &((sats_management_t) {.num_sats = 1}),
+    sizeof(sats_management_t));
+  memory_pool_add(amb_test.pool);
+  create_ambiguity_test(&amb_test2);
+  ambiguity_update_sats(&amb_test, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  ambiguity_update_sats(&amb_test2, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  fail_unless(amb_tests_match(&amb_test, &amb_test2));
+  /* Should also fail if the KF and the amb test diverge */
+  amb_test_setup(&amb_test);
+  create_ambiguity_test(&amb_test2);
+  ambiguity_update_sats(&amb_test, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  ambiguity_update_sats(&amb_test2, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  fail_unless(amb_tests_match(&amb_test, &amb_test2));
+  /* No DDs in intersection should trigger a reset */
+  sdiffs[0].prn = 0;
+  sdiffs[1].prn = 6;
+  sdiffs[2].prn = 7;
+  sdiffs[3].prn = 8;
+  sdiffs[4].prn = 9;
+  sdiffs[5].prn = 10;
+  amb_test_setup(&amb_test);
+  create_ambiguity_test(&amb_test2);
+  ambiguity_update_sats(&amb_test, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  ambiguity_update_sats(&amb_test2, 6, sdiffs,
+    &float_sats, float_mean, u, d, false);
+  fail_unless(amb_tests_match(&amb_test, &amb_test2));
 }
 END_TEST
 
@@ -296,6 +417,8 @@ Suite* ambiguity_test_suite(void)
   //tcase_add_test(tc_core, test_update_sats_rebase);
   (void) test_update_sats_rebase;
   tcase_add_test(tc_core, test_amb_sat_inclusion);
+  tcase_add_test(tc_core, test_update_sats_reset);
+  tcase_add_test(tc_core, test_update_sats_intermediate_reset);
   suite_add_tcase(s, tc_core);
 
   return s;
