@@ -14,7 +14,6 @@
 #include <string.h>
 #include "constants.h"
 #include "common.h"
-#include "ambiguity_test.h"
 #include "printing_utils.h"
 
 /** Prints a matrix of doubles.

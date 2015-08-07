@@ -1,9 +1,4 @@
-import plvstdlib;
-
-newline () :: () := puts "";
-
-print_matrix {n, m} (A :: double[n,m]) :: ()
-  := ( for i in n -> (for j in m -> printf "%f " A[i,j]; newline()) );
+import externs;
 
 static givens (a :: double) (b :: double) :: double[2,2] := (
   c := 0.0;
@@ -76,7 +71,7 @@ static backsolve {n}
   (inout b :: double[n])
   :: s8 := (
     for i in 0:n -> (
-      if fabs(U[i,i]) < MATRIX_EPSILON then
+      if fabs U[i,i] < 0.000000001 then
         return -1;
     );
     b[n-1] <- b[n-1]/U[n-1, n-1];

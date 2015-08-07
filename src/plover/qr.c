@@ -9,7 +9,7 @@ static void givens (const double a, const double b, double * result);
 s8 backsolve (const s32 n, const double * U, double * b)
 {
     for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        if (fabs(U[n * i + i]) < MATRIX_EPSILON) {
+        if (fabs(U[n * i + i]) < 1.0000000000000003e-9) {
             return -1;
         }
     }
@@ -56,10 +56,6 @@ void givens (const double a, const double b, double * result)
     result[2 * 1] = -s;
     result[2 * 1 + 1] = c;
 }
-void newline (void)
-{
-    puts("");
-}
 double norm (const s32 n, const double * v)
 {
     double sum = 0;
@@ -68,15 +64,6 @@ double norm (const s32 n, const double * v)
         sum += v[idx] * v[idx];
     }
     return sqrt(sum);
-}
-void print_matrix (const s32 n, const s32 m, const double * A)
-{
-    for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        for (s32 j = 0, idx2 = 0; idx2 < m; j += 1, idx2++) {
-            printf("%f ", A[m * i + j]);
-        }
-        newline();
-    }
 }
 s8 qr_solve (const s32 m, const s32 n, double * A, double * b,
              double * solution, double * residual)

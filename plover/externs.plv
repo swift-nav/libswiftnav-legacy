@@ -1,0 +1,12 @@
+extern (
+  fabs (x :: double) :: double;
+  sqrt (x :: double) :: double;
+  printf (x :: string) (v :: double) :: ();
+  puts (x :: string) :: ();
+  MATRIX_EPSILON :: double;
+);
+
+newline () :: () := puts "";
+
+print_matrix {n, m} (A :: double[n,m]) :: ()
+  := ( for i in n -> (for j in m -> printf "%f " A[i,j]; newline()) );
