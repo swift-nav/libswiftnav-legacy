@@ -35,12 +35,5 @@ typedef struct __attribute__((packed)) {
   u16 prn;
 } signal_t;
 
-static inline void signal_copy(const signal_t *from, signal_t *to)
-{
-  to->constellation = from->constellation;
-  to->band = from->band;
-  to->prn = from->prn;
-}
-
 #endif /* LIBSWIFTNAV_SIGNAL_H */
 

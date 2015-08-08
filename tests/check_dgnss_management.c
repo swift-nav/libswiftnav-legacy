@@ -150,31 +150,31 @@ static void check_dgnss_baseline_setup()
 {
   memset(ref_ecef, 0, sizeof(ref_ecef));
 
-  sdiffs[0].prn = 1;
+  sdiffs[0].sid.prn = 1;
   sdiffs[0].sat_pos[0] = 1;
   sdiffs[0].sat_pos[1] = 1;
   sdiffs[0].sat_pos[2] = 0;
   sdiffs[0].carrier_phase = 1;
 
-  sdiffs[1].prn = 2;
+  sdiffs[1].sid.prn = 2;
   sdiffs[1].sat_pos[0] = 1;
   sdiffs[1].sat_pos[1] = 0;
   sdiffs[1].sat_pos[2] = 0;
   sdiffs[1].carrier_phase = 2;
 
-  sdiffs[2].prn = 3;
+  sdiffs[2].sid.prn = 3;
   sdiffs[2].sat_pos[0] = 0;
   sdiffs[2].sat_pos[1] = 1;
   sdiffs[2].sat_pos[2] = 0;
   sdiffs[2].carrier_phase = 3;
 
-  sdiffs[3].prn = 4;
+  sdiffs[3].sid.prn = 4;
   sdiffs[3].sat_pos[0] = 0;
   sdiffs[3].sat_pos[1] = 1;
   sdiffs[3].sat_pos[2] = 1;
   sdiffs[3].carrier_phase = 4;
 
-  sdiffs[4].prn = 5;
+  sdiffs[4].sid.prn = 5;
   sdiffs[4].sat_pos[0] = 0;
   sdiffs[4].sat_pos[1] = 0;
   sdiffs[4].sat_pos[2] = 1;

@@ -401,7 +401,7 @@ static s8 pvt_repair(double rx_state[],
     s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_subset, omp, H);
     assert(flag == 0);
     if (removed_prn) {
-      *removed_prn = nav_meas[bad_sat].prn;
+      *removed_prn = nav_meas[bad_sat].sid.prn;
     }
     return 1;
   } else {
