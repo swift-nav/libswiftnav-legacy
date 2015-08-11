@@ -1,9 +1,7 @@
+import prelude;
+
 extern (
-  fabs (x :: double) :: double;
-  sqrt (x :: double) :: double;
-  printf (x :: string) (v :: double) :: ();
   puts (x :: string) :: ();
-  MATRIX_EPSILON :: double;
 );
 
 newline () :: () := puts "";
