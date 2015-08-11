@@ -1,4 +1,4 @@
-import externs;
+import prelude;
 
 static givens (a :: double) (b :: double) :: double[2,2] := (
   c := 0.0;
@@ -15,7 +15,7 @@ static givens (a :: double) (b :: double) :: double[2,2] := (
       vec(-s, c));
 );
 
-norm {n} (v :: double[n]) :: double := sqrt (v * v);
+--norm {n} (v :: double[n]) :: double := sqrt (v * v);
 
 -- Assumes m >= n
 -- See "Matrix Computations" 4th ed. Golub and Van Loan

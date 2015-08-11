@@ -25,6 +25,8 @@
 
 #include "pvt.h"
 
+#include "plover/pvt.h"
+
 static double vel_solve(double rx_vel[],
                         const u8 n_used,
                         const navigation_measurement_t *nav_meas[n_used],
@@ -127,7 +129,13 @@ static void compute_dops(const double H[4][4],
  *     vel_solve) and do some bookkeeping to pass the solution back
  *     out.
  */
-static double pvt_solve(double rx_state[],
+// TODO(dsk) remove
+double pvt_solve(double rx_state[],
+                        const u8 n_used,
+                        const navigation_measurement_t *nav_meas[n_used],
+                        double omp[n_used],
+                        double H[4][4]);
+double pvt_solve(double rx_state[],
                         const u8 n_used,
                         const navigation_measurement_t *nav_meas[n_used],
                         double omp[n_used],
@@ -326,7 +334,7 @@ static s8 pvt_iter(double rx_state[],
   u8 iters;
   /* Newton-Raphson iteration. */
   for (iters=0; iters<PVT_MAX_ITERATIONS; iters++) {
-    if (pvt_solve(rx_state, n_used, nav_meas, omp, H) > 0) {
+    if (pvt(rx_state, n_used, (const navigation_measurement_t * *)nav_meas, omp, (double *)H) > 0) {
       break;
     }
   }

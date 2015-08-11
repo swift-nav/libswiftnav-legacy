@@ -1,29 +1,8 @@
 #include "plover/qr.h"
 
 
-#include <math.h>
-#include <stdio.h>
-#include "linear_algebra.h"
-static s8 backsolve (const s32 n, const double * U, double * b);
 static void givens (const double a, const double b, double * result);
-s8 backsolve (const s32 n, const double * U, double * b)
-{
-    for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        if (fabs(U[n * i + i]) < 1.0000000000000003e-9) {
-            return -1;
-        }
-    }
-    b[n - 1] = b[n - 1] / U[n * (n - 1) + (n - 1)];
-    for (s32 i = n - 1, idx = 0; idx < -1 + n; i += -1, idx++) {
-        double sum = 0;
-        
-        for (s32 idx2 = 0; idx2 < -i + n; idx2++) {
-            sum += U[n * (i - 1) + (i + idx2)] * b[i + idx2];
-        }
-        b[i - 1] = (b[i - 1] - sum) / U[n * (i - 1) + (i - 1)];
-    }
-    return 0;
-}
+static s8 backsolve (const s32 n, const double * U, double * b);
 void givens (const double a, const double b, double * result)
 {
     double c;
@@ -56,17 +35,7 @@ void givens (const double a, const double b, double * result)
     result[2 * 1] = -s;
     result[2 * 1 + 1] = c;
 }
-double norm (const s32 n, const double * v)
-{
-    double sum = 0;
-    
-    for (s32 idx = 0; idx < n; idx++) {
-        sum += v[idx] * v[idx];
-    }
-    return sqrt(sum);
-}
-s8 qr_solve (const s32 m, const s32 n, double * A, double * b,
-             double * solution, double * residual)
+s8 qr_solve (const s32 m, const s32 n, double * A, double * b, double * solution, double * residual)
 {
     qr_update(m, n, b, A);
     
@@ -136,5 +105,23 @@ void qr_update (const s32 m, const s32 n, double * b, double * A)
             }
         }
     }
+}
+s8 backsolve (const s32 n, const double * U, double * b)
+{
+    for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
+        if (fabs(U[n * i + i]) < 1.0000000000000003e-9) {
+            return -1;
+        }
+    }
+    b[n - 1] = b[n - 1] / U[n * (n - 1) + (n - 1)];
+    for (s32 i = n - 1, idx = 0; idx < -1 + n; i += -1, idx++) {
+        double sum = 0;
+        
+        for (s32 idx2 = 0; idx2 < -i + n; idx2++) {
+            sum += U[n * (i - 1) + (i + idx2)] * b[i + idx2];
+        }
+        b[i - 1] = (b[i - 1] - sum) / U[n * (i - 1) + (i - 1)];
+    }
+    return 0;
 }
 

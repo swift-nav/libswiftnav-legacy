@@ -36,7 +36,8 @@ set (PLOVER_HS_SRCS
 #         and ${unit}.h in PLOVER_GENERATED_H_DIR
 # TODO add qr, pvt
 set (PLOVER_UNITS
-  externs
+  prelude
+  pvt
   qr
 )
 
