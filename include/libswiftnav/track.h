@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "ephemeris.h"
+#include "signal.h"
 
 /** \addtogroup track
  * \{ */
@@ -138,7 +139,7 @@ typedef struct {
  * \see calc_navigation_measurement()
  */
 typedef struct {
-  u8 prn;                  /**< Satellite PRN. */
+  signal_t sid;            /**< Satellite signal. */
   double code_phase_chips; /**< The code-phase in chips at `receiver_time`. */
   double code_phase_rate;  /**< Code phase rate in chips/s. */
   double carrier_phase;    /**< Carrier phase in cycles. */
@@ -167,7 +168,7 @@ typedef struct {
   double snr;
   double lock_time;
   gps_time_t tot;
-  u8 prn;
+  signal_t sid;
   u16 lock_counter;
 } navigation_measurement_t;
 

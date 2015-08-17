@@ -27,7 +27,7 @@ typedef struct {
   double sat_vel[3];
   double snr;
   u16 lock_counter;
-  u8 prn;
+  signal_t sid;
 } sdiff_t;
 
 int cmp_sdiff_prn(const void *a_, const void *b_);

@@ -750,7 +750,7 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
   for (u8 i=0; i<n_channels; i++) {
     meas_ptrs[i] = &meas[i];
     nav_meas_ptrs[i] = &nav_meas[i];
-    ephemerides_ptrs[i] = &ephemerides[meas[i].prn];
+    ephemerides_ptrs[i] = &ephemerides[meas[i].sid.prn];
   }
 
   calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time, ephemerides_ptrs);
@@ -774,13 +774,13 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
 
     nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
-    nav_meas[i]->prn = meas[i]->prn;
+    nav_meas[i]->sid.prn = meas[i]->sid.prn;
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
     nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
-	
+
     /* calc sat clock error */
     calc_sat_state(ephemerides[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
@@ -808,8 +808,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
  */
 int nav_meas_cmp(const void *a, const void *b)
 {
-  return (s8)((navigation_measurement_t*)a)->prn
-       - (s8)((navigation_measurement_t*)b)->prn;
+  return ((navigation_measurement_t*)a)->sid.prn
+       - ((navigation_measurement_t*)b)->sid.prn;
 }
 
 /** Set measurement precise Doppler using time difference of carrier phase.
@@ -835,9 +835,9 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
 
   /* Loop over m_new and m_old and check if a PRN is present in both. */
   for (i=0, j=0; i<n_new && j<n_old; i++, j++) {
-    if (m_new[i].prn < m_old[j].prn)
+    if (m_new[i].sid.prn < m_old[j].sid.prn)
       j--;
-    else if (m_new[i].prn > m_old[j].prn)
+    else if (m_new[i].sid.prn > m_old[j].sid.prn)
       i--;
     else {
       /* Copy m_new to m_corrected. */

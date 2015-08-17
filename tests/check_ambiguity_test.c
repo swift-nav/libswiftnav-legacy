@@ -15,10 +15,10 @@ START_TEST(test_update_sats_same_sats)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 4,
                                         .prns = {3,1,2,4}}};
-  sdiff_t sdiffs[4] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 4}};
+  sdiff_t sdiffs[4] = {{.sid.prn = 1},
+                       {.sid.prn = 2},
+                       {.sid.prn = 3},
+                       {.sid.prn = 4}};
   u8 num_sdiffs = 4;
 
   ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, NULL, NULL, NULL, NULL, false);
@@ -35,11 +35,11 @@ START_TEST(test_bad_measurements)
 {
   ambiguity_test_t amb_test;
 
-  sdiff_t sdiffs[5] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 5},
-                       {.prn = 6}};
+  sdiff_t sdiffs[5] = {{.sid.prn = 1},
+                       {.sid.prn = 2},
+                       {.sid.prn = 3},
+                       {.sid.prn = 5},
+                       {.sid.prn = 6}};
   u8 num_sdiffs = 5;
 
 
@@ -102,10 +102,10 @@ START_TEST(test_update_sats_rebase)
   amb_test.sats.prns[2] = 2;
   amb_test.sats.prns[3] = 4;
 
-  sdiff_t sdiffs[3] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0},
+  sdiff_t sdiffs[3] = {{.sid.prn = 1, .snr = 0},
+                       {.sid.prn = 2, .snr = 0},
                       // {.prn = 3, .snr = 0},
-                       {.prn = 4, .snr = 1}};
+                       {.sid.prn = 4, .snr = 1}};
   u8 num_sdiffs = 3;
 
   hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
@@ -135,9 +135,9 @@ START_TEST(test_ambiguity_update_reference)
 
   amb_test.sats.num_sats = 4;
 
-  sdiff_t sdiffs[4] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0},
-                       {.prn = 4, .snr = 1}};
+  sdiff_t sdiffs[4] = {{.sid.prn = 1, .snr = 0},
+                       {.sid.prn = 2, .snr = 0},
+                       {.sid.prn = 4, .snr = 1}};
   u8 num_sdiffs = 3;
 
   for (u32 i=0; i<3; i++) {
@@ -160,17 +160,17 @@ START_TEST(test_sats_match)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 3,
                                         .prns = {3,1,2}}};
-  sdiff_t sdiffs[4] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 4}};
+  sdiff_t sdiffs[4] = {{.sid.prn = 1},
+                       {.sid.prn = 2},
+                       {.sid.prn = 3},
+                       {.sid.prn = 4}};
   u8 num_sdiffs = 4;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
   num_sdiffs = 3;
   fail_unless(sats_match(&amb_test, num_sdiffs, sdiffs));
 
-  sdiffs[0].prn = 22;
+  sdiffs[0].sid.prn = 22;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
 }
