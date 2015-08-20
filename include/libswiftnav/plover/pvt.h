@@ -5,7 +5,6 @@
 
 #include "constants.h"
 #include "track.h"
-#include "linear_algebra.h"
 double pvt (double * rx_state, const u8 n_used, const navigation_measurement_t * * nav_meas, double * omp, double * H);
 
 

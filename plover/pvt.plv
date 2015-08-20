@@ -2,7 +2,6 @@ import prelude;
 
 __C__ "#include \"constants.h\"";
 __C__ "#include \"track.h\"";
-__C__ "#include \"linear_algebra.h\"";
 
 extern struct navigation_measurement_t (
   pseudorange :: double;
@@ -15,9 +14,9 @@ extern GPS_OMEGAE_DOT :: double;
 extern GPS_C :: double;
 
 static rot_small (x :: double) :: double[3,3]
- := vec(vec(1.0, x, 0.0),
-        vec(-x, 1.0, 0.0),
-        vec(0.0, 0.0, 1.0));
+ := mat(1.0,   x, 0.0;
+         -x, 1.0, 0.0;
+        0.0, 0.0, 1.0);
 
 pvt (inout rx_state :: double[8])
     {n_used :: u8}
@@ -34,7 +33,7 @@ pvt (inout rx_state :: double[8])
              xk_new - rx_state[0:3];
            );
 
-    G := vec j in 0:n_used -> (normalize (-los[j])) # vec(1);
+    G := vec j in 0:n_used -> normalize (-los[j]) # vec(1);
     omp <- vec i in 0:n_used -> nav_meas[i].pseudorange - norm los[i];
     H <- (G^T * G)^(-1);
     X := H * G^T;
@@ -60,7 +59,7 @@ pvt (inout rx_state :: double[8])
     rx_state[4:8] <- X * tempvX;
 
     return correction_norm;
-  );
+);
 
 extern MAX_OBS_DIM :: u32;
 extern MAX_STATE_DIM :: u32;
