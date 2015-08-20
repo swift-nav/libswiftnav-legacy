@@ -2,6 +2,7 @@
 #define PLOVER_GENERATED_prelude
 
 
+#include <assert.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -48,7 +49,7 @@ double norm (const s32 n, const double * v);
 void normalize (const s32 n, const double * v, double * result);
 void print_vec (const s32 n, const double * v);
 void print_mat (const s32 n, const s32 m, const double * A);
-s32 pl_matrix_inverse (const s32 n, const double * A, double * B);
+s32 matrix_inv (const s32 n, const double * A, double * B);
 double det (const s32 n, const double * A);
 
 

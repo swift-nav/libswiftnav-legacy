@@ -2,7 +2,7 @@
 -- The standard library for plover
 
 
--- static __C__ "#include \"linear_algebra.h\"";
+__C__ "#include <assert.h>";
 
 ---
 --- Integers
@@ -75,13 +75,13 @@ extern (
   div (n :: int) (denom :: int) :: div_t;
   -- skipping ldiv
   -- skipping qsort
-  strtol (nptr :: string) (inout endptr :: *string) (base :: int) :: int;
-  strtoul (nptr :: string) (inout endptr :: *string) (base :: int) :: u32; -- unsigned long
+  strtol (nptr :: string) (inout endptr :: string) (base :: int) :: int;
+  strtoul (nptr :: string) (inout endptr :: string) (base :: int) :: u32; -- unsigned long
   atol (s :: string) :: int; -- long
   atoi (s :: string) :: int;
   exit (status :: int) :: ();
   -- skipping malloc, free, calloc, realloc
-  strtod (nptr :: string) (inout endptr :: *string) :: double;
+  strtod (nptr :: string) (inout endptr :: string) :: double;
   atof (s :: string) :: double;
   rand () :: int;
   srand (seed :: u32) :: ();
@@ -184,8 +184,8 @@ extern (
   fminf (x :: float) (y :: float) :: float;
   fmod (x :: double) (y :: double) :: double;
   fmodf (x :: float) (y :: float) :: float;
-  frexp (x :: double) (out y :: *int) :: double;
-  frexpf (x :: float) (out y :: *int) :: float;
+  frexp (x :: double) (out y :: int) :: double;
+  frexpf (x :: float) (out y :: int) :: float;
   hypot (x :: double) (y :: double) :: double;
   hypotf (x :: float) (y :: float) :: float;
   ilogb (x :: double) :: int;
@@ -215,8 +215,8 @@ extern (
   lrintf (x :: float) :: s32;
   lround (x :: double) :: s32;
   lroundf (x :: float) :: s32;
-  modf (x :: double) (out y :: *double) :: double;
-  modff (x :: float) (out y :: *float) :: float;
+  modf (x :: double) (out y :: double) :: double;
+  modff (x :: float) (out y :: float) :: float;
   nan (x :: string) :: double;
   nanf (x :: string) :: float;
   nearbyint (x :: double) :: double;
@@ -227,8 +227,8 @@ extern (
   powf (x :: float) (y :: float) :: float;
   remainder (x :: double) (y :: double) :: double;
   remainderf (x :: float) (y :: float) :: float;
-  remquo (x :: double) (y :: double) (out z :: *int) :: double;
-  remquof (x :: float) (y :: float) (out z :: *int) :: float;
+  remquo (x :: double) (y :: double) (out z :: int) :: double;
+  remquof (x :: float) (y :: float) (out z :: int) :: float;
   rint (x :: double) :: double;
   rintf (x :: float) :: float;
   round (x :: double) :: double;
@@ -325,24 +325,38 @@ norm {n} (v :: double[n]) :: double
 normalize {n} (v :: double[n]) :: double[n]
   := v / norm v;
 
-print_vec {n} (v :: double[n]) :: ()
-  := for i in n -> printf "[% 12lf]\n" v[i];
-print_mat {n,m} (A :: double[n,m]) :: ()
-  := for i in n -> (
-       printf "[";
-       for j in m -> printf "% 12lf " A[i,j];
-       printf "]\n";
+print_vec {n} (v :: double[n]) :: () := (
+  printf "vec(";
+  for i in n -> (
+    if i > 0 then printf "," else 0;
+    printf "% 12lf" v[i];
+  );
+  printf ")\n";
+  ();
+);
+
+print_mat {n,m} (A :: double[n,m]) :: () := (
+  printf "mat(";
+   for i in n -> (
+     if i > 0 then printf ";\n    " else 0;
+     for j in m -> (
+       if j > 0 then printf "," else 0;
+       printf "% 12lf" A[i,j];
      );
+   );
+   printf ")\n";
+   ();
+);
 
 
-pl_matrix_inverse {n} (A :: double[n,n]) (out B :: double[n, n]) :: int
+matrix_inv {n} (A :: double[n,n]) (out B :: double[n, n]) :: int
   := specialize n (
        0 -> 0; -- then B is already set. it's technically an inverse
-       1 -> inv1 A B;
-       2 -> inv2 A B;
-       3 -> inv3 A B;
-       4 -> inv4 A B;
-       _ -> gen_inv_qr A B;
+       1 -> inv1 A (out B);
+       2 -> inv2 A (out B);
+       3 -> inv3 A (out B);
+       4 -> inv4 A (out B);
+       _ -> gen_inv_qr A (out B);
      );
 
 det {n} (A :: double[n,n]) :: double

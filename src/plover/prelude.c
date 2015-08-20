@@ -75,21 +75,32 @@ void normalize (const s32 n, const double * v, double * result)
 }
 void print_vec (const s32 n, const double * v)
 {
+    printf("vec(");
     for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        printf("[% 12lf]\n", v[i]);
+        if (0 < i) {
+            printf(",");
+        }
+        printf("% 12lf", v[i]);
     }
+    printf(")\n");
 }
 void print_mat (const s32 n, const s32 m, const double * A)
 {
+    printf("mat(");
     for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        printf("[");
-        for (s32 j = 0, idx2 = 0; idx2 < m; j += 1, idx2++) {
-            printf("% 12lf ", A[m * i + j]);
+        if (0 < i) {
+            printf(";\n    ");
         }
-        printf("]\n");
+        for (s32 j = 0, idx2 = 0; idx2 < m; j += 1, idx2++) {
+            if (0 < j) {
+                printf(",");
+            }
+            printf("% 12lf", A[m * i + j]);
+        }
     }
+    printf(")\n");
 }
-s32 pl_matrix_inverse (const s32 n, const double * A, double * B)
+s32 matrix_inv (const s32 n, const double * A, double * B)
 {
     s32 tmp;
     
@@ -514,7 +525,7 @@ double gen_det_qr (const s32 n, const double * U)
             double rot [2 * 2];
             
             givens(A[n * (i - 2) + (j - 1)], A[n * (i - 1) + (j - 1)], rot);
-            for (s32 k = j, idx3 = 0; idx3 < 1 + -j + n; k += 1, idx3++) {
+            for (s32 k = j, idx3 = 0; idx3 < 1 - j + n; k += 1, idx3++) {
                 double v [2];
                 
                 for (s32 idx4 = 0; idx4 < 2; idx4++) {
@@ -569,7 +580,7 @@ s32 gen_inv_qr (const s32 n, const double * U, double * B)
             double rot [2 * 2];
             
             givens(A[n * (i - 2) + (j - 1)], A[n * (i - 1) + (j - 1)], rot);
-            for (s32 k = j, idx3 = 0; idx3 < 1 + -j + n; k += 1, idx3++) {
+            for (s32 k = j, idx3 = 0; idx3 < 1 - j + n; k += 1, idx3++) {
                 double v [2];
                 
                 for (s32 idx4 = 0; idx4 < 2; idx4++) {
@@ -609,37 +620,21 @@ s32 gen_inv_qr (const s32 n, const double * U, double * B)
         double scale;
         
         scale = A[n * i + i];
-        
-        double tmp;
-        
-        tmp = scale;
         for (s32 idx2 = 0; idx2 < n; idx2++) {
-            A[n * i + idx2] = A[n * i + idx2] / tmp;
+            A[n * i + idx2] = A[n * i + idx2] / scale;
         }
-        
-        double tmp2;
-        
-        tmp2 = scale;
         for (s32 idx2 = 0; idx2 < n; idx2++) {
-            B[n * i + idx2] = B[n * i + idx2] / tmp2;
+            B[n * i + idx2] = B[n * i + idx2] / scale;
         }
         for (s32 j = 0, idx2 = 0; idx2 < i; j += 1, idx2++) {
             double c;
             
             c = A[n * j + i];
-            
-            double tmp3;
-            
-            tmp3 = c;
             for (s32 idx3 = 0; idx3 < n; idx3++) {
-                A[n * j + idx3] = A[n * j + idx3] - tmp3 * A[n * i + idx3];
+                A[n * j + idx3] = A[n * j + idx3] - c * A[n * i + idx3];
             }
-            
-            double tmp4;
-            
-            tmp4 = c;
             for (s32 idx3 = 0; idx3 < n; idx3++) {
-                B[n * j + idx3] = B[n * j + idx3] - tmp4 * B[n * i + idx3];
+                B[n * j + idx3] = B[n * j + idx3] - c * B[n * i + idx3];
             }
         }
     }
