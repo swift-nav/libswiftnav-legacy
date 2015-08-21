@@ -52,7 +52,7 @@ pvt (inout rx_state :: double[8])
     tempvX := vec j in 0:n_used -> (
       -- dot product
       pdot_pred := -G[j][0:3] * nav_meas[j].sat_vel;
-      nav_meas[j].doppler * GPS_C / GPS_L1_HZ - pdot_pred;
+      -nav_meas[j].doppler * GPS_C / GPS_L1_HZ - pdot_pred;
     );
 
     -- Update velocity components of solution
