@@ -80,33 +80,3 @@ static backsolve {n}
 
     return 0;
 );
-
-
--- "Unit test"
-main () :: s32 := (
-  m :=
-   mat(1.0, 0, 2;
-       1,   1, -1;
-       0,   0, 1;
-       0,   0, 22);
-  A := m;
-
-  b := vec(5.0, 4, 1.1, 22);
-  v := b;
-
-  residual := -1.0;
-
-  solution :: double[3];
-
-  code := qr_solve (inout m) (inout b) (out solution) (out residual);
-
-  printf "\nconstraint matrix:\n";
-  print_mat m;
-
-  printf "residual:\n%f\n" residual;
-  printf "solution:\n";
-  print_vec solution;
-  printf "residual vector:\n";
-  print_vec $ A * b[0:3] - v;
-  0;
-);
