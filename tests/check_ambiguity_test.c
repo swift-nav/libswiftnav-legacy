@@ -146,6 +146,20 @@ static bool amb_tests_match(ambiguity_test_t *amb_test1, ambiguity_test_t *amb_t
   return hyp_pool_match(amb_test1, amb_test2);
 }
 
+static void set_prns(u8 n, sdiff_t *sdiffs, s32 *prns)
+{
+  for (u8 i=0; i < n; i++) {
+    sdiffs[i].prn = prns[i];
+  }
+}
+
+static void set_snrs(u8 n, sdiff_t *sdiffs, double *snrs)
+{
+  for (u8 i=0; i < n; i++) {
+    sdiffs[i].snr = snrs[i];
+  }
+}
+
 START_TEST(test_update_sats_intermediate_reset)
 {
   /* Tests that reset somewhere along the way.
@@ -155,14 +169,9 @@ START_TEST(test_update_sats_intermediate_reset)
   matrix_eye(5, u);
   double d[5] = {1e-5,1e-5,1e-5,1e-5,1e-5};
   double float_mean[5] = {0,-1,-2,-3,-4};
-  // double float_mean[5] = {0,0,0,0,0};
   sdiff_t sdiffs[6];
-  sdiffs[0].prn = 0; sdiffs[0].snr = 1;
-  sdiffs[1].prn = 1; sdiffs[1].snr = 0;
-  sdiffs[2].prn = 2; sdiffs[2].snr = 0;
-  sdiffs[3].prn = 3; sdiffs[3].snr = 0;
-  sdiffs[4].prn = 4; sdiffs[4].snr = 0;
-  sdiffs[5].prn = 5; sdiffs[5].snr = 0;
+  set_prns(6, sdiffs,    (s32[6]){0,1,2,3,4,5});
+  set_snrs(6, sdiffs, (double[6]){1,0,0,0,0,0});
   sats_management_t float_sats = {.num_sats = 6, .prns={3, 0,1,2,4,5}};
   /* num_sats == 0 should trigger a reset */
   create_empty_ambiguity_test(&amb_test);
@@ -195,12 +204,7 @@ START_TEST(test_update_sats_intermediate_reset)
     &float_sats, float_mean, u, d, false);
   fail_unless(amb_tests_match(&amb_test, &amb_test2));
   /* No DDs in intersection should trigger a reset */
-  sdiffs[0].prn = 0;
-  sdiffs[1].prn = 6;
-  sdiffs[2].prn = 7;
-  sdiffs[3].prn = 8;
-  sdiffs[4].prn = 9;
-  sdiffs[5].prn = 10;
+  set_prns(6, sdiffs, (s32[6]) {0,6,7,8,9,10});
   amb_test_setup(&amb_test);
   create_ambiguity_test(&amb_test2);
   ambiguity_update_sats(&amb_test, 6, sdiffs,
@@ -225,20 +229,6 @@ static s32 cmp_hyps_lex(void *arg, element_t *a, element_t *b)
     if (hyp1->N[i] < hyp2->N[i]) return -1;
   }
   return 0;
-}
-
-static void set_prns(u8 n, sdiff_t *sdiffs, s32 *prns)
-{
-  for (u8 i=0; i < n; i++) {
-    sdiffs[i].prn = prns[i];
-  }
-}
-
-static void set_snrs(u8 n, sdiff_t *sdiffs, double *snrs)
-{
-  for (u8 i=0; i < n; i++) {
-    sdiffs[i].snr = snrs[i];
-  }
 }
 
 static void test_ambiguity_update_sats(ambiguity_test_t *amb_test,
