@@ -740,8 +740,10 @@ static void projection_aggregator(element_t *new_, void *x_, u32 n, element_t *e
     new->ll = elem->ll;
   }
   else {
-    new->ll += log(1 + exp(elem->ll - new->ll));
-    // new->ll = MAX(new->ll, elem->ll);
+    new->ll += log1pexp(elem->ll - new->ll);
+    /* new->ll = MAX(new->ll, elem->ll); is usually very close, and faster!
+     * but we won't do this til we're really hurting for speed. Better to
+     * figure out how to need fewer hypotheses at that point. */
   }
 
 }

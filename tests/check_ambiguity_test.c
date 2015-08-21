@@ -208,8 +208,131 @@ START_TEST(test_update_sats_intermediate_reset)
   ambiguity_update_sats(&amb_test2, 6, sdiffs,
     &float_sats, float_mean, u, d, false);
   fail_unless(amb_tests_match(&amb_test, &amb_test2));
+  for (double x = -100; x < 100; x++) {
+    fail_unless(within_epsilon(log(1 + exp(x)), log1p(exp(x))));
+  }
 }
 END_TEST
+
+static s32 cmp_hyps_lex(void *arg, element_t *a, element_t *b)
+{
+  u8 num_sats = *((u8 *) arg);
+  hypothesis_t *hyp1 = (hypothesis_t *)a;
+  hypothesis_t *hyp2 = (hypothesis_t *)b;
+
+  for (u8 i=0; i < MAX(1,num_sats)-1; i++) {
+    if (hyp1->N[i] > hyp2->N[i]) return 1;
+    if (hyp1->N[i] < hyp2->N[i]) return -1;
+  }
+  return 0;
+}
+
+static void set_prns(u8 n, sdiff_t *sdiffs, s32 *prns)
+{
+  for (u8 i=0; i < n; i++) {
+    sdiffs[i].prn = prns[i];
+  }
+}
+
+static void set_snrs(u8 n, sdiff_t *sdiffs, double *snrs)
+{
+  for (u8 i=0; i < n; i++) {
+    sdiffs[i].snr = snrs[i];
+  }
+}
+
+static void test_ambiguity_update_sats(ambiguity_test_t *amb_test,
+  sats_management_t float_sats, double *d, double *u, double *float_mean,
+  sdiff_t *sdiffs, bool is_bad_meas,
+  sats_management_t expected_sats, s32 expected_num_hyps, s32 *expected_hyps)
+{
+  amb_test_setup(amb_test);
+  ambiguity_update_sats(amb_test, float_sats.num_sats, sdiffs,
+    &float_sats, float_mean, u, d, is_bad_meas);
+  memory_pool_sort(amb_test->pool, &amb_test->sats.num_sats, &cmp_hyps_lex);
+  hypothesis_t hyps[expected_num_hyps];
+  memory_pool_to_array(amb_test->pool, hyps);
+  fail_unless(memory_pool_n_allocated(amb_test->pool) == expected_num_hyps);
+  fail_unless(amb_test->sats.num_sats == expected_sats.num_sats);
+  fail_unless(!memcmp(amb_test->sats.prns, expected_sats.prns, expected_sats.num_sats * sizeof(u8)));
+  u8 num_dds = CLAMP_DIFF(expected_sats.num_sats, 1);
+  for (u8 i=0; i < expected_num_hyps; i++) {
+    fail_unless(!memcmp(hyps[i].N, &expected_hyps[i*num_dds], num_dds*sizeof(s32)));
+  }
+}
+
+START_TEST(test_ambiguity_update_sats_cases)
+{
+  ambiguity_test_t amb_test;
+
+  double u[5*5];
+  matrix_eye(4, u);
+  double d[5] = {1e-5,1e-5,1e-5,1e-5,1e-5};
+  double float_mean[6];
+  sdiff_t sdiffs[6];
+
+  /* Drop a sat and combine two hypotheses */
+  set_prns(4, sdiffs, (s32[4]){1,2,3,4});
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 4, .prns={3, 1,2,4}}, d, u, float_mean,
+    sdiffs, false, (sats_management_t) {.num_sats = 4, .prns = {3, 1,2,4}},
+    1, (s32[3]){1,2,4});
+
+  /* Drop a sat but keep both hypotheses */
+  set_prns(4, sdiffs, (s32[4]) {1,2,3,5});
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 4, .prns={3, 1,2,5}}, d, u, float_mean,
+    sdiffs, false, (sats_management_t) {.num_sats = 4, .prns = {3, 1,2,5}},
+    2, (s32[2*3]){1,2,5,
+                  1,2,6});
+
+  /* Drop a sat and lose the reference */
+  set_prns(4, sdiffs,    (s32[4]) {1,2,4,5});
+  set_snrs(4, sdiffs, (double[4]) {0,0,1,0});
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 4, .prns={5, 1,2,4}}, d, u, float_mean,
+    sdiffs, false, (sats_management_t) {.num_sats = 4, .prns = {4, 1,2,5}},
+    2, (s32[2*3]){-3,-2,1,
+                  -3,-2,2});
+
+  /* Do nothing */
+  set_prns(5, sdiffs, (s32[5]){1,2,3,4,5});
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 5, .prns={3, 1,2,4,5}}, d, u, float_mean,
+    sdiffs, false, (sats_management_t) {.num_sats = 5, .prns={3, 1,2,4,5}},
+    2, (s32[2*4]){1,2,4,5,
+                  1,2,4,6});
+
+  /* Add a sat */
+  matrix_eye(5, u);
+  memcpy(d, (double[5]) {1e-5,1e-5,1e-5,2,1e-5}, 5*sizeof(double));
+  memcpy(float_mean, (double [5]) {1,2,3,4,5}, 5*sizeof(double));
+  set_prns(6, sdiffs, (s32[6]){1,2,3,4,5,6});
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 6, .prns={3, 1,2,4,5,6}}, d, u, float_mean,
+    sdiffs, false, (sats_management_t) {.num_sats = 6, .prns={3, 1,2,4,5,6}},
+    6, (s32[6*5]){1,2,4,5,4,
+                  1,2,4,5,5,
+                  1,2,4,5,6,
+                  1,2,4,6,4,
+                  1,2,4,6,5,
+                  1,2,4,6,6});
+
+  /* Don't add a sat that we otherwise would, because it was a bad measurement. */
+  test_ambiguity_update_sats(&amb_test,
+    (sats_management_t) {.num_sats = 6, .prns={3, 1,2,4,5,6}}, d, u, float_mean,
+    sdiffs, true, (sats_management_t) {.num_sats = 5, .prns={3, 1,2,4,5}},
+    2, (s32[2*4]){1,2,4,5,
+                  1,2,4,6});
+
+  /* Start over */
+}
+END_TEST
+
+// START_TEST(test_update_sats_inclusion_projection_identity)
+// {
+//   THIS DOES NOT HOLD ANYMORE :(, because the KF and amb test can diverge.
+// }
 
 /* Assure that when we've lost the reference, we choose a new one and rebase everything. */
 START_TEST(test_update_sats_rebase)
@@ -419,6 +542,7 @@ Suite* ambiguity_test_suite(void)
   tcase_add_test(tc_core, test_amb_sat_inclusion);
   tcase_add_test(tc_core, test_update_sats_reset);
   tcase_add_test(tc_core, test_update_sats_intermediate_reset);
+  tcase_add_test(tc_core, test_ambiguity_update_sats_cases);
   suite_add_tcase(s, tc_core);
 
   return s;

@@ -75,5 +75,20 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   return 0;
 }
 
+/** Computes log(1 + exp(x)).
+ * log(1 + exp(x)) gets inaccurate/blows up for large positive or negative x.
+ * This just computes them so that they match the more naive log1p(exp(x))
+ * on its domain, and are reasonably accurate elsewhere. It doesn't make
+ * much effort to be super accurate (though it's pretty good).
+ * \param x   A double
+ * \returns   log(1 + exp(x))
+ * */
+double log1pexp(double x)
+{
+  if (x > 34) return x;       //  15 for 32 bit floats,  42 for 128 bit floats
+  if (x < -37) return exp(x); // -17 for 32 bit floats, -44 for 128 bit floats,
+  return log1p(exp(x));
+}
+
 /** \} */
 

@@ -8,6 +8,8 @@
 #include <observation.h>
 #include <filter_utils.h>
 
+#include "check_utils.h"
+
 START_TEST(test_assign_de_mtx_1)
 {
   sdiff_t sdiffs[] = {
@@ -70,6 +72,19 @@ START_TEST(test_simple_amb_measurement)
 }
 END_TEST
 
+START_TEST(test_log1pexp_match)
+{
+  for (u8 x = -100; x < 100; x += 0.001) {
+    /* These tests pass using == instead of within_epsilon but we use
+     * within_epsilon nonetheless because floating point arithemetic is voodoo.
+     */
+    fail_unless(within_epsilon(log1pexp(x), log1p(exp(x))));
+    fail_unless(within_epsilon(log1pexp(x), log(1 + exp(x))));
+  }
+}
+END_TEST
+
+
 Suite* filter_utils_suite(void)
 {
   Suite *s = suite_create("Filter Utils");
@@ -79,6 +94,7 @@ Suite* filter_utils_suite(void)
   tcase_add_test(tc_core, test_assign_de_mtx_2);
   tcase_add_test(tc_core, test_assign_de_mtx_3);
   tcase_add_test(tc_core, test_simple_amb_measurement);
+  tcase_add_test(tc_core, test_log1pexp_match);
   suite_add_tcase(s, tc_core);
 
   return s;
