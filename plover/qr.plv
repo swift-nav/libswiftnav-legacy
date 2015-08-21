@@ -1,8 +1,8 @@
 import prelude;
 
 static givens (a :: double) (b :: double) :: double[2,2] := (
-  c := 0.0;
-  s := 0.0;
+  c :: double;
+  s :: double;
   if b == 0 then (
     c <- 1; s <- 0
   ) else if fabs b > fabs a then (
@@ -11,11 +11,9 @@ static givens (a :: double) (b :: double) :: double[2,2] := (
     tau := -b/a; c <- 1/sqrt(1+tau*tau); s <- c*tau;
   );
 
-  vec(vec(c, s),
-      vec(-s, c));
+  mat( c, s ;
+      -s, c );
 );
-
---norm {n} (v :: double[n]) :: double := sqrt (v * v);
 
 -- Assumes m >= n
 -- See "Matrix Computations" 4th ed. Golub and Van Loan
@@ -24,20 +22,20 @@ qr_solve {m, n}
   (inout b :: double[m])
 
   (out solution :: double[n])
-  (out residual :: *double)
+  (out residual :: double)
 
   :: s8 := (
 
-  qr_update b A;
+  qr_update (inout b) (inout A);
 
   -- A is now upper triangular; backsolve it into b
-  code := backsolve A[0:n, 0:n] b[0:n];
+  code := backsolve A[0:n, 0:n] (inout b[0:n]);
 
   -- Solution stored in first n elements
   solution <- b[0:n];
 
   -- Norm of error = norm of last m-n elements
-  *residual <- norm b[n:m];
+  residual <- norm b[n:m];
 
   return code;
 );
@@ -62,18 +60,18 @@ qr_update {m, n}
       v := b[i-2 .. i-1];
       b[i-2 .. i-1] <- rot^T * v;
 
-    );
   );
+);
 
 -- Back substitution for upper triangular U
 static backsolve {n}
   (U :: double[n,n])
   (inout b :: double[n])
   :: s8 := (
-    for i in 0:n -> (
-      if fabs U[i,i] < 0.000000001 then
+    for i in 0:n ->
+      if U[i,i] == 0 then
         return -1;
-    );
+
     b[n-1] <- b[n-1]/U[n-1, n-1];
 
     for i in n-1 .. 1 : -1 -> (

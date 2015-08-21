@@ -6,12 +6,8 @@ static s8 backsolve (const s32 n, const double * U, double * b);
 void givens (const double a, const double b, double * result)
 {
     double c;
-    
-    c = 0.0;
-    
     double s;
     
-    s = 0.0;
     if (b == 0) {
         c = 1;
         s = 0;
@@ -35,7 +31,7 @@ void givens (const double a, const double b, double * result)
     result[2 * 1] = -s;
     result[2 * 1 + 1] = c;
 }
-s8 qr_solve (const s32 m, const s32 n, double * A, double * b, double * solution, double * residual)
+s8 qr_solve (const s32 m, const s32 n, double * A, double * b, double * solution, double * const residual)
 {
     qr_update(m, n, b, A);
     
@@ -59,12 +55,12 @@ s8 qr_solve (const s32 m, const s32 n, double * A, double * b, double * solution
         solution[idx] = b[idx];
     }
     
-    double arg3 [m + -n];
+    double arg3 [m - n];
     
-    for (s32 idx = 0; idx < m + -n; idx++) {
+    for (s32 idx = 0; idx < m - n; idx++) {
         arg3[idx] = b[n + idx];
     }
-    *residual = norm(m + -n, arg3);
+    *residual = norm(m - n, arg3);
     return code;
 }
 void qr_update (const s32 m, const s32 n, double * b, double * A)
@@ -74,7 +70,7 @@ void qr_update (const s32 m, const s32 n, double * b, double * A)
             double rot [2 * 2];
             
             givens(A[n * (i - 2) + (j - 1)], A[n * (i - 1) + (j - 1)], rot);
-            for (s32 k = j, idx3 = 0; idx3 < 1 + -j + n; k += 1, idx3++) {
+            for (s32 k = j, idx3 = 0; idx3 < 1 - j + n; k += 1, idx3++) {
                 double v [2];
                 
                 for (s32 idx4 = 0; idx4 < 2; idx4++) {
@@ -109,7 +105,7 @@ void qr_update (const s32 m, const s32 n, double * b, double * A)
 s8 backsolve (const s32 n, const double * U, double * b)
 {
     for (s32 i = 0, idx = 0; idx < n; i += 1, idx++) {
-        if (fabs(U[n * i + i]) < 1.0000000000000003e-9) {
+        if (U[n * i + i] == 0) {
             return -1;
         }
     }

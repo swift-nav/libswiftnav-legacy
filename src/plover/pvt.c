@@ -142,7 +142,7 @@ double pvt (double * rx_state, const u8 n_used, const navigation_measurement_t *
             sum += G[(3 + 1) * j + idx2] * nav_meas[j]->sat_vel[idx2];
         }
         pdot_pred = -sum;
-        tempvX[idx] = nav_meas[j]->doppler * GPS_C / GPS_L1_HZ - pdot_pred;
+        tempvX[idx] = -(nav_meas[j]->doppler * GPS_C / GPS_L1_HZ) - pdot_pred;
     }
     for (s32 idx = 0; idx < 4; idx++) {
         double sum = 0;
