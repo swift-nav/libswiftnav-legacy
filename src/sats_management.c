@@ -19,6 +19,12 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
+/** Chooses a reference sat from a set of sdiffs.
+ * Currently just chooses the one with highest SNR.
+ * \param num_sats  The length of the sdiffs array.
+ * \param sats      An sdiff list from which the reference sat will be chosen.
+ * \return The PRN of the chosen reference sat.
+ */
 static u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
@@ -32,7 +38,15 @@ static u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
   return best_prn;
 }
 
-//assumes both sets are ordered
+/** Finds the intersection between a list of PRNs and a list of sdiffs.
+ * Both are assumed to be ordered (ascending by PRN).
+ * \param num_sats1         The number of satellites in the sats1 list.
+ * \param num_sdiffs        The number of satellites in the sdiffs list.
+ * \param sats1             An ascending list of PRNs.
+ * \param sdiffs            A list of sdiffs ascending by PRN.
+ * \param intersection_sats The sdiffs that are also in sats1.
+ * \return The length of the intersection_sats.
+ */
 static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1,
                          const sdiff_t *sdiffs, sdiff_t *intersection_sats)
 {
@@ -80,47 +94,74 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   return n;
 }
 
-/** Updates the ref prn for a sorted prn array.
- *  Inserts the old ref prn so the tail of the array is sorted.
- */
 /* TODO use the set abstraction fnoble is working on. */
+/** Changes the ref PRN of a PRN array.
+ * Assumes that the tail of the array is sorted (and keeps it sorted).
+ * Assumes the new ref_prn is also in the original array.
+ * \param ref_prn   The PRN to set as reference.
+ * \param num_sats  The length of the PRN array.
+ * \param prns      On input, an array with ref_prn in it, whose elements are
+ *                  unique and whose tail is sorted.
+ *                  On exit, an array with the same elements, whose tail is
+ *                  sorted, and whose head is ref_prn.
+ */
 void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
 {
   u8 old_ref = prns[0];
   u8 j;
-  if (old_ref != ref_prn) {
-    j = 1;
-    u8 old_prns[num_sats];
-    memcpy(old_prns, prns, num_sats * sizeof(u8));
-    u8 set_old_yet = 0;
-    prns[0] = ref_prn;
-    for (u8 i=1; i<num_sats; i++) {
-      if (old_prns[i] != ref_prn) {
-        if (old_prns[i]>old_ref && set_old_yet == 0) {
-          prns[j] = old_ref;
-          j++;
-          i--;
-          set_old_yet++;
-        }
-        else {
-          prns[j] = old_prns[i];
-          j++;
-        }
+  /* Return early if we're setting the ref to what it already is. */
+  if (old_ref == ref_prn) {
+    return;
+  }
+  j = 1;
+  u8 old_prns[num_sats];
+  memcpy(old_prns, prns, num_sats * sizeof(u8));
+  u8 set_old_yet = 0;
+  prns[0] = ref_prn;
+  for (u8 i=1; i<num_sats; i++) {
+    if (old_prns[i] != ref_prn) {
+      if (old_prns[i]>old_ref && set_old_yet == 0) {
+        prns[j] = old_ref;
+        j++;
+        i--;
+        set_old_yet++;
+      }
+      else {
+        prns[j] = old_prns[i];
+        j++;
       }
     }
-    if (set_old_yet == 0) {
-      prns[j] = old_ref;
-      set_old_yet++;
-    }
-    assert(set_old_yet == 1);
   }
+  if (set_old_yet == 0) {
+    prns[j] = old_ref;
+    set_old_yet++;
+  }
+  assert(set_old_yet == 1);
 }
 
 
-/** Puts sdiffs into sdiffs_with_ref_first with the sdiff for ref_prn first, while updating sats_management
- *  Inserts the old ref prn so the tail of the sats_management array is sorted.
- */
 /* TODO use the set abstraction fnoble is working on. */
+/** Changes the reference PRN of a sdiff set (in a copy) and a sats_management_t
+ * Assumes that sats_management.prns has unique elements and a sorted tail.
+ * Assumes that sats_management.prns has the same elements as the PRNs of
+ * sdiffs (and thus that sats_management.num_sats == num_sdiffs).
+ * Assumes that sdiffs is sorted ascending by PRN.
+ * Assumes that ref_prn is in the both input lists.
+ * \params ref_prn                The PRN to be used as reference in
+ *                                sats_management and sdiffs_with_ref_first.
+ * \params sats_management        The sats_management_t to be changed.
+ *                                On exit, its .prns field will have the same
+ *                                elements as on entry, but will have ref_prn
+ *                                as the head and a sorted tail.
+ * \params num_sdiffs             The length of the sdiffs list.
+ * \params sdiffs                 A list of sdiffs to be copied to
+ *                                sdiffs_with_ref_first with ref_prn's sdiff
+ *                                first.
+ * \params sdiffs_with_ref_first  A list of sdiffs with the same elemements as
+ *                                sdiffs, but with the sdiff whose PRN is
+ *                                ref_prn first, and with the tail to be sorted
+ *                                by PRN.
+ */
 static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
                               const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -172,6 +213,21 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
   DEBUG_EXIT();
 }
 
+/** Copies sdiffs with ref_prn as reference sat, filling in sats_management.
+ * Assumes sdiffs is sorted by PRN (ascending).
+ * Assumes sdiffs has an sdiff whose PRN is ref_prn.
+ * \param ref_prn               The reference sat to set sats_management and
+ *                              sdiffs_with_ref_first with.
+ * \param sats_management       On exit, .num_sats = num_sdiffs, and .prns
+ *                              is all of the prns of sdiffs, with ref_prn at
+ *                              the head and a sorted tail (ascending).
+ * \param num_sdiffs            The length of the sdiffs array.
+ * \param sdiffs                The sdiffs used to populate sats_management and
+ *                              sdiffs_with_ref_first. Sorted by PRN.
+ * \param sdiffs_with_ref_first On exit, has the same elements as sdiffs, but
+ *                              with the sdiff corresponding to ref_prn at the
+ *                              head and the tail sorted.
+ */
 static void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
                                        const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -193,6 +249,20 @@ static void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats
   }
 }
 
+/** Chooses a reference sat and sets up sats_management, while costructing
+ * sdiffs_with_ref_first.
+ * Assumes sdiffs is sorted by PRN.
+ * \param sats_management       On exit, .num_sats is num_sdiffs, and .prns
+ *                              has all the same PRNs as sdiffs, while its head
+ *                              is a chosen reference (same ref as
+ *                              sdiffs_with_ref_first) and its tail is sorted.
+ *                              The order of .prns should match the order of
+ *                              sdiffs_with_ref_first.
+ * \param num_sdiffs            The length of the sdiffs array.
+ * \param sdiffs                A set of sdiffs sorted by PRN.
+ * \param sdiffs_with_ref_first On exit is a permutation of sdiffs. Shares
+ *                              order with sats_management.prns. See that arg.
+ */
 void init_sats_management(sats_management_t *sats_management,
                           const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
@@ -228,7 +298,28 @@ void print_sats_management_short(sats_management_t *sats_man) {
 }
 
 
-/** Updates sats to the new measurements' sat set
+/** Rebases sats_management to have a reference sat in sdiffs, if possible.
+ * Otherwise returns a reset code.
+ * Initializes sats_management if empty.
+ * Assumes that sdiffs is sorted by PRN (ascending).
+ * \param sats_management       If, on entry, is empty (<= 1 sat), then on
+ *                              exit it will have all the sats of sdiff, with
+ *                              a reference chosen.
+ *                              If, on entry, it's not empty, then on exit it
+ *                              will be unchanged if its reference is in
+ *                              sdiffs, it will be updated to a new reference
+ *                              if it shares enough sats with sdiffs to do so,
+ *                              otherwise unchanged.
+ * \param num_sdiffs            The length of sdiffs.
+ * \param sdiffs                A list of sdiffs sorted by PRN.
+ * \param sdiffs_with_ref_first On exit, if sats_management on exit had a
+ *                              reference in sdiffs, then this will have the
+ *                              same elements as sdiffs, with that reference at
+ *                              the head, and a sorted tail. Otherwise it's
+ *                              unchanged.
+ * \return  If, on exit, sats_management doesn't have a reference sat in the
+ *          sdiffs set, then NEW_REF_START_OVER. Otherwise, if the ref is the
+ *          same as the old ref, then it's OLD_REF, else it's NEW_REF.
  */
 s8 rebase_sats_management(sats_management_t *sats_management,
                           const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
@@ -285,7 +376,15 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   return return_code;
 }
 
-void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs)
+/** Sets sats_management's non reference PRNs (and num_sats).
+ * \param sats_management     On exit, has .num_sats = num_non_ref_sdiffs +1,
+ *                            and the tail of .prns = non_ref_sdiffs[*].prn
+ * \param num_non_ref_sdiffs  The length of non_ref_sdiffs.
+ * \param non_ref_sdiffs      The sdiffs to set the tail of sats_management with.
+ */
+void update_sats_sats_management(sats_management_t *sats_management,
+                                 u8 num_non_ref_sdiffs,
+                                 const sdiff_t *non_ref_sdiffs)
 {
   sats_management->num_sats = num_non_ref_sdiffs + 1;
   for (u8 i=1; i<num_non_ref_sdiffs+1; i++) {
@@ -294,9 +393,18 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 }
 
 
-
-s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
-                            sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+/** Creates an sdiff set from sdiffs whose order matches a sats_management_t.
+ * \param sats                  A PRN set to give the desired sat set and ref.
+ * \param num_sdiffs            The length of sdiffs.
+ * \param sdiffs                A set of sdiffs from which to take the PRNs
+ *                              in sats.
+ * \param sdiffs_with_ref_first On exit, if sats.prns is a subset of sdiffs,
+ *                              then it will be the sdiffs corresponding to the
+ *                              elements of sats.prns in sats.prns's order.
+ * \return If sats.prns is a subset of sdiffs, then 0, else -1.
+ */
+s8 match_sdiffs_to_sats_man(const sats_management_t *sats, u8 num_sdiffs,
+                            const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   u8 j = 1;
   u8 ref_prn = sats->prns[0];
