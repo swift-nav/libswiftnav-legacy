@@ -741,11 +741,11 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[], double nav_time,
-                                 ephemeris_t ephemerides[])
+                                 ephemeris_kepler_t ephemerides[])
 {
   channel_measurement_t* meas_ptrs[n_channels];
   navigation_measurement_t* nav_meas_ptrs[n_channels];
-  ephemeris_t* ephemerides_ptrs[n_channels];
+  ephemeris_kepler_t* ephemerides_ptrs[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
     meas_ptrs[i] = &meas[i];
@@ -756,7 +756,7 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
   calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time, ephemerides_ptrs);
 }
 
-void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
+void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_kepler_t* ephemerides[])
 {
   double TOTs[n_channels];
   double min_TOF = -DBL_MAX;

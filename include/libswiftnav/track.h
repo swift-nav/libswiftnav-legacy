@@ -233,10 +233,10 @@ float cn0_est(cn0_est_state_t *s, float I, float Q);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
-                                 double nav_time, ephemeris_t ephemerides[]);
+                                 double nav_time, ephemeris_kepler_t ephemerides[]);
 void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[],
                                   navigation_measurement_t* nav_meas[],
-                                  double nav_time, ephemeris_t* ephemerides[]);
+                                  double nav_time, ephemeris_kepler_t* ephemerides[]);
 
 int nav_meas_cmp(const void *a, const void *b);
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
