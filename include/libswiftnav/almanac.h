@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "almanac.h"
+#include "signal.h"
 
 /** \addtogroup almanac
  * \{ */
@@ -32,7 +33,7 @@ typedef struct {
   double af0;   /**< 0-order clock correction in seconds. */
   double af1;   /**< 1-order clock correction in seconds/second. */
   u16 week;     /**< GPS week number, modulo 1024. */
-  u8 prn;       /**< PRN number of the satellite. */
+  signal_t sid; /**< Signal ID. */
   u8 healthy;   /**< Satellite health status. */
   u8 valid;     /**< Almanac is valid. */
 } almanac_t;
