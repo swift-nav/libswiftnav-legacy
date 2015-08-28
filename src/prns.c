@@ -14,7 +14,7 @@
 #include "prns.h"
 
 static const u8 l1_ca_codes[32][128];
-static const u8 sbas_ca_codes[19][128];
+static const u8 waas_ca_codes[19][128];
 
 /** \defgroup prns Spreading Codes
  *
@@ -37,7 +37,7 @@ const u8* ca_code(signal_t sid) {
     case GPS_CONSTELLATION:
       return l1_ca_codes[sid.prn];
     case SBAS_CONSTELLATION:
-      return sbas_ca_codes[sid.prn - 120];
+      return waas_ca_codes[sid.prn - 120 + 1];
   }
   return NULL;
 }
@@ -349,7 +349,7 @@ static const u8 l1_ca_codes[32][128] = {
    0x10,0x03,0x54,0x7E,0x85,0x75,0xEC,0x19,0xB0,0x80,0x18,0xB4,0xD3,0xDA,0x33,0x9A}
 };
 
-static const u8 sbas_ca_codes[19][128] = {
+static const u8 waas_ca_codes[19][128] = {
   {0X91,0X9E,0XF,0X4A,0X2A,0XFD,0X92,0X67,0X91,0XF9,0X5B,0X3E,0X78,0X8B,0X3D,0X30,
    0XF5,0XC3,0XAA,0X83,0XCE,0X7F,0XC,0X98,0XDA,0XA6,0XFF,0X12,0XDE,0XF5,0X28,0X5E,
    0X5B,0X90,0X64,0XA,0XEF,0X31,0X51,0X80,0X6D,0X65,0X28,0X6C,0X75,0X15,0XAF,0XCA,
@@ -521,5 +521,4 @@ static const u8 sbas_ca_codes[19][128] = {
    0XB0,0X78,0X77,0XBB,0X5D,0X9A,0XEE,0X23,0X7B,0X64,0X23,0XD4,0X1A,0X42,0X99,0XAD,
    0X8,0X65,0XFD,0XD1,0X33,0X69,0X9B,0X83,0XAD,0X80,0XFE,0XD5,0XF2,0XC2,0XB3,0X52}
 };
-
 
