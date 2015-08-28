@@ -35,5 +35,8 @@ typedef struct __attribute__((packed)) {
   u16 prn;
 } signal_t;
 
+signal_t sbas_index_to_sid(u8 index);
+u8 sbas_sid_to_index(signal_t sid);
+
 #endif /* LIBSWIFTNAV_SIGNAL_H */
 
