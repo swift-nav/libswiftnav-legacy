@@ -40,7 +40,7 @@
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
+s8 calc_sat_state(const ephemeris_kepler_t *ephemeris, gps_time_t t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err)
 {
@@ -82,7 +82,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
   double ea_old;
   double temp;
   double ecc = ephemeris->ecc;
-  u32 count = 0;
+  u8 count = 0;
 
   /* TODO: Implement convergence test using integer difference of doubles,
    * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
@@ -154,6 +154,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 
   return 0;
 }
+
 /** Is this ephemeris usable?
  *
  * \todo This should actually be more than just the "valid" flag.
@@ -164,14 +165,32 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_good(ephemeris_t *eph, gps_time_t t)
+u8 ephemeris_good(ephemeris_t *eph, signal_t sid, gps_time_t t)
 {
+  gps_time_t toe;
+  u8 valid, healthy;
+
+  if (sid.constellation == GPS_CONSTELLATION) {
+    assert(eph->ephemeris_kep != NULL);
+
+    toe = eph->ephemeris_kep[0].toe;
+    valid = eph->ephemeris_kep[0].valid;
+    healthy = eph->ephemeris_kep[0].healthy;
+  }
+  else {
+    assert(eph->ephemeris_xyz != NULL);
+
+    toe = eph->ephemeris_xyz[0].toe;
+    valid = eph->ephemeris_xyz[0].valid;
+    healthy = eph->ephemeris_xyz[0].healthy;
+  }
+
   /* Seconds from the time from ephemeris reference epoch (toe) */
-  double dt = gpsdifftime(t, eph->toe);
+  double dt = gpsdifftime(t, toe);
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  return (eph->valid && eph->healthy && fabs(dt) < EPHEMERIS_VALID_TIME);
+  return (valid && healthy && fabs(dt) < EPHEMERIS_VALID_TIME);
 }
 
 /** Decode ephemeris from L1 C/A GPS navigation message frames.
@@ -186,7 +205,7 @@ u8 ephemeris_good(ephemeris_t *eph, gps_time_t t)
  *                    1, 2 and 3. Word is in the 30 LSBs of the u32.
  * \param e Pointer to an ephemeris struct to fill in.
  */
-void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
+void decode_ephemeris(u32 frame_words[3][8], ephemeris_kepler_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
@@ -329,11 +348,24 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   e->valid = 1;
 }
 
-bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b)
+bool ephemeris_xyz_equal(ephemeris_xyz_t *a, ephemeris_xyz_t *b)
 {
   return (a->valid == b->valid) &&
          (a->healthy == b->healthy) &&
          (a->sid.prn == b->sid.prn) &&
+         (a->sid.band == b->sid.band) &&
+         (a->sid.constellation == b->sid.constellation) &&
+         (a->toe.wn == b->toe.wn) &&
+         (a->toe.tow == b->toe.tow);
+}
+
+bool ephemeris_kepler_equal(ephemeris_kepler_t *a, ephemeris_kepler_t *b)
+{
+  return (a->valid == b->valid) &&
+         (a->healthy == b->healthy) &&
+         (a->sid.prn == b->sid.prn) &&
+         (a->sid.band == b->sid.band) &&
+         (a->sid.constellation == b->sid.constellation) &&
          (a->iode == b->iode) &&
          (a->tgd == b->tgd) &&
          (a->crs == b->crs) &&
