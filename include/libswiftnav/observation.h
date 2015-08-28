@@ -44,7 +44,7 @@ u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
 u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
-                          ephemeris_t *es, gps_time_t t,
+                          ephemeris_kepler_t *es, gps_time_t t,
                           sdiff_t *sds);
 
 s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,

@@ -170,18 +170,26 @@ int sdiff_search_prn(const void *a, const void *b)
 u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
-                          ephemeris_t *es, gps_time_t t,
+                          ephemeris_kepler_t *es, gps_time_t t,
                           sdiff_t *sds)
 {
   u8 i, j, n = 0;
 
   /* Loop over m_a and m_b and check if a PRN is present in both. */
   for (i=0, j=0; i<n_local && j<n_remote; i++, j++) {
+    ephemeris_t eph;
+    if (m_local[i].sid.constellation == GPS_CONSTELLATION) {
+      eph.ephemeris_kep = &es[m_local[i].sid.prn];
+      eph.ephemeris_xyz = NULL;
+    } else {
+      //TODO
+      continue;
+    }
     if (m_local[i].sid.prn < m_remote[j].sid.prn)
       j--;
     else if (m_local[i].sid.prn > m_remote[j].sid.prn)
       i--;
-    else if (ephemeris_good(&es[m_local[i].sid.prn], t)) {
+    else if (ephemeris_good(&eph, m_local[i].sid, t)) {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];
@@ -189,6 +197,8 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       calc_sat_state(&es[m_local[i].sid.prn], t, local_sat_pos, local_sat_vel,
                      &clock_err, &clock_rate_err);
       sds[n].sid.prn = m_local[i].sid.prn;
+      sds[n].sid.constellation = m_local[i].sid.constellation;
+      sds[n].sid.band = m_local[i].sid.band;
       double dx = local_sat_pos[0] - remote_pos_ecef[0];
       double dy = local_sat_pos[1] - remote_pos_ecef[1];
       double dz = local_sat_pos[2] - remote_pos_ecef[2];
