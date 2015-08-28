@@ -35,6 +35,7 @@ set(libswiftnav_SRCS
   baseline.c
   observation.c
   set.c
+  signal.c
   memory_pool.c
   dgnss_management.c
   sats_management.c
