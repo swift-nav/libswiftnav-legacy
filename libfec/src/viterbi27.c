@@ -13,8 +13,8 @@ void set_viterbi27_polynomial(int polys[2])
   int state;
 
   for(state = 0; state < 32; state++) {
-    Branchtab27[0].c[state] = (polys[0] < 0) ^ parity((2*state) & abs(polys[0])) ? 255 : 0;
-    Branchtab27[1].c[state] = (polys[1] < 0) ^ parity((2*state) & abs(polys[1])) ? 255 : 0;
+    Branchtab27[0].c[state] = (polys[0] < 0) ^ par((2*state) & abs(polys[0])) ? 255 : 0;
+    Branchtab27[1].c[state] = (polys[1] < 0) ^ par((2*state) & abs(polys[1])) ? 255 : 0;
   }
 }
 

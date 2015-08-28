@@ -42,7 +42,7 @@ int update_viterbi27_blk(struct v27 *p, const unsigned char sym[], int npairs);
 int chainback_viterbi27(struct v27 *p, unsigned char *data, unsigned int nbits,
                         unsigned int endstate);
 
-static inline int parity(int x)
+static inline int par(int x)
 {
   x ^= x >> 16;
   x ^= x >> 8;
