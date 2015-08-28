@@ -5,8 +5,8 @@
 
 START_TEST(test_ephemeris_equal)
 {
-  ephemeris_t a;
-  ephemeris_t b;
+  ephemeris_kepler_t a;
+  ephemeris_kepler_t b;
 
   memset(&a, 0, sizeof(a));
   memset(&b, 0, sizeof(b));
