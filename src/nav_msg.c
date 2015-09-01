@@ -314,7 +314,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   if (n->l1_nav_msg != NULL) {
     return l1_nav_msg_update(n->l1_nav_msg, corr_prompt_real, ms);
   } else {
-    return sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real, ms);
+    return sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real);
   }
 }
 
