@@ -63,13 +63,7 @@ typedef struct {
   unsigned char decoded[SBAS_DEC_SIZE];
   u8 bit_phase;
   s8 bit_phase_ref;  /**< -1 = not synced.*/
-  s32 bit_integrate;
-
   s8 bit_polarity;
-
-  u8 bitsync_count;
-  s32 bitsync_prev_corr[20];
-  u32 bitsync_histogram[20];
 } sbas_nav_msg_t;
 
 typedef struct {
