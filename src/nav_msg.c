@@ -22,7 +22,8 @@
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */
-#define BITSYNC_THRES 22
+#define L1_BITSYNC_THRES 22
+#define SBAS_BITSYNC_THRES 200
 
 static void l1_legacy_nav_msg_init(l1_legacy_nav_msg_t *n)
 {
@@ -31,15 +32,16 @@ static void l1_legacy_nav_msg_init(l1_legacy_nav_msg_t *n)
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
+  n->bit_length = 20;
 }
 
 static void l1_sbas_nav_msg_init(l1_sbas_nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(l1_sbas_nav_msg_t));
-  n->bit_phase = n->bit_phase_ref = 42;
+  n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-  n->bit_count = 0;
+  n->bit_length = 2;
 }
 
 void nav_msg_init(nav_msg_t *n)
@@ -96,7 +98,7 @@ static u32 extract_word(l1_legacy_nav_msg_t *n, u16 bit_index, u8 n_bits, u8 inv
 /* TODO: Bit synchronization that can operate with multi-ms integration times
    e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
  */
-static void l1_legacy_update_bit_sync(l1_legacy_nav_msg_t *n, s32 corr_prompt_real)
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 bit_len)
 {
   /* On 20th call:
      bit_phase = 0
@@ -128,23 +130,51 @@ ____bit_integrate is sum of these after 20th call__________
 
   /* Maintain a rolling sum of the 20 most recent correlations in
      bit_integrate */
-  n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
-  n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
-  if (n->bitsync_count < 20) {
-    n->bitsync_count++;
+  u8 thres;
+  s32 *bit_integrate;
+  u8 *bit_phase, *bitsync_count;
+  s8 *bit_phase_ref;
+  s32 *bitsync_prev_corr;
+  u32 *bitsync_histogram;
+  switch (n->type) {
+    case L1_LEGACY_NAV:
+      thres = L1_BITSYNC_THRES;
+      bit_integrate = &n->l1_nav_msg->bit_integrate;
+      bitsync_count = &n->l1_nav_msg->bitsync_count;
+      bit_phase = &n->l1_nav_msg->bit_phase;
+      bit_phase_ref = &n->l1_nav_msg->bit_phase_ref;
+      bitsync_histogram = n->l1_nav_msg->bitsync_histogram;
+      bitsync_prev_corr = n->l1_nav_msg->bitsync_prev_corr;
+      break;
+    case L1_SBAS:
+      thres = SBAS_BITSYNC_THRES;
+      bit_integrate = &n->sbas_nav_msg->bit_integrate;
+      bitsync_count = &n->sbas_nav_msg->bitsync_count;
+      bit_phase = &n->sbas_nav_msg->bit_phase;
+      bit_phase_ref = &n->sbas_nav_msg->bit_phase_ref;
+      bitsync_histogram = n->sbas_nav_msg->bitsync_histogram;
+      bitsync_prev_corr = n->sbas_nav_msg->bitsync_prev_corr;
+      break;
+    default:
+      return;
+  }
+  *bit_integrate -= bitsync_prev_corr[*bit_phase];
+  bitsync_prev_corr[*bit_phase] = corr_prompt_real;
+  if (*bitsync_count < bit_len) {
+    *bitsync_count = *bitsync_count + 1;
     return;  /* That rolling accumulator is not valid yet */
   }
 
   /* Add the accumulator to the histogram for the relevant phase */
-  n->bitsync_histogram[(n->bit_phase) % 20] += abs(n->bit_integrate);
+  bitsync_histogram[*bit_phase % bit_len] += abs(*bit_integrate);
 
-  if (n->bit_phase == 20 - 1) {
+  if (*bit_phase == bit_len - 1) {
     /* Histogram is valid.  Find the two highest values. */
     u32 max = 0, next_best = 0;
     u32 max_prev_corr = 0;
     u8 max_i = 0;
-    for (u8 i = 0; i < 20; i++) {
-      u32 v = n->bitsync_histogram[i];
+    for (u8 i = 0; i < bit_len; i++) {
+      u32 v = bitsync_histogram[i];
       if (v > max) {
         next_best = max;
         max = v;
@@ -154,27 +184,47 @@ ____bit_integrate is sum of these after 20th call__________
       }
       /* Also find the highest value from the last 20 correlations.
          We'll use this to normalize the threshold score. */
-      v = abs(n->bitsync_prev_corr[i]);
+      v = abs(bitsync_prev_corr[i]);
       if (v > max_prev_corr)
-        max_prev_corr = v;
+        max_prev_corr =  v;
     }
     /* Form score from difference between the best and the second-best */
-    if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
+    if (max - next_best > thres * 2 * max_prev_corr) {
       /* We are synchronized! */
-      n->bit_phase_ref = max_i;
+      *bit_phase_ref = max_i;
       /* TODO: Subtract necessary older prev_corrs from bit_integrate to
          ensure it will be correct for the upcoming first dump */
     }
   }
 }
 
-static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real)
+static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
-   n->bit_count++;
-  if (n->bit_count%2 == 0)
-    return TOW_INVALID;
+  n->bit_phase += ms;
+  n->bit_phase %= n->bit_length;
+  n->bit_integrate += corr_prompt_real;
+  /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
+   * offsets corresponds to the nav bit edges?) */
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED) {
+    nav_msg_t nav = {
+      .sbas_nav_msg = n,
+      .type = L1_SBAS
+    };
+    update_bit_sync(&nav, corr_prompt_real, n->bit_length);
+  }
 
-  bool bit_val = corr_prompt_real > 0;
+  if (n->bit_phase != n->bit_phase_ref) {
+    /* Either we don't have bit phase lock, or this particular
+       integration is not aligned to a nav bit boundary. */
+    return TOW_INVALID;
+  }
+
+  /* Dump the nav bit, i.e. determine the sign of the correlation over the
+   * nav bit period. */
+  bool bit_val = n->bit_integrate > 0;
+  /* Zero the accumulator for the next nav bit. */
+  n->bit_integrate = 0;
+
   if (n->symbol_count < SBAS_NAVFLEN) {
     if (bit_val) {
       n->symbols[n->symbol_count++] = 255;
@@ -206,12 +256,17 @@ static s32 l1_legacy_nav_msg_update(l1_legacy_nav_msg_t *n, s32 corr_prompt_real
   s32 TOW_ms = TOW_INVALID;
 
   n->bit_phase += ms;
-  n->bit_phase %= 20;
+  n->bit_phase %= n->bit_length;
   n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
-  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
-    l1_legacy_update_bit_sync(n, corr_prompt_real);
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED) {
+    nav_msg_t nav = {
+      .l1_nav_msg = n,
+      .type = L1_LEGACY_NAV
+    };
+    update_bit_sync(&nav, corr_prompt_real, n->bit_length);
+  }
 
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
@@ -318,7 +373,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
       return l1_legacy_nav_msg_update(n->l1_nav_msg, corr_prompt_real, ms);
       break;
     case L1_SBAS:
-      return l1_sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real);
+      return l1_sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real, ms);
   }
 
   return TOW_INVALID;

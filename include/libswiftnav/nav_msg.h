@@ -19,7 +19,7 @@
 #define L1_LEGACY_NAV 0
 #define L1_SBAS       1
 #define L2C_CNAV      2
-#define L5C_CNAV      3
+#define L5C_CNAV      2
 #define L1CD_CNAV2    4
 
 #define L1_NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
@@ -60,6 +60,7 @@ typedef struct {
   u8 bitsync_count;
   s32 bitsync_prev_corr[20];
   u32 bitsync_histogram[20];
+  u8 bit_length;
 } l1_legacy_nav_msg_t;
 
 typedef struct {
@@ -67,10 +68,16 @@ typedef struct {
   u16 symbol_count;
   unsigned char symbols[SBAS_NAVFLEN];
   unsigned char decoded[SBAS_DEC_SIZE];
+
+  s8 bit_polarity;
+
+  s32 bit_integrate;
+  s32 bitsync_prev_corr[2];
+  u32 bitsync_histogram[2];
+  u8 bitsync_count;
   u8 bit_phase;
   s8 bit_phase_ref;  /**< -1 = not synced.*/
-  s8 bit_polarity;
-  u16 bit_count;
+  u8 bit_length;
 } l1_sbas_nav_msg_t;
 
 typedef struct {
