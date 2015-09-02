@@ -24,33 +24,36 @@
    strong signal (sync will take longer on a weak signal) */
 #define BITSYNC_THRES 22
 
-static void l1_nav_msg_init(l1_nav_msg_t *n)
+static void l1_legacy_nav_msg_init(l1_legacy_nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
-  memset(n, 0, sizeof(l1_nav_msg_t));
+  memset(n, 0, sizeof(l1_legacy_nav_msg_t));
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
 }
 
-static void sbas_nav_msg_init(sbas_nav_msg_t *n)
+static void l1_sbas_nav_msg_init(l1_sbas_nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
-  memset(n, 0, sizeof(sbas_nav_msg_t));
+  memset(n, 0, sizeof(l1_sbas_nav_msg_t));
   n->bit_phase = n->bit_phase_ref = 42;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
+  n->bit_count = 0;
 }
 
 void nav_msg_init(nav_msg_t *n)
 {
-  if (n->l1_nav_msg != NULL) {
-    l1_nav_msg_init(n->l1_nav_msg);
-  } else {
-    sbas_nav_msg_init(n->sbas_nav_msg);
+  switch(n->type) {
+    case L1_LEGACY_NAV:
+      l1_legacy_nav_msg_init(n->l1_nav_msg);
+      break;
+    case L1_SBAS:
+      l1_sbas_nav_msg_init(n->sbas_nav_msg);
   }
 }
 
-static u32 extract_word(l1_nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
+static u32 extract_word(l1_legacy_nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 {
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the subframe. Takes account of the offset stored in n, and the circular
@@ -93,7 +96,7 @@ static u32 extract_word(l1_nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 /* TODO: Bit synchronization that can operate with multi-ms integration times
    e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
  */
-static void l1_update_bit_sync(l1_nav_msg_t *n, s32 corr_prompt_real)
+static void l1_legacy_update_bit_sync(l1_legacy_nav_msg_t *n, s32 corr_prompt_real)
 {
   /* On 20th call:
      bit_phase = 0
@@ -165,19 +168,18 @@ ____bit_integrate is sum of these after 20th call__________
   }
 }
 
-static s32 sbas_nav_msg_update(sbas_nav_msg_t *n, s32 corr_prompt_real)
+static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real)
 {
-  /*
-  *Dump the nav bit, i.e. determine the sign of the correlation over the
-  *nav bit period.
-  */
-  bool bit_val = corr_prompt_real > 0;
+   n->bit_count++;
+  if (n->bit_count%2 == 0)
+    return TOW_INVALID;
 
+  bool bit_val = corr_prompt_real > 0;
   if (n->symbol_count < SBAS_NAVFLEN) {
     if (bit_val) {
-      n->symbols[n->symbol_count++] = '1';
+      n->symbols[n->symbol_count++] = 255;
     } else {
-      n->symbols[n->symbol_count++] = '0';
+      n->symbols[n->symbol_count++] = 0;
     }
   }
 
@@ -199,7 +201,7 @@ static s32 sbas_nav_msg_update(sbas_nav_msg_t *n, s32 corr_prompt_real)
  * \return The GPS time of week in milliseconds of the current code phase
  *         rollover, or `TOW_INVALID` (-1) if unknown
  */
-static s32 l1_nav_msg_update(l1_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+static s32 l1_legacy_nav_msg_update(l1_legacy_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   s32 TOW_ms = TOW_INVALID;
 
@@ -209,7 +211,7 @@ static s32 l1_nav_msg_update(l1_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
   if (n->bit_phase_ref == BITSYNC_UNSYNCED)
-    l1_update_bit_sync(n, corr_prompt_real);
+    l1_legacy_update_bit_sync(n, corr_prompt_real);
 
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
@@ -311,11 +313,15 @@ static s32 l1_nav_msg_update(l1_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
-  if (n->l1_nav_msg != NULL) {
-    return l1_nav_msg_update(n->l1_nav_msg, corr_prompt_real, ms);
-  } else {
-    return sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real);
+  switch (n->type) {
+    case L1_LEGACY_NAV:
+      return l1_legacy_nav_msg_update(n->l1_nav_msg, corr_prompt_real, ms);
+      break;
+    case L1_SBAS:
+      return l1_sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real);
   }
+
+  return TOW_INVALID;
 }
 
 /* Tests the parity of a L1 C/A NAV message word.
@@ -366,11 +372,11 @@ static u8 nav_parity(u32 *word)
   return 0;
 }
 
-bool subframe_ready(l1_nav_msg_t *n) {
+bool subframe_ready(l1_legacy_nav_msg_t *n) {
   return (n->subframe_start_index != 0);
 }
 
-s8 process_subframe(l1_nav_msg_t *n, ephemeris_kepler_t *e) {
+s8 process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e) {
   // Check parity and parse out the ephemeris from the most recently received subframe
 
   if (!e) {
