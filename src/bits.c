@@ -46,14 +46,14 @@ u8 parity(u32 x)
  */
 u32 getbitu(const u8 *buff, u32 pos, u8 len)
 {
-    u32 bits = 0;
+  u32 bits = 0;
 
-    for (u32 i = pos; i < pos + len; i++) {
-      bits = (bits << 1) +
-             ((buff[i/8] >> (7 - i%8)) & 1u);
-    }
+  for (u32 i = pos; i < pos + len; i++) {
+    bits = (bits << 1) +
+           ((buff[i / 8] >> (7 - i % 8)) & 1u);
+  }
 
-    return bits;
+  return bits;
 }
 
 /** Get bit field from buffer as a signed integer.
@@ -69,13 +69,14 @@ u32 getbitu(const u8 *buff, u32 pos, u8 len)
  */
 s32 getbits(const u8 *buff, u32 pos, u8 len)
 {
-    s32 bits = (s32)getbitu(buff, pos, len);
+  s32 bits = (s32)getbitu(buff, pos, len);
 
-    /* Sign extend, taken from:
-     * http://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
-     */
-    s32 m = 1u << (len - 1);
-    return (bits ^ m) - m;
+  /* Sign extend, taken from:
+   * http://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
+   */
+  s32 m = 1u << (len - 1);
+
+  return (bits ^ m) - m;
 }
 
 /** Set bit field in buffer from an unsigned integer.
@@ -91,14 +92,16 @@ void setbitu(u8 *buff, u32 pos, u32 len, u32 data)
 {
   u32 mask = 1u << (len - 1);
 
-  if (len <= 0 || 32 < len)
+  if (len <= 0 || 32 < len) {
     return;
+  }
 
   for (u32 i = pos; i < pos + len; i++, mask >>= 1) {
-    if (data & mask)
-      buff[i/8] |= 1u << (7 - i % 8);
-    else
-      buff[i/8] &= ~(1u << (7 - i % 8));
+    if (data & mask) {
+      buff[i / 8] |= 1u << (7 - i % 8);
+    } else {
+      buff[i / 8] &= ~(1u << (7 - i % 8));
+    }
   }
 }
 

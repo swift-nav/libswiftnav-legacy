@@ -41,9 +41,9 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 
   /* Offset for the start of the subframe in the buffer. */
   if (n->subframe_start_index) {
-    if (n->subframe_start_index > 0)
+    if (n->subframe_start_index > 0) {
       bit_index += n->subframe_start_index; /* Standard. */
-    else {
+    } else {
       bit_index -= n->subframe_start_index; /* Bits are inverse! */
       invert = !invert;
     }
@@ -52,8 +52,9 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   }
 
   /* Wrap if necessary. */
-  if (bit_index > NAV_MSG_SUBFRAME_BITS_LEN*32)
-    bit_index -= NAV_MSG_SUBFRAME_BITS_LEN*32;
+  if (bit_index > NAV_MSG_SUBFRAME_BITS_LEN * 32) {
+    bit_index -= NAV_MSG_SUBFRAME_BITS_LEN * 32;
+  }
 
   u8 bix_hi = bit_index >> 5;
   u8 bix_lo = bit_index & 0x1F;
@@ -61,13 +62,15 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 
   if (bix_lo) {
     bix_hi++;
-    if (bix_hi == NAV_MSG_SUBFRAME_BITS_LEN)
+    if (bix_hi == NAV_MSG_SUBFRAME_BITS_LEN) {
       bix_hi = 0;
+    }
     word |=  n->subframe_bits[bix_hi] >> (32 - bix_lo);
   }
 
-  if (invert)
+  if (invert) {
     word = ~word;
+  }
 
   return word >> (32 - n_bits);
 }
@@ -95,15 +98,15 @@ static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
      ...
      On 39th call:
      bit_phase = 19
-00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
-____bit_integrate is sum of these after 20th call__________
+     00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
+     ____bit_integrate is sum of these after 20th call__________
                                                          __________________after 39th call__________________________
 
        after subtraction, bit_integrate holds sum of corrs [19..38]
        bitsync_histogram[19] <= bit_integrate. Now fully populated.
        Suppose first correlation happened to be first ms of a nav bit
         then max_i = bit_phase_ref = 0.
-  */
+   */
 
   /* Maintain a rolling sum of the 20 most recent correlations in
      bit_integrate */
@@ -134,8 +137,9 @@ ____bit_integrate is sum of these after 20th call__________
       /* Also find the highest value from the last 20 correlations.
          We'll use this to normalize the threshold score. */
       v = abs(n->bitsync_prev_corr[i]);
-      if (v > max_prev_corr)
+      if (v > max_prev_corr) {
         max_prev_corr = v;
+      }
     }
     /* Form score from difference between the best and the second-best */
     if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
@@ -170,8 +174,9 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
-  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED) {
     update_bit_sync(n, corr_prompt_real);
+  }
 
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
@@ -201,7 +206,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     return -2;
   }
 
-  if (n->subframe_bit_index >= NAV_MSG_SUBFRAME_BITS_LEN*32) {
+  if (n->subframe_bit_index >= NAV_MSG_SUBFRAME_BITS_LEN * 32) {
     log_error("subframe bit index gone wild %d", (int)n->subframe_bit_index);
     return -22;
   }
@@ -216,55 +221,64 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   }
 
   n->subframe_bit_index++;
-  if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
+  if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN * 32) {
     n->subframe_bit_index = 0;
+  }
 
   /* Yo dawg, are we still looking for the preamble? */
   if (!n->subframe_start_index) {
     /* We're going to look for the preamble at a time 360 nav bits ago,
      * then again 60 nav bits ago. */
-    #define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN*32 - 360)
+    #define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN * 32 - 360)
 
     /* Check whether there's a preamble at the start of the circular
      * subframe_bits buffer. */
-    u8 preamble_candidate = extract_word(n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8, 0);
+    u8 preamble_candidate = extract_word(n,
+                                         n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8,
+                                         0);
 
     if (preamble_candidate == 0x8B) {
-       n->subframe_start_index = n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
-    }
-    else if (preamble_candidate == 0x74) {
-       n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
+      n->subframe_start_index = n->subframe_bit_index +
+                                SUBFRAME_START_BUFFER_OFFSET + 1;
+    } else if (preamble_candidate == 0x74) {
+      n->subframe_start_index =
+        -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
     }
 
     if (n->subframe_start_index) {
-      // Looks like we found a preamble, but let's confirm.
+      /* Looks like we found a preamble, but let's confirm. */
       if (extract_word(n, 300, 8, 0) == 0x8B) {
-        // There's another preamble in the following subframe.  Looks good so far.
-        // Extract the TOW:
-        unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0));
+        /* There's another preamble in the following subframe.  Looks good so far. */
+        /* Extract the TOW: */
+        unsigned int TOW_trunc =
+          extract_word(n, 30, 17, extract_word(n, 29, 1, 0));
         /* (bit 29 is D30* for the second word, where the TOW resides) */
-        if (TOW_trunc < 7*24*60*10) {
+        if (TOW_trunc < 7 * 24 * 60 * 10) {
           /* TOW in valid range */
-          TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
-          if (TOW_trunc == 7*24*60*10)  // Handle end of week rollover
+          TOW_trunc++;                         /* Increment it, to see what we expect at the start of the next subframe */
+          if (TOW_trunc == 7 * 24 * 60 * 10) { /* Handle end of week rollover */
             TOW_trunc = 0;
+          }
 
-          if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
-            // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
+          if (TOW_trunc ==
+              extract_word(n, 330, 17, extract_word(n, 329, 1, 0))) {
+            /* We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now. */
             /* TODO: should still check parity? */
-            // The TOW in the message is for the start of the NEXT subframe.
-            // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
-            if (TOW_trunc == 0)
+            /* The TOW in the message is for the start of the NEXT subframe. */
+            /* That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded. */
+            if (TOW_trunc == 0) {
               /* end-of-week special case */
-              TOW_ms = 7*24*60*60*1000 - (300-60)*20;
-            else
-              TOW_ms = TOW_trunc * 6000 - (300-60)*20;
+              TOW_ms = 7 * 24 * 60 * 60 * 1000 - (300 - 60) * 20;
+            } else {
+              TOW_ms = TOW_trunc * 6000 - (300 - 60) * 20;
+            }
           }
         }
       }
       /* If we didn't find a matching pair of preambles + TOWs, this offset can't be right. Move on. */
-      if (TOW_ms < 0)
+      if (TOW_ms < 0) {
         n->subframe_start_index = 0;
+      }
     }
   }
   return TOW_ms;
@@ -286,7 +300,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
  */
 static u8 nav_parity(u32 *word)
 {
-  if (*word & 1<<30) { /* Inspect D30* */
+  if (*word & 1 << 30) { /* Inspect D30* */
     *word ^= 0x3FFFFFC0; /* D30* = 1, invert all the data bits! */
   }
 
@@ -318,79 +332,82 @@ static u8 nav_parity(u32 *word)
   return 0;
 }
 
-bool subframe_ready(nav_msg_t *n) {
-  return (n->subframe_start_index != 0);
+bool subframe_ready(nav_msg_t *n)
+{
+  return n->subframe_start_index != 0;
 }
 
-s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
-  // Check parity and parse out the ephemeris from the most recently received subframe
+s8 process_subframe(nav_msg_t *n, ephemeris_t *e)
+{
+  /* Check parity and parse out the ephemeris from the most recently received subframe */
 
   if (!e) {
     log_error("process_subframe: CALLED WITH e = NULL!");
-    n->subframe_start_index = 0;  // Mark the subframe as processed
-    n->next_subframe_id = 1;      // Make sure we start again next time
+    n->subframe_start_index = 0;  /* Mark the subframe as processed */
+    n->next_subframe_id = 1;      /* Make sure we start again next time */
     return -1;
   }
 
-  // First things first - check the parity, and invert bits if necessary.
-  // process the data, skipping the first word, TLM, and starting with HOW
+  /* First things first - check the parity, and invert bits if necessary. */
+  /* process the data, skipping the first word, TLM, and starting with HOW */
 
   /* Detect half cycle slip. */
   s8 prev_bit_polarity = n->bit_polarity;
   n->bit_polarity = (n->subframe_start_index > 0) ? BIT_POLARITY_NORMAL :
-    BIT_POLARITY_INVERTED;
+                    BIT_POLARITY_INVERTED;
   if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
       && (prev_bit_polarity != n->bit_polarity)) {
     log_error("PRN %02d Nav phase flip - half cycle slip detected, "
-              "but not corrected", e->prn+1);
+              "but not corrected", e->prn + 1);
     /* TODO: declare phase ambiguity to IAR */
   }
 
   /* Complain if buffer overrun */
   if (n->overrun) {
-    log_error("PRN %02d nav_msg subframe buffer overrun!", e->prn+1);
+    log_error("PRN %02d nav_msg subframe buffer overrun!", e->prn + 1);
     n->overrun = false;
   }
 
   /* Extract word 2, and the last two parity bits of word 1 */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-    log_info("PRN %02d subframe parity mismatch (word 2)", e->prn+1);
-    n->subframe_start_index = 0;  // Mark the subframe as processed
-    n->next_subframe_id = 1;      // Make sure we start again next time
+    log_info("PRN %02d subframe parity mismatch (word 2)", e->prn + 1);
+    n->subframe_start_index = 0;  /* Mark the subframe as processed */
+    n->next_subframe_id = 1;      /* Make sure we start again next time */
     return -2;
   }
 
-  u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
+  u8 sf_id = sf_word2 >> 8 & 0x07;                                             /* Which of 5 possible subframes is it? */
 
-  if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
+  if (sf_id <= 3 && sf_id == n->next_subframe_id) {                            /* Is it the one that we want next? */
 
-    for (int w = 0; w < 8; w++) {   // For words 3..10
-      n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
-      // MSBs are D29* and D30*.  LSBs are D1...D30
-      if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        log_info("PRN %02d subframe parity mismatch (word %d)", e->prn+1, w+3);
-        n->next_subframe_id = 1;      // Make sure we start again next time
-        n->subframe_start_index = 0;  // Mark the subframe as processed
+    for (int w = 0; w < 8; w++) {                                              /* For words 3..10 */
+      n->frame_words[sf_id - 1][w] = extract_word(n, 30 * (w + 2) - 2, 32, 0); /* Get the bits */
+      /* MSBs are D29* and D30*.  LSBs are D1...D30 */
+      if (nav_parity(&n->frame_words[sf_id - 1][w])) {                         /* Check parity and invert bits if D30* */
+        log_info("PRN %02d subframe parity mismatch (word %d)", e->prn + 1,
+                 w + 3);
+        n->next_subframe_id = 1;      /* Make sure we start again next time */
+        n->subframe_start_index = 0;  /* Mark the subframe as processed */
         return -3;
       }
     }
-    n->subframe_start_index = 0;  // Mark the subframe as processed
+    n->subframe_start_index = 0;  /* Mark the subframe as processed */
     n->next_subframe_id++;
 
     if (sf_id == 3) {
-      // Got all of subframes 1 to 3
-      n->next_subframe_id = 1;      // Make sure we start again next time
+      /* Got all of subframes 1 to 3 */
+      n->next_subframe_id = 1;      /* Make sure we start again next time */
 
-      // Now let's actually decode the ephemeris...
+      /* Now let's actually decode the ephemeris... */
       decode_ephemeris(n->frame_words, e);
 
       return 1;
 
     }
-  } else {  // didn't get the subframe that we want next
-      n->next_subframe_id = 1;      // Make sure we start again next time
-      n->subframe_start_index = 0;  // Mark the subframe as processed
+  } else {                       /* didn't get the subframe that we want next */
+    n->next_subframe_id = 1;     /* Make sure we start again next time */
+    n->subframe_start_index = 0; /* Mark the subframe as processed */
   }
 
   return 0;

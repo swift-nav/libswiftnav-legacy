@@ -77,4 +77,4 @@ add_custom_command(
     "${PROJECT_SOURCE_DIR}/checks/checkpatch.pl"
     )
 
-add_custom_target(checkpatch DEPENDS checkpatch_output.txt) 
+add_custom_target(checkpatch DEPENDS checkpatch_output.txt)

@@ -19,12 +19,12 @@
  * \{ */
 
 #define CMP_FUNCTION(ta, tb)                        \
-int cmp_##ta##_##tb(const void * a, const void * b) \
-{                                                   \
-  const ta *da = (const ta *) a;                    \
-  const tb *db = (const tb *) b;                    \
-  return (*da > *db) - (*da < *db);                 \
-}
+  int cmp_ ## ta ## _ ## tb(const void *a, const void *b) \
+  {                                                   \
+    const ta *da = (const ta *)a;                    \
+    const tb *db = (const tb *)b;                    \
+    return (*da > *db) - (*da < *db);                 \
+  }
 
 CMP_FUNCTION(u8, u8)
 CMP_FUNCTION(s32, s32)
@@ -60,7 +60,7 @@ bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
 
   const void *current = set;
   for (u8 i = 1; i < n; i++) {
-    const void *next = set + sz*i;
+    const void *next = set + sz * i;
     if (cmp(next, current) <= 0) {
       return false;
     }
@@ -111,9 +111,9 @@ s32 intersection_map(u32 na, size_t sa, const void *as,
 
   u32 ia, ib, n = 0;
 
-  for (ia=0, ib=0; ia<na && ib<nb; ia++, ib++) {
-    const void *a = as + sa*ia;
-    const void *b = bs + sb*ib;
+  for (ia = 0, ib = 0; ia < na && ib < nb; ia++, ib++) {
+    const void *a = as + sa * ia;
+    const void *b = bs + sb * ib;
     if (cmp(a, b) < 0) {
       ib--;
     } else if (cmp(a, b) > 0) {
@@ -178,9 +178,9 @@ s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
 {
   struct intersection_context ctxt = {
     .a_out = a_out,
-    .sa = sa,
+    .sa    = sa,
     .b_out = b_out,
-    .sb = sb
+    .sb    = sb
   };
 
   return intersection_map(na, sa, as, nb, sb, bs,

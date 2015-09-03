@@ -37,7 +37,7 @@ static double vel_solve(double rx_vel[],
    * solution loop through valid measurements.  Here we form satellite
    * velocity and pseudorange rate vectors -- it's the same
    * prediction-error least-squares thing, but we do only one step.
-  */
+   */
 
   double tempvX[n_used];
   double pdot_pred;
@@ -57,7 +57,8 @@ static double vel_solve(double rx_vel[],
    *
    *   rx_vel[j] = X[j] . tempvX[j]
    */
-  matrix_multiply(4, n_used, 1, (double *) X, (double *) tempvX, (double *) rx_vel);
+  matrix_multiply(4, n_used, 1, (double *)X, (double *)tempvX,
+                  (double *)rx_vel);
 
   /* Return just the receiver clock bias. */
   return rx_vel[3];
@@ -69,6 +70,7 @@ static void compute_dops(const double H[4][4],
 {
   /* PDOP is the norm of the position elements of tr(H) */
   double pdop_sq = H[0][0] + H[1][1] + H[2][2];
+
   dops->pdop = sqrt(pdop_sq);
 
   /* TDOP is like PDOP but for the time state. */
@@ -85,7 +87,7 @@ static void compute_dops(const double H[4][4],
    * relation PDOP^2 = HDOP^2 + VDOP^2. */
   double M[3][3];
   ecef2ned_matrix(pos_ecef, M);
-  double down_ecef[4] = {M[2][0], M[2][1], M[2][2], 0};
+  double down_ecef[4] = { M[2][0], M[2][1], M[2][2], 0 };
   double tmp[3];
   matrix_multiply(3, 4, 1, (double *)H, down_ecef, tmp);
   double vdop_sq = vector_dot(3, down_ecef, tmp);
@@ -156,7 +158,7 @@ static double pvt_solve(double rx_state[],
   double tempd;
   double correction[4];
 
-  for (u8 j=0; j<4; j++) {
+  for (u8 j = 0; j < 4; j++) {
     correction[j] = 0.0;
   }
 
@@ -198,7 +200,7 @@ static double pvt_solve(double rx_state[],
 
     /* Construct a geometry matrix.  Each row (satellite) is
      * independently normalized into a unit vector. */
-    for (u8 i=0; i<3; i++) {
+    for (u8 i = 0; i < 3; i++) {
       G[j][i] = -los[i] / p_pred[j];
     }
 
@@ -216,23 +218,24 @@ static double pvt_solve(double rx_state[],
    */
 
   /* Gt := G^{T} */
-  matrix_transpose(n_used, 4, (double *) G, (double *) Gtrans);
+  matrix_transpose(n_used, 4, (double *)G, (double *)Gtrans);
   /* GtG := G^{T} G */
-  matrix_multiply(4, n_used, 4, (double *) Gtrans, (double *) G, (double *) GtG);
+  matrix_multiply(4, n_used, 4, (double *)Gtrans, (double *)G, (double *)GtG);
   /* H \elem \mathbb{R}^{4 \times 4} := GtG^{-1} */
-  matrix_inverse(4, (const double *) GtG, (double *) H);
+  matrix_inverse(4, (const double *)GtG, (double *)H);
   /* X := H * G^{T} */
-  matrix_multiply(4, 4, n_used, (double *) H, (double *) Gtrans, (double *) X);
+  matrix_multiply(4, 4, n_used, (double *)H, (double *)Gtrans, (double *)X);
   /* correction := X * E (= X * omp) */
-  matrix_multiply(4, n_used, 1, (double *) X, (double *) omp, (double *) correction);
+  matrix_multiply(4, n_used, 1, (double *)X, (double *)omp,
+                  (double *)correction);
 
   /* Increment ecef estimate by the new corrections */
-  for (u8 i=0; i<3; i++) {
+  for (u8 i = 0; i < 3; i++) {
     rx_state[i] += correction[i];
   }
 
   /* Set the Δt estimates according to this solution */
-  for (u8 i=3; i<4; i++) {
+  for (u8 i = 3; i < 4; i++) {
     rx_state[i] = correction[i];
   }
 
@@ -240,7 +243,7 @@ static double pvt_solve(double rx_state[],
    * the solution has converged yet.
    */
   tempd = vector_norm(3, correction);
-  if(tempd > 0.001) {
+  if (tempd > 0.001) {
     /* The solution has not converged, return a negative value to
      * indicate that we should continue iterating.
      */
@@ -250,28 +253,32 @@ static double pvt_solve(double rx_state[],
   /* The solution has converged! */
 
   /* Perform the velocity solution. */
-  vel_solve(&rx_state[4], n_used, nav_meas, (const double (*)[4]) G, (const double (*)[n_used]) X);
+  vel_solve(&rx_state[4], n_used, nav_meas, (const double (*)[4])G,
+            (const double (*)[n_used])X);
 
   return tempd;
 }
 
-static u8 filter_solution(gnss_solution* soln, dops_t* dops)
+static u8 filter_solution(gnss_solution *soln, dops_t *dops)
 {
-  if (dops->pdop > 50.0)
+  if (dops->pdop > 50.0) {
     /* PDOP is too high to yield a good solution. */
     return 1;
+  }
 
-  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e6)
+  if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e6) {
     /* Altitude is unreasonable. */
     return 2;
+  }
 
   /* NOTE: The following condition is required to comply with US export
    * regulations. It must not be removed. Any modification to this condition
    * is strictly not approved by Swift Navigation Inc. */
 
-  if (vector_norm(3, soln->vel_ecef) >= 0.514444444*1000)
+  if (vector_norm(3, soln->vel_ecef) >= 0.514444444 * 1000) {
     /* Velocity is greater than 1000kts. */
     return 3;
+  }
 
   return 0;
 }
@@ -319,13 +326,13 @@ static s8 pvt_iter(double rx_state[],
                    double H[4][4])
 {
   /* Reset state to zero */
-  for(u8 i=4; i<8; i++) {
+  for (u8 i = 4; i < 8; i++) {
     rx_state[i] = 0;
   }
 
   u8 iters;
   /* Newton-Raphson iteration. */
-  for (iters=0; iters<PVT_MAX_ITERATIONS; iters++) {
+  for (iters = 0; iters < PVT_MAX_ITERATIONS; iters++) {
     if (pvt_solve(rx_state, n_used, nav_meas, omp, H) > 0) {
       break;
     }
@@ -363,6 +370,7 @@ static s8 pvt_repair(double rx_state[],
   u8 num_passing = 0;
 
   const navigation_measurement_t *nav_meas_subset[n_used];
+
   for (s8 i = 0; i < n_used; i++) {
     nav_meas_subset[i] = &nav_meas[i];
   }
@@ -386,7 +394,7 @@ static s8 pvt_repair(double rx_state[],
       return -1;
     }
 
-    if (residual_test(n_used-1, omp, rx_state, 0)) {
+    if (residual_test(n_used - 1, omp, rx_state, 0)) {
       num_passing++;
       bad_sat = drop;
     }
@@ -460,7 +468,8 @@ static s8 pvt_solve_raim(double rx_state[],
     /* Iteration didn't converge. Don't attempt to repair; too CPU intensive. */
     return -3;
   }
-  if (flag >= 0 && (disable_raim || residual_test(n_used, omp, rx_state, &residual))) {
+  if (flag >= 0 &&
+      (disable_raim || residual_test(n_used, omp, rx_state, &residual))) {
     /* Solution ok, or raim check disabled. */
     if (disable_raim || n_used == 4) {
       /* Residual test couldn't have detected an error. */
@@ -533,7 +542,7 @@ s8 calc_PVT(const u8 n_used,
   }
 
   soln->valid = 0;
-  soln->n_used = n_used; // Keep track of number of working channels
+  soln->n_used = n_used; /* Keep track of number of working channels */
 
   u8 removed_prn = -1;
   s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
@@ -564,9 +573,9 @@ s8 calc_PVT(const u8 n_used,
   soln->err_cov[5] = H[2][2];
 
   /* Save as x, y, z. */
-  for (u8 i=0; i<3; i++) {
+  for (u8 i = 0; i < 3; i++) {
     soln->pos_ecef[i] = rx_state[i];
-    soln->vel_ecef[i] = rx_state[4+i];
+    soln->vel_ecef[i] = rx_state[4 + i];
   }
 
   wgsecef2ned(soln->vel_ecef, soln->pos_ecef, soln->vel_ned);
