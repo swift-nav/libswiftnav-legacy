@@ -72,9 +72,9 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
  * `sat_pos` and `sat_vel` are taken from input b.
  *
  * \param n_a Number of measurements in set `m_a`
- * \oaram m_a Array of undifferenced observations, as a set sorted by PRN
+ * \param m_a Array of undifferenced observations, as a set sorted by PRN
  * \param n_b Number of measurements in set `m_b`
- * \oaram m_b Array of undifferenced observations, as a set sorted by PRN
+ * \param m_b Array of undifferenced observations, as a set sorted by PRN
  * \param sds Single difference observations
  *
  * \return The number of observations written to `sds` on success,
@@ -160,6 +160,8 @@ int sdiff_search_prn(const void *a, const void *b)
  *                           correspond to the i-th element of m_remote).
  * \param remote_pos_ecef   The position of the remote receiver (presumed
  *                           constant in ecef).
+ * \param es
+ * \param t
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
  */

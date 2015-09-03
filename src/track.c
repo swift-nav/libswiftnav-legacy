@@ -159,8 +159,8 @@ float costas_discriminator(float I, float Q)
  *
  * \param I The prompt in-phase correlation, \f$I_k\f$.
  * \param Q The prompt quadrature correlation, \f$Q_k\f$.
- * \param I The prompt in-phase correlation, \f$I_{k-1}\f$.
- * \param Q The prompt quadrature correlation, \f$Q_{k-1}\f$.
+ * \param prev_I The prompt in-phase correlation, \f$I_{k-1}\f$.
+ * \param prev_Q The prompt quadrature correlation, \f$Q_{k-1}\f$.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
 float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
@@ -300,6 +300,7 @@ float simple_lf_update(simple_lf_state_t *s, float error)
  * \param carr_bw The carrier tracking loop noise bandwidth.
  * \param carr_zeta The carrier tracking loop damping ratio.
  * \param carr_k The carrier tracking loop gain.
+ * \param carr_freq_b1 The integral gain of the aiding error term, \f$k_{ia}\f$.
  */
 void aided_tl_init(aided_tl_state_t *s, float loop_freq,
                    float code_freq,
@@ -379,6 +380,7 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
  * For a full description of the loop filter parameters, see calc_loop_gains().
  *
  * \param s The tracking loop state struct to initialise.
+ * \param loop_freq The loop update frequency, \f$1/T\f$.
  * \param code_freq The initial code phase rate (i.e. frequency).
  * \param code_bw The code tracking loop noise bandwidth.
  * \param code_zeta The code tracking loop damping ratio.
@@ -441,6 +443,7 @@ void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
  * GPS C/A code phase rate, 4.092MHz IF for the carrier).
  *
  * \param s The tracking loop state struct to initialise.
+ * \param loop_freq The loop update frequency, \f$1/T\f$.
  * \param code_freq The initial code phase rate (i.e. frequency) difference
  *                  from nominal.
  * \param code_bw The code tracking loop noise bandwidth.
@@ -562,6 +565,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q)
 }
 
 /** Initialise the lock detector state.
+ * \param l
  * \param k1 LPF coefficient.
  * \param k2 I Scale factor.
  * \param lp Pessimistic count threshold.
@@ -574,6 +578,7 @@ void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
 }
 
 /** Update the lock detector parameters, preserving internal state.
+ * \param l
  * \param k1 LPF coefficient.
  * \param k2 I Scale factor.
  * \param lp Pessimistic count threshold.
@@ -597,6 +602,7 @@ static float lock_detect_lpf_update(struct loop_detect_lpf *lpf, float x)
 }
 
 /** Update the lock detector with new prompt correlations.
+ * \param l
  * \param I In-phase prompt correlation.
  * \param Q Quadrature prompt correlation.
  * \param DT Integration time
@@ -818,10 +824,10 @@ int nav_meas_cmp(const void *a, const void *b)
  * array at least `MIN(n_new, n_old)` long will ensure sufficient space.
  *
  * \param n_new Number of measurements in `m_new`
- * \oaram m_new Array of new navigation measurements
+ * \param m_new Array of new navigation measurements
  * \param n_old Number of measurements in `m_old`
- * \oaram m_new Array of old navigation measurements, sorted by PRN
- * \param m_tdcp Array in which to store the output measurements
+ * \param m_old Array of old navigation measurements, sorted by PRN
+ * \param m_corrected Array in which to store the output measurements
  * \return The number of measurements written to `m_tdcp`
  */
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,

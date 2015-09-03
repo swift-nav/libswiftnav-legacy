@@ -39,6 +39,7 @@ u8 parity(u32 x)
  * Unpacks `len` bits at bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \return Bit field as an unsigned value.
@@ -61,6 +62,7 @@ u32 getbitu(const u8 *buff, u32 pos, u8 len)
  *
  * This function sign extends the `len` bit field to a signed 32 bit integer.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \return Bit field as a signed value.
@@ -80,6 +82,7 @@ s32 getbits(const u8 *buff, u32 pos, u8 len)
  * Packs `len` bits into bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \param data Unsigned integer to be packed into bit field.
@@ -103,6 +106,7 @@ void setbitu(u8 *buff, u32 pos, u32 len, u32 data)
  * Packs `len` bits into bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \param data Signed integer to be packed into bit field.

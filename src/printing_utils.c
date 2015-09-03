@@ -81,9 +81,9 @@ void print_s32_mtx_diff(u32 m, u32 n, s32 *mat1, s32 *mat2)
 
 /** Prints a s32 valued matrix.
  *
+ * \param mat  The matrix to be printed.
  * \param m     The number of rows to be printed in the matrices.
  * \param n     The number of columns in the matrix.
- * \param mat1  The matrix to be printed.
  */
 void print_s32_mtx(s32 *mat, u32 m, u32 n)
 {
