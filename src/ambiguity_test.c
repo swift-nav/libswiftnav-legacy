@@ -296,11 +296,8 @@ void ambiguity_test_MLE_ambs(ambiguity_test_t *amb_test, s32 *ambs)
  * \param code_var    The variance of the code pseudorange measurements.
  * \param amb_test    The ambiguity test to update.
  * \param state_dim   The dimension of the float state.
- * \param float_sats  The satellites being represented in the float state.
  * \param sdiffs      The single differenced measurements/sat positions of all sats tracked.
- * \param float_mean  The float estimate of the integer ambiguities.
- * \param float_cov_U The U in the UDU' decomposition of the covariance of the float estimate.
- * \param float_cov_D The D in the UDU' decomposition of the covariance of the float estimate.
+ * \param changed_sats Not currently used.
  *
  *  INVALIDATES unanimous ambiguities
  */

@@ -44,7 +44,7 @@ gps_time_t normalize_gps_time(gps_time_t t)
 /** Convert a `gps_time_t` GPS time to a Unix `time_t`.
  * \note Adjusts for leap seconds using the current constant offset.
  *
- * \param t GPS time struct.
+ * \param gps_t GPS time struct.
  * \return Unix time.
  */
 time_t gps2time(gps_time_t gps_t)

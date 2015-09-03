@@ -29,7 +29,7 @@
  * on a per-file basis by adding the following line to the source file *before*
  * including `logging.h`:
  *
- *    #define DEBUG 1
+ *    \#define DEBUG 1
  *
  * \{ */
 

@@ -217,18 +217,18 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
  * \note This function takes real valued carrier phase ambiguities. For integer
  *       valued ambiguities, see lesq_solution_int().
  *
- * \param num_dds Number of double difference observations
- * \param dd_obs  Double differenced carrier phase observations in cycles,
- *                length `num_dds`
- * \param N       Carrier phase ambiguity vector, length `num_dds`
- * \param DE      Double differenced matrix of unit vectors to the satellites,
- *                length `3 * num_dds`
- * \param b       The output baseline in meters.
- * \param resid   The output least squares residuals in cycles.
- * \return         0 on success,
- *                -1 if there were insufficient observations to calculate the
- *                   baseline (the solution was under-constrained),
- *                -2 if an error occurred
+ * \param num_dds_u8 Number of double difference observations
+ * \param dd_obs     Double differenced carrier phase observations in cycles,
+ *                   length `num_dds`
+ * \param N          Carrier phase ambiguity vector, length `num_dds`
+ * \param DE         Double differenced matrix of unit vectors to the satellites,
+ *                   length `3 * num_dds`
+ * \param b          The output baseline in meters.
+ * \param resid      The output least squares residuals in cycles.
+ * \return            0 on success,
+ *                   -1 if there were insufficient observations to calculate the
+ *                      baseline (the solution was under-constrained),
+ *                   -2 if an error occurred
  */
 s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
                        const double *DE, double b[3], double *resid)
@@ -508,7 +508,8 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
  * This uses the current state of the KF and a set of phase observations to
  * solve for the current baseline.
  *
- * \param kf                    The Kalman filter struct.
+ * \param num_dds_u8            State dimension
+ * \param state_mean            KF estimated state mean
  * \param sdiffs_with_ref_first A list of sdiffs. The first in the list must be
  *                              the reference sat of the KF, and the rest must
  *                              correspond to the KF's DD amb estimates' sats,
@@ -519,6 +520,8 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
  * \param ref_ecef              The reference position in ECEF frame, for
  *                              computing the sat direction vectors.
  * \param b                     The output baseline in meters.
+ * \param disable_raim          True disables raim check/repair
+ * \param raim_threshold        Threshold for raim checks.
  * \return                      See lesq_solve_raim()
  */
 s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
@@ -555,6 +558,8 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
  * \param num_used   Pointer to where to store number of satellites used in the
  *                   baseline solution
  * \param b          The output baseline in meters
+ * \param disable_raim True disables raim check/repair
+ * \param raim_threshold Threshold for raim checks.
  * \return            0 on success,
  *                   -1 if there were insufficient observations to calculate the
  *                      baseline (the solution was under-constrained),

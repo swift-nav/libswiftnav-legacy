@@ -404,9 +404,12 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  * \param sdiffs      The low-latency sdiffs.
  * \param ref_ecef    The referece position for the baseline.
  *                    (TODO is this the local or remote receiver position?)
+ * \param s           Current ambiguity test state.
  * \param num_used    Output number of sdiffs actually used in the baseline
  *                    estimate.
  * \param b           Output baseline.
+ * \param disable_raim Flag to turn off raim checks/repair.
+ * \param raim_threshold raim check threshold
  * \return  1 if we are using an IAR resolved baseline.
  *          2 if we are using a float baseline.
  *         -1 if we can't give a baseline.

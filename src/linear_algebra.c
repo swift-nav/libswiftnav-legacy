@@ -94,7 +94,7 @@ void submatrix_ul(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
  * \mathbb{R}^{N \times N} \f$ is an orthogonal matrix and \f$ R \in
  * \mathbb{R}^{N \times N} \f$ is an upper-triangular matrix.
  *
- *  \param A            The matrix \f$ A \f$ to decompose (input)
+ *  \param a            The matrix \f$ A \f$ to decompose (input)
  *  \param rows         How many rows in A
  *  \param qt           \f$ Q^{T} \f$ (output)
  *  \param r            \f$ R \f$ (output)
@@ -956,11 +956,10 @@ void vector_subtract(u32 n, const double *a,
   vector_add_sc(n, a, b, -1, c);
 }
 
-/** Cross product of two vectors.
+/** Cross product of two 3-vectors.
  * Compute \f$ \vec{c} := \vec{a} * \times \vec{b} \f$, where
  * \f$\vec{a}\f$, \f$\vec{b}\f$ and * \f$\vec{c}\f$ are 3-vectors.
  *
- *  \param n            Length of a, b and c
  *  \param a            First input vector
  *  \param b            Second input vector
  *  \param c            Output vector

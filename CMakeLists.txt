@@ -83,6 +83,6 @@ set(ALLOWED_DOXYGEN_WARNINGS ${PROJECT_SOURCE_DIR}/checks/allowed_doxygen_warnin
 # TODO add srcs dependency
 add_custom_target(check-doxygen 
   COMMAND diff ${ALLOWED_DOXYGEN_WARNINGS} ${DOXYGEN_WARNINGS}
-  DEPENDS docs)
+  DEPENDS docs swiftnav-static)
 
 add_custom_target(check-style DEPENDS check-doxygen checkpatch)

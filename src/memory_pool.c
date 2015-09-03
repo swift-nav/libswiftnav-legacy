@@ -95,7 +95,7 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
  * systems it is recommended that all pools be initialized once at start-up to
  * prevent all the usual caveats associated with dynamic memory allocation.
  *
- * \param pool Pointer to a memory pool to initialise
+ * \param new_pool Pointer to a memory pool to initialise
  * \param n_elements Number of elements that the pool can hold
  * \param element_size Size in bytes of the user payload elements
  * \param buff Pointer to a buffer to use as the memory pool working area
@@ -274,6 +274,7 @@ element_t *memory_pool_add(memory_pool_t *pool)
 /** Map a function across all elements allocated in the collection.
  *
  * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the function f
  * \param f Pointer to a function that does an in-place update of an element.
  * \return Number of elements mapped across or `< 0` on an error.
  */
@@ -408,6 +409,7 @@ s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
  * the pool.
  *
  * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the function f
  * \param f Pointer to a function that takes an element and returns `0` to
  *          discard that element or `!=0` to keep that element.
  * \return Number of elements in the filtered collection or `< 0` on an error.

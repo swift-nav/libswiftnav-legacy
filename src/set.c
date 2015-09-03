@@ -79,7 +79,7 @@ bool is_set(u8 n, size_t sz, const void *set, cmp_fn cmp)
  * \param as Array of elements in set A
  * \param nb Number of elements in set B
  * \param sb Size of each element of set B
- * \param as Array of elements in set B
+ * \param bs Array of elements in set B
  * \param cmp Pointer to a comparison function
  * \param context Pointer to an context passed directly through to `f`
  * \param f Pointer to function to map across intersection
@@ -164,7 +164,7 @@ static void intersection_function(void *context, u32 n,
  * \param a_out Output array of matching elements from A
  * \param nb    Number of elements in set B
  * \param sb    Size of each element of set B
- * \param as    Array of elements in set B
+ * \param bs    Array of elements in set B
  * \param b_out Output array of matching elements from B
  * \param cmp    Pointer to a comparison function
  *
