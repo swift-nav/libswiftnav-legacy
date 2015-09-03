@@ -1,0 +1,110 @@
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: argument 'mat1' of command @param is not found in the argument list of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: argument 'mat2' of command @param is not found in the argument list of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: The following parameters of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2) are not documented:
+  parameter 'Z_inv1'
+  parameter 'Z_inv2'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/dgnss_management.c:399: warning: The following parameters of dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3], const ambiguity_state_t *s, u8 *num_used, double b[3], bool disable_raim, double raim_threshold) are not documented:
+  parameter 's'
+  parameter 'disable_raim'
+  parameter 'raim_threshold'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ephemeris.c:157: warning: The following parameters of ephemeris_good(ephemeris_t *eph, gps_time_t t) are not documented:
+  parameter 't'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/gpstime.c:45: warning: argument 't' of command @param is not found in the argument list of gps2time(gps_time_t gps_t)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/gpstime.c:45: warning: The following parameters of gps2time(gps_time_t gps_t) are not documented:
+  parameter 'gps_t'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:84: warning: argument 'mat1' of command @param is not found in the argument list of print_s32_mtx(s32 *mat, u32 m, u32 n)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:84: warning: The following parameters of print_s32_mtx(s32 *mat, u32 m, u32 n) are not documented:
+  parameter 'mat'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: argument 'mat1' of command @param is not found in the argument list of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: argument 'mat2' of command @param is not found in the argument list of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:63: warning: The following parameters of print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2) are not documented:
+  parameter 'Z_inv1'
+  parameter 'Z_inv2'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/dgnss_management.c:399: warning: The following parameters of dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3], const ambiguity_state_t *s, u8 *num_used, double b[3], bool disable_raim, double raim_threshold) are not documented:
+  parameter 's'
+  parameter 'disable_raim'
+  parameter 'raim_threshold'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ephemeris.c:157: warning: The following parameters of ephemeris_good(ephemeris_t *eph, gps_time_t t) are not documented:
+  parameter 't'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/gpstime.c:45: warning: argument 't' of command @param is not found in the argument list of gps2time(gps_time_t gps_t)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/gpstime.c:45: warning: The following parameters of gps2time(gps_time_t gps_t) are not documented:
+  parameter 'gps_t'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:84: warning: argument 'mat1' of command @param is not found in the argument list of print_s32_mtx(s32 *mat, u32 m, u32 n)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/printing_utils.c:84: warning: The following parameters of print_s32_mtx(s32 *mat, u32 m, u32 n) are not documented:
+  parameter 'mat'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ambiguity_test.c:286: warning: argument 'float_sats' of command @param is not found in the argument list of update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var, ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs, u8 changed_sats)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ambiguity_test.c:286: warning: argument 'float_mean' of command @param is not found in the argument list of update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var, ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs, u8 changed_sats)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ambiguity_test.c:286: warning: argument 'float_cov_U' of command @param is not found in the argument list of update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var, ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs, u8 changed_sats)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ambiguity_test.c:286: warning: argument 'float_cov_D' of command @param is not found in the argument list of update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var, ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs, u8 changed_sats)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/ambiguity_test.c:286: warning: The following parameters of update_ambiguity_test(double ref_ecef[3], double phase_var, double code_var, ambiguity_test_t *amb_test, u8 state_dim, sdiff_t *sdiffs, u8 changed_sats) are not documented:
+  parameter 'changed_sats'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/baseline.c:543: warning: The following parameters of baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3], u8 num_ambs, const u8 *amb_prns, const double *ambs, u8 *num_used, double b[3], bool disable_raim, double raim_threshold) are not documented:
+  parameter 'disable_raim'
+  parameter 'raim_threshold'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/baseline.c:508: warning: argument 'kf' of command @param is not found in the argument list of least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean, const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements, const double ref_ecef[3], double b[3], bool disable_raim, double raim_threshold)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/baseline.c:508: warning: The following parameters of least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean, const sdiff_t *sdiffs_with_ref_first, const double *dd_measurements, const double ref_ecef[3], double b[3], bool disable_raim, double raim_threshold) are not documented:
+  parameter 'num_dds_u8'
+  parameter 'state_mean'
+  parameter 'disable_raim'
+  parameter 'raim_threshold'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/baseline.c:185: warning: argument 'num_dds' of command @param is not found in the argument list of lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N, const double *DE, double b[3], double *resid)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/baseline.c:185: warning: The following parameters of lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N, const double *DE, double b[3], double *resid) are not documented:
+  parameter 'num_dds_u8'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/bits.c:59: warning: The following parameters of getbits(const u8 *buff, u32 pos, u8 len) are not documented:
+  parameter 'buff'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/bits.c:39: warning: The following parameters of getbitu(const u8 *buff, u32 pos, u8 len) are not documented:
+  parameter 'buff'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/bits.c:103: warning: The following parameters of setbits(u8 *buff, u32 pos, u32 len, s32 data) are not documented:
+  parameter 'buff'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/bits.c:80: warning: The following parameters of setbitu(u8 *buff, u32 pos, u32 len, u32 data) are not documented:
+  parameter 'buff'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/coord_system.c:56: warning: Found unknown command `\frac'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/coord_system.c:56: warning: Found unknown command `\pi'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/coord_system.c:36: warning: Found unknown command `\frac'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/coord_system.c:36: warning: Found unknown command `\pi'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/linear_algebra.c:92: warning: argument 'A' of command @param is not found in the argument list of qrdecomp_square(const double *a, u32 rows, double *qt, double *r)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/linear_algebra.c:92: warning: The following parameters of qrdecomp_square(const double *a, u32 rows, double *qt, double *r) are not documented:
+  parameter 'a'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/linear_algebra.c:960: warning: argument 'n' of command @param is not found in the argument list of vector_cross(const double a[3], const double b[3], double c[3])
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/include/libswiftnav/logging.h:33: warning: explicit link request to 'define' could not be resolved
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/memory_pool.c:409: warning: The following parameters of memory_pool_filter(memory_pool_t *pool, void *arg, s8(*f)(void *arg, element_t *elem)) are not documented:
+  parameter 'arg'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/memory_pool.c:84: warning: argument 'pool' of command @param is not found in the argument list of memory_pool_init(memory_pool_t *new_pool, u32 n_elements, size_t element_size, void *buff)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/memory_pool.c:84: warning: The following parameters of memory_pool_init(memory_pool_t *new_pool, u32 n_elements, size_t element_size, void *buff) are not documented:
+  parameter 'new_pool'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/memory_pool.c:276: warning: The following parameters of memory_pool_map(memory_pool_t *pool, void *arg, void(*f)(void *arg, element_t *elem)) are not documented:
+  parameter 'arg'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/observation.c:138: warning: The following parameters of make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local, u8 n_remote, navigation_measurement_t *m_remote, double *remote_dists, double remote_pos_ecef[3], ephemeris_t *es, gps_time_t t, sdiff_t *sds) are not documented:
+  parameter 'es'
+  parameter 't'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/observation.c:75: warning: Found unknown command `\oaram'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/observation.c:77: warning: Found unknown command `\oaram'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/observation.c:67: warning: The following parameters of single_diff(u8 n_a, navigation_measurement_t *m_a, u8 n_b, navigation_measurement_t *m_b, sdiff_t *sds) are not documented:
+  parameter 'm_a'
+  parameter 'm_b'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/set.c:154: warning: The following parameters of intersection(u32 na, size_t sa, const void *as, void *a_out, u32 nb, size_t sb, const void *bs, void *b_out, cmp_fn cmp) are not documented:
+  parameter 'bs'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/set.c:74: warning: The following parameters of intersection_map(u32 na, size_t sa, const void *as, u32 nb, size_t sb, const void *bs, cmp_fn cmp, void *context, void(*f)(void *context, u32 n, const void *a, const void *b)) are not documented:
+  parameter 'bs'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:821: warning: Found unknown command `\oaram'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:823: warning: Found unknown command `\oaram'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:816: warning: argument 'm_tdcp' of command @param is not found in the argument list of tdcp_doppler(u8 n_new, navigation_measurement_t *m_new, u8 n_old, navigation_measurement_t *m_old, navigation_measurement_t *m_corrected)
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:816: warning: The following parameters of tdcp_doppler(u8 n_new, navigation_measurement_t *m_new, u8 n_old, navigation_measurement_t *m_old, navigation_measurement_t *m_corrected) are not documented:
+  parameter 'm_new'
+  parameter 'm_old'
+  parameter 'm_corrected'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:289: warning: The following parameters of aided_tl_init(aided_tl_state_t *s, float loop_freq, float code_freq, float code_bw, float code_zeta, float code_k, float carr_to_code, float carr_freq, float carr_bw, float carr_zeta, float carr_k, float carr_freq_b1) are not documented:
+  parameter 'carr_freq_b1'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:432: warning: The following parameters of comp_tl_init(comp_tl_state_t *s, float loop_freq, float code_freq, float code_bw, float code_zeta, float code_k, float carr_freq, float carr_bw, float carr_zeta, float carr_k, float tau, float cpc, u32 sched) are not documented:
+  parameter 'loop_freq'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:144: warning: The following parameters of frequency_discriminator(float I, float Q, float prev_I, float prev_Q) are not documented:
+  parameter 'prev_I'
+  parameter 'prev_Q'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:565: warning: The following parameters of lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo) are not documented:
+  parameter 'l'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:577: warning: The following parameters of lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo) are not documented:
+  parameter 'l'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:600: warning: The following parameters of lock_detect_update(lock_detect_t *l, float I, float Q, float DT) are not documented:
+  parameter 'l'
+/Users/scott/swiftnav/test-plover-qr-pvt/libswiftnav/src/track.c:379: warning: The following parameters of simple_tl_init(simple_tl_state_t *s, float loop_freq, float code_freq, float code_bw, float code_zeta, float code_k, float carr_freq, float carr_bw, float carr_zeta, float carr_k) are not documented:
+  parameter 'loop_freq'

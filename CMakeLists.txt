@@ -76,3 +76,13 @@ add_subdirectory(src)
 add_subdirectory(docs)
 add_subdirectory(tests)
 
+# Must match setting inside Doxyfile
+set(DOXYGEN_WARNINGS "docs/doxygen_warnings.txt")
+set(ALLOWED_DOXYGEN_WARNINGS ${PROJECT_SOURCE_DIR}/checks/allowed_doxygen_warnings.txt)
+
+# TODO add srcs dependency
+add_custom_target(check-doxygen 
+  COMMAND diff ${ALLOWED_DOXYGEN_WARNINGS} ${DOXYGEN_WARNINGS}
+  DEPENDS docs)
+
+add_custom_target(check-style DEPENDS check-doxygen checkpatch)

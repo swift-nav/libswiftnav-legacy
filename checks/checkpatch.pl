@@ -2661,16 +2661,16 @@ sub process {
 
 # at the beginning of a line any tabs must come first and anything
 # more than 8 must use tabs.
-		if ($rawline =~ /^\+\s* \t\s*\S/ ||
-		    $rawline =~ /^\+\s*        \s*/) {
-			my $herevet = "$here\n" . cat_vet($rawline) . "\n";
-			$rpt_cleaners = 1;
-			if (ERROR("CODE_INDENT",
-				  "code indent should use tabs where possible\n" . $herevet) &&
-			    $fix) {
-				$fixed[$fixlinenr] =~ s/^\+([ \t]+)/"\+" . tabify($1)/e;
-			}
-		}
+		#if ($rawline =~ /^\+\s* \t\s*\S/ ||
+				#$rawline =~ /^\+\s*        \s*/) {
+			#my $herevet = "$here\n" . cat_vet($rawline) . "\n";
+			#$rpt_cleaners = 1;
+			#if (ERROR("CODE_INDENT",
+					#"code indent should use tabs where possible\n" . $herevet) &&
+					#$fix) {
+				#$fixed[$fixlinenr] =~ s/^\+([ \t]+)/"\+" . tabify($1)/e;
+			#}
+		#}
 
 # check for space before tabs.
 		if ($rawline =~ /^\+/ && $rawline =~ / \t/) {
@@ -2842,14 +2842,14 @@ sub process {
 #  1) within comments
 #  2) indented preprocessor commands
 #  3) hanging labels
-		if ($rawline =~ /^\+ / && $line !~ /^\+ *(?:$;|#|$Ident:)/)  {
-			my $herevet = "$here\n" . cat_vet($rawline) . "\n";
-			if (WARN("LEADING_SPACE",
-				 "please, no spaces at the start of a line\n" . $herevet) &&
-			    $fix) {
-				$fixed[$fixlinenr] =~ s/^\+([ \t]+)/"\+" . tabify($1)/e;
-			}
-		}
+		#if ($rawline =~ /^\+ / && $line !~ /^\+ *(?:$;|#|$Ident:)/)  {
+			#my $herevet = "$here\n" . cat_vet($rawline) . "\n";
+			#if (WARN("LEADING_SPACE",
+				 #"please, no spaces at the start of a line\n" . $herevet) &&
+					#$fix) {
+				#$fixed[$fixlinenr] =~ s/^\+([ \t]+)/"\+" . tabify($1)/e;
+			#}
+		#}
 
 # check we are in a valid C source file if not then ignore this hunk
 		next if ($realfile !~ /\.(h|c)$/);
@@ -3141,7 +3141,7 @@ sub process {
 
 			#print "line<$line> prevline<$prevline> indent<$indent> sindent<$sindent> check<$check> continuation<$continuation> s<$s> cond_lines<$cond_lines> stat_real<$stat_real> stat<$stat>\n";
 
-			if ($check && (($sindent % 8) != 0 ||
+			if ($check && (($sindent % 4) != 0 ||
 			    ($sindent <= $indent && $s ne ''))) {
 				WARN("SUSPECT_CODE_INDENT",
 				     "suspect code indent for conditional statements ($indent, $sindent)\n" . $herecurr . "$stat_real\n");
@@ -3282,24 +3282,24 @@ sub process {
 			     "EXPORT_SYMBOL(foo); should immediately follow its function/variable\n" . $herecurr);
 		}
 
-# check for global initialisers.
-		if ($line =~ /^\+$Type\s*$Ident(?:\s+$Modifier)*\s*=\s*(?:0|NULL|false)\s*;/) {
-			if (ERROR("GLOBAL_INITIALISERS",
-				  "do not initialise globals to 0 or NULL\n" .
-				      $herecurr) &&
-			    $fix) {
-				$fixed[$fixlinenr] =~ s/(^.$Type\s*$Ident(?:\s+$Modifier)*)\s*=\s*(0|NULL|false)\s*;/$1;/;
-			}
-		}
-# check for static initialisers.
-		if ($line =~ /^\+.*\bstatic\s.*=\s*(0|NULL|false)\s*;/) {
-			if (ERROR("INITIALISED_STATIC",
-				  "do not initialise statics to 0 or NULL\n" .
-				      $herecurr) &&
-			    $fix) {
-				$fixed[$fixlinenr] =~ s/(\bstatic\s.*?)\s*=\s*(0|NULL|false)\s*;/$1;/;
-			}
-		}
+## check for global initialisers.
+#		if ($line =~ /^\+$Type\s*$Ident(?:\s+$Modifier)*\s*=\s*(?:0|NULL|false)\s*;/) {
+#			if (ERROR("GLOBAL_INITIALISERS",
+#				  "do not initialise globals to 0 or NULL\n" .
+#				      $herecurr) &&
+#			    $fix) {
+#				$fixed[$fixlinenr] =~ s/(^.$Type\s*$Ident(?:\s+$Modifier)*)\s*=\s*(0|NULL|false)\s*;/$1;/;
+#			}
+#		}
+## check for static initialisers.
+#		if ($line =~ /^\+.*\bstatic\s.*=\s*(0|NULL|false)\s*;/) {
+#			if (ERROR("INITIALISED_STATIC",
+#				  "do not initialise statics to 0 or NULL\n" .
+#				      $herecurr) &&
+#			    $fix) {
+#				$fixed[$fixlinenr] =~ s/(\bstatic\s.*?)\s*=\s*(0|NULL|false)\s*;/$1;/;
+#			}
+#		}
 
 # check for misordered declarations of char/short/int/long with signed/unsigned
 		while ($sline =~ m{(\b$TypeMisordered\b)}g) {
@@ -5011,7 +5011,6 @@ sub process {
 				     "memory barrier without comment\n" . $herecurr);
 			}
 		}
-
 # check for waitqueue_active without a comment.
 		if ($line =~ /\bwaitqueue_active\s*\(/) {
 			if (!ctx_has_comment($first_line, $linenr)) {
@@ -5019,24 +5018,6 @@ sub process {
 				     "waitqueue_active without comment\n" . $herecurr);
 			}
 		}
-
-# Check for expedited grace periods that interrupt non-idle non-nohz
-# online CPUs.  These expedited can therefore degrade real-time response
-# if used carelessly, and should be avoided where not absolutely
-# needed.  It is always OK to use synchronize_rcu_expedited() and
-# synchronize_sched_expedited() at boot time (before real-time applications
-# start) and in error situations where real-time response is compromised in
-# any case.  Note that synchronize_srcu_expedited() does -not- interrupt
-# other CPUs, so don't warn on uses of synchronize_srcu_expedited().
-# Of course, nothing comes for free, and srcu_read_lock() and
-# srcu_read_unlock() do contain full memory barriers in payment for
-# synchronize_srcu_expedited() non-interruption properties.
-		if ($line =~ /\b(synchronize_rcu_expedited|synchronize_sched_expedited)\(/) {
-			WARN("EXPEDITED_RCU_GRACE_PERIOD",
-			     "expedited RCU grace periods should be avoided where they can degrade real-time response\n" . $herecurr);
-
-		}
-
 # check of hardware specific defines
 		if ($line =~ m@^.\s*\#\s*if.*\b(__i386__|__powerpc64__|__sun__|__s390x__)\b@ && $realfile !~ m@include/asm-@) {
 			CHK("ARCH_DEFINES",
