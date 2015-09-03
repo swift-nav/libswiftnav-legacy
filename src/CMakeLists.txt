@@ -42,6 +42,8 @@ set(libswiftnav_SRCS
   printing_utils.c
   filter_utils.c
   ${plover_SRCS}
+
+  CACHE INTERNAL ""
 )
 
 add_library(swiftnav-static STATIC ${libswiftnav_SRCS})
@@ -64,3 +66,15 @@ endif(BUILD_SHARED_LIBS)
 
 install(FILES ${libswiftnav_HEADERS} DESTINATION include/libswiftnav)
 
+MESSAGE("${PROJECT_SOURCE_DIR}")
+
+add_custom_command(
+  OUTPUT checkpatch_output.txt
+  DEPENDS ${libswiftnav_SRCS}
+  VERBATIM
+  COMMAND "${PROJECT_SOURCE_DIR}/checks/checkoutput.sh"
+    "${PROJECT_SOURCE_DIR}/src/*.c"
+    "${PROJECT_SOURCE_DIR}/checks/checkpatch.pl"
+    )
+
+add_custom_target(checkpatch DEPENDS checkpatch_output.txt) 
