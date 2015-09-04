@@ -51,8 +51,29 @@ else (CMAKE_CROSSCOMPILING)
       COMMENT "Running unit tests"
       COMMAND test_libswiftnav
     )
+
+    # for convenience:
+    add_custom_target(tests
+      DEPENDS test_libswiftnav
+      COMMAND test_libswiftnav
+    )
+    add_custom_target(test
+      DEPENDS test_libswiftnav
+      COMMAND test_libswiftnav
+    )
+
     file(COPY data/waas_check.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
     file(COPY data/waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+
+    # TODO run even if tests fail?
+    add_custom_target(coverage
+        DEPENDS test
+        COMMAND gcovr -r . --xml -o coverage.xml
+        COMMAND gcovr -r . --html -o coverage.html
+        COMMAND diff-cover coverage.xml --html-report build/diffreport.html
+
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
