@@ -38,6 +38,11 @@ typedef struct {
   u8 valid;
   u8 healthy;
   signal_t sid;
+  u8 iod;
+  u16 toa;
+  u8 ura;
+  u16 a_gf0;
+  u8 a_gf1;
 } ephemeris_xyz_t;
 
 typedef struct {
