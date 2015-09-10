@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "ephemeris.h"
+#include "almanac.h"
 
 #define L1_LEGACY_NAV 0
 #define L1_SBAS       1
@@ -91,7 +92,7 @@ typedef struct {
 void nav_msg_init(nav_msg_t *n);
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms);
 bool subframe_ready(l1_legacy_nav_msg_t *n);
-s8 process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e);
+s8 l1_legacy_process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e);
+s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm);
 
 #endif /* LIBSWIFTNAV_NAV_MSG_H */
-

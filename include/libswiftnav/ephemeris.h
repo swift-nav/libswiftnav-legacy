@@ -33,7 +33,7 @@ typedef struct {
 typedef struct {
   gps_time_t toe;
   double pos[3];
-  double vel[3];
+  double rate[3];
   double acc[3];
   u8 valid;
   u8 healthy;
@@ -41,8 +41,8 @@ typedef struct {
   u8 iod;
   u16 toa;
   u8 ura;
-  u16 a_gf0;
-  u8 a_gf1;
+  double a_gf0;
+  double a_gf1;
 } ephemeris_xyz_t;
 
 typedef struct {

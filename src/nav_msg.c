@@ -14,11 +14,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "constants.h"
 #include "bits.h"
 #include "nav_msg.h"
+#include "edc.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */
@@ -431,7 +433,8 @@ bool subframe_ready(l1_legacy_nav_msg_t *n) {
   return (n->subframe_start_index != 0);
 }
 
-s8 process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e) {
+s8 l1_legacy_process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e)
+{
   // Check parity and parse out the ephemeris from the most recently received subframe
 
   if (!e) {
@@ -504,5 +507,125 @@ s8 process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e) {
 
   return 0;
 
+}
+
+static u8 isNormal(u8 preamble_candidate)
+{
+  if (preamble_candidate == 0x53 ||
+      preamble_candidate == 0x9A ||
+      preamble_candidate == 0xC6)
+    return 1;
+  return 0;
+}
+
+static u8 isInverse(u8 preamble_candidate)
+{
+  if (preamble_candidate == 0xAC ||
+      preamble_candidate == 0x65 ||
+      preamble_candidate == 0x39)
+    return 1;
+  return 0;
+}
+
+s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm)
+{
+  (void)n, (void)e, (void)alm;
+  int i = 0;
+  u8 *buffer = n->decoded;
+  int total_bits = sizeof(n->decoded) * 8;
+  bool found = false;
+
+  for(i = 0; i < total_bits - 8 && !found; i++) {
+    u8 preamble_candidate = getbitu(buffer, i, 8);
+    if (isNormal(preamble_candidate)) {
+      u32 msg_crc = getbitu(buffer, i + 226, 24);
+      u8 crc_buf[29] = {0};
+      crc_buf[0] = getbitu(buffer, i, 2);
+      for(int k = 0; k < 28; k++) {
+        crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
+      }
+      u32 computed_crc = crc24q(crc_buf, 29, 0);
+      if (computed_crc == msg_crc) {
+        found = true;
+      }
+    } else if (isInverse(preamble_candidate)) {
+      for (int j = 0; j < total_bits; j++)
+        buffer[j] = ~buffer[j];
+      u32 msg_crc = getbitu(buffer, i + 226, 24);
+      u8 crc_buf[29] = {0};
+      crc_buf[0] = getbitu(buffer, i, 2);
+      for(int k = 0; k < 28; k++) {
+        crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
+      }
+      u32 computed_crc = crc24q(crc_buf, 29, 0);
+      if (computed_crc == msg_crc) {
+        found = true;
+      } else {
+        for (int j = 0; j < total_bits; j++)
+          buffer[j] = ~buffer[j];
+      }
+    }
+  }
+
+  i--;
+
+  for (int j = i; j < total_bits - 250; j += 250) {
+    u32 crc = getbitu(buffer, j + 226, 24);
+    u8 type = getbitu(buffer, j + 8, 6);
+    u8 crc_buf[29] = {0};
+    crc_buf[0] = getbitu(buffer, j, 2);
+    for(int i = 0; i < 28; i++) {
+      crc_buf[i + 1] = getbitu(buffer, j + 2 + i * 8, 8);
+    }
+    u32 computed_crc = crc24q(crc_buf, 29, 0);
+    if (computed_crc != crc) {
+      log_info("SBAS CRC invalid!");
+      continue;
+    }
+    if (type == 9) {
+      assert(e != NULL);
+      int prev = j + 8 + 6;
+
+      e->iod = getbitu(buffer, prev, 8); prev += 8;
+      e->toa = getbitu(buffer, prev, 13) * 16; prev += 13;
+      e->ura = getbitu(buffer, prev, 4); prev += 4;
+
+      e->pos[0] = getbits(buffer, prev, 30) * 0.08; prev += 30;
+      e->pos[1] = getbits(buffer, prev, 30) * 0.08; prev += 30;
+      e->pos[2] = getbits(buffer, prev, 25) * 0.4; prev += 25;
+
+      e->rate[0] = getbits(buffer, prev, 17) * 0.000625; prev += 17;
+      e->rate[1] = getbits(buffer, prev, 17) * 0.000625; prev += 17;
+      e->rate[2] = getbits(buffer, prev, 18) * 0.004; prev += 18;
+
+      e->acc[0] = getbits(buffer, prev, 10) * 0.0000125; prev += 10;
+      e->acc[1] = getbits(buffer, prev, 10) * 0.0000125; prev += 10;
+      e->acc[2] = getbits(buffer, prev, 10) * 0.0000625; prev += 10;
+
+      e->a_gf0 = getbits(buffer, prev, 12) * pow(2, -31); prev += 12;
+      e->a_gf1 = getbits(buffer, prev, 8) * pow(2, -40); prev += 12;
+    } else if (type == 17) {
+      assert(alm != NULL);
+      u8 base = 8 + 6;
+      for (int i = 0; i < 67*3; i+= 67) {
+        int prev = i + j + base;
+        alm->data_id = getbitu(buffer, prev, 2); prev += 2;
+        alm->prn = getbitu(buffer, prev, 8); prev += 8;
+        alm->health = getbitu(buffer, prev, 8); prev += 8;
+        if (alm->health == 0)
+          alm->valid = 1;
+
+        alm->x = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm->y = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm->z = getbits(buffer, prev, 9) * 26000; prev+= 9;
+
+        alm->x_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm->y_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm->z_rate = getbits(buffer, prev, 4) * 40.96; prev += 4;
+      }
+      alm->t0 = getbitu(buffer, j + base + 67*3, 11);
+    }
+  }
+  return 0;
 }
 
