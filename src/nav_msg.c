@@ -44,6 +44,8 @@ static void l1_sbas_nav_msg_init(l1_sbas_nav_msg_t *n)
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
   n->bit_length = 2;
+  n->dec_passes = 0;
+  n->dec_msg = 0;
 }
 
 void nav_msg_init(nav_msg_t *n)
@@ -218,6 +220,7 @@ static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real, u8
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
        integration is not aligned to a nav bit boundary. */
+    n->good_bit = false;
     return TOW_INVALID;
   }
 
@@ -226,13 +229,12 @@ static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real, u8
   bool bit_val = n->bit_integrate > 0;
   /* Zero the accumulator for the next nav bit. */
   n->bit_integrate = 0;
+  n->good_bit = true;
 
-  if (n->symbol_count < SBAS_NAVFLEN) {
-    if (bit_val) {
-      n->symbols[n->symbol_count++] = 255;
-    } else {
-      n->symbols[n->symbol_count++] = 0;
-    }
+  if (bit_val) {
+    n->last_bit = 255;
+  } else {
+    n->last_bit = 0;
   }
 
   return TOW_INVALID;
@@ -529,7 +531,7 @@ static u8 isInverse(u8 preamble_candidate)
 
 s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm)
 {
-  (void)n, (void)e, (void)alm;
+  s8 ret = -1;
   int i = 0;
   u8 *buffer = n->decoded;
   int total_bits = sizeof(n->decoded) * 8;
@@ -546,10 +548,11 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
       if (computed_crc == msg_crc) {
+        ret = 0;
         found = true;
       }
     } else if (isInverse(preamble_candidate)) {
-      for (int j = 0; j < total_bits; j++)
+      for (u8 j = 0; j < sizeof(n->decoded); j++)
         buffer[j] = ~buffer[j];
       u32 msg_crc = getbitu(buffer, i + 226, 24);
       u8 crc_buf[29] = {0};
@@ -559,9 +562,10 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
       if (computed_crc == msg_crc) {
+        ret = 0;
         found = true;
       } else {
-        for (int j = 0; j < total_bits; j++)
+        for (u8 j = 0; j < sizeof(n->decoded); j++)
           buffer[j] = ~buffer[j];
       }
     }
@@ -569,7 +573,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
 
   i--;
 
-  for (int j = i; j < total_bits - 250; j += 250) {
+  for (int j = i; j <= total_bits - 250 + 1; j += 250) {
     u32 crc = getbitu(buffer, j + 226, 24);
     u8 type = getbitu(buffer, j + 8, 6);
     u8 crc_buf[29] = {0};
@@ -582,6 +586,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
       log_info("SBAS CRC invalid!");
       continue;
     }
+    n->dec_msg++;
     if (type == 9) {
       assert(e != NULL);
       int prev = j + 8 + 6;
@@ -604,6 +609,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
 
       e->a_gf0 = getbits(buffer, prev, 12) * pow(2, -31); prev += 12;
       e->a_gf1 = getbits(buffer, prev, 8) * pow(2, -40); prev += 12;
+      ret |= 1 << 1;
     } else if (type == 17) {
       assert(alm != NULL);
       u8 base = 8 + 6;
@@ -624,8 +630,10 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
         alm->z_rate = getbits(buffer, prev, 4) * 40.96; prev += 4;
       }
       alm->t0 = getbitu(buffer, j + base + 67*3, 11);
+      ret |= 1 << 2;
     }
   }
-  return 0;
+
+  return ret;
 }
 

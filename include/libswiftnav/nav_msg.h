@@ -31,7 +31,7 @@
 #define DECISION_SIZE       (SBAS_NAVFLEN / 2 + 6)
 #define SBAS_BITS_UPDATE    ((SBAS_NAVFLEN + SBAS_NAVADDFLEN) / 2)
 #define SBAS_BITS_CHAINBACK (SBAS_NAVFLEN / 2)
-#define SBAS_DEC_SIZE       (SBAS_BITS_CHAINBACK / 8)
+#define SBAS_DEC_SIZE       (SBAS_BITS_CHAINBACK / 8 + 1)
 
 #define TOW_INVALID -1
 #define BITSYNC_UNSYNCED -1
@@ -79,6 +79,11 @@ typedef struct {
   u8 bit_phase;
   s8 bit_phase_ref;  /**< -1 = not synced.*/
   u8 bit_length;
+
+  u8 last_bit;
+  bool good_bit;
+  u32 dec_passes;
+  u32 dec_msg;
 } l1_sbas_nav_msg_t;
 
 typedef struct {
