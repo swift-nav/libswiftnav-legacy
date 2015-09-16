@@ -194,7 +194,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
-      calc_sat_state(&es[m_local[i].sid.prn], t, local_sat_pos, local_sat_vel,
+      legacy_calc_sat_state(&es[m_local[i].sid.prn], t, local_sat_pos, local_sat_vel,
                      &clock_err, &clock_rate_err);
       sds[n].sid.prn = m_local[i].sid.prn;
       sds[n].sid.constellation = m_local[i].sid.constellation;

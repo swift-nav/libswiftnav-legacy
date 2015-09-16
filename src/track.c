@@ -21,6 +21,7 @@
 #include "ephemeris.h"
 #include "tropo.h"
 #include "coord_system.h"
+#include "logging.h"
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -739,25 +740,46 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
   return s->log_bw - 10.f*log10f(s->nsr);
 }
 
-void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
-                                 navigation_measurement_t nav_meas[], double nav_time,
-                                 ephemeris_kepler_t ephemerides[])
+void calc_navigation_measurement(u8 n_xyz_ready, u8 n_kep_ready, channel_measurement_t meas[],
+                                 navigation_measurement_t nav_meas[],
+                                 double nav_time,
+                                 ephemeris_t e)
 {
+  u8 n_channels = n_xyz_ready + n_kep_ready;
+  u8 xyz_index = 0;
+  u8 kep_index = 0;
+  ephemeris_kepler_t *e_kep = e.ephemeris_kep;
+  ephemeris_xyz_t *e_xyz = e.ephemeris_xyz;
+
   channel_measurement_t* meas_ptrs[n_channels];
   navigation_measurement_t* nav_meas_ptrs[n_channels];
-  ephemeris_kepler_t* ephemerides_ptrs[n_channels];
+  ephemeris_kepler_t* e_kep_ptrs[n_kep_ready];
+  __attribute__ ((unused)) ephemeris_xyz_t* e_xyz_ptrs[n_xyz_ready];
 
   for (u8 i=0; i<n_channels; i++) {
     meas_ptrs[i] = &meas[i];
     nav_meas_ptrs[i] = &nav_meas[i];
-    ephemerides_ptrs[i] = &ephemerides[meas[i].sid.prn];
+    signal_t sid = meas[i].sid;
+    if (sid.constellation == GPS_CONSTELLATION) {
+      e_kep_ptrs[kep_index++] = &e_kep[sid.prn];
+    } else {
+      e_xyz_ptrs[xyz_index++] = &e_xyz[sbas_sid_to_index(sid)];
+    }
   }
 
-  calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time, ephemerides_ptrs);
+  calc_navigation_measurement_(n_xyz_ready, n_kep_ready, meas_ptrs,
+                               nav_meas_ptrs, nav_time,
+                               e_kep_ptrs, e_xyz_ptrs);
 }
 
-void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_kepler_t* ephemerides[])
+void calc_navigation_measurement_(u8 n_xyz_chans, u8 n_kep_chans,
+                                  channel_measurement_t* meas[],
+                                  navigation_measurement_t* nav_meas[],
+                                  double nav_time,
+                                  ephemeris_kepler_t* e_kep[],
+                                  ephemeris_xyz_t* e_xyz[])
 {
+  u8 n_channels = n_xyz_chans + n_kep_chans;
   double TOTs[n_channels];
   double min_TOF = -DBL_MAX;
   double clock_err[n_channels], clock_rate_err[n_channels];
@@ -770,10 +792,15 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     /** \todo Maybe keep track of week number in tracking channel
         state or derive it from system time. */
     nav_meas[i]->tot.tow = TOTs[i];
-    gps_time_match_weeks(&nav_meas[i]->tot, &ephemerides[i]->toe);
+    if (i < n_kep_chans)
+      gps_time_match_weeks(&nav_meas[i]->tot, &e_kep[i]->toe);
+    else
+      gps_time_match_weeks(&nav_meas[i]->tot, &e_xyz[i-n_kep_chans]->toe);
 
     nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
     nav_meas[i]->snr = meas[i]->snr;
+    nav_meas[i]->sid.band = meas[i]->sid.band;
+    nav_meas[i]->sid.constellation = meas[i]->sid.constellation;
     nav_meas[i]->sid.prn = meas[i]->sid.prn;
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
@@ -782,15 +809,19 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
     /* calc sat clock error */
-    calc_sat_state(ephemerides[i], nav_meas[i]->tot,
-                   nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
-                   &clock_err[i], &clock_rate_err[i]);
+    if (i < n_kep_chans)
+      legacy_calc_sat_state(e_kep[i], nav_meas[i]->tot,
+                     nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
+                     &clock_err[i], &clock_rate_err[i]);
+    else
+      sbas_calc_sat_state(e_xyz[i-n_kep_chans],
+                     nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
+                     &clock_err[i], &clock_rate_err[i]);
 
     /* remove clock error to put all tots within the same time window */
     if ((TOTs[i] + clock_err[i]) > min_TOF)
       min_TOF = TOTs[i];
   }
-
   for (u8 i=0; i<n_channels; i++) {
     nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
 
@@ -802,6 +833,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
   }
 }
+
+
 
 /** Compare navigation message by PRN.
  * This function is designed to be used together with qsort() etc.
