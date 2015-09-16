@@ -80,10 +80,15 @@ typedef struct {
   s8 bit_phase_ref;  /**< -1 = not synced.*/
   u8 bit_length;
 
+  u8 init;
   u8 last_bit;
   bool good_bit;
+
   u32 dec_passes;
-  u32 dec_msg;
+  u8 polarity;
+
+  u32 msg_normal;
+  u32 msg_inverse;
 } l1_sbas_nav_msg_t;
 
 typedef struct {

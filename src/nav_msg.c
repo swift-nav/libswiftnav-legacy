@@ -44,8 +44,14 @@ static void l1_sbas_nav_msg_init(l1_sbas_nav_msg_t *n)
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
   n->bit_length = 2;
+
   n->dec_passes = 0;
-  n->dec_msg = 0;
+
+  n->polarity = 0;
+
+  n->msg_normal = 0;
+  n->msg_inverse = 0;
+  n->init = 1;
 }
 
 void nav_msg_init(nav_msg_t *n)
@@ -529,14 +535,20 @@ static u8 isInverse(u8 preamble_candidate)
   return 0;
 }
 
-s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm)
+s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
+                            sbas_almanac_t *alm)
 {
-  s8 ret = -1;
+  s8 ret = 0;
   int i = 0;
   u8 *buffer = n->decoded;
   int total_bits = sizeof(n->decoded) * 8;
   bool found = false;
 
+  /*
+   *Loops through data buffer and finds first message with
+   *good preamble and CRC. If the first preamble is an inverse one then the
+   *full buffer is inversed (bit inverse).
+   */
   for(i = 0; i < total_bits - 8 && !found; i++) {
     u8 preamble_candidate = getbitu(buffer, i, 8);
     if (isNormal(preamble_candidate)) {
@@ -571,9 +583,12 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
     }
   }
 
+  /*
+   *Align with start of the message.
+   */
   i--;
 
-  for (int j = i; j <= total_bits - 250 + 1; j += 250) {
+  for (int j = i; j < total_bits - 250; j += 250) {
     u32 crc = getbitu(buffer, j + 226, 24);
     u8 type = getbitu(buffer, j + 8, 6);
     u8 crc_buf[29] = {0};
@@ -583,10 +598,20 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
     }
     u32 computed_crc = crc24q(crc_buf, 29, 0);
     if (computed_crc != crc) {
-      log_info("SBAS CRC invalid!");
       continue;
     }
-    n->dec_msg++;
+
+    if (n->polarity == 0) {
+      n->msg_normal++;
+      n->msg_normal %= 50;
+    } else {
+      n->msg_inverse++;
+      n->msg_inverse %= 50;
+    }
+
+    /*
+     *Parse for GEO Ephemeris.
+     */
     if (type == 9) {
       assert(e != NULL);
       int prev = j + 8 + 6;
@@ -609,27 +634,37 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_alman
 
       e->a_gf0 = getbits(buffer, prev, 12) * pow(2, -31); prev += 12;
       e->a_gf1 = getbits(buffer, prev, 8) * pow(2, -40); prev += 12;
+
+      e->valid = 1;
+      e->healthy = 1;
+
       ret |= 1 << 1;
-    } else if (type == 17) {
+    } else if (type == 17) { /* Parse for GEO Almanac */
       assert(alm != NULL);
       u8 base = 8 + 6;
+      u8 pass = 0;
+
       for (int i = 0; i < 67*3; i+= 67) {
         int prev = i + j + base;
-        alm->data_id = getbitu(buffer, prev, 2); prev += 2;
-        alm->prn = getbitu(buffer, prev, 8); prev += 8;
-        alm->health = getbitu(buffer, prev, 8); prev += 8;
-        if (alm->health == 0)
-          alm->valid = 1;
+        alm[pass].data_id = getbitu(buffer, prev, 2); prev += 2;
+        alm[pass].sid.prn = getbitu(buffer, prev, 8) - 1; prev += 8;
+        alm[pass].sid.constellation = SBAS_CONSTELLATION;
+        alm[pass].sid.band = L1_BAND;
+        alm[pass].health = getbitu(buffer, prev, 8); prev += 8;
+        if (alm[pass].health == 0)
+          alm[pass].valid = 1;
 
-        alm->x = getbits(buffer, prev, 15) * 2600; prev += 15;
-        alm->y = getbits(buffer, prev, 15) * 2600; prev += 15;
-        alm->z = getbits(buffer, prev, 9) * 26000; prev+= 9;
+        alm[pass].x = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm[pass].y = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm[pass].z = getbits(buffer, prev, 9) * 26000; prev+= 9;
 
-        alm->x_rate = getbits(buffer, prev, 3) * 10; prev += 3;
-        alm->y_rate = getbits(buffer, prev, 3) * 10; prev += 3;
-        alm->z_rate = getbits(buffer, prev, 4) * 40.96; prev += 4;
+        alm[pass].x_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm[pass].y_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm[pass].z_rate = getbits(buffer, prev, 4) * 40.96; prev += 4;
+
+        pass++;
       }
-      alm->t0 = getbitu(buffer, j + base + 67*3, 11);
+      alm[0].t0 = alm[1].t0 = alm[2].t0 = getbitu(buffer, j + base + 67*3, 11);
       ret |= 1 << 2;
     }
   }
