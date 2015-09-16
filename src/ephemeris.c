@@ -23,6 +23,56 @@
 #define EPHEMERIS_VALID_TIME (4*60*60) /* seconds +/- from epoch.
                                           TODO: should be 2 hrs? */
 
+/** Calculate satellite position, velocity from xyz ephemeris.
+ *
+ * References:
+ *   -# WAAS Specification FAA-E-2892b 4.4.11
+ *
+ * \param e Ephemeris struct
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is older (or newer) than 4 hours
+ */
+s8 sbas_calc_sat_state(const ephemeris_xyz_t *e, double pos[3], double vel[3],
+                       double *clock_err, double *clock_rate_err)
+{
+  /*
+   *Ephemeris did not get time-stammped when it was received.
+   */
+  if (e->toe.wn == 0)
+    return -1;
+
+  if (!e->valid || !e->healthy)
+    return -1;
+
+  u8 nweeks = e->toe.tow / 86400;
+  double tod = e->toe.tow - 86400 * nweeks;
+  double dt = tod - e->toa;
+
+  if (dt > 43200)
+    dt -= 86400;
+  else if (dt < -43200)
+    dt += 86400;
+
+  vel[0] = e->rate[0];
+  vel[1] = e->rate[1];
+  vel[2] = e->rate[2];
+
+  pos[0] = e->pos[0]  + e->rate[0] * dt +
+           0.5 * e->acc[0] * pow(dt, 2);
+  pos[1] = e->pos[1]  + e->rate[1] * dt +
+           0.5 * e->acc[1] * pow(dt, 2);
+  pos[2] = e->pos[2]  + e->rate[2] * dt +
+           0.5 * e->acc[2] * pow(dt, 2);
+
+  *clock_err = e->a_gf0;
+  *clock_rate_err = e->a_gf1;
+
+  return 0;
+}
+
 /** Calculate satellite position, velocity and clock offset from ephemeris.
  *
  * References:
@@ -40,7 +90,7 @@
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-s8 calc_sat_state(const ephemeris_kepler_t *ephemeris, gps_time_t t,
+s8 legacy_calc_sat_state(const ephemeris_kepler_t *ephemeris, gps_time_t t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err)
 {
@@ -180,9 +230,10 @@ u8 ephemeris_good(ephemeris_t *eph, signal_t sid, gps_time_t t)
   else {
     assert(eph->ephemeris_xyz != NULL);
 
-    toe = eph->ephemeris_xyz[0].toe;
     valid = eph->ephemeris_xyz[0].valid;
     healthy = eph->ephemeris_xyz[0].healthy;
+    toe = eph->ephemeris_xyz[0].toe;
+    return (valid && healthy && toe.wn != WN_UNKNOWN);
   }
 
   /* Seconds from the time from ephemeris reference epoch (toe) */

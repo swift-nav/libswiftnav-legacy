@@ -24,7 +24,8 @@
  * \see coord_system
  * \{ */
 
-/** Calculate the position / velocity state of a satellite from the almanac.
+/** Calculate the position / velocity state of a satellite from the SBAS
+ *  almanac.
  *
  * \param alm  Pointer to an almanac structure for the satellite of interest.
  * \param t    GPS time of week at which to calculate the satellite state in
@@ -36,8 +37,42 @@
  * \param vel  The satellite velocity in ECEF coordinates is returned in this
  *             vector. Ignored if NULL.
  */
-void calc_sat_state_almanac(const gps_almanac_t* alm, double t, s16 week,
-                            double pos[3], double vel[3])
+void sbas_calc_sat_state_almanac(const sbas_almanac_t* alm, double t,
+                                 double pos[3], double vel[3])
+{
+  u8 nweeks = t / 86400;
+  double tod = t - 86400 * nweeks;
+  double dt = tod - alm->t0;
+
+  if (dt > 43200)
+    dt -= 86400;
+  else if (dt < -43200)
+    dt += 86400;
+
+  vel[0] = alm->x_rate;
+  vel[1] = alm->y_rate;
+  vel[2] = alm->z_rate;
+
+  pos[0] = alm->x + alm->x_rate * dt;
+  pos[1] = alm->y + alm->y_rate * dt;
+  pos[2] = alm->z + alm->z_rate * dt;
+}
+
+/** Calculate the position / velocity state of a satellite from the L1 GPS
+ *  almanac.
+ *
+ * \param alm  Pointer to an almanac structure for the satellite of interest.
+ * \param t    GPS time of week at which to calculate the satellite state in
+ *             seconds since Sunday.
+ * \param week GPS week number modulo 1024 or pass -1 to assume within one
+ *             half-week of the almanac time of applicability.
+ * \param pos  The satellite position in ECEF coordinates is returned in this
+ *             vector.
+ * \param vel  The satellite velocity in ECEF coordinates is returned in this
+ *             vector. Ignored if NULL.
+ */
+void legacy_calc_sat_state_almanac(const gps_almanac_t* alm, double t,
+                                   s16 week, double pos[3], double vel[3])
 {
   /* Seconds since the almanac reference epoch. */
   double dt = t - alm->toa;
@@ -139,7 +174,7 @@ void calc_sat_az_el_almanac(const gps_almanac_t* alm, double t, s16 week,
                             const double ref[3], double* az, double* el)
 {
   double sat_pos[3];
-  calc_sat_state_almanac(alm, t, week, sat_pos, 0);
+  legacy_calc_sat_state_almanac(alm, t, week, sat_pos, 0);
   wgsecef2azel(sat_pos, ref, az, el);
 }
 
@@ -162,7 +197,7 @@ double calc_sat_doppler_almanac(const gps_almanac_t* alm, double t, s16 week,
   double sat_vel[3];
   double vec_ref_sat[3];
 
-  calc_sat_state_almanac(alm, t, week, sat_pos, sat_vel);
+  legacy_calc_sat_state_almanac(alm, t, week, sat_pos, sat_vel);
 
   /* Find the vector from the reference position to the satellite. */
   vector_subtract(3, sat_pos, ref, vec_ref_sat);
