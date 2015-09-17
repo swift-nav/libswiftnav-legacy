@@ -66,14 +66,14 @@ else (CMAKE_CROSSCOMPILING)
     file(COPY data/waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
     # TODO run even if tests fail?
-    add_custom_target(coverage
-        DEPENDS test
-        COMMAND gcovr -r . --xml -o coverage.xml
-        COMMAND gcovr -r . --html -o coverage.html
-        COMMAND diff-cover coverage.xml --html-report build/diffreport.html
-
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    # TODO check that we're in a coverage build
+    add_custom_command(
+      DEPENDS test
+      OUTPUT diffreport.html
+      COMMAND ../checks/run-coverage.sh
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+    add_custom_target(coverage DEPENDS diffreport.html)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)

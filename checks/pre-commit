@@ -1,0 +1,7 @@
+set -e
+echo "precommit running. checking build located at ${subdir}."
+cd ${subdir} 
+../checks/run-coverage.sh
+
+#echo "commit failed"
+exit 1
