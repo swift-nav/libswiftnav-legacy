@@ -16,11 +16,11 @@
 #include "edc.h"
 #include "rtcm3.h"
 
-#define RTCM3_PREAMBLE 0xD3 /**< RTCM v3 Frame sync / preamble byte. */
+#define RTCM3_PREAMBLE 0xD3   /**< RTCM v3 Frame sync / preamble byte. */
 #define PRUNIT_GPS 299792.458 /**< RTCM v3 Unit of GPS Pseudorange (m) */
 
-#define CLIGHT  299792458.0         /* speed of light (m/s) */
-#define FREQ1   1.57542e9           /* L1/E1  frequency (Hz) */
+#define CLIGHT  299792458.0   /* speed of light (m/s) */
+#define FREQ1   1.57542e9     /* L1/E1  frequency (Hz) */
 #define LAMBDA1 (CLIGHT / FREQ1)
 
 /** \addtogroup io Input / Output
@@ -47,8 +47,10 @@ s16 rtcm3_check_frame(u8 *buff)
 {
   /* Check preamble byte. */
   u8 preamble = getbitu(buff, 0, 8);
-  if (preamble != RTCM3_PREAMBLE)
+
+  if (preamble != RTCM3_PREAMBLE) {
     return -1;
+  }
 
   s16 len = getbitu(buff, 14, 10);
 
@@ -56,10 +58,11 @@ s16 rtcm3_check_frame(u8 *buff)
   u32 crc_calc = crc24q(buff, len + 3, 0);
 
   /* Check CRC in frame. */
-  u32 crc_frame = getbitu(buff, (len+3)*8, 24);
+  u32 crc_frame = getbitu(buff, (len + 3) * 8, 24);
 
-  if (crc_calc != crc_frame)
+  if (crc_calc != crc_frame) {
     return -2;
+  }
 
   return len;
 }
@@ -83,8 +86,9 @@ s16 rtcm3_check_frame(u8 *buff)
  */
 s8 rtcm3_write_frame(u16 len, u8 *buff)
 {
-  if (len > 1023)
+  if (len > 1023) {
     return -1;
+  }
 
   /* Set preamble, reserved and length bits. */
   setbitu(buff, 0, 8, RTCM3_PREAMBLE);
@@ -95,7 +99,7 @@ s8 rtcm3_write_frame(u16 len, u8 *buff)
   u32 crc = crc24q(buff, len + 3, 0);
 
   /* Write CRC to end of frame. */
-  setbitu(buff, (len+3)*8, 24, crc);
+  setbitu(buff, (len + 3) * 8, 24, crc);
 
   return 0;
 }
@@ -149,7 +153,7 @@ void rtcm3_write_header(u8 *buff, u16 type, u16 id, gps_time_t t,
 {
   setbitu(buff, 0, 12, type);
   setbitu(buff, 12, 12, id);
-  setbitu(buff, 24, 30, round(t.tow*1e3));
+  setbitu(buff, 24, 30, round(t.tow * 1e3));
   setbitu(buff, 54, 1, sync);
   setbitu(buff, 55, 5, n_sat);
   setbitu(buff, 60, 1, div_free);
@@ -194,18 +198,24 @@ void rtcm3_read_header(u8 *buff, u16 *type, u16 *id, double *tow,
  */
 static u8 to_lock_ind(u32 time)
 {
-  if (time < 24)
+  if (time < 24) {
     return time;
-  if (time < 72)
+  }
+  if (time < 72) {
     return (time + 24) / 2;
-  if (time < 168)
+  }
+  if (time < 168) {
     return (time + 120) / 4;
-  if (time < 360)
+  }
+  if (time < 360) {
     return (time + 408) / 8;
-  if (time < 744)
+  }
+  if (time < 744) {
     return (time + 1176) / 16;
-  if (time < 937)
+  }
+  if (time < 937) {
     return (time + 3096) / 32;
+  }
   return 127;
 }
 
@@ -217,18 +227,24 @@ static u8 to_lock_ind(u32 time)
  */
 static u32 from_lock_ind(u8 lock)
 {
-  if (lock < 24)
+  if (lock < 24) {
     return lock;
-  if (lock < 48)
-    return 2*lock - 24;
-  if (lock < 72)
-    return 4*lock - 120;
-  if (lock < 96)
-    return 8*lock - 408;
-  if (lock < 120)
-    return 16*lock - 1176;
-  if (lock < 127)
-    return 32*lock - 3096;
+  }
+  if (lock < 48) {
+    return 2 * lock - 24;
+  }
+  if (lock < 72) {
+    return 4 * lock - 120;
+  }
+  if (lock < 96) {
+    return 8 * lock - 408;
+  }
+  if (lock < 120) {
+    return 16 * lock - 1176;
+  }
+  if (lock < 127) {
+    return 32 * lock - 3096;
+  }
   return 937;
 }
 
@@ -272,13 +288,15 @@ static void gen_obs_gps(navigation_measurement_t *nm,
   /* Calculate GPS L1 PhaseRange – L1 Pseudorange (DF012). */
   *ppr = lround(cp_pr * (CLIGHT / FREQ1) / 0.0005);
 
-  if (lock)
+  if (lock) {
     *lock = to_lock_ind(nm->lock_time);
+  }
 
-  if (cnr)
+  if (cnr) {
     /* TODO: When we start actually using cnr values then we can directly use
      * the value here. */
-    *cnr = (u8)((10.0*log10(nm->snr) + 40.0) * 4.0);
+    *cnr = (u8)((10.0 * log10(nm->snr) + 40.0) * 4.0);
+  }
 }
 
 /** Encode an RTCMv3 message type 1002 (Extended L1-Only GPS RTK Observables)
@@ -304,7 +322,7 @@ u16 rtcm3_encode_1002(u8 *buff, u16 id, gps_time_t t, u8 n_sat,
   s32 ppr;
   u8 amb, lock, cnr;
 
-  for (u8 i=0; i<n_sat; i++) {
+  for (u8 i = 0; i < n_sat; i++) {
     gen_obs_gps(&nm[i], &amb, &pr, &ppr, &lock, &cnr);
 
     setbitu(buff, bit, 6,  nm[i].prn + 1); bit += 6;
@@ -342,37 +360,41 @@ s8 rtcm3_decode_1002(u8 *buff, u16 *id, double *tow, u8 *n_sat,
 
   rtcm3_read_header(buff, &type, id, tow, sync, n_sat, &div_free, &smooth);
 
-  if (type != 1002)
+  if (type != 1002) {
     /* Unexpected message type. */
     return -1;
+  }
 
   /* TODO: Fill in t->wn. */
 
-  if (!nm)
+  if (!nm) {
     /* No nav meas pointer, probably just interested in
      * n_sat so we are all done. */
     return 0;
+  }
 
   u16 bit = 64;
-  for (u8 i=0; i<*n_sat; i++) {
+  for (u8 i = 0; i < *n_sat; i++) {
     /* TODO: Handle SBAS prns properly, numbered differently in RTCM? */
     nm[i].prn = getbitu(buff, bit, 6) - 1; bit += 6;
 
     u8 code = getbitu(buff, bit, 1); bit += 1;
     /* TODO: When we start storing the signal/system etc. properly we can
      * store the code flag in the nav meas struct. */
-    if (code == 1)
+    if (code == 1) {
       /* P(Y) code not currently supported. */
       return -2;
+    }
 
-    u32 pr = getbitu(buff, bit,24); bit += 24;
-    s32 ppr = getbits(buff, bit,20); bit += 20;
+    u32 pr = getbitu(buff, bit, 24); bit += 24;
+    s32 ppr = getbits(buff, bit, 20); bit += 20;
     u8 lock = getbitu(buff, bit, 7); bit += 7;
     u8 amb = getbitu(buff, bit, 8); bit += 8;
     u8 cnr = getbitu(buff, bit, 8); bit += 8;
 
-    nm[i].raw_pseudorange = 0.02*pr + PRUNIT_GPS*amb;
-    nm[i].carrier_phase = (nm[i].raw_pseudorange + 0.0005*ppr) / (CLIGHT / FREQ1);
+    nm[i].raw_pseudorange = 0.02 * pr + PRUNIT_GPS * amb;
+    nm[i].carrier_phase = (nm[i].raw_pseudorange + 0.0005 * ppr) /
+                          (CLIGHT / FREQ1);
     nm[i].lock_time = from_lock_ind(lock);
     nm[i].snr = pow(10.0, ((cnr / 4.0) - 40.0) / 10.0);
   }

@@ -16,12 +16,12 @@
 
 #include "memory_pool.h"
 
-inline static size_t calc_node_size(size_t element_size)
+static inline size_t calc_node_size(size_t element_size)
 {
   return element_size + sizeof(memory_pool_node_hdr_t);
 }
 
-inline static node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
+static inline node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
 {
   return (node_t *)((u8 *)head + calc_node_size(pool->element_size) * n);
 }
@@ -63,6 +63,7 @@ inline static node_t *get_node_n(memory_pool_t *pool, node_t *head, u32 n)
 memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
 {
   memory_pool_t *new_pool = malloc(sizeof(memory_pool_t));
+
   if (!new_pool) {
     return NULL;
   }
@@ -95,7 +96,7 @@ memory_pool_t *memory_pool_new(u32 n_elements, size_t element_size)
  * systems it is recommended that all pools be initialized once at start-up to
  * prevent all the usual caveats associated with dynamic memory allocation.
  *
- * \param pool Pointer to a memory pool to initialise
+ * \param new_pool Pointer to a memory pool to initialise
  * \param n_elements Number of elements that the pool can hold
  * \param element_size Size in bytes of the user payload elements
  * \param buff Pointer to a buffer to use as the memory pool working area
@@ -124,7 +125,7 @@ s8 memory_pool_init(memory_pool_t *new_pool, u32 n_elements,
   node_t *next_free = NULL;
   /* Make linked list from last element to first,
    * very last element points to NULL. */
-  for (s32 i=n_elements-1; i>=0; i--) {
+  for (s32 i = n_elements - 1; i >= 0; i--) {
     current = get_node_n(new_pool, new_pool->free_nodes_head, i);
     current->hdr.next = next_free;
     next_free = current;
@@ -160,15 +161,17 @@ s32 memory_pool_n_free(memory_pool_t *pool)
   u32 count = 0;
 
   node_t *p = pool->free_nodes_head;
+
   while (p && count <= pool->n_elements) {
     p = p->hdr.next;
     count++;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of free elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -184,15 +187,17 @@ s32 memory_pool_n_allocated(memory_pool_t *pool)
   u32 count = 0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     p = p->hdr.next;
     count++;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of free elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -205,7 +210,7 @@ s32 memory_pool_n_allocated(memory_pool_t *pool)
  */
 u8 memory_pool_empty(memory_pool_t *pool)
 {
-  return (pool->allocated_nodes_head == NULL);
+  return pool->allocated_nodes_head == NULL;
 }
 
 /** Basic getter method for memory_pool_t's n_elements field.
@@ -231,16 +236,19 @@ s32 memory_pool_to_array(memory_pool_t *pool, void *array)
   u32 count = 0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
-    memcpy((u8 *)array + count*pool->element_size, p->elem, pool->element_size);
+    memcpy((u8 *)array + count * pool->element_size, p->elem,
+           pool->element_size);
     p = p->hdr.next;
     count++;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of free elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -274,24 +282,28 @@ element_t *memory_pool_add(memory_pool_t *pool)
 /** Map a function across all elements allocated in the collection.
  *
  * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the function f
  * \param f Pointer to a function that does an in-place update of an element.
  * \return Number of elements mapped across or `< 0` on an error.
  */
-s32 memory_pool_map(memory_pool_t *pool, void *arg, void (*f)(void *arg, element_t *elem))
+s32 memory_pool_map(memory_pool_t *pool, void *arg, void (*f)(void *arg,
+                                                              element_t *elem))
 {
   u32 count = 0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     (*f)(arg, p->elem);
     p = p->hdr.next;
     count++;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -312,16 +324,18 @@ s32 memory_pool_fold(memory_pool_t *pool, void *x0,
   u32 count = 0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     (*f)(x0, p->elem);
     p = p->hdr.next;
     count++;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -343,6 +357,7 @@ double memory_pool_dfold(memory_pool_t *pool, double x0,
   double x = x0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     x = (*f)(x, p->elem);
     p = p->hdr.next;
@@ -369,6 +384,7 @@ float memory_pool_ffold(memory_pool_t *pool, float x0,
   float x = x0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     x = (*f)(x, p->elem);
     p = p->hdr.next;
@@ -395,6 +411,7 @@ s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
   s32 x = x0;
 
   node_t *p = pool->allocated_nodes_head;
+
   while (p && count <= pool->n_elements) {
     x = (*f)(x, p->elem);
     p = p->hdr.next;
@@ -408,18 +425,20 @@ s32 memory_pool_ifold(memory_pool_t *pool, s32 x0,
  * the pool.
  *
  * \param pool Pointer to a memory pool
+ * \param arg Arbitrary argument passed through to the function f
  * \param f Pointer to a function that takes an element and returns `0` to
  *          discard that element or `!=0` to keep that element.
  * \return Number of elements in the filtered collection or `< 0` on an error.
  */
-s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, element_t *elem))
+s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg,
+                                                               element_t *elem))
 {
   u32 count = 0;
 
   /* Construct a fake 'previous' node for the head of the list, this eliminates
    * special cases for the beginning of the list. */
   node_t fake_head_node_prev = {
-    .hdr = {
+    .hdr    = {
       .next = pool->allocated_nodes_head,
     },
   };
@@ -446,10 +465,11 @@ s32 memory_pool_filter(memory_pool_t *pool, void *arg, s8 (*f)(void *arg, elemen
   /* Use our fake previous node to update the head pointer. */
   pool->allocated_nodes_head = fake_head_node_prev.hdr.next;
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
@@ -537,8 +557,9 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
                       s32 (*cmp)(void *arg, element_t *a, element_t *b))
 {
   /* If collection is empty, return immediately. */
-  if (!pool->allocated_nodes_head)
+  if (!pool->allocated_nodes_head) {
     return;
+  }
 
   u32 insize = 1;
 
@@ -557,7 +578,9 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
       for (u32 i = 0; i < insize; i++) {
         psize++;
         q = q->hdr.next;
-        if (!q) break;
+        if (!q) {
+          break;
+        }
       }
 
       /* if q hasn't fallen off end, we have two lists to merge */
@@ -599,8 +622,9 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
     tail->hdr.next = NULL;
 
     /* If we have done only one merge, we're finished. */
-    if (nmerges <= 1)   /* allow for nmerges==0, the empty list case */
+    if (nmerges <= 1) { /* allow for nmerges==0, the empty list case */
       return;
+    }
 
     /* Otherwise repeat, merging lists twice the size */
     insize *= 2;
@@ -645,11 +669,13 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
 void memory_pool_group_by(memory_pool_t *pool, void *arg,
                           s32 (*cmp)(void *arg, element_t *a, element_t *b),
                           void *x0, size_t x_size,
-                          void (*agg)(element_t *new, void *x, u32 n, element_t *elem))
+                          void (*agg)(element_t *new, void *x, u32 n,
+                                      element_t *elem))
 {
   /* If collection is empty, return immediately. */
-  if (!pool->allocated_nodes_head)
+  if (!pool->allocated_nodes_head) {
     return;
+  }
 
   /* First sort the existing list using the compare function. */
   memory_pool_sort(pool, arg, cmp);
@@ -673,8 +699,9 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
     node_t *group_head = p;
 
     /* Re-initialize the working area. */
-    if (x_size)
+    if (x_size) {
       memcpy(x_work, x0, x_size);
+    }
 
     /* Create a new element to hold the aggregate of this group. */
     element_t *new_elem = memory_pool_add(pool);
@@ -695,7 +722,7 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
       pool->free_nodes_head = p;
 
       p = next_p;
-    } while(p && cmp(arg, group_head->elem, p->elem) == 0);
+    } while (p && cmp(arg, group_head->elem, p->elem) == 0);
 
     count++;
   }
@@ -720,11 +747,13 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
  * \param prod The product function
  */
 s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
-                        void (*prod)(element_t *new, void *x, u32 n_xs, u32 n, element_t *elem))
+                        void (*prod)(element_t *new, void *x, u32 n_xs, u32 n,
+                                     element_t *elem))
 {
   /* Save the head of the original list and reset the pool head where the
    * product data will be added. */
   node_t *old_head = pool->allocated_nodes_head;
+
   pool->allocated_nodes_head = NULL;
 
   u32 count = 0;
@@ -733,7 +762,7 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
   while (p && count <= pool->n_elements) {
     /* Add one element to the new list for each pair of
      * the current element and an item in xs. */
-    for (u32 i=0; i<n_xs; i++) {
+    for (u32 i = 0; i < n_xs; i++) {
       element_t *new = memory_pool_add(pool);
       if (!new) {
         /* Pool is full. */
@@ -741,7 +770,7 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
       }
       /* Initialize the element to the same as the original element. */
       memcpy(new, p->elem, pool->element_size);
-      prod(new, ((u8 *)xs + i*x_size), n_xs, i, p->elem);
+      prod(new, ((u8 *)xs + i * x_size), n_xs, i, p->elem);
       count++;
     }
 
@@ -755,22 +784,26 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
     p = next_p;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }
 
-s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, size_t x_size,
+s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs,
+                                  size_t x_size,
                                   s8 (*init)(void *x, element_t *elem),
                                   s8 (*next)(void *x, u32 n),
-                                  void (*prod)(element_t *new, void *x, u32 n, element_t *elem))
+                                  void (*prod)(element_t *new, void *x, u32 n,
+                                               element_t *elem))
 {
   /* Save the head of the original list and reset the pool head where the
    * product data will be added. */
   node_t *old_head = pool->allocated_nodes_head;
+
   pool->allocated_nodes_head = NULL;
 
   u32 count = 0;
@@ -815,10 +848,11 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, siz
     p = next_p;
   }
 
-  if (count == pool->n_elements && p)
+  if (count == pool->n_elements && p) {
     /* The list of elements is larger than the pool,
      * something has gone horribly wrong. */
     return -1;
+  }
 
   return count;
 }

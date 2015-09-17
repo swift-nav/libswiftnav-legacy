@@ -63,13 +63,13 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
   vector_subtract(3, sats_with_ref_first[0].sat_pos, ref_ecef, e_0);
   vector_normalize(3, e_0);
 
-  for (u8 i=1; i<num_sats; i++) {
+  for (u8 i = 1; i < num_sats; i++) {
     /* Vector to satellite i */
     double e_i[3];
     vector_subtract(3, sats_with_ref_first[i].sat_pos, ref_ecef, e_i);
     vector_normalize(3, e_i);
     /* DE row = e_i - e_0 */
-    vector_subtract(3, e_i, e_0, &DE[3*(i-1)]);
+    vector_subtract(3, e_i, e_0, &DE[3 * (i - 1)]);
   }
 
   return 0;

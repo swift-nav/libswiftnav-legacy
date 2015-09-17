@@ -65,7 +65,8 @@ void submatrix(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
 {
   for (u32 i = 0; i < new_rows; i++) {
     for (u32 j = 0; j < new_cols; j++) {
-      new[i*new_cols + j] = old[new_row_to_old[i]*old_cols + new_col_to_old[j]];
+      new[i * new_cols +
+          j] = old[new_row_to_old[i] * old_cols + new_col_to_old[j]];
     }
   }
 }
@@ -83,7 +84,7 @@ void submatrix_ul(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
 {
   for (u32 i = 0; i < new_rows; i++) {
     for (u32 j = 0; j < new_cols; j++) {
-      new[i*new_cols + j] = old[i*old_cols + j];
+      new[i * new_cols + j] = old[i * old_cols + j];
     }
   }
 }
@@ -94,59 +95,82 @@ void submatrix_ul(u32 new_rows, u32 new_cols, u32 old_cols, const double *old,
  * \mathbb{R}^{N \times N} \f$ is an orthogonal matrix and \f$ R \in
  * \mathbb{R}^{N \times N} \f$ is an upper-triangular matrix.
  *
- *  \param A            The matrix \f$ A \f$ to decompose (input)
+ *  \param a            The matrix \f$ A \f$ to decompose (input)
  *  \param rows         How many rows in A
  *  \param qt           \f$ Q^{T} \f$ (output)
  *  \param r            \f$ R \f$ (output)
  *
  *  \return         -1 if A is singular; 0 otherwise;
  */
-s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r) {
+s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r)
+{
   s32 sing = 0;
   u32 i, j, k;
 
   double c[rows], d[rows];
   double scale, sigma, sum, tau;
-  memcpy(r, a, rows*rows * sizeof(*r));
+
+  memcpy(r, a, rows * rows * sizeof(*r));
 
   for (k = 0; k < rows - 1; k++) {
     scale = 0.0;
-    for (i = k; i < rows; i++) scale = fmax(scale, fabs(r[i*rows + k]));
+    for (i = k; i < rows; i++) {
+      scale = fmax(scale, fabs(r[i * rows + k]));
+    }
     if (scale == 0.0) {
       sing = -11;
       c[k] = d[k] = 0.0;
     } else {
-      for (i = k; i < rows; i++) r[i*rows + k] /= scale;
-      for (sum = 0.0, i = k; i < rows; i++) sum += r[i*rows + k]*r[i*rows + k];
-      sigma = copysign(sqrt(sum), r[k*rows+k]);
-      r[k*rows + k] += sigma;
-      c[k] = sigma * r[k*rows + k];
+      for (i = k; i < rows; i++) {
+        r[i * rows + k] /= scale;
+      }
+      for (sum = 0.0, i = k; i < rows; i++) {
+        sum += r[i * rows + k] * r[i * rows + k];
+      }
+      sigma = copysign(sqrt(sum), r[k * rows + k]);
+      r[k * rows + k] += sigma;
+      c[k] = sigma * r[k * rows + k];
       d[k] = -scale * sigma;
       for (j = k + 1; j < rows; j++) {
-        for (sum = 0.0, i = k; i < rows; i++) sum += r[i*rows + k]*r[i*rows+j];
+        for (sum = 0.0, i = k; i < rows; i++) {
+          sum += r[i * rows + k] * r[i * rows + j];
+        }
         tau = sum / c[k];
-        for (i = k; i < rows; i++) r[i*rows + j] -= tau*r[i*rows + k];
+        for (i = k; i < rows; i++) {
+          r[i * rows + j] -= tau * r[i * rows + k];
+        }
       }
     }
   }
-  d[rows - 1] = r[(rows - 1)*rows + rows - 1];
-  if (d[rows - 1] == 0.0) sing = -11;
+  d[rows - 1] = r[(rows - 1) * rows + rows - 1];
+  if (d[rows - 1] == 0.0) {
+    sing = -11;
+  }
   for (i = 0; i < rows; i++) {
-    for (j = 0; j < rows; j++) qt[i*rows + j] = 0.0;
-    qt[i*rows + i] = 1.0;
+    for (j = 0; j < rows; j++) {
+      qt[i * rows + j] = 0.0;
+    }
+    qt[i * rows + i] = 1.0;
   }
   for (k = 0; k < rows - 1; k++) {
-    if (c[k] != 0.0)
+    if (c[k] != 0.0) {
       for (j = 0; j < rows; j++) {
         sum = 0.0;
-        for (i = k; i < rows; i++) sum += r[i*rows + k]*qt[i*rows + j];
+        for (i = k; i < rows; i++) {
+          sum += r[i * rows + k] * qt[i * rows + j];
+        }
         sum /= c[k];
-        for (i = k; i < rows; i++) qt[i*rows + j] -= sum*r[i*rows + k];
+        for (i = k; i < rows; i++) {
+          qt[i * rows + j] -= sum * r[i * rows + k];
+        }
       }
+    }
   }
   for (i = 0; i < rows; i++) {
-    r[i*rows + i] = d[i];
-    for (j = 0; j < i; j++) r[i*rows + j] = 0.0;
+    r[i * rows + i] = d[i];
+    for (j = 0; j < i; j++) {
+      r[i * rows + j] = 0.0;
+    }
   }
   return sing;
 }
@@ -161,12 +185,16 @@ s32 qrdecomp_square(const double *a, u32 rows, double *qt, double *r) {
  *  \param b             \f$ b \f$ to be used to solve for x (input)
  *  \param x             result of the linear solve (output)
  */
-void qtmult(const double *qt, u32 n, const double *b, double *x) {
+void qtmult(const double *qt, u32 n, const double *b, double *x)
+{
   u32 i, j;
   double sum;
+
   for (i = 0; i < n; i++) {
     sum = 0.0;
-    for (j = 0; j < n; j++) sum += qt[i*n + j]*b[j];
+    for (j = 0; j < n; j++) {
+      sum += qt[i * n + j] * b[j];
+    }
     x[i] = sum;
   }
 }
@@ -185,13 +213,17 @@ void qtmult(const double *qt, u32 n, const double *b, double *x) {
  *  \param b            Vector \f$ b \f$ to solve against, from qtmult()
  *  \param x            Solution vector \f$ x \f$ (output)
  */
-void rsolve(const double *r, u32 rows, u32 cols, const double *b, double *x) {
+void rsolve(const double *r, u32 rows, u32 cols, const double *b, double *x)
+{
   s32 i, j;
   double sum;
+
   for (i = rows - 1; i >= 0; i--) {
     sum = b[i];
-    for (j = i + 1; j < (int) rows; j++) sum -= r[i*cols + j]*x[j];
-    x[i] = sum / r[i*cols + i];
+    for (j = i + 1; j < (int)rows; j++) {
+      sum -= r[i * cols + j] * x[j];
+    }
+    x[i] = sum / r[i * cols + i];
   }
 }
 
@@ -209,10 +241,14 @@ void rsolve(const double *r, u32 rows, u32 cols, const double *b, double *x) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x) {
+s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x)
+{
   double qt[rows * rows], r[rows * cols];
   s32 sing = qrdecomp_square(a, rows, qt, r);
-  if (sing != 0) return sing;
+
+  if (sing != 0) {
+    return sing;
+  }
   qtmult(qt, rows, b, x);
   rsolve(r, rows, cols, x, x);
   return sing;
@@ -226,14 +262,17 @@ s32 qrsolve(const double *a, u32 rows, u32 cols, const double *b, double *x) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-static inline int inv2(const double *a, double *b) {
-  double det = a[0]*a[3] - a[1]*a[2];
-  if (fabs(det) < MATRIX_EPSILON)
+static inline int inv2(const double *a, double *b)
+{
+  double det = a[0] * a[3] - a[1] * a[2];
+
+  if (fabs(det) < MATRIX_EPSILON) {
     return -1;
-  b[0] = a[3]/det;
-  b[1] = -a[1]/det;
-  b[2] = -a[2]/det;
-  b[3] = a[0]/det;
+  }
+  b[0] = a[3] / det;
+  b[1] = -a[1] / det;
+  b[2] = -a[2] / det;
+  b[3] = a[0] / det;
   return 0;
 }
 
@@ -245,25 +284,40 @@ static inline int inv2(const double *a, double *b) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-static inline int inv3(const double *a, double *b) {
-  double det = ((a[3*1 + 0]*-(a[3*0 + 1]*a[3*2 + 2]-a[3*0 + 2]*a[3*2 + 1])
-                 +a[3*1 + 1]*(a[3*0 + 0]*a[3*2 + 2]-a[3*0 + 2]*a[3*2 + 0]))
-                +a[3*1 + 2]*-(a[3*0 + 0]*a[3*2 + 1]-a[3*0 + 1]*a[3*2 + 0]));
+static inline int inv3(const double *a, double *b)
+{
+  double det =
+    ((a[3 * 1 + 0] *
+      -(a[3 * 0 + 1] * a[3 * 2 + 2] - a[3 * 0 + 2] * a[3 * 2 + 1])
+      + a[3 * 1 + 1] *
+      (a[3 * 0 + 0] * a[3 * 2 + 2] - a[3 * 0 + 2] * a[3 * 2 + 0]))
+     + a[3 * 1 + 2] *
+     -(a[3 * 0 + 0] * a[3 * 2 + 1] - a[3 * 0 + 1] * a[3 * 2 + 0]));
 
-  if (fabs(det) < MATRIX_EPSILON)
+  if (fabs(det) < MATRIX_EPSILON) {
     return -1;
+  }
 
-  b[3*0 + 0] = (a[3*1 + 1]*a[3*2 + 2]-a[3*1 + 2]*a[3*2 + 1])/det;
-  b[3*1 + 0] = -(a[3*1 + 0]*a[3*2 + 2]-a[3*1 + 2]*a[3*2 + 0])/det;
-  b[3*2 + 0] = (a[3*1 + 0]*a[3*2 + 1]-a[3*1 + 1]*a[3*2 + 0])/det;
+  b[3 * 0 + 0] = (a[3 * 1 + 1] * a[3 * 2 + 2] - a[3 * 1 + 2] * a[3 * 2 + 1]) /
+                 det;
+  b[3 * 1 + 0] = -(a[3 * 1 + 0] * a[3 * 2 + 2] - a[3 * 1 + 2] * a[3 * 2 + 0]) /
+                 det;
+  b[3 * 2 + 0] = (a[3 * 1 + 0] * a[3 * 2 + 1] - a[3 * 1 + 1] * a[3 * 2 + 0]) /
+                 det;
 
-  b[3*0 + 1] = -(a[3*0 + 1]*a[3*2 + 2]-a[3*0 + 2]*a[3*2 + 1])/det;
-  b[3*1 + 1] = (a[3*0 + 0]*a[3*2 + 2]-a[3*0 + 2]*a[3*2 + 0])/det;
-  b[3*2 + 1] = -(a[3*0 + 0]*a[3*2 + 1]-a[3*0 + 1]*a[3*2 + 0])/det;
+  b[3 * 0 + 1] = -(a[3 * 0 + 1] * a[3 * 2 + 2] - a[3 * 0 + 2] * a[3 * 2 + 1]) /
+                 det;
+  b[3 * 1 + 1] = (a[3 * 0 + 0] * a[3 * 2 + 2] - a[3 * 0 + 2] * a[3 * 2 + 0]) /
+                 det;
+  b[3 * 2 + 1] = -(a[3 * 0 + 0] * a[3 * 2 + 1] - a[3 * 0 + 1] * a[3 * 2 + 0]) /
+                 det;
 
-  b[3*0 + 2] = (a[3*0 + 1]*a[3*1 + 2]-a[3*0 + 2]*a[3*1 + 1])/det;
-  b[3*1 + 2] = -(a[3*0 + 0]*a[3*1 + 2]-a[3*0 + 2]*a[3*1 + 0])/det;
-  b[3*2 + 2] = (a[3*0 + 0]*a[3*1 + 1]-a[3*0 + 1]*a[3*1 + 0])/det;
+  b[3 * 0 + 2] = (a[3 * 0 + 1] * a[3 * 1 + 2] - a[3 * 0 + 2] * a[3 * 1 + 1]) /
+                 det;
+  b[3 * 1 + 2] = -(a[3 * 0 + 0] * a[3 * 1 + 2] - a[3 * 0 + 2] * a[3 * 1 + 0]) /
+                 det;
+  b[3 * 2 + 2] = (a[3 * 0 + 0] * a[3 * 1 + 1] - a[3 * 0 + 1] * a[3 * 1 + 0]) /
+                 det;
 
   return 0;
 }
@@ -276,31 +330,173 @@ static inline int inv3(const double *a, double *b) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-static inline int inv4(const double *a, double *b) {
-  double det = (((a[4*1 + 0]*-((a[4*2 + 1]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1]))+a[4*2 + 3]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1]))+a[4*1 + 1]*((a[4*2 + 0]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0])))+a[4*1 + 2]*-((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0])))+a[4*1 + 3]*((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))+a[4*2 + 2]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0])));
+static inline int inv4(const double *a, double *b)
+{
+  double det =
+    (((a[4 * 1 + 0] *
+       -((a[4 * 2 + 1] *
+          -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+          a[4 * 2 + 2] *
+          (a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1])) +
+         a[4 * 2 + 3] *
+         -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1])) +
+       a[4 * 1 + 1] *
+       ((a[4 * 2 + 0] *
+         -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+         a[4 * 2 + 2] *
+         (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+        a[4 * 2 + 3] *
+        -(a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0]))) +
+      a[4 * 1 + 2] *
+      -((a[4 * 2 + 0] *
+         -(a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1]) +
+         a[4 * 2 + 1] *
+         (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+        a[4 * 2 + 3] *
+        -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0]))) +
+     a[4 * 1 + 3] *
+     ((a[4 * 2 + 0] *
+       -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1]) +
+       a[4 * 2 + 1] *
+       (a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0])) +
+      a[4 * 2 + 2] *
+      -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0])));
 
-  if (fabs(det) < MATRIX_EPSILON)
+  if (fabs(det) < MATRIX_EPSILON) {
     return -1;
+  }
 
-  b[4*0 + 0] = ((a[4*2 + 1]*-(a[4*1 + 2]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*1 + 1]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 1]))+a[4*2 + 3]*-(a[4*1 + 1]*a[4*3 + 2]-a[4*1 + 2]*a[4*3 + 1]))/det;
-  b[4*1 + 0] = -((a[4*2 + 0]*-(a[4*1 + 2]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*1 + 0]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*1 + 0]*a[4*3 + 2]-a[4*1 + 2]*a[4*3 + 0]))/det;
-  b[4*2 + 0] = ((a[4*2 + 0]*-(a[4*1 + 1]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 1])+a[4*2 + 1]*(a[4*1 + 0]*a[4*3 + 3]-a[4*1 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*1 + 0]*a[4*3 + 1]-a[4*1 + 1]*a[4*3 + 0]))/det;
-  b[4*3 + 0] = -((a[4*2 + 0]*-(a[4*1 + 1]*a[4*3 + 2]-a[4*1 + 2]*a[4*3 + 1])+a[4*2 + 1]*(a[4*1 + 0]*a[4*3 + 2]-a[4*1 + 2]*a[4*3 + 0]))+a[4*2 + 2]*-(a[4*1 + 0]*a[4*3 + 1]-a[4*1 + 1]*a[4*3 + 0]))/det;
+  b[4 * 0 +
+    0] =
+    ((a[4 * 2 + 1] *
+      -(a[4 * 1 + 2] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 2]) +
+      a[4 * 2 + 2] *
+      (a[4 * 1 + 1] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 1])) +
+     a[4 * 2 + 3] *
+     -(a[4 * 1 + 1] * a[4 * 3 + 2] - a[4 * 1 + 2] * a[4 * 3 + 1])) / det;
+  b[4 * 1 +
+    0] =
+    -((a[4 * 2 + 0] *
+       -(a[4 * 1 + 2] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 2]) +
+       a[4 * 2 + 2] *
+       (a[4 * 1 + 0] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 0])) +
+      a[4 * 2 + 3] *
+      -(a[4 * 1 + 0] * a[4 * 3 + 2] - a[4 * 1 + 2] * a[4 * 3 + 0])) / det;
+  b[4 * 2 +
+    0] =
+    ((a[4 * 2 + 0] *
+      -(a[4 * 1 + 1] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 1]) +
+      a[4 * 2 + 1] *
+      (a[4 * 1 + 0] * a[4 * 3 + 3] - a[4 * 1 + 3] * a[4 * 3 + 0])) +
+     a[4 * 2 + 3] *
+     -(a[4 * 1 + 0] * a[4 * 3 + 1] - a[4 * 1 + 1] * a[4 * 3 + 0])) / det;
+  b[4 * 3 +
+    0] =
+    -((a[4 * 2 + 0] *
+       -(a[4 * 1 + 1] * a[4 * 3 + 2] - a[4 * 1 + 2] * a[4 * 3 + 1]) +
+       a[4 * 2 + 1] *
+       (a[4 * 1 + 0] * a[4 * 3 + 2] - a[4 * 1 + 2] * a[4 * 3 + 0])) +
+      a[4 * 2 + 2] *
+      -(a[4 * 1 + 0] * a[4 * 3 + 1] - a[4 * 1 + 1] * a[4 * 3 + 0])) / det;
 
-  b[4*0 + 1] = -((a[4*2 + 1]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1]))+a[4*2 + 3]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1]))/det;
-  b[4*1 + 1] = ((a[4*2 + 0]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*2 + 2]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))/det;
-  b[4*2 + 1] = -((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*2 + 3]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0]))/det;
-  b[4*3 + 1] = ((a[4*2 + 0]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1])+a[4*2 + 1]*(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))+a[4*2 + 2]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0]))/det;
+  b[4 * 0 +
+    1] =
+    -((a[4 * 2 + 1] *
+       -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+       a[4 * 2 + 2] *
+       (a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1])) +
+      a[4 * 2 + 3] *
+      -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1])) / det;
+  b[4 * 1 +
+    1] =
+    ((a[4 * 2 + 0] *
+      -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+      a[4 * 2 + 2] *
+      (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+     a[4 * 2 + 3] *
+     -(a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0])) / det;
+  b[4 * 2 +
+    1] =
+    -((a[4 * 2 + 0] *
+       -(a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1]) +
+       a[4 * 2 + 1] *
+       (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+      a[4 * 2 + 3] *
+      -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0])) / det;
+  b[4 * 3 +
+    1] =
+    ((a[4 * 2 + 0] *
+      -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1]) +
+      a[4 * 2 + 1] *
+      (a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0])) +
+     a[4 * 2 + 2] *
+     -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0])) / det;
 
-  b[4*0 + 2] = ((a[4*1 + 1]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*1 + 2]*(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1]))+a[4*1 + 3]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1]))/det;
-  b[4*1 + 2] = -((a[4*1 + 0]*-(a[4*0 + 2]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 2])+a[4*1 + 2]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*1 + 3]*-(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))/det;
-  b[4*2 + 2] = ((a[4*1 + 0]*-(a[4*0 + 1]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 1])+a[4*1 + 1]*(a[4*0 + 0]*a[4*3 + 3]-a[4*0 + 3]*a[4*3 + 0]))+a[4*1 + 3]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0]))/det;
-  b[4*3 + 2] = -((a[4*1 + 0]*-(a[4*0 + 1]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 1])+a[4*1 + 1]*(a[4*0 + 0]*a[4*3 + 2]-a[4*0 + 2]*a[4*3 + 0]))+a[4*1 + 2]*-(a[4*0 + 0]*a[4*3 + 1]-a[4*0 + 1]*a[4*3 + 0]))/det;
+  b[4 * 0 +
+    2] =
+    ((a[4 * 1 + 1] *
+      -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+      a[4 * 1 + 2] *
+      (a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1])) +
+     a[4 * 1 + 3] *
+     -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1])) / det;
+  b[4 * 1 +
+    2] =
+    -((a[4 * 1 + 0] *
+       -(a[4 * 0 + 2] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 2]) +
+       a[4 * 1 + 2] *
+       (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+      a[4 * 1 + 3] *
+      -(a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0])) / det;
+  b[4 * 2 +
+    2] =
+    ((a[4 * 1 + 0] *
+      -(a[4 * 0 + 1] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 1]) +
+      a[4 * 1 + 1] *
+      (a[4 * 0 + 0] * a[4 * 3 + 3] - a[4 * 0 + 3] * a[4 * 3 + 0])) +
+     a[4 * 1 + 3] *
+     -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0])) / det;
+  b[4 * 3 +
+    2] =
+    -((a[4 * 1 + 0] *
+       -(a[4 * 0 + 1] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 1]) +
+       a[4 * 1 + 1] *
+       (a[4 * 0 + 0] * a[4 * 3 + 2] - a[4 * 0 + 2] * a[4 * 3 + 0])) +
+      a[4 * 1 + 2] *
+      -(a[4 * 0 + 0] * a[4 * 3 + 1] - a[4 * 0 + 1] * a[4 * 3 + 0])) / det;
 
-  b[4*0 + 3] = -((a[4*1 + 1]*-(a[4*0 + 2]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 2])+a[4*1 + 2]*(a[4*0 + 1]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 1]))+a[4*1 + 3]*-(a[4*0 + 1]*a[4*2 + 2]-a[4*0 + 2]*a[4*2 + 1]))/det;
-  b[4*1 + 3] = ((a[4*1 + 0]*-(a[4*0 + 2]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 2])+a[4*1 + 2]*(a[4*0 + 0]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 0]))+a[4*1 + 3]*-(a[4*0 + 0]*a[4*2 + 2]-a[4*0 + 2]*a[4*2 + 0]))/det;
-  b[4*2 + 3] = -((a[4*1 + 0]*-(a[4*0 + 1]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 1])+a[4*1 + 1]*(a[4*0 + 0]*a[4*2 + 3]-a[4*0 + 3]*a[4*2 + 0]))+a[4*1 + 3]*-(a[4*0 + 0]*a[4*2 + 1]-a[4*0 + 1]*a[4*2 + 0]))/det;
-  b[4*3 + 3] = ((a[4*1 + 0]*-(a[4*0 + 1]*a[4*2 + 2]-a[4*0 + 2]*a[4*2 + 1])+a[4*1 + 1]*(a[4*0 + 0]*a[4*2 + 2]-a[4*0 + 2]*a[4*2 + 0]))+a[4*1 + 2]*-(a[4*0 + 0]*a[4*2 + 1]-a[4*0 + 1]*a[4*2 + 0]))/det;
+  b[4 * 0 +
+    3] =
+    -((a[4 * 1 + 1] *
+       -(a[4 * 0 + 2] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 2]) +
+       a[4 * 1 + 2] *
+       (a[4 * 0 + 1] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 1])) +
+      a[4 * 1 + 3] *
+      -(a[4 * 0 + 1] * a[4 * 2 + 2] - a[4 * 0 + 2] * a[4 * 2 + 1])) / det;
+  b[4 * 1 +
+    3] =
+    ((a[4 * 1 + 0] *
+      -(a[4 * 0 + 2] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 2]) +
+      a[4 * 1 + 2] *
+      (a[4 * 0 + 0] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 0])) +
+     a[4 * 1 + 3] *
+     -(a[4 * 0 + 0] * a[4 * 2 + 2] - a[4 * 0 + 2] * a[4 * 2 + 0])) / det;
+  b[4 * 2 +
+    3] =
+    -((a[4 * 1 + 0] *
+       -(a[4 * 0 + 1] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 1]) +
+       a[4 * 1 + 1] *
+       (a[4 * 0 + 0] * a[4 * 2 + 3] - a[4 * 0 + 3] * a[4 * 2 + 0])) +
+      a[4 * 1 + 3] *
+      -(a[4 * 0 + 0] * a[4 * 2 + 1] - a[4 * 0 + 1] * a[4 * 2 + 0])) / det;
+  b[4 * 3 +
+    3] =
+    ((a[4 * 1 + 0] *
+      -(a[4 * 0 + 1] * a[4 * 2 + 2] - a[4 * 0 + 2] * a[4 * 2 + 1]) +
+      a[4 * 1 + 1] *
+      (a[4 * 0 + 0] * a[4 * 2 + 2] - a[4 * 0 + 2] * a[4 * 2 + 0])) +
+     a[4 * 1 + 2] *
+     -(a[4 * 0 + 0] * a[4 * 2 + 1] - a[4 * 0 + 1] * a[4 * 2 + 0])) / det;
 
   return 0;
 }
@@ -310,8 +506,10 @@ static inline int inv4(const double *a, double *b) {
  * give you Gaussian Elimination for matrix inversion.  --MP */
 
 /* Helper function for rref */
-static void row_swap(double *a, double *b, u32 size) {
+static void row_swap(double *a, double *b, u32 size)
+{
   double tmp;
+
   for (u32 i = 0; i < size; i++) {
     tmp = a[i];
     a[i] = b[i];
@@ -321,43 +519,45 @@ static void row_swap(double *a, double *b, u32 size) {
 
 /* rref is "reduced row echelon form" -- a helper function for the
  * gaussian elimination code. */
-static int rref(u32 order, u32 cols, double *m) {
+static int rref(u32 order, u32 cols, double *m)
+{
   int i, j, k, maxrow;
   double tmp;
 
-  for (i = 0; i < (int) order; i++) {
+  for (i = 0; i < (int)order; i++) {
     maxrow = i;
-    for (j = i+1; j < (int) order; j++) {
+    for (j = i + 1; j < (int)order; j++) {
       /* Find the maximum pivot */
-      if (fabs(m[j*cols+i]) > fabs(m[maxrow*cols+i]))
+      if (fabs(m[j * cols + i]) > fabs(m[maxrow * cols + i])) {
         maxrow = j;
+      }
     }
-    row_swap(&m[i*cols], &m[maxrow*cols], cols);
-    if (fabs(m[i*cols+i]) <= MATRIX_EPSILON) {
+    row_swap(&m[i * cols], &m[maxrow * cols], cols);
+    if (fabs(m[i * cols + i]) <= MATRIX_EPSILON) {
       /* If we've eliminated our diagonal element, it means our matrix
        * isn't full-rank.  Pork chop sandwiches!  */
       return -1;
     }
-    for (j = i+1; j < (int) order; j++) {
+    for (j = i + 1; j < (int)order; j++) {
       /* Elimination of column i */
-      tmp = m[j*cols+i] / m[i*cols+i];
-      for (k = i; k < (int) cols; k++) {
-        m[j*cols+k] -= m[i*cols+k] * tmp;
+      tmp = m[j * cols + i] / m[i * cols + i];
+      for (k = i; k < (int)cols; k++) {
+        m[j * cols + k] -= m[i * cols + k] * tmp;
       }
     }
   }
-  for (i = order-1; i >= 0; i--) {
+  for (i = order - 1; i >= 0; i--) {
     /* Back-substitution */
-    tmp = m[i*cols+i];
+    tmp = m[i * cols + i];
     for (j = 0; j < i; j++) {
-      for (k = cols-1; k > i-1; k--) {
-        m[j*cols+k] -= m[i*cols+k] * m[j*cols+i] / tmp;
+      for (k = cols - 1; k > i - 1; k--) {
+        m[j * cols + k] -= m[i * cols + k] * m[j * cols + i] / tmp;
       }
     }
-    m[i*cols+i] /= tmp;
-    for (j = order; j < (int) cols; j++) {
+    m[i * cols + i] /= tmp;
+    for (j = order; j < (int)cols; j++) {
       /* Normalize row */
-      m[i*cols+j] /= tmp;
+      m[i * cols + j] /= tmp;
     }
   }
   return 0;
@@ -376,7 +576,8 @@ static int rref(u32 order, u32 cols, double *m) {
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-inline int matrix_inverse(u32 n, const double *const a, double *b){
+inline int matrix_inverse(u32 n, const double *const a, double *b)
+{
   /* This function is currently only used to do a linear least-squares
    * solve for x, y, z and t in the navigation filter.  Gauss-Jordan
    * elimination is not the most efficient way to do this.  In the
@@ -385,52 +586,53 @@ inline int matrix_inverse(u32 n, const double *const a, double *b){
    * we have too few satellites.)  The Cholesky decomposition becomes
    * even more important for unscented filters. */
   int res;
-  u32 i, j, k, cols = n*2;
-  double m[n*cols];
+  u32 i, j, k, cols = n * 2;
+  double m[n * cols];
 
   /* For now, we special-case only small matrices.  If we bring back
    * multiple antennas, it won't be hard to auto-generate cases 5 and
    * 6 if hard-coded routines prove more efficient. */
   switch (n) {
-    case 2:
-      return inv2(a, b);
-      break;
-    case 3:
-      return inv3(a, b);
-      break;
-    case 4:
-      return inv4(a, b);
-      break;
-    default:
-      /* Set up an augmented matrix M = [A I] */
-      for (i = 0; i < n; i++) {
-        for (j = 0; j < cols; j++) {
-          if (j >= n) {
-            if (j-n == i) {
-              m[i*cols+j] = 1.0;
-            } else {
-              m[i*cols+j] = 0;
-            }
+  case 2:
+    return inv2(a, b);
+    break;
+  case 3:
+    return inv3(a, b);
+    break;
+  case 4:
+    return inv4(a, b);
+    break;
+  default:
+    /* Set up an augmented matrix M = [A I] */
+    for (i = 0; i < n; i++) {
+      for (j = 0; j < cols; j++) {
+        if (j >= n) {
+          if (j - n == i) {
+            m[i * cols + j] = 1.0;
           } else {
-            m[i*cols+j] = a[i*n+j];
+            m[i * cols + j] = 0;
           }
+        } else {
+          m[i * cols + j] = a[i * n + j];
         }
       }
+    }
 
-      if ((res = rref(n, cols, m)) < 0) {
-        /* Singular matrix! */
-        return res;
+    res = rref(n, cols, m);
+    if (res < 0) {
+      /* Singular matrix! */
+      return res;
+    }
+
+    /* Extract B from the augmented matrix M = [I inv(A)] */
+    for (i = 0; i < n; i++) {
+      for (j = n, k = 0; j < cols; j++, k++) {
+        b[i * n + k] = m[i * cols + j];
       }
+    }
 
-      /* Extract B from the augmented matrix M = [I inv(A)] */
-      for (i = 0; i < n; i++) {
-        for (j = n, k = 0; j < cols; j++, k++) {
-          b[i*n+k] = m[i*cols+j];
-        }
-      }
-
-      return 0;
-      break;
+    return 0;
+    break;
   }
 }
 
@@ -464,13 +666,17 @@ inline int matrix_inverse(u32 n, const double *const a, double *b){
  *
  *  \return     -1 if a is singular; 0 otherwise.
  */
-int matrix_pseudoinverse(u32 n, u32 m, const double *a, double *b) {
-  if (n == m)
+int matrix_pseudoinverse(u32 n, u32 m, const double *a, double *b)
+{
+  if (n == m) {
     return matrix_inverse(n, a, b);
-  if (n > m)
+  }
+  if (n > m) {
     return matrix_ataiat(n, m, a, b);
-  if (n < m)                                  /* n < m */
+  }
+  if (n < m) {                                /* n < m */
     return matrix_ataati(n, m, a, b);
+  }
   return -1;
 }
 
@@ -490,36 +696,47 @@ int matrix_pseudoinverse(u32 n, u32 m, const double *a, double *b) {
  *  \return     -1 if n <= m or singular; 0 otherwise
  */
 inline int matrix_atwaiat(u32 n, u32 m, const double *a,
-                          const double *w, double *b) {
+                          const double *w, double *b)
+{
   u32 i, j, k;
-  double c[m*m], inv[m*m];
+  double c[m * m], inv[m * m];
+
   /* Check to make sure we're doing the right operation */
-  if (n <= m) return -1;
+  if (n <= m) {
+    return -1;
+  }
 
   /* The resulting matrix is symmetric, so compute both halves at
    * once */
-  for (i = 0; i < m; i++)
+  for (i = 0; i < m; i++) {
     for (j = i; j < m; j++) {
-      c[m*i + j] = 0;
+      c[m * i + j] = 0;
       if (i == j) {
         /* If this is a diagonal element, just sum the squares of the
          * column of A weighted by the weighting vector. */
-        for (k = 0; k < n; k++)
-          c[m*i + j] += w[k]*a[m*k + j]*a[m*k + j];
+        for (k = 0; k < n; k++) {
+          c[m * i + j] += w[k] * a[m * k + j] * a[m * k + j];
+        }
       } else {
         /* Otherwise, assign both off-diagonal elements at once. */
-        for (k = 0; k < n; k++)
-          c[m*i + j] = c[m*j + i] = w[k]*a[m*k + j]*a[m*k + i];
-        c[m*j + i] = c[m*i + j];
+        for (k = 0; k < n; k++) {
+          c[m * i + j] = c[m * j + i] = w[k] * a[m * k + j] * a[m * k + i];
+        }
+        c[m * j + i] = c[m * i + j];
       }
     }
-  if (matrix_inverse(m, c, inv) < 0) return -1;
-  for (i = 0; i < m; i++)
+  }
+  if (matrix_inverse(m, c, inv) < 0) {
+    return -1;
+  }
+  for (i = 0; i < m; i++) {
     for (j = 0; j < n; j++) {
-      b[n*i + j] = 0;
-      for (k = 0; k < m; k++)
-        b[n*i + j] += inv[n*i+k] * a[m*j + k];
+      b[n * i + j] = 0;
+      for (k = 0; k < m; k++) {
+        b[n * i + j] += inv[n * i + k] * a[m * j + k];
+      }
     }
+  }
   return 0;
 }
 
@@ -539,37 +756,48 @@ inline int matrix_atwaiat(u32 n, u32 m, const double *a,
  *  \return     -1 if n <= m or singular; 0 otherwise
  */
 inline int matrix_atawati(u32 n, u32 m, const double *a,
-                          const double *w, double *b) {
+                          const double *w, double *b)
+{
   u32 i, j, k;
-  double c[m*m], inv[m*m];
+  double c[m * m], inv[m * m];
+
   /* Check to make sure we're doing the right operation */
-  if (n <= m) return -1;
+  if (n <= m) {
+    return -1;
+  }
 
   /* TODO(MP) -- implement! */
   /* The resulting matrix is symmetric, so compute both halves at
    * once */
-  for (i = 0; i < m; i++)
+  for (i = 0; i < m; i++) {
     for (j = i; j < m; j++) {
-      c[m*i + j] = 0;
+      c[m * i + j] = 0;
       if (i == j) {
         /* If this is a diagonal element, just sum the squares of the
          * column of A weighted by the weighting vector. */
-        for (k = 0; k < n; k++)
-          c[m*i + j] += w[k]*a[m*k + j]*a[m*k + j];
+        for (k = 0; k < n; k++) {
+          c[m * i + j] += w[k] * a[m * k + j] * a[m * k + j];
+        }
       } else {
         /* Otherwise, assign both off-diagonal elements at once. */
-        for (k = 0; k < n; k++)
-          c[m*i + j] = c[m*j + i] = w[k]*a[m*k + j]*a[m*k + i];
-        c[m*j + i] = c[m*i + j];
+        for (k = 0; k < n; k++) {
+          c[m * i + j] = c[m * j + i] = w[k] * a[m * k + j] * a[m * k + i];
+        }
+        c[m * j + i] = c[m * i + j];
       }
     }
-  if (matrix_inverse(m, c, inv) < 0) return -1;
-  for (i = 0; i < m; i++)
+  }
+  if (matrix_inverse(m, c, inv) < 0) {
+    return -1;
+  }
+  for (i = 0; i < m; i++) {
     for (j = 0; j < n; j++) {
-      b[n*i + j] = 0;
-      for (k = 0; k < m; k++)
-        b[n*i + j] += inv[n*i+k] * a[m*j + k];
+      b[n * i + j] = 0;
+      for (k = 0; k < m; k++) {
+        b[n * i + j] += inv[n * i + k] * a[m * j + k];
+      }
     }
+  }
   return 0;
 }
 
@@ -585,10 +813,14 @@ inline int matrix_atawati(u32 n, u32 m, const double *a,
  *
  *  \return     -1 if n < m; 0 otherwise
  */
-inline int matrix_ataiat(u32 n, u32 m, const double *a, double *b) {
+inline int matrix_ataiat(u32 n, u32 m, const double *a, double *b)
+{
   u32 i;
   double w[n];
-  for (i = 0; i < n; i++) w[i] = 1;
+
+  for (i = 0; i < n; i++) {
+    w[i] = 1;
+  }
   return matrix_atwaiat(n, m, a, w, b);
 }
 
@@ -604,10 +836,14 @@ inline int matrix_ataiat(u32 n, u32 m, const double *a, double *b) {
  *
  *  \return     -1 if n >= m or singular; 0 otherwise
  */
-inline int matrix_ataati(u32 n, u32 m, const double *a, double *b) {
+inline int matrix_ataati(u32 n, u32 m, const double *a, double *b)
+{
   u32 i;
   double w[n];
-  for (i = 0; i < n; i++) w[i] = 1;
+
+  for (i = 0; i < n; i++) {
+    w[i] = 1;
+  }
   return matrix_atawati(n, m, a, w, b);
 }
 
@@ -628,36 +864,45 @@ inline void matrix_multiply(u32 n, u32 m, u32 p, const double *a,
                             const double *b, double *c)
 {
   u32 i, j, k;
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     for (j = 0; j < p; j++) {
-      c[p*i + j] = 0;
-      for (k = 0; k < m; k++)
-        c[p*i + j] += a[m*i+k] * b[p*k + j];
+      c[p * i + j] = 0;
+      for (k = 0; k < m; k++) {
+        c[p * i + j] += a[m * i + k] * b[p * k + j];
+      }
     }
+  }
 }
 
 inline void matrix_multiply_i(u32 n, u32 m, u32 p, const s32 *a,
                               const s32 *b, s32 *c)
 {
   u32 i, j, k;
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     for (j = 0; j < p; j++) {
-      c[p*i + j] = 0;
-      for (k = 0; k < m; k++)
-        c[p*i + j] += a[m*i+k] * b[p*k + j];
+      c[p * i + j] = 0;
+      for (k = 0; k < m; k++) {
+        c[p * i + j] += a[m * i + k] * b[p * k + j];
+      }
     }
+  }
 }
 
 inline void matrix_multiply_s64(u32 n, u32 m, u32 p, const s64 *a,
                                 const s64 *b, s64 *c)
 {
   u32 i, j, k;
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     for (j = 0; j < p; j++) {
-      c[p*i + j] = 0;
-      for (k = 0; k < m; k++)
-        c[p*i + j] += a[m*i+k] * b[p*k + j];
+      c[p * i + j] = 0;
+      for (k = 0; k < m; k++) {
+        c[p * i + j] += a[m * i + k] * b[p * k + j];
+      }
     }
+  }
 }
 
 /** Zero lower triangle of an `n` x `n` square matrix.
@@ -674,9 +919,9 @@ void matrix_triu(u32 n, double *M)
 {
   /* NOTE: This function has been bounds checked. Please check again if
    * modifying. */
-  for (u32 i=1; i<n; i++) {
-    for (u32 j=0; j<i; j++) {
-      M[i*n + j] = 0;
+  for (u32 i = 1; i < n; i++) {
+    for (u32 j = 0; j < i; j++) {
+      M[i * n + j] = 0;
     }
   }
 }
@@ -693,8 +938,8 @@ void matrix_eye(u32 n, double *M)
   /* NOTE: This function has been bounds checked. Please check again if
    * modifying. */
   memset(M, 0, n * n * sizeof(double));
-  for (u32 i=0; i<n; i++) {
-    M[i*n + i] = 1;
+  for (u32 i = 0; i < n; i++) {
+    M[i * n + i] = 1;
   }
 }
 
@@ -724,22 +969,23 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
   /* NOTE: This function has been bounds checked. Please check again if
    * modifying. */
   double alpha, beta;
+
   matrix_triu(n, M);
   matrix_eye(n, U);
   memset(D, 0, n * sizeof(double));
 
-  for (u32 j=n; j>=2; j--) {
-    D[j - 1] = MAX(0, M[(j-1)*n + j-1]);
-    if (D[j-1] > 0) {
-      alpha = 1.0 / D[j-1];
+  for (u32 j = n; j >= 2; j--) {
+    D[j - 1] = MAX(0, M[(j - 1) * n + j - 1]);
+    if (D[j - 1] > 0) {
+      alpha = 1.0 / D[j - 1];
     } else {
       alpha = 0.0;
     }
-    for (u32 k=1; k<j; k++) {
-      beta = M[(k-1)*n + j-1];
-      U[(k-1)*n + j-1] = alpha * beta;
+    for (u32 k = 1; k < j; k++) {
+      beta = M[(k - 1) * n + j - 1];
+      U[(k - 1) * n + j - 1] = alpha * beta;
       for (u32 kk = 0; kk < k; kk++) {
-        M[kk*n + k-1] = M[kk*n + k-1] - beta * U[kk*n + j-1];
+        M[kk * n + k - 1] = M[kk * n + k - 1] - beta * U[kk * n + j - 1];
       }
     }
   }
@@ -762,20 +1008,21 @@ void matrix_udu(u32 n, double *M, double *U, double *D)
  * \param D Pointer to the diagonal vector.
  * \param M Pointer to the output matrix.
  */
-void matrix_reconstruct_udu(const u32 n, const double *U, const double *D, double *M)
+void matrix_reconstruct_udu(const u32 n, const double *U, const double *D,
+                            double *M)
 {
   memset(M, 0, n * n * sizeof(double));
   /* TODO: M will be symmetric, only need to bother populating part of it */
-  for (u32 i=0; i<n; i++) {
-    for (u32 k=i; k<n; k++) {
-      for (u32 j=k; j<n; j++) {
+  for (u32 i = 0; i < n; i++) {
+    for (u32 k = i; k < n; k++) {
+      for (u32 j = k; j < n; j++) {
         /* U[i][j] is upper triangular = 0 if j < i
          * U[k][j] is upper triangular = 0 if j < k
          * U[i][j] * U[k][j] = 0 if j < k or j < i
          */
-        M[i*n + k] += U[i*n +j] * D[j] * U[k*n + j];
+        M[i * n + k] += U[i * n + j] * D[j] * U[k * n + j];
       }
-      M[k*n + i] = M[i*n + k];
+      M[k * n + i] = M[i * n + k];
     }
   }
 }
@@ -794,11 +1041,15 @@ void matrix_reconstruct_udu(const u32 n, const double *U, const double *D, doubl
  *  \param c            Output (sum) matrix
  */
 void matrix_add_sc(u32 n, u32 m, const double *a,
-                   const double *b, double gamma, double *c) {
+                   const double *b, double gamma, double *c)
+{
   u32 i, j;
-  for (i = 0; i < n; i++)
-    for (j = 0; j < m; j++)
-      c[m*i + j] = a[m*i + j] + gamma * b[m*i + j];
+
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < m; j++) {
+      c[m * i + j] = a[m * i + j] + gamma * b[m * i + j];
+    }
+  }
 }
 
 /** Transpose a matrix.
@@ -812,11 +1063,15 @@ void matrix_add_sc(u32 n, u32 m, const double *a,
  *  \param b            Transposed (output) matrix
  */
 void matrix_transpose(u32 n, u32 m,
-                      const double *a, double *b) {
+                      const double *a, double *b)
+{
   u32 i, j;
-  for (i = 0; i < n; i++)
-    for (j = 0; j < m; j++)
-      b[n*j+i] = a[m*i+j];
+
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < m; j++) {
+      b[n * j + i] = a[m * i + j];
+    }
+  }
 }
 
 /** Copy a matrix.
@@ -829,11 +1084,15 @@ void matrix_transpose(u32 n, u32 m,
  *  \param b            Copied (output) matrix
  */
 void matrix_copy(u32 n, u32 m, const double *a,
-                 double *b) {
+                 double *b)
+{
   u32 i, j;
-  for (i = 0; i < n; i++)
-    for (j = 0; j < m; j++)
-      b[m*i+j] = a[m*i+j];
+
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < m; j++) {
+      b[m * i + j] = a[m * i + j];
+    }
+  }
 }
 
 /* \} */
@@ -854,11 +1113,14 @@ void matrix_copy(u32 n, u32 m, const double *a,
  *  \return     The dot product.
  */
 double vector_dot(u32 n, const double *a,
-                  const double *b) {
+                  const double *b)
+{
   u32 i;
   double out = 0;
-  for (i = 0; i < n; i++)
-    out += a[i]*b[i];
+
+  for (i = 0; i < n; i++) {
+    out += a[i] * b[i];
+  }
   return out;
 }
 
@@ -871,11 +1133,14 @@ double vector_dot(u32 n, const double *a,
  *
  *  \return     The 2-norm of a
  */
-double vector_norm(u32 n, const double *a) {
+double vector_norm(u32 n, const double *a)
+{
   u32 i;
   double out = 0;
-  for (i = 0; i < n; i++)
-    out += a[i]*a[i];
+
+  for (i = 0; i < n; i++) {
+    out += a[i] * a[i];
+  }
   return sqrt(out);
 }
 
@@ -887,11 +1152,14 @@ double vector_norm(u32 n, const double *a) {
  *
  *  \return     The mean of \f$\vec{a}\f$
  */
-double vector_mean(u32 n, const double *a) {
+double vector_mean(u32 n, const double *a)
+{
   u32 i;
   double out = 0;
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     out += a[i];
+  }
   return out / n;
 }
 
@@ -902,11 +1170,14 @@ double vector_mean(u32 n, const double *a) {
  *  \param n            Length of a
  *  \param a            Vector to normalize
  */
-void vector_normalize(u32 n, double *a) {
+void vector_normalize(u32 n, double *a)
+{
   u32 i;
   double norm = vector_norm(n, a);
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     a[i] /= norm;
+  }
 }
 
 /** Add a vector with a scaled vector.
@@ -922,10 +1193,13 @@ void vector_normalize(u32 n, double *a) {
  */
 void vector_add_sc(u32 n, const double *a,
                    const double *b, double gamma,
-                   double *c) {
+                   double *c)
+{
   u32 i;
-  for (i = 0; i < n; i++)
+
+  for (i = 0; i < n; i++) {
     c[i] = a[i] + gamma * b[i];
+  }
 }
 
 /** Add two vectors.
@@ -938,7 +1212,8 @@ void vector_add_sc(u32 n, const double *a,
  *  \param c            Output vector
  */
 void vector_add(u32 n, const double *a,
-                const double *b, double *c) {
+                const double *b, double *c)
+{
   vector_add_sc(n, a, b, 1, c);
 }
 
@@ -952,24 +1227,25 @@ void vector_add(u32 n, const double *a,
  *  \param c            Output vector
  */
 void vector_subtract(u32 n, const double *a,
-                     const double *b, double *c) {
+                     const double *b, double *c)
+{
   vector_add_sc(n, a, b, -1, c);
 }
 
-/** Cross product of two vectors.
+/** Cross product of two 3-vectors.
  * Compute \f$ \vec{c} := \vec{a} * \times \vec{b} \f$, where
  * \f$\vec{a}\f$, \f$\vec{b}\f$ and * \f$\vec{c}\f$ are 3-vectors.
  *
- *  \param n            Length of a, b and c
  *  \param a            First input vector
  *  \param b            Second input vector
  *  \param c            Output vector
  */
 void vector_cross(const double a[3], const double b[3],
-                  double c[3]) {
-  c[0] = a[1]*b[2] - a[2]*b[1];
-  c[1] = a[2]*b[0] - a[0]*b[2];
-  c[2] = a[0]*b[1] - a[1]*b[0];
+                  double c[3])
+{
+  c[0] = a[1] * b[2] - a[2] * b[1];
+  c[1] = a[2] * b[0] - a[0] * b[2];
+  c[2] = a[0] * b[1] - a[1] * b[0];
 }
 
 /** Euclidean distance between two points (i.e. under the L2 norm).
@@ -981,8 +1257,10 @@ void vector_cross(const double a[3], const double b[3],
  *
  *  \return             Distance between points
  */
-double vector_distance(u32 n, const double *a, const double *b) {
+double vector_distance(u32 n, const double *a, const double *b)
+{
   double c[n];
+
   vector_subtract(n, a, b, c);
   return sqrt(vector_norm(3, c));
 }

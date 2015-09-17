@@ -39,20 +39,21 @@ u8 parity(u32 x)
  * Unpacks `len` bits at bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \return Bit field as an unsigned value.
  */
 u32 getbitu(const u8 *buff, u32 pos, u8 len)
 {
-    u32 bits = 0;
+  u32 bits = 0;
 
-    for (u32 i = pos; i < pos + len; i++) {
-      bits = (bits << 1) +
-             ((buff[i/8] >> (7 - i%8)) & 1u);
-    }
+  for (u32 i = pos; i < pos + len; i++) {
+    bits = (bits << 1) +
+           ((buff[i / 8] >> (7 - i % 8)) & 1u);
+  }
 
-    return bits;
+  return bits;
 }
 
 /** Get bit field from buffer as a signed integer.
@@ -61,25 +62,28 @@ u32 getbitu(const u8 *buff, u32 pos, u8 len)
  *
  * This function sign extends the `len` bit field to a signed 32 bit integer.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \return Bit field as a signed value.
  */
 s32 getbits(const u8 *buff, u32 pos, u8 len)
 {
-    s32 bits = (s32)getbitu(buff, pos, len);
+  s32 bits = (s32)getbitu(buff, pos, len);
 
-    /* Sign extend, taken from:
-     * http://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
-     */
-    s32 m = 1u << (len - 1);
-    return (bits ^ m) - m;
+  /* Sign extend, taken from:
+   * http://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
+   */
+  s32 m = 1u << (len - 1);
+
+  return (bits ^ m) - m;
 }
 
 /** Set bit field in buffer from an unsigned integer.
  * Packs `len` bits into bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \param data Unsigned integer to be packed into bit field.
@@ -88,14 +92,16 @@ void setbitu(u8 *buff, u32 pos, u32 len, u32 data)
 {
   u32 mask = 1u << (len - 1);
 
-  if (len <= 0 || 32 < len)
+  if (len <= 0 || 32 < len) {
     return;
+  }
 
   for (u32 i = pos; i < pos + len; i++, mask >>= 1) {
-    if (data & mask)
-      buff[i/8] |= 1u << (7 - i % 8);
-    else
-      buff[i/8] &= ~(1u << (7 - i % 8));
+    if (data & mask) {
+      buff[i / 8] |= 1u << (7 - i % 8);
+    } else {
+      buff[i / 8] &= ~(1u << (7 - i % 8));
+    }
   }
 }
 
@@ -103,6 +109,7 @@ void setbitu(u8 *buff, u32 pos, u32 len, u32 data)
  * Packs `len` bits into bit position `pos` from the start of the buffer.
  * Maximum bit field length is 32 bits, i.e. `len <= 32`.
  *
+ * \param buff
  * \param pos Position in buffer of start of bit field in bits.
  * \param len Length of bit field in bits.
  * \param data Signed integer to be packed into bit field.

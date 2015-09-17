@@ -36,7 +36,7 @@
  * \param vel  The satellite velocity in ECEF coordinates is returned in this
  *             vector. Ignored if NULL.
  */
-void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
+void calc_sat_state_almanac(const almanac_t *alm, double t, s16 week,
                             double pos[3], double vel[3])
 {
   /* Seconds since the almanac reference epoch. */
@@ -46,10 +46,11 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
     /* Week number unknown, correct time for beginning or end of week
      * crossovers and limit to +/- 302400 (i.e. assume dt is within a
      * half-week). */
-    if (dt > 302400)
+    if (dt > 302400) {
       dt -= 604800;
-    else if (dt < -302400)
+    } else if (dt < -302400) {
       dt += 604800;
+    }
   } else {
     /* Week number specified, correct time using week number difference. */
     s32 dweeks = week - alm->week;
@@ -59,7 +60,7 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
   /* Calculate position and velocity per ICD-GPS-200D Table 20-IV. */
 
   /* Calculate mean motion in radians/sec. */
-  double ma_dot = sqrt (GPS_GM / (alm->a * alm->a * alm->a));
+  double ma_dot = sqrt(GPS_GM / (alm->a * alm->a * alm->a));
   /* Calculate corrected mean anomaly in radians. */
   double ma = alm->ma + ma_dot * dt;
 
@@ -79,8 +80,9 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
     temp = 1.0 - ecc * cos(ea_old);
     ea = ea + (ma - ea_old + ecc * sin(ea_old)) / temp;
     count++;
-    if (count > 5)
+    if (count > 5) {
       break;
+    }
   } while (fabs(ea - ea_old) > 1.0e-14);
 
   double ea_dot = ma_dot / temp;
@@ -135,10 +137,11 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
  * \param az   Pointer to where to store the calculated azimuth output.
  * \param el   Pointer to where to store the calculated elevation output.
  */
-void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
-                            const double ref[3], double* az, double* el)
+void calc_sat_az_el_almanac(const almanac_t *alm, double t, s16 week,
+                            const double ref[3], double *az, double *el)
 {
   double sat_pos[3];
+
   calc_sat_state_almanac(alm, t, week, sat_pos, 0);
   wgsecef2azel(sat_pos, ref, az, el);
 }
@@ -155,7 +158,7 @@ void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
  *             meters.
  * \return     The Doppler shift in Hz.
  */
-double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
+double calc_sat_doppler_almanac(const almanac_t *alm, double t, s16 week,
                                 const double ref[3])
 {
   double sat_pos[3];

@@ -31,38 +31,40 @@
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
 
-/** Converts from an LLH coordinate in radians 
-* into a LLH coordinate in decimal degrees
-*
-* Conversion from radians to degrees is done using
-* a simple direct conversion formula:
-* $degrees = \frac{radians *` 180}{\pi}$ 
-*
-* Safe to pass same pointer as input and output value, eg:
-*  llhrad2deg(arr1, arr1);
-*/
+/** Converts from an LLH coordinate in radians
+ * into a LLH coordinate in decimal degrees
+ *
+ * Conversion from radians to degrees is done using
+ * a simple direct conversion formula:
+ * \f$degrees = \frac{radians *` 180}{\pi}\f$
+ *
+ * Safe to pass same pointer as input and output value, eg:
+ *  llhrad2deg(arr1, arr1);
+ */
 
-void llhrad2deg(const double llh_rad[3], double llh_deg[3]) {
-  llh_deg[0] = llh_rad[0]*R2D;
-  llh_deg[1] = llh_rad[1]*R2D;
+void llhrad2deg(const double llh_rad[3], double llh_deg[3])
+{
+  llh_deg[0] = llh_rad[0] * R2D;
+  llh_deg[1] = llh_rad[1] * R2D;
   llh_deg[2] = llh_rad[2];
 }
 
 
-/** Converts from an LLH coordinate in decimal degrees 
-* into a LLH coordinate in radians. 
-*
-* Conversion from degrees to radians is done using
-* a simple direct conversion formula:
-* $radians = \frac{degrees * \pi}{180}$ 
-*
-* Safe to pass same pointer as input and output value, eg:
-*  llhdeg2rad(arr1, arr1);
-*/
+/** Converts from an LLH coordinate in decimal degrees
+ * into a LLH coordinate in radians.
+ *
+ * Conversion from degrees to radians is done using
+ * a simple direct conversion formula:
+ * \f$radians = \frac{degrees * \pi}{180}\f$
+ *
+ * Safe to pass same pointer as input and output value, eg:
+ *  llhdeg2rad(arr1, arr1);
+ */
 
-void llhdeg2rad(const double llg_deg[3], double llh_rad[3]) {
-  llh_rad[0] = llg_deg[0]*D2R;
-  llh_rad[1] = llg_deg[1]*D2R;
+void llhdeg2rad(const double llg_deg[3], double llh_rad[3])
+{
+  llh_rad[0] = llg_deg[0] * D2R;
+  llh_rad[1] = llg_deg[1] * D2R;
   llh_rad[2] = llg_deg[2];
 }
 
@@ -90,13 +92,14 @@ void llhdeg2rad(const double llg_deg[3], double llh_rad[3]) {
  * \param ecef Converted Cartesian coordinates are written into this array
  *             as [X, Y, Z], all in meters.
  */
-void wgsllh2ecef(const double llh[3], double ecef[3]) {
+void wgsllh2ecef(const double llh[3], double ecef[3])
+{
   double d = WGS84_E * sin(llh[0]);
-  double N = WGS84_A / sqrt(1. - d*d);
+  double N = WGS84_A / sqrt(1. - d * d);
 
   ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
   ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-  ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+  ecef[2] = ((1 - WGS84_E * WGS84_E) * N + llh[2]) * sin(llh[0]);
 }
 
 /** Converts from WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
@@ -125,19 +128,21 @@ void wgsllh2ecef(const double llh[3], double ecef[3]) {
  * \param llh  Converted geodetic coordinates are written into this array as
  *             [lat, lon, height] in [radians, radians, meters].
  */
-void wgsecef2llh(const double ecef[3], double llh[3]) {
+void wgsecef2llh(const double ecef[3], double llh[3])
+{
   /* Distance from polar axis. */
-  const double p = sqrt(ecef[0]*ecef[0] + ecef[1]*ecef[1]);
+  const double p = sqrt(ecef[0] * ecef[0] + ecef[1] * ecef[1]);
 
   /* Compute longitude first, this can be done exactly. */
-  if (p != 0)
+  if (p != 0) {
     llh[1] = atan2(ecef[1], ecef[0]);
-  else
+  } else {
     llh[1] = 0;
+  }
 
   /* If we are close to the pole then convergence is very slow, treat this is a
    * special case. */
-  if (p < WGS84_A*1e-16) {
+  if (p < WGS84_A * 1e-16) {
     llh[0] = copysign(M_PI_2, ecef[2]);
     llh[2] = fabs(ecef[2]) - WGS84_B;
     return;
@@ -145,7 +150,7 @@ void wgsecef2llh(const double ecef[3], double llh[3]) {
 
   /* Caluclate some other constants as defined in the Fukushima paper. */
   const double P = p / WGS84_A;
-  const double e_c = sqrt(1. - WGS84_E*WGS84_E);
+  const double e_c = sqrt(1. - WGS84_E * WGS84_E);
   const double Z = fabs(ecef[2]) * e_c / WGS84_A;
 
   /* Initial values for S and C correspond to a zero height solution. */
@@ -161,18 +166,17 @@ void wgsecef2llh(const double ecef[3], double llh[3]) {
 
   /* Iterate a maximum of 10 times. This should be way more than enough for all
    * sane inputs */
-  for (int i=0; i<10; i++)
-  {
+  for (int i = 0; i < 10; i++) {
     /* Calculate some intermmediate variables used in the update step based on
      * the current state. */
-    A_n = sqrt(S*S + C*C);
-    D_n = Z*A_n*A_n*A_n + WGS84_E*WGS84_E*S*S*S;
-    F_n = P*A_n*A_n*A_n - WGS84_E*WGS84_E*C*C*C;
-    B_n = 1.5*WGS84_E*S*C*C*(A_n*(P*S - Z*C) - WGS84_E*S*C);
+    A_n = sqrt(S * S + C * C);
+    D_n = Z * A_n * A_n * A_n + WGS84_E * WGS84_E * S * S * S;
+    F_n = P * A_n * A_n * A_n - WGS84_E * WGS84_E * C * C * C;
+    B_n = 1.5 * WGS84_E * S * C * C * (A_n * (P * S - Z * C) - WGS84_E * S * C);
 
     /* Update step. */
-    S = D_n*F_n - B_n*S;
-    C = F_n*F_n - B_n*C;
+    S = D_n * F_n - B_n * S;
+    C = F_n * F_n - B_n * C;
 
     /* The original algorithm as presented in the paper by Fukushima has a
      * problem with numerical stability. S and C can grow very large or small
@@ -212,9 +216,10 @@ void wgsecef2llh(const double ecef[3], double llh[3]) {
     }
   }
 
-  A_n = sqrt(S*S + C*C);
-  llh[0] = copysign(1.0, ecef[2]) * atan(S / (e_c*C));
-  llh[2] = (p*e_c*C + fabs(ecef[2])*S - WGS84_A*e_c*A_n) / sqrt(e_c*e_c*C*C + S*S);
+  A_n = sqrt(S * S + C * C);
+  llh[0] = copysign(1.0, ecef[2]) * atan(S / (e_c * C));
+  llh[2] = (p * e_c * C + fabs(ecef[2]) * S - WGS84_A * e_c * A_n) / sqrt(
+    e_c * e_c * C * C + S * S);
 }
 
 /** Populates a provided 3x3 matrix with the appropriate rotation
@@ -225,13 +230,14 @@ void wgsecef2llh(const double ecef[3], double llh[3]) {
  *                 [X, Y, Z], all in meters.
  * \param M        3x3 matrix to be populated with rotation matrix.
  */
-void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
+void ecef2ned_matrix(const double ref_ecef[3], double M[3][3])
+{
   double hyp_az, hyp_el;
   double sin_el, cos_el, sin_az, cos_az;
 
   /* Convert reference point to spherical earth centered coordinates. */
-  hyp_az = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
-  hyp_el = sqrt(hyp_az*hyp_az + ref_ecef[2]*ref_ecef[2]);
+  hyp_az = sqrt(ref_ecef[0] * ref_ecef[0] + ref_ecef[1] * ref_ecef[1]);
+  hyp_el = sqrt(hyp_az * hyp_az + ref_ecef[2] * ref_ecef[2]);
   sin_el = ref_ecef[2] / hyp_el;
   cos_el = hyp_az / hyp_el;
   sin_az = ref_ecef[1] / hyp_az;
@@ -268,7 +274,8 @@ void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
  *                  [N, E, D], all in meters.
  */
 void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
-                 double ned[3]) {
+                 double ned[3])
+{
   double M[3][3];
 
   ecef2ned_matrix(ref_ecef, M);
@@ -290,8 +297,10 @@ void wgsecef2ned(const double ecef[3], const double ref_ecef[3],
  *                  [N, E, D], all in meters.
  */
 void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
-                   double ned[3]) {
+                   double ned[3])
+{
   double tempv[3];
+
   vector_subtract(3, ecef, ref_ecef, tempv);
   wgsecef2ned(tempv, ref_ecef, ned);
 }
@@ -315,8 +324,10 @@ void wgsecef2ned_d(const double ecef[3], const double ref_ecef[3],
  *                  [X, Y, Z], all in meters.
  */
 void wgsned2ecef(const double ned[3], const double ref_ecef[3],
-                 double ecef[3]) {
+                 double ecef[3])
+{
   double M[3][3], M_transpose[3][3];
+
   ecef2ned_matrix(ref_ecef, M);
   matrix_transpose(3, 3, (double *)M, (double *)M_transpose);
   matrix_multiply(3, 3, 1, (double *)M_transpose, ned, ecef);
@@ -336,8 +347,10 @@ void wgsned2ecef(const double ned[3], const double ref_ecef[3],
  *                  [X, Y, Z], all in meters.
  */
 void wgsned2ecef_d(const double ned[3], const double ref_ecef[3],
-                   double ecef[3]) {
+                   double ecef[3])
+{
   double tempv[3];
+
   wgsned2ecef(ned, ref_ecef, tempv);
   vector_add(3, tempv, ref_ecef, ecef);
 }
@@ -360,7 +373,8 @@ void wgsned2ecef_d(const double ned[3], const double ref_ecef[3],
  * \param elevation Pointer to where to store the calculated elevation output.
  */
 void wgsecef2azel(const double ecef[3], const double ref_ecef[3],
-                  double* azimuth, double* elevation) {
+                  double *azimuth, double *elevation)
+{
   double ned[3];
 
   /* Calculate the vector from the reference point in the local North, East,
@@ -370,10 +384,11 @@ void wgsecef2azel(const double ecef[3], const double ref_ecef[3],
   *azimuth = atan2(ned[1], ned[0]);
   /* atan2 returns angle in range [-pi, pi], usually azimuth is defined in the
    * range [0, 2pi]. */
-  if (*azimuth < 0)
-    *azimuth += 2*M_PI;
+  if (*azimuth < 0) {
+    *azimuth += 2 * M_PI;
+  }
 
-  *elevation = asin(-ned[2]/vector_norm(3, ned));
+  *elevation = asin(-ned[2] / vector_norm(3, ned));
 }
 
 /** \} */

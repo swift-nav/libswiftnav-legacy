@@ -98,16 +98,16 @@
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
                      float *b0, float *b1)
 {
-  float T = 1/loop_freq;
+  float T = 1 / loop_freq;
   /* Find the natural frequency. */
-  float omega_n = 8.f*bw*zeta / (4.f*zeta*zeta + 1.f);
+  float omega_n = 8.f * bw * zeta / (4.f * zeta * zeta + 1.f);
 
   /* Some intermmediate values. */
   float tau_1 = k / (omega_n * omega_n);
   float tau_2 = 2 * zeta / omega_n;
 
-  *b0 = (2*tau_2 + T) / (2*tau_1);
-  *b1 = (T - 2*tau_2) / (2*tau_1);
+  *b0 = (2 * tau_2 + T) / (2 * tau_1);
+  *b1 = (T - 2 * tau_2) / (2 * tau_1);
 }
 
 /** Phase discriminator for a Costas loop.
@@ -131,12 +131,12 @@ void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
 float costas_discriminator(float I, float Q)
 {
   if (I == 0) {
-    // Technically, it should be +/- 0.25, but then we'd have to keep track
-    //  of the previous sign do it right, so it's simple enough to just return
-    //  the average of 0.25 and -0.25 in the face of that ambiguity, so zero.
+    /* Technically, it should be +/- 0.25, but then we'd have to keep track */
+    /*  of the previous sign do it right, so it's simple enough to just return */
+    /*  the average of 0.25 and -0.25 in the face of that ambiguity, so zero. */
     return 0;
   }
-  return atanf(Q / I) * (float)(1/(2*M_PI));
+  return atanf(Q / I) * (float)(1 / (2 * M_PI));
 }
 
 /** Frequency discriminator for a FLL, used to aid the PLL.
@@ -159,15 +159,16 @@ float costas_discriminator(float I, float Q)
  *
  * \param I The prompt in-phase correlation, \f$I_k\f$.
  * \param Q The prompt quadrature correlation, \f$Q_k\f$.
- * \param I The prompt in-phase correlation, \f$I_{k-1}\f$.
- * \param Q The prompt quadrature correlation, \f$Q_{k-1}\f$.
+ * \param prev_I The prompt in-phase correlation, \f$I_{k-1}\f$.
+ * \param prev_Q The prompt quadrature correlation, \f$Q_{k-1}\f$.
  * \return The discriminator value, \f$\varepsilon_k\f$.
  */
 float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
 {
   float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
   float cross = prev_I * Q - I * prev_Q;
-  return atan2f(cross, dot) / ((float) M_PI);
+
+  return atan2f(cross, dot) / ((float)M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -198,8 +199,8 @@ float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
  */
 float dll_discriminator(correlation_t cs[3])
 {
-  float early_mag = sqrtf((float)cs[0].I*cs[0].I + (float)cs[0].Q*cs[0].Q);
-  float late_mag = sqrtf((float)cs[2].I*cs[2].I + (float)cs[2].Q*cs[2].Q);
+  float early_mag = sqrtf((float)cs[0].I * cs[0].I + (float)cs[0].Q * cs[0].Q);
+  float late_mag = sqrtf((float)cs[2].I * cs[2].I + (float)cs[2].Q * cs[2].Q);
 
   return 0.5f * (early_mag - late_mag) / (early_mag + late_mag);
 }
@@ -300,6 +301,7 @@ float simple_lf_update(simple_lf_state_t *s, float error)
  * \param carr_bw The carrier tracking loop noise bandwidth.
  * \param carr_zeta The carrier tracking loop damping ratio.
  * \param carr_k The carrier tracking loop gain.
+ * \param carr_freq_b1 The integral gain of the aiding error term, \f$k_{ia}\f$.
  */
 void aided_tl_init(aided_tl_state_t *s, float loop_freq,
                    float code_freq,
@@ -312,7 +314,7 @@ void aided_tl_init(aided_tl_state_t *s, float loop_freq,
   float b0, b1;
 
   s->carr_freq = carr_freq;
-  s->prev_I = 1.0f; // This works, but is it a really good way to do it?
+  s->prev_I = 1.0f; /* This works, but is it a really good way to do it? */
   s->prev_Q = 0.0f;
   calc_loop_gains(carr_bw, carr_zeta, carr_k, loop_freq, &b0, &b1);
   aided_lf_init(&(s->carr_filt), carr_freq, b0, b1, carr_freq_b1);
@@ -360,8 +362,10 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
   /* Carrier loop */
   float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
   float freq_error = 0;
+
   if (s->carr_filt.aiding_igain != 0) { /* Don't waste cycles if not using FLL */
-    freq_error = frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
+    freq_error =
+      frequency_discriminator(cs[1].I, cs[1].Q, s->prev_I, s->prev_Q);
     s->prev_I = cs[1].I;
     s->prev_Q = cs[1].Q;
   }
@@ -370,8 +374,9 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
   /* Code loop */
   float code_error = dll_discriminator(cs);
   s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
-  if (s->carr_to_code) /* Optional carrier aiding of code loop */
+  if (s->carr_to_code) { /* Optional carrier aiding of code loop */
     s->code_freq += s->carr_freq / s->carr_to_code;
+  }
 }
 
 /** Initialise a simple tracking loop.
@@ -379,6 +384,7 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
  * For a full description of the loop filter parameters, see calc_loop_gains().
  *
  * \param s The tracking loop state struct to initialise.
+ * \param loop_freq The loop update frequency, \f$1/T\f$.
  * \param code_freq The initial code phase rate (i.e. frequency).
  * \param code_bw The code tracking loop noise bandwidth.
  * \param code_zeta The code tracking loop damping ratio.
@@ -422,6 +428,7 @@ void simple_tl_init(simple_tl_state_t *s, float loop_freq,
 void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
 {
   float code_error = dll_discriminator(cs);
+
   s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
   float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
   s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
@@ -441,6 +448,7 @@ void simple_tl_update(simple_tl_state_t *s, correlation_t cs[3])
  * GPS C/A code phase rate, 4.092MHz IF for the carrier).
  *
  * \param s The tracking loop state struct to initialise.
+ * \param loop_freq The loop update frequency, \f$1/T\f$.
  * \param code_freq The initial code phase rate (i.e. frequency) difference
  *                  from nominal.
  * \param code_bw The code tracking loop noise bandwidth.
@@ -495,6 +503,7 @@ void comp_tl_init(comp_tl_state_t *s, float loop_freq,
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
 {
   float carr_error = costas_discriminator(cs[1].I, cs[1].Q);
+
   s->carr_freq = simple_lf_update(&(s->carr_filt), carr_error);
 
   float code_error = dll_discriminator(cs);
@@ -504,7 +513,7 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
   if (s->n > s->sched) {
     s->code_freq = s->A * s->code_freq + \
                    s->A * code_update + \
-                   (1.f - s->A)*s->carr_to_code*s->carr_freq;
+                   (1.f - s->A) * s->carr_to_code * s->carr_freq;
   } else {
     s->code_freq += code_update;
   }
@@ -562,6 +571,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q)
 }
 
 /** Initialise the lock detector state.
+ * \param l
  * \param k1 LPF coefficient.
  * \param k2 I Scale factor.
  * \param lp Pessimistic count threshold.
@@ -574,6 +584,7 @@ void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
 }
 
 /** Update the lock detector parameters, preserving internal state.
+ * \param l
  * \param k1 LPF coefficient.
  * \param k2 I Scale factor.
  * \param lp Pessimistic count threshold.
@@ -597,6 +608,7 @@ static float lock_detect_lpf_update(struct loop_detect_lpf *lpf, float x)
 }
 
 /** Update the lock detector with new prompt correlations.
+ * \param l
  * \param I In-phase prompt correlation.
  * \param Q Quadrature prompt correlation.
  * \param DT Integration time
@@ -609,6 +621,7 @@ static float lock_detect_lpf_update(struct loop_detect_lpf *lpf, float x)
 void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 {
   float a, b;
+
   /* Calculated low-pass filtered prompt correlations */
   a = lock_detect_lpf_update(&l->lpfi, fabs(I) / DT) / l->k2;
   b = lock_detect_lpf_update(&l->lpfq, fabs(Q) / DT);
@@ -651,14 +664,15 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq)
 {
-  float Tw0 = (2*M_PI*cutoff_freq) / loop_freq;
+  float Tw0 = (2 * M_PI * cutoff_freq) / loop_freq;
+
   s->b = Tw0 / (Tw0 + 2);
   s->a = (Tw0 - 2) / (Tw0 + 2);
 
-  s->log_bw = 10.f*log10f(bw);
+  s->log_bw = 10.f * log10f(bw);
   s->I_prev_abs = -1.f;
   s->Q_prev_abs = -1.f;
-  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
+  s->nsr = powf(10.f, 0.1f * (s->log_bw - cn0_0));
 }
 
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
@@ -724,9 +738,9 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
     s->Q_prev_abs = fabsf(Q);
   } else {
     P_n = fabsf(Q) - s->Q_prev_abs;
-    P_n = P_n*P_n;
+    P_n = P_n * P_n;
 
-    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
+    P_s = 0.5f * (I * I + s->I_prev_abs * s->I_prev_abs);
 
     s->I_prev_abs = fabsf(I);
     s->Q_prev_abs = fabsf(Q);
@@ -736,36 +750,41 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
     s->xn = tmp;
   }
 
-  return s->log_bw - 10.f*log10f(s->nsr);
+  return s->log_bw - 10.f * log10f(s->nsr);
 }
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
-                                 navigation_measurement_t nav_meas[], double nav_time,
+                                 navigation_measurement_t nav_meas[],
+                                 double nav_time,
                                  ephemeris_t ephemerides[])
 {
-  channel_measurement_t* meas_ptrs[n_channels];
-  navigation_measurement_t* nav_meas_ptrs[n_channels];
-  ephemeris_t* ephemerides_ptrs[n_channels];
+  channel_measurement_t *meas_ptrs[n_channels];
+  navigation_measurement_t *nav_meas_ptrs[n_channels];
+  ephemeris_t *ephemerides_ptrs[n_channels];
 
-  for (u8 i=0; i<n_channels; i++) {
+  for (u8 i = 0; i < n_channels; i++) {
     meas_ptrs[i] = &meas[i];
     nav_meas_ptrs[i] = &nav_meas[i];
     ephemerides_ptrs[i] = &ephemerides[meas[i].prn];
   }
 
-  calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time, ephemerides_ptrs);
+  calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs, nav_time,
+                               ephemerides_ptrs);
 }
 
-void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], navigation_measurement_t* nav_meas[], double nav_time, ephemeris_t* ephemerides[])
+void calc_navigation_measurement_(u8 n_channels, channel_measurement_t *meas[],
+                                  navigation_measurement_t *nav_meas[],
+                                  double nav_time, ephemeris_t *ephemerides[])
 {
   double TOTs[n_channels];
   double min_TOF = -DBL_MAX;
   double clock_err[n_channels], clock_rate_err[n_channels];
 
-  for (u8 i=0; i<n_channels; i++) {
+  for (u8 i = 0; i < n_channels; i++) {
     TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
     TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
-    TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
+    TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate /
+               1.023e6;
 
     /** \todo Maybe keep track of week number in tracking channel
         state or derive it from system time. */
@@ -777,26 +796,30 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
     nav_meas[i]->prn = meas[i]->prn;
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
-    nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
+    nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) *
+                                  meas[i]->carrier_freq;
 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
-	
+
     /* calc sat clock error */
     calc_sat_state(ephemerides[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
 
     /* remove clock error to put all tots within the same time window */
-    if ((TOTs[i] + clock_err[i]) > min_TOF)
+    if ((TOTs[i] + clock_err[i]) > min_TOF) {
       min_TOF = TOTs[i];
+    }
   }
 
-  for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
+  for (u8 i = 0; i < n_channels; i++) {
+    nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i]) * GPS_C +
+                                   GPS_NOMINAL_RANGE;
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
-                               + clock_err[i]*GPS_C;
-    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
+                               + clock_err[i] * GPS_C;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i] *
+                           GPS_L1_HZ;
 
     nav_meas[i]->tot.tow -= clock_err[i];
     nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
@@ -808,8 +831,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
  */
 int nav_meas_cmp(const void *a, const void *b)
 {
-  return (s8)((navigation_measurement_t*)a)->prn
-       - (s8)((navigation_measurement_t*)b)->prn;
+  return (s8)((navigation_measurement_t *)a)->prn
+         - (s8)((navigation_measurement_t *)b)->prn;
 }
 
 /** Set measurement precise Doppler using time difference of carrier phase.
@@ -818,10 +841,10 @@ int nav_meas_cmp(const void *a, const void *b)
  * array at least `MIN(n_new, n_old)` long will ensure sufficient space.
  *
  * \param n_new Number of measurements in `m_new`
- * \oaram m_new Array of new navigation measurements
+ * \param m_new Array of new navigation measurements
  * \param n_old Number of measurements in `m_old`
- * \oaram m_new Array of old navigation measurements, sorted by PRN
- * \param m_tdcp Array in which to store the output measurements
+ * \param m_old Array of old navigation measurements, sorted by PRN
+ * \param m_corrected Array in which to store the output measurements
  * \return The number of measurements written to `m_tdcp`
  */
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
@@ -834,12 +857,12 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
   u8 i, j, n = 0;
 
   /* Loop over m_new and m_old and check if a PRN is present in both. */
-  for (i=0, j=0; i<n_new && j<n_old; i++, j++) {
-    if (m_new[i].prn < m_old[j].prn)
+  for (i = 0, j = 0; i < n_new && j < n_old; i++, j++) {
+    if (m_new[i].prn < m_old[j].prn) {
       j--;
-    else if (m_new[i].prn > m_old[j].prn)
+    } else if (m_new[i].prn > m_old[j].prn) {
       i--;
-    else {
+    } else {
       /* Copy m_new to m_corrected. */
       memcpy(&m_corrected[n], &m_new[i], sizeof(navigation_measurement_t));
       /* Calculate the Doppler correction between raw and corrected. */
@@ -847,8 +870,9 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Calculate raw Doppler from time difference of carrier phase. */
       /* TODO: check that using difference of TOTs here is a valid
        * approximation. */
-      m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
-                                    / gpsdifftime(m_new[i].tot, m_old[j].tot);
+      m_corrected[n].raw_doppler =
+        (m_new[i].carrier_phase - m_old[j].carrier_phase)
+        / gpsdifftime(m_new[i].tot, m_old[j].tot);
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
       n++;

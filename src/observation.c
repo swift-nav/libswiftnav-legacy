@@ -31,6 +31,7 @@ int cmp_sdiff_prn(const void *a_, const void *b_)
 {
   const sdiff_t *a = (const sdiff_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
+
   return cmp_u8_u8(&(a->prn), &(b->prn));
 }
 
@@ -59,8 +60,8 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
 
   /* NOTE: We use the position and velocity from B (this is required by
    * make_propagated_sdiffs(). */
-  memcpy(&(sds[n].sat_pos), &(m_b->sat_pos), 3*sizeof(double));
-  memcpy(&(sds[n].sat_vel), &(m_b->sat_vel), 3*sizeof(double));
+  memcpy(&(sds[n].sat_pos), &(m_b->sat_pos), 3 * sizeof(double));
+  memcpy(&(sds[n].sat_vel), &(m_b->sat_vel), 3 * sizeof(double));
 }
 
 /** Calculate single differences from two sets of observations.
@@ -72,9 +73,9 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
  * `sat_pos` and `sat_vel` are taken from input b.
  *
  * \param n_a Number of measurements in set `m_a`
- * \oaram m_a Array of undifferenced observations, as a set sorted by PRN
+ * \param m_a Array of undifferenced observations, as a set sorted by PRN
  * \param n_b Number of measurements in set `m_b`
- * \oaram m_b Array of undifferenced observations, as a set sorted by PRN
+ * \param m_b Array of undifferenced observations, as a set sorted by PRN
  * \param sds Single difference observations
  *
  * \return The number of observations written to `sds` on success,
@@ -121,9 +122,10 @@ u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
                               double remote_pos_ecef[3], sdiff_t *sds)
 {
   make_propagated_sdiff_ctxt ctxt = {
-    .sds = sds,
+    .sds             = sds,
     .remote_pos_ecef = remote_pos_ecef
   };
+
   return intersection_map(n_local, sizeof(navigation_measurement_t), m_local,
                           n_remote, sizeof(navigation_measurement_t), m_remote,
                           nav_meas_cmp, &ctxt, make_propagated_sdiff_);
@@ -131,7 +133,7 @@ u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
 
 int sdiff_search_prn(const void *a, const void *b)
 {
-  return (*(u8*)a - ((sdiff_t *)b)->prn);
+  return *(u8 *)a - ((sdiff_t *)b)->prn;
 }
 
 /** Propagates remote measurements to a local time and makes sdiffs.
@@ -160,6 +162,8 @@ int sdiff_search_prn(const void *a, const void *b)
  *                           correspond to the i-th element of m_remote).
  * \param remote_pos_ecef   The position of the remote receiver (presumed
  *                           constant in ecef).
+ * \param es
+ * \param t
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
  */
@@ -172,12 +176,12 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
   u8 i, j, n = 0;
 
   /* Loop over m_a and m_b and check if a PRN is present in both. */
-  for (i=0, j=0; i<n_local && j<n_remote; i++, j++) {
-    if (m_local[i].prn < m_remote[j].prn)
+  for (i = 0, j = 0; i < n_local && j < n_remote; i++, j++) {
+    if (m_local[i].prn < m_remote[j].prn) {
       j--;
-    else if (m_local[i].prn > m_remote[j].prn)
+    } else if (m_local[i].prn > m_remote[j].prn) {
       i--;
-    else if (ephemeris_good(&es[m_local[i].prn], t)) {
+    } else if (ephemeris_good(&es[m_local[i].prn], t)) {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];
@@ -188,7 +192,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double dx = local_sat_pos[0] - remote_pos_ecef[0];
       double dy = local_sat_pos[1] - remote_pos_ecef[1];
       double dz = local_sat_pos[2] - remote_pos_ecef[2];
-      double new_dist = sqrt( dx * dx + dy * dy + dz * dz);
+      double new_dist = sqrt(dx * dx + dy * dy + dz * dz);
       double dist_diff = new_dist - remote_dists[j];
       /* Explanation:
        * pseudorange = dist + c
@@ -203,17 +207,17 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
        *
        * For carrier phase, it's the same thing, but the update has opposite sign. */
       sds[n].pseudorange = m_local[i].raw_pseudorange
-                         - (m_remote[j].raw_pseudorange
-                            + dist_diff);
+                           - (m_remote[j].raw_pseudorange
+                              + dist_diff);
       sds[n].carrier_phase = m_local[i].carrier_phase
-                           - (m_remote[j].carrier_phase
-                              - dist_diff / GPS_L1_LAMBDA);
+                             - (m_remote[j].carrier_phase
+                                - dist_diff / GPS_L1_LAMBDA);
 
       /* Doppler is not propagated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
       sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
-      memcpy(&(sds[n].sat_pos), &(local_sat_pos[0]), 3*sizeof(double));
-      memcpy(&(sds[n].sat_vel), &(local_sat_vel[0]), 3*sizeof(double));
+      memcpy(&(sds[n].sat_pos), &(local_sat_pos[0]), 3 * sizeof(double));
+      memcpy(&(sds[n].sat_vel), &(local_sat_vel[0]), 3 * sizeof(double));
 
       n++;
     }
@@ -250,7 +254,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
   assert(sats_to_drop != NULL);
 
   u8 num_sats_to_drop = 0;
-  for (u8 i = 0; i<n_sds; i++) {
+  for (u8 i = 0; i < n_sds; i++) {
     u8 prn = sds[i].prn;
     u16 new_count = sds[i].lock_counter;
     if (new_count != lock_counters[prn]) {
@@ -285,7 +289,8 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dds,
+s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns,
+                                   u8 num_dds,
                                    u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
@@ -298,11 +303,12 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
 
   if (DEBUG) {
     printf("ref_prn = %u\nnon_ref_prns = {", ref_prn);
-    for (u8 i=0; i < num_dds; i++) {
+    for (u8 i = 0; i < num_dds; i++) {
       printf("%d, ", non_ref_prns[i]);
     }
-    printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds, num_sdiffs);
-    for (u8 i=0; i < num_sdiffs; i++) {
+    printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds,
+           num_sdiffs);
+    for (u8 i = 0; i < num_sdiffs; i++) {
       printf("%d, ", sdiffs_in[i].prn);
     }
     printf("}\n");
@@ -311,7 +317,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
   if (!is_prn_set(num_dds, non_ref_prns)) {
     log_error("There is disorder in the amb_test sats.");
     printf("amb_test sat prns = {%u, ", ref_prn);
-    for (u8 k=0; k < num_dds; k++) {
+    for (u8 k = 0; k < num_dds; k++) {
       printf("%u, ", non_ref_prns[k]);
     }
     printf("}\n");
@@ -321,17 +327,17 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
 
   double ref_phase = 0;
   double ref_pseudorange = 0;
-  u8 i=0;
-  u8 j=0;
+  u8 i = 0;
+  u8 j = 0;
   u8 found_ref = 0;
   /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
    * and the reference sat. */
   while (i < num_dds) {
     if (non_ref_prns[i] == sdiffs_in[j].prn) {
       /* When we find a non-ref sat, we fill in the next measurement. */
-      memcpy(&sdiffs_out[i+1], &sdiffs_in[j], sizeof(sdiff_t));
+      memcpy(&sdiffs_out[i + 1], &sdiffs_in[j], sizeof(sdiff_t));
       dd_meas[i] = sdiffs_in[j].carrier_phase;
-      dd_meas[i+num_dds] = sdiffs_in[j].pseudorange;
+      dd_meas[i + num_dds] = sdiffs_in[j].pseudorange;
       i++;
       j++;
     } else if (ref_prn == sdiffs_in[j].prn) {
@@ -341,8 +347,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
       ref_pseudorange = sdiffs_in[j].pseudorange;
       j++;
       found_ref = 1;
-    }
-    else if (non_ref_prns[i] > sdiffs_in[j].prn) {
+    } else if (non_ref_prns[i] > sdiffs_in[j].prn) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
        * i prn is higher than the j one, it means that the i one might be in the
        * j set for higher j, and that the current j prn isn't in the i set. */
@@ -361,7 +366,7 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
    * same satellites only the ref of amb_test.sats is the last PRN in sdiffs.
    * This case is never checked for j = num_dds as i only runs to num_dds-1. */
   /* TODO: This function could be refactored to be a lot clearer. */
-  while (!found_ref && j < num_sdiffs ) {
+  while (!found_ref && j < num_sdiffs) {
     if (ref_prn == sdiffs_in[j].prn) {
       memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
       ref_phase =  sdiffs_in[j].carrier_phase;
@@ -375,17 +380,17 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
     DEBUG_EXIT();
     return -1;
   }
-  for (i=0; i < num_dds; i++) {
+  for (i = 0; i < num_dds; i++) {
     dd_meas[i] -= ref_phase;
-    dd_meas[i+num_dds] -= ref_pseudorange;
+    dd_meas[i + num_dds] -= ref_pseudorange;
   }
   if (DEBUG) {
     printf("amb_sdiff_prns = {");
-    for (i = 0; i < num_dds+1; i++) {
+    for (i = 0; i < num_dds + 1; i++) {
       printf("%u, ", sdiffs_out[i].prn);
     }
     printf("}\ndd_measurements = {");
-    for (i=0; i < 2 * num_dds; i++) {
+    for (i = 0; i < 2 * num_dds; i++) {
       printf("%f, \t", dd_meas[i]);
     }
     printf("}\n");
@@ -395,18 +400,20 @@ s8 make_dd_measurements_and_sdiffs(u8 ref_prn, const u8 *non_ref_prns, u8 num_dd
   return 0;
 }
 
-s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+s8 copy_sdiffs_put_ref_first(const u8 ref_prn, const u8 num_sdiffs,
+                             const sdiff_t *sdiffs,
+                             sdiff_t *sdiffs_with_ref_first)
 {
   s8 not_found = -1;
   u8 j = 1;
-  for (u8 i=0; i<num_sdiffs; i++) {
+
+  for (u8 i = 0; i < num_sdiffs; i++) {
     if (sdiffs[i].prn == ref_prn) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
       not_found = 0;
-    }
-    else {
+    } else {
       if (j == num_sdiffs) {
-        return not_found; //note: not_found should always be -1 if it reaches this point. if anyone thinks "return -1" is more clear, go ahead and change it.
+        return not_found; /* note: not_found should always be -1 if it reaches this point. if anyone thinks "return -1" is more clear, go ahead and change it. */
       }
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
@@ -425,9 +432,11 @@ static bool contains_prn(u8 len, u8 *prns, u8 prn)
   return false;
 }
 
-u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_to_drop)
+u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop,
+                 u8 *sats_to_drop)
 {
   u8 new_num_sdiffs = 0;
+
   for (u8 i = 0; i < num_sdiffs; i++) {
     if (!contains_prn(num_sats_to_drop, sats_to_drop, sdiffs[i].prn)) {
       if (new_num_sdiffs != i) {
@@ -445,17 +454,17 @@ u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_t
 void debug_sdiff(sdiff_t sd)
 {
   log_debug("sdiff_t:"
-    "\tprn = %u\n"
-    "\tsnr = %f\n"
-    "\tpseudorange   = %f\n"
-    "\tcarrier_phase = %f\n"
-    "\tdoppler       = %f\n"
-    "\tsat_pos = [%f, %f, %f]\n"
-    "\tsat_vel = [%f, %f, %f]\n",
-    sd.prn, sd.snr,
-    sd.pseudorange, sd.carrier_phase, sd.doppler,
-    sd.sat_pos[0], sd.sat_pos[1], sd.sat_pos[2],
-    sd.sat_vel[0], sd.sat_vel[1], sd.sat_vel[2]);
+            "\tprn = %u\n"
+            "\tsnr = %f\n"
+            "\tpseudorange   = %f\n"
+            "\tcarrier_phase = %f\n"
+            "\tdoppler       = %f\n"
+            "\tsat_pos = [%f, %f, %f]\n"
+            "\tsat_vel = [%f, %f, %f]\n",
+            sd.prn, sd.snr,
+            sd.pseudorange, sd.carrier_phase, sd.doppler,
+            sd.sat_pos[0], sd.sat_pos[1], sd.sat_pos[2],
+            sd.sat_vel[0], sd.sat_vel[1], sd.sat_vel[2]);
 }
 
 /** Prints an array of sdiffs
@@ -465,7 +474,7 @@ void debug_sdiff(sdiff_t sd)
 void debug_sdiffs(u8 n, sdiff_t *sds)
 {
   log_debug("[");
-  for (u8 i=0; i<n; i++) {
+  for (u8 i = 0; i < n; i++) {
     debug_sdiff(sds[i]);
   }
   log_debug("]");
