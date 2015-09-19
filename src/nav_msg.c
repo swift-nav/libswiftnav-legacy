@@ -538,7 +538,6 @@ static u8 isInverse(u8 preamble_candidate)
 s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
                             sbas_almanac_t *alm)
 {
-  s8 ret = 0;
   int i = 0;
   u8 *buffer = n->decoded;
   int total_bits = sizeof(n->decoded) * 8;
@@ -560,11 +559,10 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
       if (computed_crc == msg_crc) {
-        ret = 0;
         found = true;
       }
     } else if (isInverse(preamble_candidate)) {
-      for (u8 j = 0; j < sizeof(n->decoded); j++)
+      for (u8 j = 0; j < total_bits/8 + 1; j++)
         buffer[j] = ~buffer[j];
       u32 msg_crc = getbitu(buffer, i + 226, 24);
       u8 crc_buf[29] = {0};
@@ -574,21 +572,23 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
       if (computed_crc == msg_crc) {
-        ret = 0;
         found = true;
       } else {
-        for (u8 j = 0; j < sizeof(n->decoded); j++)
+        for (u8 j = 0; j < total_bits/8; j++)
           buffer[j] = ~buffer[j];
       }
     }
   }
 
   /*
-   *Align with start of the message.
+   *Align with start of first good message from the buffer.
    */
   i--;
-
-  for (int j = i; j < total_bits - 250; j += 250) {
+  s16 preamble_index = -1;
+  for (int j = i; j < total_bits; j += 250) {
+    /*
+     *Check CRC-24Q.
+     */
     u32 crc = getbitu(buffer, j + 226, 24);
     u8 type = getbitu(buffer, j + 8, 6);
     u8 crc_buf[29] = {0};
@@ -598,9 +598,24 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
     }
     u32 computed_crc = crc24q(crc_buf, 29, 0);
     if (computed_crc != crc) {
+      log_info("Msg %d has failed CRC check.", type);
       continue;
     }
 
+    /*
+     *Get first preamble which is aligned with 6 second GPS subframe.
+     */
+    /*
+     *log_info("%d starts at %d and ends at %d. Rem %d",
+     *         type, j, j + 250, 750 - (j + 250));
+     */
+    u8 preamble_candidate = getbitu(buffer, j, 8);
+    if (preamble_candidate == 0x53 || preamble_candidate == 0xAC) {
+      /*
+       *log_info("First type of preamble!");
+       */
+      preamble_index = 750 - j;
+    }
     if (n->polarity == 0) {
       n->msg_normal++;
       n->msg_normal %= 50;
@@ -638,7 +653,6 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       e->valid = 1;
       e->healthy = 1;
 
-      ret |= 1 << 1;
     } else if (type == 17) { /* Parse for GEO Almanac */
       assert(alm != NULL);
       u8 base = 8 + 6;
@@ -665,10 +679,11 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
         pass++;
       }
       alm[0].t0 = alm[1].t0 = alm[2].t0 = getbitu(buffer, j + base + 67*3, 11);
-      ret |= 1 << 2;
     }
+    log_info("PRN %d type %d", n->sid.prn + 1, type);
   }
 
-  return ret;
+  log_info("");
+  return preamble_index;
 }
 
