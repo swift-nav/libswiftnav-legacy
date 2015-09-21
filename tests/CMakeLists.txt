@@ -73,7 +73,7 @@ else (CMAKE_CROSSCOMPILING)
       COMMAND ../checks/run-coverage.sh
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
-    add_custom_target(coverage DEPENDS diffreport.html)
+    add_custom_target(check-coverage DEPENDS diffreport.html)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
