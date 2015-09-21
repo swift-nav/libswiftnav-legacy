@@ -73,7 +73,6 @@ typedef struct {
   z_t *Z_new_inv;
 } generate_hypothesis_state_t2;
 
-void print_s32_mtx_diff(u32 m, u32 n, s32 *Z_inv1, s32 *Z_inv2);
 s8 get_single_hypothesis(ambiguity_test_t *amb_test, s32 *hyp_N);
 void create_empty_ambiguity_test(ambiguity_test_t *amb_test);
 void create_ambiguity_test(ambiguity_test_t *amb_test);

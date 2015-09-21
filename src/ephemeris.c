@@ -161,6 +161,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
  *       of just es[prn].valid.
  *
  * \param eph Ephemeris struct
+ * \param t
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */

@@ -36,7 +36,7 @@
 *
 * Conversion from radians to degrees is done using
 * a simple direct conversion formula:
-* $degrees = \frac{radians *` 180}{\pi}$ 
+* \f$degrees = \frac{radians *` 180}{\pi}\f$
 *
 * Safe to pass same pointer as input and output value, eg:
 *  llhrad2deg(arr1, arr1);
@@ -54,7 +54,7 @@ void llhrad2deg(const double llh_rad[3], double llh_deg[3]) {
 *
 * Conversion from degrees to radians is done using
 * a simple direct conversion formula:
-* $radians = \frac{degrees * \pi}{180}$ 
+* \f$radians = \frac{degrees * \pi}{180}\f$ 
 *
 * Safe to pass same pointer as input and output value, eg:
 *  llhdeg2rad(arr1, arr1);
