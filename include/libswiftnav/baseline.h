@@ -49,9 +49,14 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
             const ambiguities_t *ambs, u8 *num_used, double b[3],
             bool disable_raim, double raim_threshold);
+//TODO(dsk) remove
+//s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+//             u8 num_ambs, const u8 *amb_prns, const double *ambs,
+//             u8 *num_used, double b[3], bool disable_raim, double raim_threshold);
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-             u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3], bool disable_raim, double raim_threshold);
+             u8 num_ambs, const ambiguity_t *single_ambs,
+             u8 *num_used, double b[3],
+             bool disable_raim, double raim_threshold);
 
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,

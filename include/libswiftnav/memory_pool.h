@@ -84,6 +84,5 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 n_xs, size_
                                   s8 (*init)(void *x, element_t *elem),
                                   s8 (*next)(void *x, u32 n),
                                   void (*prod)(element_t *new, void *x, u32 n, element_t *elem));
-
 #endif /* LIBSWIFTNAV_MEMORY_POOL_H */
 

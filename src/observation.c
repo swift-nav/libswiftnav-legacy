@@ -27,11 +27,41 @@
 
 /** Comparison function for `sdiff_t` by PRN.
  * See `cmp_fn`. */
-int cmp_sdiff_prn(const void *a_, const void *b_)
+int cmp_sdiff(const void *a_, const void *b_)
 {
   const sdiff_t *a = (const sdiff_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
   return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+/** Comparison function for `ambiguity_t` by PRN.
+ * See `cmp_fn`. */
+int cmp_amb(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const ambiguity_t *b = (const ambiguity_t *)b_;
+  return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+int cmp_amb_sdiff(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const sdiff_t *b = (const sdiff_t *)b_;
+  return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+int cmp_sdiff_prn(const void *a_, const void *b_)
+{
+  const sdiff_t *a = (const sdiff_t *)a_;
+  const u8 *b = (const u8 *)b_;
+  return cmp_u8_u8(&(a->prn), b);
+}
+
+int cmp_amb_prn(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const u8 *b = (const u8 *)b_;
+  return cmp_u8_u8(&(a->prn), b);
 }
 
 /** Create a single difference from two observations.

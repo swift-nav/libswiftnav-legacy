@@ -7,6 +7,7 @@
 #include <baseline.h>
 
 #include "check_utils.h"
+#include "printing_utils.h"
 
 START_TEST(test_predict_carrier_obs)
 {
@@ -260,30 +261,35 @@ static void check_baseline_setup()
   sdiffs[0].sat_pos[1] = 1;
   sdiffs[0].sat_pos[2] = 0;
   sdiffs[0].carrier_phase = 1;
+  sdiffs[0].snr = 0.0;
 
   sdiffs[1].prn = 2;
   sdiffs[1].sat_pos[0] = 1;
   sdiffs[1].sat_pos[1] = 0;
   sdiffs[1].sat_pos[2] = 0;
   sdiffs[1].carrier_phase = 2;
+  sdiffs[1].snr = 0.0;
 
   sdiffs[2].prn = 3;
   sdiffs[2].sat_pos[0] = 0;
   sdiffs[2].sat_pos[1] = 1;
   sdiffs[2].sat_pos[2] = 0;
   sdiffs[2].carrier_phase = 3;
+  sdiffs[2].snr = 0.0;
 
   sdiffs[3].prn = 4;
   sdiffs[3].sat_pos[0] = 0;
   sdiffs[3].sat_pos[1] = 1;
   sdiffs[3].sat_pos[2] = 1;
   sdiffs[3].carrier_phase = 4;
+  sdiffs[3].snr = 0.0;
 
   sdiffs[4].prn = 5;
   sdiffs[4].sat_pos[0] = 0;
   sdiffs[4].sat_pos[1] = 0;
   sdiffs[4].sat_pos[2] = 1;
   sdiffs[4].carrier_phase = 5;
+  sdiffs[4].snr = 0.0;
 }
 
 /* No teardown required. */
@@ -319,9 +325,12 @@ START_TEST(test_baseline_ref_middle)
    * This should verify that the induction works. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {2, 1, 3, 4, 5},
+    .prns = {1, 2, 3, 4, 5},
     .ambs = {0, 0, 0, 0}
   };
+
+  double old_snr_2 = sdiffs[1].snr;
+  sdiffs[1].snr = 22;
 
   double b[3];
   u8 num_used;
@@ -334,6 +343,8 @@ START_TEST(test_baseline_ref_middle)
   fail_unless(within_epsilon(b[0], -0.622609));
   fail_unless(within_epsilon(b[1], -0.432371));
   fail_unless(within_epsilon(b[2], -0.00461595));
+
+  sdiffs[1].snr = old_snr_2;
 }
 END_TEST
 
@@ -343,9 +354,13 @@ START_TEST(test_baseline_ref_end)
    * This should verify that the loop can terminate correctly.*/
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {5, 1, 2, 3, 4},
+    .prns = {1, 2, 3, 4, 5},
     .ambs = {0, 0, 0, 0}
   };
+
+  u8 index = ambs.n;
+  double old_snr_2 = sdiffs[index].snr;
+  sdiffs[index].snr = 22;
 
   double b[3];
   u8 num_used;
@@ -358,6 +373,8 @@ START_TEST(test_baseline_ref_end)
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
   fail_unless(within_epsilon(b[2], 0.0288157));
+
+  sdiffs[index].snr = old_snr_2;
 }
 END_TEST
 

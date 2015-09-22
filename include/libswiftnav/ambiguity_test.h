@@ -129,4 +129,8 @@ void assign_r_vec(residual_mtxs_t *res_mtxs, u8 num_dds, double *dd_measurements
 void assign_r_mean(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_mean);
 double get_quadratic_term(residual_mtxs_t *res_mtxs, u8 num_dds, double *hypothesis, double *r_vec);
 
+void print_hyp(void *arg, element_t *elem);
+void print_intersection_state(intersection_count_t *x);
+
+
 #endif /* LIBSWIFTNAV_AMBIGUITY_TEST_H */

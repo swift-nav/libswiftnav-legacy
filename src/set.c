@@ -101,13 +101,12 @@ s32 intersection_map(u32 na, size_t sa, const void *as,
   assert(cmp != NULL);
   assert(f != NULL);
 
-  if (!is_set(na, sa, as, cmp)) {
-    return -1;
-
-  }
-  if (!is_set(nb, sb, bs, cmp)) {
-    return -2;
-  }
+  //if (!is_set(na, sa, as, cmp)) {
+  //  return -1;
+  //}
+  //if (!is_set(nb, sb, bs, cmp)) {
+  //  return -2;
+  //}
 
   u32 ia, ib, n = 0;
 
@@ -185,6 +184,73 @@ s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
 
   return intersection_map(na, sa, as, nb, sb, bs,
                           cmp, &ctxt, intersection_function);
+}
+
+/** Given set and element, returns index where the element should be inserted.
+ *
+ * \param na    Number of elements in set A
+ * \param sa    Size of each element of set A
+ * \param as    Array of elements in set A
+ * \param b     Element of interest
+ * \param cmp   Pointer to a comparison function
+ *
+ * \return      Index where b belongs
+ *              (points past end of as if b is largest.)
+ */
+u32 insertion_index(u32 na, size_t sa, const void *as, void *b, cmp_fn cmp)
+{
+  u32 index;
+  for (index = 0; index < na && cmp(as + index * sa, b) < 0; index++);
+  return index;
+}
+
+/** Removes first element that isn't less than b.
+ *
+ * \param na    Number of elements in set A
+ * \param sa    Size of each element of set A
+ * \param as    Array of elements in set A
+ * \param a_out Output array
+ * \param b     Element of interest
+ * \param cmp   Pointer to a comparison function
+ *
+ * \return      Old index of removed element
+ */
+u32 remove_element(u32 na, size_t sa, const void *as, void *a_out,
+                   void *b, cmp_fn cmp)
+{
+  /* Index of first element that isn't less than b.
+   * This element will be removed. 
+   * If b is larger than all of as, the last element of as will be removed. */
+  u32 index = insertion_index(na, sa, as, b, cmp);
+
+  memcpy(a_out, as, index * sa);
+  memcpy(a_out + index * sa, as + (index + 1) * sa, (na - index - 1) * sa);
+
+  return index;
+}
+
+/** Inserts element into set.
+ *
+ * \param na    Number of elements in set A
+ * \param sa    Size of each element of set A
+ * \param as    Array of elements in set A
+ * \param a_out Output array
+ * \param b     Element of interest
+ * \param cmp   Pointer to a comparison function
+ *
+ * \return      Index of inserted element in as
+ *              (may point past end of as)
+ */
+u32 insert_element(u32 na, size_t sa, const void *as, void *a_out,
+                   void *b, cmp_fn cmp)
+{
+  u32 index = insertion_index(na, sa, as, b, cmp);
+
+  memcpy(a_out, as, index * sa);
+  memcpy(a_out + index * sa, b, sa);
+  memcpy(a_out + (index + 1) * sa, as + index * sa, (na - index) * sa);
+
+  return index;
 }
 
 /** \} */

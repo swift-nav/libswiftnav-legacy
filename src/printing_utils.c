@@ -96,23 +96,6 @@ void print_s32_mtx(s32 *mat, u32 m, u32 n)
   printf("\n");
 }
 
-/** Prints a s64 valued matrix.
- *
- * \param m     The number of rows to be printed in the matrices.
- * \param n     The number of columns in the matrix.
- * \param mat1  The matrix to be printed.
- */
-static void print_s64_mtx(s64 *mat, u32 m, u32 n)
-{
-  for (u32 i=0; i < m; i++) {
-    for (u32 j=0; j < n; j++) {
-      printf("%"PRId64", ", mat[i*n + j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
 /** Prints the result of a matrix-vector product of s32's.
  * Given a matrix M and vector v of s32's, prints the result of M*v.
  *
@@ -139,51 +122,4 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
   }
 }
 
-
-void print_hyp(void *arg, element_t *elem)
-{
-  u8 num_dds = *( (u8 *) arg );
-
-  hypothesis_t *hyp = (hypothesis_t *)elem;
-  printf("[");
-  for (u8 i=0; i< num_dds; i++) {
-    printf("%"PRId32", ", hyp->N[i]);
-  }
-  printf("]: %f\n", hyp->ll);
-}
-
-/* Utilities for debugging inclusion algorithm in ambiguity_test.c */
-static void print_Z(s8 label, u8 full_dim, u8 new_dim, z_t * Z)
-{
-  printf("Z %i:\n", label);
-  print_s64_mtx(Z, full_dim, new_dim);
-}
-
-void print_intersection_state(intersection_count_t *x)
-{
-  u8 full_dim = x->old_dim + x->new_dim;
-
-  printf("itr lower bounds:\n");
-  for (u8 i = 0; i < x->new_dim; i++) {
-    printf("%"PRIi64"\n", x->itr_lower_bounds[i]);
-  }
-  printf("itr upper bounds:\n");
-  for (u8 i = 0; i < x->new_dim; i++) {
-    printf("%"PRIi64"\n", x->itr_upper_bounds[i]);
-  }
-  printf("box lower bounds:\n");
-  for (u8 i = 0; i < full_dim; i++) {
-    printf("%"PRIi64"\n", x->box_lower_bounds[i]);
-  }
-  printf("box upper bounds:\n");
-  for (u8 i = 0; i < full_dim; i++) {
-    printf("%"PRIi64"\n", x->box_upper_bounds[i]);
-  }
-  printf("transformation matrix:\n");
-  print_Z(68, full_dim, x->new_dim, x->Z);
-  printf("z1:\n");
-  print_Z(0, full_dim, full_dim, x->Z1);
-  printf("z2_inv:\n");
-  print_Z(0, x->new_dim, x->new_dim, x->Z2_inv);
-}
 
