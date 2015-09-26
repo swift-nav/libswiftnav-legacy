@@ -224,8 +224,6 @@ START_TEST(test_dgnss_baseline_1)
     false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 1);
   fail_unless(num_used == 5);
-  printf("yep: \n");
-  print_double_mtx(b, 3, 1);
   fail_unless(within_epsilon(b[0], -0.417486));
   fail_unless(within_epsilon(b[1], -0.358386));
   fail_unless(within_epsilon(b[2],  0.271427));

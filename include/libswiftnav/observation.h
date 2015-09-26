@@ -19,12 +19,6 @@
 #include "ephemeris.h"
 #include "gpstime.h"
 
-// TODO(dsk) right file?
-typedef struct {
-  u8 prn;
-  double amb;
-} ambiguity_t;
-
 typedef struct {
   double pseudorange;
   double carrier_phase;

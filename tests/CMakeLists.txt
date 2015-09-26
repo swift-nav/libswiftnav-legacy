@@ -76,7 +76,7 @@ else (CMAKE_CROSSCOMPILING)
     add_custom_command(
       DEPENDS test
       OUTPUT diffreport.html
-      COMMAND ../checks/run-coverage.sh
+      COMMAND "${PROJECT_SOURCE_DIR}/checks/run-coverage.sh"
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
     add_custom_target(check-coverage DEPENDS diffreport.html)

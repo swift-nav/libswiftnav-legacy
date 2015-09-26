@@ -542,10 +542,28 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
   return code;
 }
 
-// TODO:
-//void diff_ambiguities(u8 ref_prn, u8 intersection_size,
-//                      ambiguity_t *intersection_ambs, double *dd_ambs);
-//void diff_measurements(u8 ref_prn, u8 intersection_size, sdiff_t *intersection_sdiffs, double *dd_meas);
+/** Comparison function for `ambiguity_t` by PRN.
+ * See `cmp_fn`. */
+int cmp_amb(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const ambiguity_t *b = (const ambiguity_t *)b_;
+  return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+int cmp_amb_sdiff(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const sdiff_t *b = (const sdiff_t *)b_;
+  return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+int cmp_amb_prn(const void *a_, const void *b_)
+{
+  const ambiguity_t *a = (const ambiguity_t *)a_;
+  const u8 *b = (const u8 *)b_;
+  return cmp_u8_u8(&(a->prn), b);
+}
 
 /** Calculate least squares baseline solution from a set of single difference
  * observations and carrier phase ambiguities.
@@ -556,7 +574,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds_u8, const double *state_mean,
  * \param ref_ecef    The reference position in ECEF frame, for computing the
  *                    sat direction vectors
  * \param num_ambs    Number of carrier phase ambiguities
- * \param single_ambs Array of (carrier phase ambiguitie, prn) pairs.
+ * \param single_ambs Array of (carrier phase ambiguity, prn) pairs.
  *                    length `num_ambs`
  * \param num_used    Pointer to where to store number of satellites used in the
  *                    baseline solution
@@ -573,15 +591,6 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 *num_used, double b[3],
              bool disable_raim, double raim_threshold)
 {
-  // TODO
-  //  - look into where rebases happen 
-  //  - vlad's prn changes?
-  //    - probably just cmp fn change
-  //  - unit testing
-  //
-  // TODO(also): error msg array
-  // also: clean up sats_man?
-
   if (num_sdiffs < 4 || num_ambs < 4) {
     /* For a position solution, we need at least 4 sats. */
     return -1;
@@ -598,7 +607,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   assert(num_sdiffs <= MAX_CHANNELS);
 
-  // TODO could use min(num_ambs, num_sdiffs)
+  /* Could use min(num_ambs, num_sdiffs) */
   ambiguity_t intersection_ambs[num_ambs];
   sdiff_t intersection_sdiffs[num_ambs];
 
@@ -611,31 +620,23 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
     /* For a position solution, we need at least 4 sats. */
     return -1;
   }
+  u8 num_dds = intersection_size - 1;
 
-  /* Calculate double differences. */
+  /* Choose ref sat based on SNR. */
   u8 ref_prn = choose_reference_sat(intersection_size, intersection_sdiffs);
 
-  u8 num_dds = intersection_size - 1;
-  ambiguity_t amb_no_ref[num_dds];
+  /* Calculate double differenced measurements. */
   sdiff_t sdiff_ref_first[intersection_size];
-
   u32 sdiff_ref_index = remove_element(intersection_size, sizeof(sdiff_t),
                                        intersection_sdiffs,
                                        &(sdiff_ref_first[1]),  /* New set */
                                        &ref_prn, cmp_sdiff_prn);
-  u32 amb_ref_index = remove_element(intersection_size, sizeof(ambiguity_t),
-                                     intersection_ambs,
-                                     amb_no_ref,  /* New set */
-                                     &ref_prn, cmp_amb_prn);
   memcpy(sdiff_ref_first, &intersection_sdiffs[sdiff_ref_index],
          sizeof(sdiff_t));
 
-  double dd_ambs[num_dds];
   double dd_meas[2 * num_dds];
 
-  /* Actually calculate double differences. */
   for (u32 i = 0; i < num_dds; i++) {
-    dd_ambs[i] = amb_no_ref[i].amb - intersection_ambs[amb_ref_index].amb;
     dd_meas[i] =
       sdiff_ref_first[i+1].carrier_phase - sdiff_ref_first[0].carrier_phase;
     dd_meas[i + num_dds] =
@@ -645,10 +646,29 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   double DE[num_dds * 3];
   assign_de_mtx(intersection_size, sdiff_ref_first, ref_ecef, DE);
 
-  *num_used = intersection_size;
+  /* Calculate double differenced ambiguities. */
+  double dd_ambs[num_dds];
+  diff_ambs(ref_prn, intersection_size, intersection_ambs, dd_ambs);
 
+  /* Compute least squares solution. */
+  *num_used = intersection_size;
   return lesq_solve_raim(num_dds, dd_meas, dd_ambs, DE, b,
                          disable_raim, raim_threshold, 0, 0, 0);
+}
+
+void diff_ambs(u8 ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
+               double *dd_ambs)
+{
+  u8 num_dds = num_ambs - 1;
+  ambiguity_t amb_no_ref[num_dds];
+
+  u32 amb_ref_index = remove_element(num_ambs, sizeof(ambiguity_t),
+                                     amb_set,
+                                     amb_no_ref,  /* New set */
+                                     &ref_prn, cmp_amb_prn);
+  for (u32 i = 0; i < num_dds; i++) {
+    dd_ambs[i] = amb_no_ref[i].amb - amb_set[amb_ref_index].amb;
+  }
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -681,7 +701,8 @@ s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   u8 ref_prn = ambs->prns[0];
   ambiguity_t ref_amb = {.prn = ref_prn, .amb = 0};
 
-  /* TODO(dsk) convert ambiguities_t to have an ambiguity_t array? */
+  /* TODO(dsk) convert ambiguities_t to have a single-differenced ambiguity_t
+   * array? */
   for (s32 i = 0; i < ambs->n; i ++) {
     /* ambs contains ambiguities for all non-ref prns */
     ambts[i].amb = ambs->ambs[i];

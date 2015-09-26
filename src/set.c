@@ -101,13 +101,6 @@ s32 intersection_map(u32 na, size_t sa, const void *as,
   assert(cmp != NULL);
   assert(f != NULL);
 
-  //if (!is_set(na, sa, as, cmp)) {
-  //  return -1;
-  //}
-  //if (!is_set(nb, sb, bs, cmp)) {
-  //  return -2;
-  //}
-
   u32 ia, ib, n = 0;
 
   for (ia=0, ib=0; ia<na && ib<nb; ia++, ib++) {
