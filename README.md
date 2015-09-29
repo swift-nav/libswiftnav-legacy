@@ -12,3 +12,4 @@ Full documentation available online at http://docs.swift-nav.com/libswiftnav
 
 For installation, see docs/install.dox
 
+For development help, see DEVELOPMENT.rst.

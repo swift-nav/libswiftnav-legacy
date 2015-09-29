@@ -52,13 +52,19 @@ else (CMAKE_CROSSCOMPILING)
       COMMAND test_libswiftnav
     )
 
+    add_custom_target(clean_profiling
+      COMMAND find . -name "*.gcno" -delete
+      COMMAND find . -name "*.gcda" -delete
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
     # for convenience:
     add_custom_target(tests
-      DEPENDS test_libswiftnav
+      DEPENDS test_libswiftnav clean_profiling
       COMMAND test_libswiftnav
     )
     add_custom_target(test
-      DEPENDS test_libswiftnav
+      DEPENDS test_libswiftnav clean_profiling
       COMMAND test_libswiftnav
     )
 
