@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "logging.h"
 #include "linear_algebra.h"
@@ -36,7 +37,7 @@
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
 s8 sbas_calc_sat_state(const ephemeris_xyz_t *e, double pos[3], double vel[3],
-                       double *clock_err, double *clock_rate_err)
+                       gps_time_t t, double *clock_err, double *clock_rate_err)
 {
   /*
    *Ephemeris did not get time-stammped when it was received.
@@ -47,8 +48,8 @@ s8 sbas_calc_sat_state(const ephemeris_xyz_t *e, double pos[3], double vel[3],
   if (!e->valid || !e->healthy)
     return -1;
 
-  u8 nweeks = e->toe.tow / 86400;
-  double tod = e->toe.tow - 86400 * nweeks;
+  u8 ndays = t.tow / 86400;
+  double tod = t.tow - 86400 * ndays;
   double dt = tod - e->toa;
 
   if (dt > 43200)
@@ -60,15 +61,15 @@ s8 sbas_calc_sat_state(const ephemeris_xyz_t *e, double pos[3], double vel[3],
   vel[1] = e->rate[1];
   vel[2] = e->rate[2];
 
-  pos[0] = e->pos[0]  + e->rate[0] * dt +
+  pos[0] = e->pos[0] + e->rate[0] * dt +
            0.5 * e->acc[0] * pow(dt, 2);
-  pos[1] = e->pos[1]  + e->rate[1] * dt +
+  pos[1] = e->pos[1] + e->rate[1] * dt +
            0.5 * e->acc[1] * pow(dt, 2);
-  pos[2] = e->pos[2]  + e->rate[2] * dt +
+  pos[2] = e->pos[2] + e->rate[2] * dt +
            0.5 * e->acc[2] * pow(dt, 2);
 
-  *clock_err = e->a_gf0;
-  *clock_rate_err = e->a_gf1;
+  memcpy(clock_err, &(e->a_gf0), sizeof(double));
+  memcpy(clock_rate_err, &(e->a_gf1), sizeof(double));
 
   return 0;
 }
