@@ -485,7 +485,7 @@ s8 l1_legacy_process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e)
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
-    for (int w = 0; w < 8; w++) {   // For words 3..10
+    for (u16 w = 0; w < 8; w++) {   // For words 3..10
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
@@ -535,12 +535,12 @@ static u8 isInverse(u8 preamble_candidate)
   return 0;
 }
 
-s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
+s16 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
                             sbas_almanac_t *alm)
 {
-  int i = 0;
+  u16 i = 0;
   u8 *buffer = n->decoded;
-  int total_bits = sizeof(n->decoded) * 8;
+  u16 total_bits = sizeof(n->decoded) * 8;
   bool found = false;
 
   /*
@@ -554,7 +554,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       u32 msg_crc = getbitu(buffer, i + 226, 24);
       u8 crc_buf[29] = {0};
       crc_buf[0] = getbitu(buffer, i, 2);
-      for(int k = 0; k < 28; k++) {
+      for(u8 k = 0; k < 28; k++) {
         crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
@@ -567,7 +567,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       u32 msg_crc = getbitu(buffer, i + 226, 24);
       u8 crc_buf[29] = {0};
       crc_buf[0] = getbitu(buffer, i, 2);
-      for(int k = 0; k < 28; k++) {
+      for(u8 k = 0; k < 28; k++) {
         crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
       }
       u32 computed_crc = crc24q(crc_buf, 29, 0);
@@ -585,7 +585,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
    */
   i--;
   s16 preamble_index = -1;
-  for (int j = i; j < total_bits; j += 250) {
+  for (u16 j = i; j < total_bits - 250; j += 250) {
     /*
      *Check CRC-24Q.
      */
@@ -593,28 +593,27 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
     u8 type = getbitu(buffer, j + 8, 6);
     u8 crc_buf[29] = {0};
     crc_buf[0] = getbitu(buffer, j, 2);
-    for(int i = 0; i < 28; i++) {
+    for(u8 i = 0; i < 28; i++) {
       crc_buf[i + 1] = getbitu(buffer, j + 2 + i * 8, 8);
     }
     u32 computed_crc = crc24q(crc_buf, 29, 0);
     if (computed_crc != crc) {
-      log_info("Msg %d has failed CRC check.", type);
+      /*
+       *log_info("Msg %d has failed CRC check.", type);
+       */
       continue;
     }
 
     /*
      *Get first preamble which is aligned with 6 second GPS subframe.
      */
-    /*
-     *log_info("%d starts at %d and ends at %d. Rem %d",
-     *         type, j, j + 250, 750 - (j + 250));
-     */
     u8 preamble_candidate = getbitu(buffer, j, 8);
     if (preamble_candidate == 0x53 || preamble_candidate == 0xAC) {
-      /*
-       *log_info("First type of preamble!");
-       */
-      preamble_index = 750 - j;
+        /*
+         *preamble_candidate == 0x9A || preamble_candidate == 0x65 ||
+         *preamble_candidate == 0xC6 || preamble_candidate == 0x39) {
+         */
+      preamble_index = total_bits - j;
     }
     if (n->polarity == 0) {
       n->msg_normal++;
@@ -629,7 +628,7 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
      */
     if (type == 9) {
       assert(e != NULL);
-      int prev = j + 8 + 6;
+      u16 prev = j + 8 + 6;
 
       e->iod = getbitu(buffer, prev, 8); prev += 8;
       e->toa = getbitu(buffer, prev, 13) * 16; prev += 13;
@@ -658,8 +657,8 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       u8 base = 8 + 6;
       u8 pass = 0;
 
-      for (int i = 0; i < 67*3; i+= 67) {
-        int prev = i + j + base;
+      for (u16 i = 0; i < 67*3; i+= 67) {
+        u16 prev = i + j + base;
         alm[pass].data_id = getbitu(buffer, prev, 2); prev += 2;
         alm[pass].sid.prn = getbitu(buffer, prev, 8) - 1; prev += 8;
         alm[pass].sid.constellation = SBAS_CONSTELLATION;
@@ -680,10 +679,8 @@ s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
       }
       alm[0].t0 = alm[1].t0 = alm[2].t0 = getbitu(buffer, j + base + 67*3, 11);
     }
-    log_info("PRN %d type %d", n->sid.prn + 1, type);
   }
 
-  log_info("");
   return preamble_index;
 }
 

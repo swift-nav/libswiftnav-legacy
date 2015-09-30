@@ -31,7 +31,7 @@
 #define DECISION_SIZE       (SBAS_NAVFLEN / 2 + 6)
 #define SBAS_BITS_UPDATE    ((SBAS_NAVFLEN + SBAS_NAVADDFLEN) / 2)
 #define SBAS_BITS_CHAINBACK (SBAS_NAVFLEN / 2)
-#define SBAS_DEC_SIZE       (SBAS_BITS_CHAINBACK / 8 + 1)
+#define SBAS_DEC_SIZE       (SBAS_BITS_CHAINBACK / 8)
 
 #define TOW_INVALID -1
 #define BITSYNC_UNSYNCED -1
@@ -68,7 +68,7 @@ typedef struct {
   signal_t sid;
   u16 symbol_count;
   unsigned char symbols[SBAS_NAVFLEN];
-  unsigned char decoded[SBAS_DEC_SIZE];
+  unsigned char decoded[SBAS_DEC_SIZE + 1];
 
   s8 bit_polarity;
 
@@ -103,6 +103,7 @@ void nav_msg_init(nav_msg_t *n);
 s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms);
 bool subframe_ready(l1_legacy_nav_msg_t *n);
 s8 l1_legacy_process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e);
-s8 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm);
+s16 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e, sbas_almanac_t *alm);
 
 #endif /* LIBSWIFTNAV_NAV_MSG_H */
+
