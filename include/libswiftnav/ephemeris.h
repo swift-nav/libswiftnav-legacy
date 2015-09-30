@@ -51,7 +51,7 @@ typedef struct {
 } ephemeris_t;
 
 s8 sbas_calc_sat_state(const ephemeris_xyz_t *e, double pos[3], double vel[3],
-                       double *clock_err, double *clock_rate_err);
+                       gps_time_t t,double *clock_err, double *clock_rate_err);
 s8 legacy_calc_sat_state(const ephemeris_kepler_t *ephemeris, gps_time_t t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err);
