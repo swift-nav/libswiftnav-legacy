@@ -14,26 +14,58 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "constants.h"
 #include "bits.h"
 #include "nav_msg.h"
+#include "edc.h"
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */
-#define BITSYNC_THRES 22
+#define L1_BITSYNC_THRES 22
+#define SBAS_BITSYNC_THRES 200
 
-void nav_msg_init(nav_msg_t *n)
+static void l1_legacy_nav_msg_init(l1_legacy_nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
-  memset(n, 0, sizeof(nav_msg_t));
+  memset(n, 0, sizeof(l1_legacy_nav_msg_t));
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
+  n->bit_length = 20;
 }
 
-static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
+static void l1_sbas_nav_msg_init(l1_sbas_nav_msg_t *n)
+{
+  /* Initialize the necessary parts of the nav message state structure. */
+  memset(n, 0, sizeof(l1_sbas_nav_msg_t));
+  n->bit_phase_ref = BITSYNC_UNSYNCED;
+  n->bit_polarity = BIT_POLARITY_UNKNOWN;
+  n->bit_length = 2;
+
+  n->dec_passes = 0;
+
+  n->polarity = 0;
+
+  n->msg_normal = 0;
+  n->msg_inverse = 0;
+  n->init = 1;
+}
+
+void nav_msg_init(nav_msg_t *n)
+{
+  switch(n->type) {
+    case L1_LEGACY_NAV:
+      l1_legacy_nav_msg_init(n->l1_nav_msg);
+      break;
+    case L1_SBAS:
+      l1_sbas_nav_msg_init(n->sbas_nav_msg);
+  }
+}
+
+static u32 extract_word(l1_legacy_nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 {
   /* Extract a word of n_bits length (n_bits <= 32) at position bit_index into
    * the subframe. Takes account of the offset stored in n, and the circular
@@ -52,8 +84,8 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   }
 
   /* Wrap if necessary. */
-  if (bit_index > NAV_MSG_SUBFRAME_BITS_LEN*32)
-    bit_index -= NAV_MSG_SUBFRAME_BITS_LEN*32;
+  if (bit_index > L1_NAV_MSG_SUBFRAME_BITS_LEN*32)
+    bit_index -= L1_NAV_MSG_SUBFRAME_BITS_LEN*32;
 
   u8 bix_hi = bit_index >> 5;
   u8 bix_lo = bit_index & 0x1F;
@@ -61,7 +93,7 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
 
   if (bix_lo) {
     bix_hi++;
-    if (bix_hi == NAV_MSG_SUBFRAME_BITS_LEN)
+    if (bix_hi == L1_NAV_MSG_SUBFRAME_BITS_LEN)
       bix_hi = 0;
     word |=  n->subframe_bits[bix_hi] >> (32 - bix_lo);
   }
@@ -72,10 +104,11 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
+
 /* TODO: Bit synchronization that can operate with multi-ms integration times
    e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
  */
-static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
+static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real, u8 bit_len)
 {
   /* On 20th call:
      bit_phase = 0
@@ -107,23 +140,51 @@ ____bit_integrate is sum of these after 20th call__________
 
   /* Maintain a rolling sum of the 20 most recent correlations in
      bit_integrate */
-  n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
-  n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
-  if (n->bitsync_count < 20) {
-    n->bitsync_count++;
+  u8 thres;
+  s32 *bit_integrate;
+  u8 *bit_phase, *bitsync_count;
+  s8 *bit_phase_ref;
+  s32 *bitsync_prev_corr;
+  u32 *bitsync_histogram;
+  switch (n->type) {
+    case L1_LEGACY_NAV:
+      thres = L1_BITSYNC_THRES;
+      bit_integrate = &n->l1_nav_msg->bit_integrate;
+      bitsync_count = &n->l1_nav_msg->bitsync_count;
+      bit_phase = &n->l1_nav_msg->bit_phase;
+      bit_phase_ref = &n->l1_nav_msg->bit_phase_ref;
+      bitsync_histogram = n->l1_nav_msg->bitsync_histogram;
+      bitsync_prev_corr = n->l1_nav_msg->bitsync_prev_corr;
+      break;
+    case L1_SBAS:
+      thres = SBAS_BITSYNC_THRES;
+      bit_integrate = &n->sbas_nav_msg->bit_integrate;
+      bitsync_count = &n->sbas_nav_msg->bitsync_count;
+      bit_phase = &n->sbas_nav_msg->bit_phase;
+      bit_phase_ref = &n->sbas_nav_msg->bit_phase_ref;
+      bitsync_histogram = n->sbas_nav_msg->bitsync_histogram;
+      bitsync_prev_corr = n->sbas_nav_msg->bitsync_prev_corr;
+      break;
+    default:
+      return;
+  }
+  *bit_integrate -= bitsync_prev_corr[*bit_phase];
+  bitsync_prev_corr[*bit_phase] = corr_prompt_real;
+  if (*bitsync_count < bit_len) {
+    *bitsync_count = *bitsync_count + 1;
     return;  /* That rolling accumulator is not valid yet */
   }
 
   /* Add the accumulator to the histogram for the relevant phase */
-  n->bitsync_histogram[(n->bit_phase) % 20] += abs(n->bit_integrate);
+  bitsync_histogram[*bit_phase % bit_len] += abs(*bit_integrate);
 
-  if (n->bit_phase == 20 - 1) {
+  if (*bit_phase == bit_len - 1) {
     /* Histogram is valid.  Find the two highest values. */
     u32 max = 0, next_best = 0;
     u32 max_prev_corr = 0;
     u8 max_i = 0;
-    for (u8 i = 0; i < 20; i++) {
-      u32 v = n->bitsync_histogram[i];
+    for (u8 i = 0; i < bit_len; i++) {
+      u32 v = bitsync_histogram[i];
       if (v > max) {
         next_best = max;
         max = v;
@@ -133,19 +194,58 @@ ____bit_integrate is sum of these after 20th call__________
       }
       /* Also find the highest value from the last 20 correlations.
          We'll use this to normalize the threshold score. */
-      v = abs(n->bitsync_prev_corr[i]);
+      v = abs(bitsync_prev_corr[i]);
       if (v > max_prev_corr)
-        max_prev_corr = v;
+        max_prev_corr =  v;
     }
     /* Form score from difference between the best and the second-best */
-    if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
+    if (max - next_best > thres * 2 * max_prev_corr) {
       /* We are synchronized! */
-      n->bit_phase_ref = max_i;
+      *bit_phase_ref = max_i;
       /* TODO: Subtract necessary older prev_corrs from bit_integrate to
          ensure it will be correct for the upcoming first dump */
     }
   }
 }
+
+static s32 l1_sbas_nav_msg_update(l1_sbas_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+{
+  n->bit_phase += ms;
+  n->bit_phase %= n->bit_length;
+  n->bit_integrate += corr_prompt_real;
+  /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
+   * offsets corresponds to the nav bit edges?) */
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED) {
+    nav_msg_t nav = {
+      .sbas_nav_msg = n,
+      .type = L1_SBAS
+    };
+    update_bit_sync(&nav, corr_prompt_real, n->bit_length);
+  }
+
+  if (n->bit_phase != n->bit_phase_ref) {
+    /* Either we don't have bit phase lock, or this particular
+       integration is not aligned to a nav bit boundary. */
+    n->good_bit = false;
+    return TOW_INVALID;
+  }
+
+  /* Dump the nav bit, i.e. determine the sign of the correlation over the
+   * nav bit period. */
+  bool bit_val = n->bit_integrate > 0;
+  /* Zero the accumulator for the next nav bit. */
+  n->bit_integrate = 0;
+  n->good_bit = true;
+
+  if (bit_val) {
+    n->last_bit = 255;
+  } else {
+    n->last_bit = 0;
+  }
+
+  return TOW_INVALID;
+}
+
 
 /** Navigation message decoding update.
  * Called once per tracking loop update. Performs the necessary steps to
@@ -161,17 +261,22 @@ ____bit_integrate is sum of these after 20th call__________
  * \return The GPS time of week in milliseconds of the current code phase
  *         rollover, or `TOW_INVALID` (-1) if unknown
  */
-s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+static s32 l1_legacy_nav_msg_update(l1_legacy_nav_msg_t *n, s32 corr_prompt_real, u8 ms)
 {
   s32 TOW_ms = TOW_INVALID;
 
   n->bit_phase += ms;
-  n->bit_phase %= 20;
+  n->bit_phase %= n->bit_length;
   n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
-  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
-    update_bit_sync(n, corr_prompt_real);
+  if (n->bit_phase_ref == BITSYNC_UNSYNCED) {
+    nav_msg_t nav = {
+      .l1_nav_msg = n,
+      .type = L1_LEGACY_NAV
+    };
+    update_bit_sync(&nav, corr_prompt_real, n->bit_length);
+  }
 
   if (n->bit_phase != n->bit_phase_ref) {
     /* Either we don't have bit phase lock, or this particular
@@ -190,7 +295,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
    * isn't needed by the ephemeris decoder.
    */
   u16 last_subframe_bit_index = ABS(n->subframe_start_index) + 27;
-  last_subframe_bit_index %= NAV_MSG_SUBFRAME_BITS_LEN * 32;
+  last_subframe_bit_index %= L1_NAV_MSG_SUBFRAME_BITS_LEN * 32;
   if (n->subframe_start_index &&
       (n->subframe_bit_index == last_subframe_bit_index)) {
     /* Subframe buffer is full: the nav message decoder has missed it's
@@ -201,7 +306,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     return -2;
   }
 
-  if (n->subframe_bit_index >= NAV_MSG_SUBFRAME_BITS_LEN*32) {
+  if (n->subframe_bit_index >= L1_NAV_MSG_SUBFRAME_BITS_LEN*32) {
     log_error("subframe bit index gone wild %d", (int)n->subframe_bit_index);
     return -22;
   }
@@ -216,14 +321,14 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   }
 
   n->subframe_bit_index++;
-  if (n->subframe_bit_index == NAV_MSG_SUBFRAME_BITS_LEN*32)
+  if (n->subframe_bit_index == L1_NAV_MSG_SUBFRAME_BITS_LEN*32)
     n->subframe_bit_index = 0;
 
   /* Yo dawg, are we still looking for the preamble? */
   if (!n->subframe_start_index) {
     /* We're going to look for the preamble at a time 360 nav bits ago,
      * then again 60 nav bits ago. */
-    #define SUBFRAME_START_BUFFER_OFFSET (NAV_MSG_SUBFRAME_BITS_LEN*32 - 360)
+    #define SUBFRAME_START_BUFFER_OFFSET (L1_NAV_MSG_SUBFRAME_BITS_LEN*32 - 360)
 
     /* Check whether there's a preamble at the start of the circular
      * subframe_bits buffer. */
@@ -268,6 +373,20 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
     }
   }
   return TOW_ms;
+}
+
+
+s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+{
+  switch (n->type) {
+    case L1_LEGACY_NAV:
+      return l1_legacy_nav_msg_update(n->l1_nav_msg, corr_prompt_real, ms);
+      break;
+    case L1_SBAS:
+      return l1_sbas_nav_msg_update(n->sbas_nav_msg, corr_prompt_real, ms);
+  }
+
+  return TOW_INVALID;
 }
 
 /* Tests the parity of a L1 C/A NAV message word.
@@ -318,15 +437,16 @@ static u8 nav_parity(u32 *word)
   return 0;
 }
 
-bool subframe_ready(nav_msg_t *n) {
+bool subframe_ready(l1_legacy_nav_msg_t *n) {
   return (n->subframe_start_index != 0);
 }
 
-s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
+s8 l1_legacy_process_subframe(l1_legacy_nav_msg_t *n, ephemeris_kepler_t *e)
+{
   // Check parity and parse out the ephemeris from the most recently received subframe
 
   if (!e) {
-    log_error("process_subframe: CALLED WITH e = NULL!");
+    log_error("process_subframe: CALLED WITH NULL ephemeris!");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -1;
@@ -342,20 +462,20 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
       && (prev_bit_polarity != n->bit_polarity)) {
     log_error("PRN %02d Nav phase flip - half cycle slip detected, "
-              "but not corrected", e->prn+1);
+              "but not corrected", e->sid.prn+1);
     /* TODO: declare phase ambiguity to IAR */
   }
 
   /* Complain if buffer overrun */
   if (n->overrun) {
-    log_error("PRN %02d nav_msg subframe buffer overrun!", e->prn+1);
+    log_error("PRN %02d nav_msg subframe buffer overrun!", e->sid.prn + 1);
     n->overrun = false;
   }
 
   /* Extract word 2, and the last two parity bits of word 1 */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-    log_info("PRN %02d subframe parity mismatch (word 2)", e->prn+1);
+    log_info("PRN %02d subframe parity mismatch (word 2)", e->sid.prn + 1);
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -2;
@@ -365,11 +485,11 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
-    for (int w = 0; w < 8; w++) {   // For words 3..10
+    for (u16 w = 0; w < 8; w++) {   // For words 3..10
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        log_info("PRN %02d subframe parity mismatch (word %d)", e->prn+1, w+3);
+        log_info("PRN %02d subframe parity mismatch (word %d)", e->sid.prn + 1, w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
         return -3;
@@ -395,5 +515,172 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   return 0;
 
+}
+
+static u8 isNormal(u8 preamble_candidate)
+{
+  if (preamble_candidate == 0x53 ||
+      preamble_candidate == 0x9A ||
+      preamble_candidate == 0xC6)
+    return 1;
+  return 0;
+}
+
+static u8 isInverse(u8 preamble_candidate)
+{
+  if (preamble_candidate == 0xAC ||
+      preamble_candidate == 0x65 ||
+      preamble_candidate == 0x39)
+    return 1;
+  return 0;
+}
+
+s16 l1_sbas_process_subframe(l1_sbas_nav_msg_t *n, ephemeris_xyz_t *e,
+                            sbas_almanac_t *alm)
+{
+  u16 i = 0;
+  u8 *buffer = n->decoded;
+  u16 total_bits = sizeof(n->decoded) * 8;
+  bool found = false;
+
+  /*
+   *Loops through data buffer and finds first message with
+   *good preamble and CRC. If the first preamble is an inverse one then the
+   *full buffer is inversed (bit inverse).
+   */
+  for(i = 0; i < total_bits - 8 && !found; i++) {
+    u8 preamble_candidate = getbitu(buffer, i, 8);
+    if (isNormal(preamble_candidate)) {
+      u32 msg_crc = getbitu(buffer, i + 226, 24);
+      u8 crc_buf[29] = {0};
+      crc_buf[0] = getbitu(buffer, i, 2);
+      for(u8 k = 0; k < 28; k++) {
+        crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
+      }
+      u32 computed_crc = crc24q(crc_buf, 29, 0);
+      if (computed_crc == msg_crc) {
+        found = true;
+      }
+    } else if (isInverse(preamble_candidate)) {
+      for (u8 j = 0; j < total_bits/8 + 1; j++)
+        buffer[j] = ~buffer[j];
+      u32 msg_crc = getbitu(buffer, i + 226, 24);
+      u8 crc_buf[29] = {0};
+      crc_buf[0] = getbitu(buffer, i, 2);
+      for(u8 k = 0; k < 28; k++) {
+        crc_buf[k + 1] = getbitu(buffer, i + 2 + k * 8, 8);
+      }
+      u32 computed_crc = crc24q(crc_buf, 29, 0);
+      if (computed_crc == msg_crc) {
+        found = true;
+      } else {
+        for (u8 j = 0; j < total_bits/8; j++)
+          buffer[j] = ~buffer[j];
+      }
+    }
+  }
+
+  /*
+   *Align with start of first good message from the buffer.
+   */
+  i--;
+  s16 preamble_index = -1;
+  for (u16 j = i; j < total_bits - 250; j += 250) {
+    /*
+     *Check CRC-24Q.
+     */
+    u32 crc = getbitu(buffer, j + 226, 24);
+    u8 type = getbitu(buffer, j + 8, 6);
+    u8 crc_buf[29] = {0};
+    crc_buf[0] = getbitu(buffer, j, 2);
+    for(u8 i = 0; i < 28; i++) {
+      crc_buf[i + 1] = getbitu(buffer, j + 2 + i * 8, 8);
+    }
+    u32 computed_crc = crc24q(crc_buf, 29, 0);
+    if (computed_crc != crc) {
+      /*
+       *log_info("Msg %d has failed CRC check.", type);
+       */
+      continue;
+    }
+
+    /*
+     *Get first preamble which is aligned with 6 second GPS subframe.
+     */
+    u8 preamble_candidate = getbitu(buffer, j, 8);
+    if (preamble_candidate == 0x53 || preamble_candidate == 0xAC) {
+        /*
+         *preamble_candidate == 0x9A || preamble_candidate == 0x65 ||
+         *preamble_candidate == 0xC6 || preamble_candidate == 0x39) {
+         */
+      preamble_index = total_bits - j;
+    }
+    if (n->polarity == 0) {
+      n->msg_normal++;
+      n->msg_normal %= 50;
+    } else {
+      n->msg_inverse++;
+      n->msg_inverse %= 50;
+    }
+
+    /*
+     *Parse for GEO Ephemeris.
+     */
+    if (type == 9) {
+      assert(e != NULL);
+      u16 prev = j + 8 + 6;
+
+      e->iod = getbitu(buffer, prev, 8); prev += 8;
+      e->toa = getbitu(buffer, prev, 13) * 16; prev += 13;
+      e->ura = getbitu(buffer, prev, 4); prev += 4;
+
+      e->pos[0] = getbits(buffer, prev, 30) * 0.08; prev += 30;
+      e->pos[1] = getbits(buffer, prev, 30) * 0.08; prev += 30;
+      e->pos[2] = getbits(buffer, prev, 25) * 0.4; prev += 25;
+
+      e->rate[0] = getbits(buffer, prev, 17) * 0.000625; prev += 17;
+      e->rate[1] = getbits(buffer, prev, 17) * 0.000625; prev += 17;
+      e->rate[2] = getbits(buffer, prev, 18) * 0.004; prev += 18;
+
+      e->acc[0] = getbits(buffer, prev, 10) * 0.0000125; prev += 10;
+      e->acc[1] = getbits(buffer, prev, 10) * 0.0000125; prev += 10;
+      e->acc[2] = getbits(buffer, prev, 10) * 0.0000625; prev += 10;
+
+      e->a_gf0 = getbits(buffer, prev, 12) * pow(2, -31); prev += 12;
+      e->a_gf1 = getbits(buffer, prev, 8) * pow(2, -40); prev += 12;
+
+      e->valid = 1;
+      e->healthy = 1;
+
+    } else if (type == 17) { /* Parse for GEO Almanac */
+      assert(alm != NULL);
+      u8 base = 8 + 6;
+      u8 pass = 0;
+
+      for (u16 i = 0; i < 67*3; i+= 67) {
+        u16 prev = i + j + base;
+        alm[pass].data_id = getbitu(buffer, prev, 2); prev += 2;
+        alm[pass].sid.prn = getbitu(buffer, prev, 8) - 1; prev += 8;
+        alm[pass].sid.constellation = SBAS_CONSTELLATION;
+        alm[pass].sid.band = L1_BAND;
+        alm[pass].health = getbitu(buffer, prev, 8); prev += 8;
+        if (alm[pass].health == 0)
+          alm[pass].valid = 1;
+
+        alm[pass].x = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm[pass].y = getbits(buffer, prev, 15) * 2600; prev += 15;
+        alm[pass].z = getbits(buffer, prev, 9) * 26000; prev+= 9;
+
+        alm[pass].x_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm[pass].y_rate = getbits(buffer, prev, 3) * 10; prev += 3;
+        alm[pass].z_rate = getbits(buffer, prev, 4) * 40.96; prev += 4;
+
+        pass++;
+      }
+      alm[0].t0 = alm[1].t0 = alm[2].t0 = getbitu(buffer, j + base + 67*3, 11);
+    }
+  }
+
+  return preamble_index;
 }
 

@@ -575,7 +575,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     }
     printf("}\nsdiffs[*].prn      = {");
     for (u8 i=0; i < num_sdiffs; i++) {
-      printf("%u, ", sdiffs[i].prn);
+      printf("%u, ", sdiffs[i].sid.prn);
     }
     printf("}\n");
   }
@@ -593,10 +593,10 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       DEBUG_EXIT();
       return 0;
     }
-    if (prns[i] == sdiffs[j].prn) {
+    if (prns[i] == sdiffs[j].sid.prn) {
       j++;
     }
-    else if (amb_ref == sdiffs[j].prn) {
+    else if (amb_ref == sdiffs[j].sid.prn) {
       j++;
       i--;
     }
@@ -1545,7 +1545,7 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
     else {
       printf("}\nsdiffs_with_ref_first[*].prn = {");
       for (u8 i = 0; i < num_sdiffs; i++) {
-        printf("%u, ", sdiffs_with_ref_first[i].prn);
+        printf("%u, ", sdiffs_with_ref_first[i].sid.prn);
       }
       printf("}\n");
     }
@@ -1555,22 +1555,22 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
   u8 j = 1;
   u8 k = 0;
   while (i < amb_test->sats.num_sats && j < num_sdiffs) {
-    if (amb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn) {
+    if (amb_test->sats.prns[i] == sdiffs_with_ref_first[j].sid.prn) {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn; i,j,k++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.prn);
       intersection_ndxs[k] = i-1;
       i++;
       j++;
       k++;
     }
-    else if (amb_test->sats.prns[i] < sdiffs_with_ref_first[j].prn) {
+    else if (amb_test->sats.prns[i] < sdiffs_with_ref_first[j].sid.prn) {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] <  sdiffs_with_ref_first[j].prn; i++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.prn);
       i++;
     }
     else {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] >  sdiffs_with_ref_first[j].prn; j++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.prn);
       j++;
     }
   }

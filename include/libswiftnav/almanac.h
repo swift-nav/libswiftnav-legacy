@@ -14,7 +14,8 @@
 #define LIBSWIFTNAV_ALMANAC_H
 
 #include "common.h"
-#include "almanac.h"
+#include "gpstime.h"
+#include "signal.h"
 
 /** \addtogroup almanac
  * \{ */
@@ -32,18 +33,39 @@ typedef struct {
   double af0;   /**< 0-order clock correction in seconds. */
   double af1;   /**< 1-order clock correction in seconds/second. */
   u16 week;     /**< GPS week number, modulo 1024. */
-  u8 prn;       /**< PRN number of the satellite. */
+  signal_t sid; /**< Signal ID. */
   u8 healthy;   /**< Satellite health status. */
   u8 valid;     /**< Almanac is valid. */
-} almanac_t;
+} gps_almanac_t;
+
+/** Structure containing the SBAS almanac for one satellite. */
+typedef struct {
+  u8 data_id;   /**< Data ID. */
+  signal_t sid; /**< PRN. */
+  u8 health;    /**< Health. */
+
+  u16 x;        /**< X coordinate ECEF. */
+  u16 y;        /**< Y coordinate ECEF. */
+  u16 z;        /**< Z coordinate ECEF. */
+
+  u8 x_rate;    /**< X coordinate rate of change [m/s]. */
+  u8 y_rate;    /**< Y coordinate rate of change [m/s]. */
+  u8 z_rate;    /**< Z coordinate rate of change [m/s]. */
+
+  u16 t0;       /**< Time of day [seconds]. */
+
+  u8 valid;     /**< Almanac is valid. */
+} sbas_almanac_t;
 
 /** \} */
 
-void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
-                            double pos[3], double vel[3]);
-void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
+void legacy_calc_sat_state_almanac(const gps_almanac_t* alm, double t,
+                                   s16 week, double pos[3], double vel[3]);
+void sbas_calc_sat_state_almanac(const sbas_almanac_t* alm, double t,
+                                 double pos[3], double vel[3]);
+void calc_sat_az_el_almanac(const gps_almanac_t* alm, double t, s16 week,
                             const double ref[3], double* az, double* el);
-double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
+double calc_sat_doppler_almanac(const gps_almanac_t* alm, double t, s16 week,
                                 const double ref[3]);
 
 #endif /* LIBSWIFTNAV_ALMANAC_H */

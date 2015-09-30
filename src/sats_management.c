@@ -19,14 +19,14 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
-static u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
+static u16 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
-  u8 best_prn=sats[0].prn;
+  u16 best_prn = sats[0].sid.prn;
   for (u8 i=1; i<num_sats; i++) {
     if (sats[i].snr > best_snr) {
       best_snr = sats[i].snr;
-      best_prn = sats[i].prn;
+      best_prn = sats[i].sid.prn;
     }
   }
   return best_prn;
@@ -42,7 +42,7 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   if(DEBUG) {
     printf("sdiff prns= {");
     for (u8 k=0; k< num_sdiffs; k++) {
-      printf("%u, ", sdiffs[k].prn);
+      printf("%u, ", sdiffs[k].sid.prn);
     }
     printf("}\n");
     printf("sats= {");
@@ -54,16 +54,16 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   }
   /* Loop over sats1 and sdffs and check if a PRN is present in both. */
   for (i=0, j=0; i<num_sats1 && j<num_sdiffs; i++, j++) {
-    if (sats1[i] < sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++", n, i, sats1[i], j, sdiffs[j].prn);
+    if (sats1[i] < sdiffs[j].sid.prn) {
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++", n, i, sats1[i], j, sdiffs[j].sid.prn);
       j--;
     }
-    else if (sats1[i] > sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++", n, i, sats1[i], j, sdiffs[j].prn);
+    else if (sats1[i] > sdiffs[j].sid.prn) {
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++", n, i, sats1[i], j, sdiffs[j].sid.prn);
       i--;
     }
     else {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++", n, i, sats1[i], j, sdiffs[j].prn);
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++", n, i, sats1[i], j, sdiffs[j].sid.prn);
       memcpy(&intersection_sats[n], &sdiffs[j], sizeof(sdiff_t));
       n++;
     }
@@ -71,7 +71,7 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   if (DEBUG) {
     printf("intersection_sats= {");
     for (u8 k=0; k< n; k++) {
-      printf("%u, ", intersection_sats[k].prn);
+      printf("%u, ", intersection_sats[k].sid.prn);
     }
     printf("}\n");
   }
@@ -159,12 +159,12 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
 
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (sdiffs[i].prn != ref_prn) {
-      log_debug("prn[%u] = %u", j, sdiffs[i].prn);
+    if (sdiffs[i].sid.prn != ref_prn) {
+      log_debug("prn[%u] = %u", j, sdiffs[i].sid.prn);
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     } else {
-      log_debug("prn[0] = %u", sdiffs[i].prn);
+      log_debug("prn[0] = %u", sdiffs[i].sid.prn);
       memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
     }
   }
@@ -179,8 +179,8 @@ static void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats
   sats_management->prns[0] = ref_prn;
   u8 j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (sdiffs[i].prn != ref_prn) {
-      sats_management->prns[j] = sdiffs[i].prn;
+    if (sdiffs[i].sid.prn != ref_prn) {
+      sats_management->prns[j] = sdiffs[i].sid.prn;
       if (sdiffs_with_ref_first) {
         memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       }
@@ -260,7 +260,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
       if (DEBUG) {
         printf("sdiff prns= {");
         for (u8 yo_mama=0; yo_mama< num_sdiffs; yo_mama++) {
-          printf("%u, ", sdiffs[yo_mama].prn);
+          printf("%u, ", sdiffs[yo_mama].sid.prn);
         }
         printf("}\n");
         printf("sats_man_prns= {");
@@ -270,7 +270,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
         printf("}\n");
         printf("num intersect_sats= %u\nintersection= {", num_intersection);
         for (u8 bork=0; bork<num_intersection; bork++) {
-          printf("%u, ", intersection_sats[bork].prn);
+          printf("%u, ", intersection_sats[bork].sid.prn);
         }
         printf("}\n");
       }
@@ -289,7 +289,7 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 {
   sats_management->num_sats = num_non_ref_sdiffs + 1;
   for (u8 i=1; i<num_non_ref_sdiffs+1; i++) {
-    sats_management->prns[i] = non_ref_sdiffs[i-1].prn;
+    sats_management->prns[i] = non_ref_sdiffs[i-1].sid.prn;
   }
 }
 
@@ -301,14 +301,14 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
   u8 j = 1;
   u8 ref_prn = sats->prns[0];
   for (u8 i=0; i<num_sdiffs && j<sats->num_sats; i++) {
-    if (sdiffs[i].prn == ref_prn) {
+    if (sdiffs[i].sid.prn == ref_prn) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
     }
-    else if (sdiffs[i].prn == sats->prns[j]) {
+    else if (sdiffs[i].sid.prn == sats->prns[j]) {
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     }
-    else if (sdiffs[i].prn > sats->prns[j]) {
+    else if (sdiffs[i].sid.prn > sats->prns[j]) {
       return -1;
     }
   }

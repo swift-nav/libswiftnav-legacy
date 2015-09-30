@@ -73,7 +73,7 @@ static bool prns_match(const u8 *old_non_ref_prns, u8 num_non_ref_sdiffs,
   }
   for (u8 i=0; i<num_non_ref_sdiffs; i++) {
     /* iterate through the non-reference_sats, checking they match. */
-    if (old_non_ref_prns[i] != non_ref_sdiffs[i].prn) {
+    if (old_non_ref_prns[i] != non_ref_sdiffs[i].sid.prn) {
       return false;
     }
   }
@@ -91,9 +91,9 @@ static u8 dgnss_intersect_sats(u8 num_old_prns, const u8 *old_prns,
   u8 i, j, n = 0;
   /* Loop over old_prns and sdiffs and check if a PRN is present in both. */
   for (i=0, j=0; i<num_old_prns && j<num_sdiffs; i++, j++) {
-    if (old_prns[i] < sdiffs[j].prn)
+    if (old_prns[i] < sdiffs[j].sid.prn)
       j--;
-    else if (old_prns[i] > sdiffs[j].prn)
+    else if (old_prns[i] > sdiffs[j].sid.prn)
       i--;
     else {
       ndx_of_intersection_in_old[n] = i;
@@ -157,7 +157,7 @@ void dgnss_rebase_ref(u8 num_sdiffs, sdiff_t *sdiffs, double receiver_ecef[3], u
 static void sdiffs_to_prns(u8 n, sdiff_t *sdiffs, u8 *prns)
 {
   for (u8 i=0; i<n; i++) {
-    prns[i] = sdiffs[i].prn;
+    prns[i] = sdiffs[i].sid.prn;
   }
 }
 
@@ -252,7 +252,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
   if (DEBUG) {
     printf("sdiff[*].prn = {");
     for (u8 i=0; i < num_sats; i++) {
-      printf("%u, ",sdiffs[i].prn);
+      printf("%u, ", sdiffs[i].sid.prn);
     }
     printf("}\n");
   }
@@ -260,7 +260,7 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
   if (num_sats <= 1) {
     sats_management.num_sats = num_sats;
     if (num_sats == 1) {
-      sats_management.prns[0] = sdiffs[0].prn;
+      sats_management.prns[0] = sdiffs[0].sid.prn;
     }
     create_ambiguity_test(&ambiguity_test);
     DEBUG_EXIT();
@@ -583,7 +583,7 @@ static u8 get_de_and_phase(sats_management_t *sats_man,
   /* TODO: Detect if ref_prn is not in prns and return error? */
   u8 i;
   for (i=0; i<num_sdiffs; i++) {
-    if (sdiffs[i].prn == ref_prn) {
+    if (sdiffs[i].sid.prn == ref_prn) {
       e0[0] = sdiffs[i].sat_pos[0] - ref_ecef[0];
       e0[1] = sdiffs[i].sat_pos[1] - ref_ecef[1];
       e0[2] = sdiffs[i].sat_pos[2] - ref_ecef[2];
@@ -595,10 +595,10 @@ static u8 get_de_and_phase(sats_management_t *sats_man,
   i=1;
   u8 j = 0;
   while (i < num_sats) {
-    if (sdiffs[j].prn < sats_man->prns[i]) {
+    if (sdiffs[j].sid.prn < sats_man->prns[i]) {
       j++;
     }
-    else if (sdiffs[j].prn > sats_man->prns[i]) {
+    else if (sdiffs[j].sid.prn > sats_man->prns[i]) {
       /* This should never happen. */
       log_warn("sdiffs should be a super set of sats_man prns");
       i++;
