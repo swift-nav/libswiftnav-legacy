@@ -48,5 +48,10 @@ s32 intersection(u32 na, size_t sa, const void *as, void *a_out,
                  u32 nb, size_t sb, const void *bs, void *b_out,
                  cmp_fn cmp);
 
+u32 insertion_index(u32 na, size_t sa, const void *as, void *b, cmp_fn cmp);
+u32 remove_element(u32 na, size_t sa, const void *as, void *a_out,
+                   void *b, cmp_fn cmp);
+u32 insert_element(u32 na, size_t sa, const void *as, void *a_out,
+                   void *b, cmp_fn cmp);
 #endif /* LIBSWIFTNAV_SET_H */
 

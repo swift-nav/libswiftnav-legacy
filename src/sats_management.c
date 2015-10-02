@@ -19,7 +19,7 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
-static u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
+u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
   u8 best_prn=sats[0].prn;

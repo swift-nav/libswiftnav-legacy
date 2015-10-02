@@ -21,6 +21,11 @@
  * \{ */
 
 typedef struct {
+  double amb;
+  u8 prn;
+} ambiguity_t;
+
+typedef struct {
   double ambs[MAX_CHANNELS-1];
   u8 prns[MAX_CHANNELS];
   u8 n;
@@ -46,12 +51,15 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const double ref_ecef[3], double b[3],
          bool disable_raim, double raim_threshold);
 
+void diff_ambs(u8 ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
+               double *dd_ambs);
+s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
+             u8 num_ambs, const ambiguity_t *single_ambs,
+             u8 *num_used, double b[3],
+             bool disable_raim, double raim_threshold);
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
             const ambiguities_t *ambs, u8 *num_used, double b[3],
             bool disable_raim, double raim_threshold);
-s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-             u8 num_ambs, const u8 *amb_prns, const double *ambs,
-             u8 *num_used, double b[3], bool disable_raim, double raim_threshold);
 
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,

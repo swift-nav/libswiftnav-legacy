@@ -30,6 +30,8 @@ typedef struct {
   u8 prns[MAX_CHANNELS];
 } sats_management_t;
 
+u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats);
+
 void init_sats_management(sats_management_t *sats_management,
                           const u8 num_sats, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void print_sats_management(sats_management_t *sats_management);

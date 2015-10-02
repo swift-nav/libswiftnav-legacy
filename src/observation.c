@@ -27,11 +27,18 @@
 
 /** Comparison function for `sdiff_t` by PRN.
  * See `cmp_fn`. */
-int cmp_sdiff_prn(const void *a_, const void *b_)
+int cmp_sdiff(const void *a_, const void *b_)
 {
   const sdiff_t *a = (const sdiff_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
   return cmp_u8_u8(&(a->prn), &(b->prn));
+}
+
+int cmp_sdiff_prn(const void *a_, const void *b_)
+{
+  const sdiff_t *a = (const sdiff_t *)a_;
+  const u8 *b = (const u8 *)b_;
+  return cmp_u8_u8(&(a->prn), b);
 }
 
 /** Create a single difference from two observations.
@@ -279,7 +286,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  *                                   (length of non_ref_prns).
  * \param num_sdiffs                 The number of sdiffs being passed in.
  * \param sdiffs                     The sdiffs to pull measurements out of.
- * \param dd_meas  The output vector of DD measurements
+ * \param dd_meas                    The output vector of DD measurements
  *                                   to be used to update the IAR.
  * \param sdiffs_out                 The sdiffs that correspond to the IAR PRNs.
  *                                   Should have length = num_dds+1.

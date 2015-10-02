@@ -6,6 +6,7 @@
 #include "dgnss_management.h"
 #include "ambiguity_test.h"
 #include "amb_kf.h"
+#include "printing_utils.h"
 
 extern sats_management_t sats_management;
 extern nkf_t nkf;
@@ -155,30 +156,35 @@ static void check_dgnss_baseline_setup()
   sdiffs[0].sat_pos[1] = 1;
   sdiffs[0].sat_pos[2] = 0;
   sdiffs[0].carrier_phase = 1;
+  sdiffs[0].snr = 1.0;
 
   sdiffs[1].prn = 2;
   sdiffs[1].sat_pos[0] = 1;
   sdiffs[1].sat_pos[1] = 0;
   sdiffs[1].sat_pos[2] = 0;
   sdiffs[1].carrier_phase = 2;
+  sdiffs[1].snr = 0.0;
 
   sdiffs[2].prn = 3;
   sdiffs[2].sat_pos[0] = 0;
   sdiffs[2].sat_pos[1] = 1;
   sdiffs[2].sat_pos[2] = 0;
   sdiffs[2].carrier_phase = 3;
+  sdiffs[2].snr = 0.0;
 
   sdiffs[3].prn = 4;
   sdiffs[3].sat_pos[0] = 0;
   sdiffs[3].sat_pos[1] = 1;
   sdiffs[3].sat_pos[2] = 1;
   sdiffs[3].carrier_phase = 4;
+  sdiffs[3].snr = 0.0;
 
   sdiffs[4].prn = 5;
   sdiffs[4].sat_pos[0] = 0;
   sdiffs[4].sat_pos[1] = 0;
   sdiffs[4].sat_pos[2] = 1;
   sdiffs[4].carrier_phase = 5;
+  sdiffs[4].snr = 0.0;
 }
 
 /* No teardown required. */
@@ -195,7 +201,7 @@ START_TEST(test_dgnss_baseline_1)
     .fixed_ambs = {
       .n = 4,
       .prns = {2, 1, 3, 4, 5},
-      .ambs = {0, 0, 0, 0}
+      .ambs = {0, 1, 0, 0}
     }
   };
 
@@ -218,9 +224,9 @@ START_TEST(test_dgnss_baseline_1)
     false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 1);
   fail_unless(num_used == 5);
-  fail_unless(within_epsilon(b[0], -0.622609));
-  fail_unless(within_epsilon(b[1], -0.432371));
-  fail_unless(within_epsilon(b[2], -0.00461595));
+  fail_unless(within_epsilon(b[0], -0.417486));
+  fail_unless(within_epsilon(b[1], -0.358386));
+  fail_unless(within_epsilon(b[2],  0.271427));
 
   /* No solution possible */
   s.fixed_ambs.n = 0;
@@ -229,9 +235,9 @@ START_TEST(test_dgnss_baseline_1)
     false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == -1);
   fail_unless(num_used == 5);
-  fail_unless(within_epsilon(b[0], -0.622609));
-  fail_unless(within_epsilon(b[1], -0.432371));
-  fail_unless(within_epsilon(b[2], -0.00461595));
+  fail_unless(within_epsilon(b[0], -0.417486));
+  fail_unless(within_epsilon(b[1], -0.358386));
+  fail_unless(within_epsilon(b[2],  0.271427));
 }
 END_TEST
 

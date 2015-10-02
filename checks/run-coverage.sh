@@ -1,6 +1,7 @@
 # requires gcovr and diff-cover
 # pip install gcovr diff-cover
 set -e
+unset GIT_DIR
 base="$(git rev-parse --show-toplevel)"
 echo "running coverage check from ${base}"
 gcovr -r "${base}" --object-directory . --xml -o "${base}/.coverage.xml"

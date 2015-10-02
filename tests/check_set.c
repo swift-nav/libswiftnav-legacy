@@ -159,34 +159,6 @@ START_TEST(test_intersection_map_10)
 }
 END_TEST
 
-START_TEST(test_intersection_map_11)
-{
-  /* Invalid first set */
-  s32 a[] = {1, 1};
-  s32 b[] = {1, 2, 3};
-  s32 c[LEN(a)];
-
-  s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,
-                             LEN(b), sizeof(b[0]), b,
-                             cmp_s32_s32, c, test_map_f);
-  fail_unless(ret == -1);
-}
-END_TEST
-
-START_TEST(test_intersection_map_12)
-{
-  /* Invalid second set */
-  s32 a[] = {1, 2, 3};
-  s32 b[] = {1, 2, 1};
-  s32 c[LEN(a)];
-
-  s32 ret = intersection_map(LEN(a), sizeof(a[0]), a,
-                             LEN(b), sizeof(b[0]), b,
-                             cmp_s32_s32, c, test_map_f);
-  fail_unless(ret == -2);
-}
-END_TEST
-
 START_TEST(test_is_prn_set)
 {
 
@@ -244,8 +216,6 @@ Suite* set_suite(void)
   tcase_add_test(tc_intersection, test_intersection_map_8);
   tcase_add_test(tc_intersection, test_intersection_map_9);
   tcase_add_test(tc_intersection, test_intersection_map_10);
-  tcase_add_test(tc_intersection, test_intersection_map_11);
-  tcase_add_test(tc_intersection, test_intersection_map_12);
   TCase *tc_set = tcase_create("Set");
   tcase_add_test(tc_set, test_is_prn_set);
   suite_add_tcase(s, tc_intersection);

@@ -8,3 +8,4 @@ hooks="$(git rev-parse --git-dir)/hooks"
 echo "Installing hook at: ${hooks}"
 # insert value of builddir as first line of pre-commit
 echo "subdir=$builddir" | cat - checks/pre-commit > "$hooks/pre-commit"
+chmod +x "$hooks/pre-commit"
