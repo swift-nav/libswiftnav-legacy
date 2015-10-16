@@ -69,11 +69,9 @@ install(FILES ${libswiftnav_HEADERS} DESTINATION include/libswiftnav)
 MESSAGE("${PROJECT_SOURCE_DIR}")
 
 add_custom_command(
-  OUTPUT checkpatch_output.txt
+  OUTPUT checkpatch
   DEPENDS ${libswiftnav_SRCS}
   VERBATIM
-  COMMAND "${PROJECT_SOURCE_DIR}/checks/checkoutput.sh"
-    "${PROJECT_SOURCE_DIR}/src/*.c"
-    "${PROJECT_SOURCE_DIR}/checks/checkpatch.pl")
+  COMMAND "${PROJECT_SOURCE_DIR}/checks/checkoutput.sh")
 
-add_custom_target(checkpatch DEPENDS checkpatch_output.txt) 
+add_custom_target(checkpatch DEPENDS checkpatch)

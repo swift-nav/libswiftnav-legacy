@@ -1,3 +1,3 @@
 echo "precommit running. checking build located at ${subdir}."
 cd "${subdir}"
-make check-coverage
+make check-style

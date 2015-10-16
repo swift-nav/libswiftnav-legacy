@@ -14,18 +14,18 @@ if (BUILD_DOCUMENTATION)
   add_subdirectory(diagrams)
 
   configure_file(Doxyfile.in
-    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
     @ONLY
   )
 
   add_custom_target(docs
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-    COMMENT "Building Doxygen documentation"
+    ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+    COMMENT "Building Doxygen documentation\nWriting warnings/errors to WARN_LOGFILE"
     DEPENDS diagrams Doxyfile.in
   )
 
   set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-		${CMAKE_CURRENT_BINARY_DIR}/html
+		"${CMAKE_CURRENT_BINARY_DIR}/html"
   )
 
 endif (BUILD_DOCUMENTATION)
