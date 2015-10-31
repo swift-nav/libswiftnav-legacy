@@ -1,0 +1,11 @@
+RELEASE-VERSION
+*.c
+*.pyc
+build/
+docs/_build/
+.DS_Store
+*.egg*
+*.so
+docs/libswiftnav.tag
+docs/swiftnav.rst
+distribute*.tar.gz
