@@ -413,9 +413,8 @@ void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution)
  * \param ref_ecef    The referece position for the baseline.
  *                    (TODO is this the local or remote receiver position?)
  * \param s           Current ambiguity test state.
- * \param num_used    Output number of sdiffs actually used in the baseline
- *                    estimate.
- * \param b           Output baseline.
+ * \param solution    struct containing output baseline, num sdiffs used,
+ *                    fixed mode, raim availability, whether raim was used.
  * \param disable_raim Flag to turn off raim checks/repair.
  * \param raim_threshold raim check threshold
  * \return 0: solution ok

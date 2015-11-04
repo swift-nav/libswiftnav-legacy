@@ -227,7 +227,7 @@ START_TEST(test_dgnss_baseline_1)
   fail_unless(valid == 0);
   fail_unless(solution.fixed_mode == 1);
   fail_unless(solution.num_used == 5);
-  double expected2[] = {-0.622609, -0.432371, -0.00461595};
+  double expected2[] = {-0.417486, -0.358386, 0.271427};
   fail_unless(arr_within_epsilon(3, solution.b, expected2));
 
   /* No solution possible */
