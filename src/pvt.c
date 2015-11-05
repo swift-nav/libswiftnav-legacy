@@ -536,17 +536,31 @@ s8 calc_PVT(const u8 n_used,
   soln->n_used = n_used; // Keep track of number of working channels
 
   u8 removed_prn = -1;
-  s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
-                                H, &removed_prn, 0);
+  s8 code = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
+                           H, &removed_prn, 0);
 
-  if (raim_flag < 0) {
+  if (code < 0) {
     /* Didn't converge or least squares integrity check failed. */
-    return raim_flag - 3;
+    return code - 3;
   }
 
-  /* Initial solution failed, but repair was successful. */
-  if (raim_flag == 1) {
-    soln->n_used--;
+  soln->raim_flag = 0;
+
+  switch (code) {
+    case 1:
+      /* Initial solution failed, but repair was successful. */
+      soln->n_used--;
+      soln->raim_flag = (1 << 1) | 1; /* 11 */
+      break;
+    case 2:
+      /* raim was unavailable */
+      soln->raim_flag = 0; /* 00 */
+      break;
+    case 0:
+      soln->raim_flag = 1; /* 01 */
+      break;
+    default:
+      log_error("Invalid pvt_solve_raim return code: %d\n", code);
   }
 
   /* Compute various dilution of precision metrics. */
@@ -597,6 +611,6 @@ s8 calc_PVT(const u8 n_used,
 
   soln->valid = 1;
 
-  return raim_flag;
+  return code;
 }
 

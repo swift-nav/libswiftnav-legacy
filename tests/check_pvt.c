@@ -86,6 +86,8 @@ START_TEST(test_pvt_repair)
   s8 code = calc_PVT(n_used, nms, false, &soln, &dops);
   fail_unless(code == 1,
     "Return code should be 1 (pvt repair). Saw: %d\n", code);
+  fail_unless(soln.raim_flag == 3,
+    "raim_flag should be 0b11, saw: %d\n", soln.raim_flag);
   fail_unless(soln.n_used == n_used - 1,
     "PVT solver failed to repair solution.");
 }
@@ -104,6 +106,8 @@ START_TEST(test_disable_pvt_raim)
   s8 code = calc_PVT(n_used, nms, true, &soln, &dops);
   fail_unless(code == 2,
     "Return code should be 2 (raim not used). Saw: %d\n", code);
+  fail_unless(soln.raim_flag == 0,
+    "raim_flag should be 00, saw: %d\n", soln.raim_flag);
   fail_unless(soln.valid == 1,
     "Solution should be valid!");
 }

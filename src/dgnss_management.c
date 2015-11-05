@@ -395,6 +395,14 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
   }
 }
 
+/* Interpret raim-related content of baseline function return code. */
+void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution)
+{
+  solution->raim_repair    = ret == 1;
+  solution->raim_available = ret != 2;
+  solution->fixed_mode = fixed;
+}
+
 /** Finds the baseline using low latency sdiffs.
  * The low latency sdiffs are not guaranteed to match up with either the
  * amb_test's or the float sdiffs, and thus care must be taken to transform them
@@ -405,42 +413,51 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  * \param ref_ecef    The referece position for the baseline.
  *                    (TODO is this the local or remote receiver position?)
  * \param s           Current ambiguity test state.
- * \param num_used    Output number of sdiffs actually used in the baseline
- *                    estimate.
- * \param b           Output baseline.
+ * \param solution    struct containing output baseline, num sdiffs used,
+ *                    fixed mode, raim availability, whether raim was used.
  * \param disable_raim Flag to turn off raim checks/repair.
  * \param raim_threshold raim check threshold
- * \return  1 if we are using an IAR resolved baseline.
- *          2 if we are using a float baseline.
- *         -1 if we can't give a baseline.
+ * \return 0: solution ok
+ *         negative value: baseline error code
  */
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3],
+                  dgnss_baseline_t *solution,
                   bool disable_raim, double raim_threshold)
 {
-  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
-                    disable_raim, raim_threshold);
+  s8 ret;
+
+  /* Try IAR resolved baseline */
+  ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs,
+                 &solution->num_used, solution->b,
+                 disable_raim, raim_threshold);
   if (ret >= 0) {
-    if (ret == 1) /* TODO: Export this rather than just printing */
+    if (ret == 1)
       log_warn("dgnss_baseline: Fixed baseline RAIM repair");
     log_debug("fixed solution");
     DEBUG_EXIT();
-    return 1;
+    fill_property_flags(ret, true, solution);
+    return 0;
   }
+
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if ((ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
-                      disable_raim, raim_threshold))
-        >= 0) {
-    if (ret == 1) /* TODO: Export this rather than just printing */
+  ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs,
+                 &solution->num_used, solution->b,
+                 disable_raim, raim_threshold);
+  if (ret >= 0) {
+    if (ret == 1)
       log_warn("dgnss_baseline: Float baseline RAIM repair");
     log_debug("float solution");
     DEBUG_EXIT();
-    return 2;
+    fill_property_flags(ret, false, solution);
+    return 0;
   }
   log_debug("no baseline solution");
   DEBUG_EXIT();
+
+  /* Must be negative! */
+  assert(ret < 0);
   return ret;
 }
 
