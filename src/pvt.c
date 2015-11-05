@@ -546,17 +546,21 @@ s8 calc_PVT(const u8 n_used,
 
   soln->raim_flag = 0;
 
-  if (code == 1) {
-    /* Initial solution failed, but repair was successful. */
-    soln->n_used--;
-    soln->raim_flag = (1 << 1) | 1; /* 11 */
-  } else if (code == 2) {
-    /* raim was unavailable */
-    soln->raim_flag = 0; /* 00 */
-  } else if (code == 0) {
-    soln->raim_flag = 1; /* 01 */
-  } else {
-    log_error("Invalid pvt_solve_raim return code: %d\n", code);
+  switch (code) {
+    case 1:
+      /* Initial solution failed, but repair was successful. */
+      soln->n_used--;
+      soln->raim_flag = (1 << 1) | 1; /* 11 */
+      break;
+    case 2:
+      /* raim was unavailable */
+      soln->raim_flag = 0; /* 00 */
+      break;
+    case 0:
+      soln->raim_flag = 1; /* 01 */
+      break;
+    default:
+      log_error("Invalid pvt_solve_raim return code: %d\n", code);
   }
 
   /* Compute various dilution of precision metrics. */

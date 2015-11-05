@@ -45,11 +45,11 @@ typedef struct {
   /* Number of sdiffs used in the soluton. */
   u8 num_used;
   /* bool: fixed or float filter derived */
-  u8 fixed_mode;
+  bool fixed_mode;
   /* bool: raim available for least squares baseline estimate */
-  u8 raim_available;
+  bool raim_available;
   /* bool: raim used to repair baseline */
-  u8 raim_repair;
+  bool raim_repair;
 } dgnss_baseline_t;
 
 extern dgnss_settings_t dgnss_settings;
@@ -75,7 +75,6 @@ s8 dgnss_iar_get_single_hyp(double *hyp);
 void dgnss_reset_iar(void);
 void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3], double b[3]);
 void dgnss_update_ambiguity_state(ambiguity_state_t *s);
-void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution);
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
                   dgnss_baseline_t *solution,

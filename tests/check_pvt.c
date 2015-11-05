@@ -87,7 +87,7 @@ START_TEST(test_pvt_repair)
   fail_unless(code == 1,
     "Return code should be 1 (pvt repair). Saw: %d\n", code);
   fail_unless(soln.raim_flag == 3,
-    "raim_flag should be 11, saw: %d\n", soln.raim_flag);
+    "raim_flag should be 0b11, saw: %d\n", soln.raim_flag);
   fail_unless(soln.n_used == n_used - 1,
     "PVT solver failed to repair solution.");
 }
