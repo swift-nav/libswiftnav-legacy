@@ -396,7 +396,7 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
 }
 
 /* Interpret raim-related content of baseline function return code. */
-static void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution)
+void fill_property_flags(s8 ret, bool fixed, dgnss_baseline_t *solution)
 {
   solution->raim_repair    = ret == 1;
   solution->raim_available = ret != 2;
