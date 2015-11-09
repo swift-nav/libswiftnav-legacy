@@ -256,35 +256,35 @@ static void check_baseline_setup()
 {
   memset(ref_ecef, 0, sizeof(ref_ecef));
 
-  sdiffs[0].prn = 1;
+  sdiffs[0].sid.sat = 1;
   sdiffs[0].sat_pos[0] = 1;
   sdiffs[0].sat_pos[1] = 1;
   sdiffs[0].sat_pos[2] = 0;
   sdiffs[0].carrier_phase = 1;
   sdiffs[0].snr = 0.0;
 
-  sdiffs[1].prn = 2;
+  sdiffs[1].sid.sat = 2;
   sdiffs[1].sat_pos[0] = 1;
   sdiffs[1].sat_pos[1] = 0;
   sdiffs[1].sat_pos[2] = 0;
   sdiffs[1].carrier_phase = 2;
   sdiffs[1].snr = 0.0;
 
-  sdiffs[2].prn = 3;
+  sdiffs[2].sid.sat = 3;
   sdiffs[2].sat_pos[0] = 0;
   sdiffs[2].sat_pos[1] = 1;
   sdiffs[2].sat_pos[2] = 0;
   sdiffs[2].carrier_phase = 3;
   sdiffs[2].snr = 0.0;
 
-  sdiffs[3].prn = 4;
+  sdiffs[3].sid.sat = 4;
   sdiffs[3].sat_pos[0] = 0;
   sdiffs[3].sat_pos[1] = 1;
   sdiffs[3].sat_pos[2] = 1;
   sdiffs[3].carrier_phase = 4;
   sdiffs[3].snr = 0.0;
 
-  sdiffs[4].prn = 5;
+  sdiffs[4].sid.sat = 5;
   sdiffs[4].sat_pos[0] = 0;
   sdiffs[4].sat_pos[1] = 0;
   sdiffs[4].sat_pos[2] = 1;
@@ -301,7 +301,7 @@ START_TEST(test_baseline_ref_first)
    * This should verify that the loop can start correctly. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {1, 2, 3, 4, 5},
+    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -325,7 +325,7 @@ START_TEST(test_baseline_ref_middle)
    * This should verify that the induction works. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {1, 2, 3, 4, 5},
+    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -354,7 +354,7 @@ START_TEST(test_baseline_ref_end)
    * This should verify that the loop can terminate correctly.*/
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {1, 2, 3, 4, 5},
+    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -384,7 +384,7 @@ START_TEST(test_baseline_fixed_point)
    * matching the baseline. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {5, 1, 2, 3, 4},
+    .prns = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -418,7 +418,7 @@ START_TEST(test_baseline_few_sats)
 {
   ambiguities_t ambs = {
     .n = 0,
-    .prns = {5, 1, 2, 3, 4},
+    .prns = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
     .ambs = {0, 0, 0, 0}
   };
 

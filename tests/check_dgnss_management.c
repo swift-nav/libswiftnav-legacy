@@ -15,11 +15,11 @@ extern ambiguity_test_t ambiguity_test;
 START_TEST(test_dgnss_update_ambiguity_state_1)
 {
   sats_management.num_sats = 5;
-  sats_management.prns[0] = 1;
-  sats_management.prns[1] = 2;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
+  sats_management.prns[0].sat = 1;
+  sats_management.prns[1].sat = 2;
+  sats_management.prns[2].sat = 3;
+  sats_management.prns[3].sat = 4;
+  sats_management.prns[4].sat = 5;
   nkf.state_dim = 4;
   nkf.state_mean[0] = 1;
   nkf.state_mean[1] = 2;
@@ -34,13 +34,13 @@ START_TEST(test_dgnss_update_ambiguity_state_1)
   ambiguity_test.amb_check.matching_ndxs[2] = 3;
   ambiguity_test.amb_check.matching_ndxs[3] = 5;
   ambiguity_test.sats.num_sats = 7;
-  ambiguity_test.sats.prns[0] = 1;
-  ambiguity_test.sats.prns[1] = 2;
-  ambiguity_test.sats.prns[2] = 3;
-  ambiguity_test.sats.prns[3] = 4;
-  ambiguity_test.sats.prns[4] = 5;
-  ambiguity_test.sats.prns[5] = 6;
-  ambiguity_test.sats.prns[6] = 7;
+  ambiguity_test.sats.prns[0].sat = 1;
+  ambiguity_test.sats.prns[1].sat = 2;
+  ambiguity_test.sats.prns[2].sat = 3;
+  ambiguity_test.sats.prns[3].sat = 4;
+  ambiguity_test.sats.prns[4].sat = 5;
+  ambiguity_test.sats.prns[5].sat = 6;
+  ambiguity_test.sats.prns[6].sat = 7;
   ambiguity_test.amb_check.ambs[0] = 20;
   ambiguity_test.amb_check.ambs[1] = 21;
   ambiguity_test.amb_check.ambs[2] = 22;
@@ -49,12 +49,12 @@ START_TEST(test_dgnss_update_ambiguity_state_1)
   ambiguity_state_t s = {
     .float_ambs = {
       .n = 4,
-      .prns = {1, 2, 3, 4, 5},
+      .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
       .ambs = {1, 2, 3, 4}
     },
     .fixed_ambs = {
       .n = 4,
-      .prns = {1, 2, 4, 5, 7},
+      .prns = {{.sat = 1}, {.sat = 2}, {.sat = 4}, {.sat = 5}, {.sat = 7}},
       .ambs = {20, 21, 22, 23}
     }
   };
@@ -71,11 +71,11 @@ END_TEST
 START_TEST(test_dgnss_update_ambiguity_state_2)
 {
   sats_management.num_sats = 5;
-  sats_management.prns[0] = 1;
-  sats_management.prns[1] = 2;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
+  sats_management.prns[0].sat = 1;
+  sats_management.prns[1].sat = 2;
+  sats_management.prns[2].sat = 3;
+  sats_management.prns[3].sat = 4;
+  sats_management.prns[4].sat = 5;
   nkf.state_dim = 4;
   nkf.state_mean[0] = 1;
   nkf.state_mean[1] = 2;
@@ -90,13 +90,13 @@ START_TEST(test_dgnss_update_ambiguity_state_2)
   ambiguity_test.amb_check.matching_ndxs[2] = 3;
   ambiguity_test.amb_check.matching_ndxs[3] = 5;
   ambiguity_test.sats.num_sats = 7;
-  ambiguity_test.sats.prns[0] = 1;
-  ambiguity_test.sats.prns[1] = 2;
-  ambiguity_test.sats.prns[2] = 3;
-  ambiguity_test.sats.prns[3] = 4;
-  ambiguity_test.sats.prns[4] = 5;
-  ambiguity_test.sats.prns[5] = 6;
-  ambiguity_test.sats.prns[6] = 7;
+  ambiguity_test.sats.prns[0].sat = 1;
+  ambiguity_test.sats.prns[1].sat = 2;
+  ambiguity_test.sats.prns[2].sat = 3;
+  ambiguity_test.sats.prns[3].sat = 4;
+  ambiguity_test.sats.prns[4].sat = 5;
+  ambiguity_test.sats.prns[5].sat = 6;
+  ambiguity_test.sats.prns[6].sat = 7;
   ambiguity_test.amb_check.ambs[0] = 20;
   ambiguity_test.amb_check.ambs[1] = 21;
   ambiguity_test.amb_check.ambs[2] = 22;
@@ -151,35 +151,35 @@ static void check_dgnss_baseline_setup()
 {
   memset(ref_ecef, 0, sizeof(ref_ecef));
 
-  sdiffs[0].prn = 1;
+  sdiffs[0].sid.sat = 1;
   sdiffs[0].sat_pos[0] = 1;
   sdiffs[0].sat_pos[1] = 1;
   sdiffs[0].sat_pos[2] = 0;
   sdiffs[0].carrier_phase = 1;
   sdiffs[0].snr = 1.0;
 
-  sdiffs[1].prn = 2;
+  sdiffs[1].sid.sat = 2;
   sdiffs[1].sat_pos[0] = 1;
   sdiffs[1].sat_pos[1] = 0;
   sdiffs[1].sat_pos[2] = 0;
   sdiffs[1].carrier_phase = 2;
   sdiffs[1].snr = 0.0;
 
-  sdiffs[2].prn = 3;
+  sdiffs[2].sid.sat = 3;
   sdiffs[2].sat_pos[0] = 0;
   sdiffs[2].sat_pos[1] = 1;
   sdiffs[2].sat_pos[2] = 0;
   sdiffs[2].carrier_phase = 3;
   sdiffs[2].snr = 0.0;
 
-  sdiffs[3].prn = 4;
+  sdiffs[3].sid.sat = 4;
   sdiffs[3].sat_pos[0] = 0;
   sdiffs[3].sat_pos[1] = 1;
   sdiffs[3].sat_pos[2] = 1;
   sdiffs[3].carrier_phase = 4;
   sdiffs[3].snr = 0.0;
 
-  sdiffs[4].prn = 5;
+  sdiffs[4].sid.sat = 5;
   sdiffs[4].sat_pos[0] = 0;
   sdiffs[4].sat_pos[1] = 0;
   sdiffs[4].sat_pos[2] = 1;
@@ -195,12 +195,12 @@ START_TEST(test_dgnss_baseline_1)
   ambiguity_state_t s = {
     .float_ambs = {
       .n = 4,
-      .prns = {1, 2, 3, 4, 5},
+      .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
       .ambs = {0, 0, 0, 0}
     },
     .fixed_ambs = {
       .n = 4,
-      .prns = {2, 1, 3, 4, 5},
+      .prns = {{.sat = 2}, {.sat = 1}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
       .ambs = {0, 1, 0, 0}
     }
   };

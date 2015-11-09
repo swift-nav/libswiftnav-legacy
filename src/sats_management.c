@@ -19,21 +19,21 @@
 #include "sats_management.h"
 #include "linear_algebra.h"
 
-u8 choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
+signal_t choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
-  u8 best_prn=sats[0].prn;
+  signal_t best_prn = sats[0].sid;
   for (u8 i=1; i<num_sats; i++) {
     if (sats[i].snr > best_snr) {
       best_snr = sats[i].snr;
-      best_prn = sats[i].prn;
+      best_prn = sats[i].sid;
     }
   }
   return best_prn;
 }
 
 //assumes both sets are ordered
-static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats1,
+static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const signal_t *sats1,
                          const sdiff_t *sdiffs, sdiff_t *intersection_sats)
 {
   DEBUG_ENTRY();
@@ -42,28 +42,28 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   if(DEBUG) {
     printf("sdiff prns= {");
     for (u8 k=0; k< num_sdiffs; k++) {
-      printf("%u, ", sdiffs[k].prn);
+      printf("%u, ", sdiffs[k].sid.sat);
     }
     printf("}\n");
     printf("sats= {");
     for (u8 k=0; k< num_sats1; k++) {
-      printf("%u, ", sats1[k]);
+      printf("%u, ", sats1[k].sat);
     }
     printf("}\n");
     printf("(n, i, prn1[i],\t j, prn2[j])\n");
   }
   /* Loop over sats1 and sdffs and check if a PRN is present in both. */
   for (i=0, j=0; i<num_sats1 && j<num_sdiffs; i++, j++) {
-    if (sats1[i] < sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++", n, i, sats1[i], j, sdiffs[j].prn);
+    if (cmp_signal_signal(&sats1[i], &sdiffs[j].sid) < 0) {
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 < prn2  i++", n, i, sats1[i], j, sdiffs[j].sid.sat);
       j--;
     }
-    else if (sats1[i] > sdiffs[j].prn) {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++", n, i, sats1[i], j, sdiffs[j].prn);
+    else if (cmp_signal_signal(&sats1[i], &sdiffs[j].sid) > 0) {
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 > prn2  j++", n, i, sats1[i], j, sdiffs[j].sid.sat);
       i--;
     }
     else {
-      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++", n, i, sats1[i], j, sdiffs[j].prn);
+      log_debug("(%u, %u, prn1=%u,\t %u, prn2=%u)\t\t prn1 = prn2  i,j,n++", n, i, sats1[i], j, sdiffs[j].sid.sat);
       memcpy(&intersection_sats[n], &sdiffs[j], sizeof(sdiff_t));
       n++;
     }
@@ -71,7 +71,7 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
   if (DEBUG) {
     printf("intersection_sats= {");
     for (u8 k=0; k< n; k++) {
-      printf("%u, ", intersection_sats[k].prn);
+      printf("%u, ", intersection_sats[k].sid.sat);
     }
     printf("}\n");
   }
@@ -84,19 +84,20 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const u8 *sats
  *  Inserts the old ref prn so the tail of the array is sorted.
  */
 /* TODO use the set abstraction fnoble is working on. */
-void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
+void set_reference_sat_of_prns(const signal_t ref_prn, const u8 num_sats, signal_t *prns)
 {
-  u8 old_ref = prns[0];
+  signal_t old_ref = prns[0];
   u8 j;
-  if (old_ref != ref_prn) {
+  if (!signal_is_equal(old_ref, ref_prn)) {
     j = 1;
-    u8 old_prns[num_sats];
-    memcpy(old_prns, prns, num_sats * sizeof(u8));
+    signal_t old_prns[num_sats];
+    memcpy(old_prns, prns, num_sats * sizeof(signal_t));
     u8 set_old_yet = 0;
     prns[0] = ref_prn;
     for (u8 i=1; i<num_sats; i++) {
-      if (old_prns[i] != ref_prn) {
-        if (old_prns[i]>old_ref && set_old_yet == 0) {
+      if (!signal_is_equal(old_prns[i], ref_prn)) {
+        if ((cmp_signal_signal(&old_prns[i], &old_ref) > 0) &&
+            set_old_yet == 0) {
           prns[j] = old_ref;
           j++;
           i--;
@@ -121,24 +122,24 @@ void set_reference_sat_of_prns(const u8 ref_prn, const u8 num_sats, u8 *prns)
  *  Inserts the old ref prn so the tail of the sats_management array is sorted.
  */
 /* TODO use the set abstraction fnoble is working on. */
-static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_management,
+static void set_reference_sat(const signal_t ref_prn, sats_management_t *sats_management,
                               const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   DEBUG_ENTRY();
 
-  u8 old_ref = sats_management->prns[0];
+  signal_t old_ref = sats_management->prns[0];
   log_debug("ref_prn = %u", ref_prn);
   log_debug("old_ref = %u", old_ref);
   u8 j;
-  if (old_ref != ref_prn) {
+  if (!signal_is_equal(old_ref, ref_prn)) {
     j = 1;
-    u8 old_prns[sats_management->num_sats];
-    memcpy(old_prns, sats_management->prns, sats_management->num_sats * sizeof(u8));
+    signal_t old_prns[sats_management->num_sats];
+    memcpy(old_prns, sats_management->prns, sats_management->num_sats * sizeof(signal_t));
     u8 set_old_yet = 0;
     sats_management->prns[0] = ref_prn;
     for (u8 i=1; i<sats_management->num_sats; i++) {
-      if (old_prns[i] != ref_prn) {
-        if (old_prns[i]>old_ref && set_old_yet == 0) {
+      if (!signal_is_equal(old_prns[i], ref_prn)) {
+        if (cmp_signal_signal(&old_prns[i], &old_ref)>0 && set_old_yet == 0) {
           sats_management->prns[j] = old_ref;
           j++;
           i--;
@@ -159,12 +160,12 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
 
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (sdiffs[i].prn != ref_prn) {
-      log_debug("prn[%u] = %u", j, sdiffs[i].prn);
+    if (!signal_is_equal(sdiffs[i].sid, ref_prn)) {
+      log_debug("prn[%u] = %u", j, sdiffs[i].sid.sat);
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     } else {
-      log_debug("prn[0] = %u", sdiffs[i].prn);
+      log_debug("prn[0] = %u", sdiffs[i].sid.sat);
       memcpy(&sdiffs_with_ref_first[0], &sdiffs[i], sizeof(sdiff_t));
     }
   }
@@ -172,15 +173,15 @@ static void set_reference_sat(const u8 ref_prn, sats_management_t *sats_manageme
   DEBUG_EXIT();
 }
 
-static void set_reference_sat_and_prns(const u8 ref_prn, sats_management_t *sats_management,
+static void set_reference_sat_and_prns(const signal_t ref_prn, sats_management_t *sats_management,
                                        const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
   sats_management->prns[0] = ref_prn;
   u8 j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (sdiffs[i].prn != ref_prn) {
-      sats_management->prns[j] = sdiffs[i].prn;
+    if (!signal_is_equal(sdiffs[i].sid, ref_prn)) {
+      sats_management->prns[j] = sdiffs[i].sid;
       if (sdiffs_with_ref_first) {
         memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       }
@@ -204,7 +205,7 @@ void init_sats_management(sats_management_t *sats_management,
     return;
   }
 
-  u8 ref_prn = choose_reference_sat(num_sdiffs, sdiffs);
+  signal_t ref_prn = choose_reference_sat(num_sdiffs, sdiffs);
   set_reference_sat_and_prns(ref_prn, sats_management,
                              num_sdiffs, sdiffs, sdiffs_with_ref_first);
   DEBUG_EXIT();
@@ -215,14 +216,14 @@ void print_sats_management(sats_management_t *sats_management)
 {
   printf("sats_management->num_sats=%u\n", sats_management->num_sats);
   for (u8 i=0; i<sats_management->num_sats; i++) {
-    printf("sats_management->prns[%u]= %u\n", i, sats_management->prns[i]);
+    printf("sats_management->prns[%u]= %u\n", i, sats_management->prns[i].sat);
   }
 }
 /** Prints all prns on one line */
 void print_sats_management_short(sats_management_t *sats_man) {
   printf("sats_management sats: ");
   for (u8 i=0; i<sats_man->num_sats; i++) {
-    printf("%d,", sats_man->prns[i]);
+    printf("%d,", sats_man->prns[i].sat);
   }
   printf("\n");
 }
@@ -236,7 +237,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   DEBUG_ENTRY();
 
   s8 return_code;
-  u8 ref_prn;
+  signal_t ref_prn;
 
   if (sats_management->num_sats <= 1) {
     // Need to init first.
@@ -260,17 +261,17 @@ s8 rebase_sats_management(sats_management_t *sats_management,
       if (DEBUG) {
         printf("sdiff prns= {");
         for (u8 yo_mama=0; yo_mama< num_sdiffs; yo_mama++) {
-          printf("%u, ", sdiffs[yo_mama].prn);
+          printf("%u, ", sdiffs[yo_mama].sid.sat);
         }
         printf("}\n");
         printf("sats_man_prns= {");
         for (u8 so_fetch=0; so_fetch < sats_management->num_sats; so_fetch++) {
-          printf("%u, ", sats_management->prns[so_fetch]);
+          printf("%u, ", sats_management->prns[so_fetch].sat);
         }
         printf("}\n");
         printf("num intersect_sats= %u\nintersection= {", num_intersection);
         for (u8 bork=0; bork<num_intersection; bork++) {
-          printf("%u, ", intersection_sats[bork].prn);
+          printf("%u, ", intersection_sats[bork].sid.sat);
         }
         printf("}\n");
       }
@@ -289,7 +290,7 @@ void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_
 {
   sats_management->num_sats = num_non_ref_sdiffs + 1;
   for (u8 i=1; i<num_non_ref_sdiffs+1; i++) {
-    sats_management->prns[i] = non_ref_sdiffs[i-1].prn;
+    sats_management->prns[i] = non_ref_sdiffs[i-1].sid;
   }
 }
 
@@ -299,16 +300,16 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
                             sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   u8 j = 1;
-  u8 ref_prn = sats->prns[0];
+  signal_t ref_prn = sats->prns[0];
   for (u8 i=0; i<num_sdiffs && j<sats->num_sats; i++) {
-    if (sdiffs[i].prn == ref_prn) {
+    if (signal_is_equal(sdiffs[i].sid, ref_prn)) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
     }
-    else if (sdiffs[i].prn == sats->prns[j]) {
+    else if (signal_is_equal(sdiffs[i].sid, sats->prns[j])) {
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
     }
-    else if (sdiffs[i].prn > sats->prns[j]) {
+    else if (cmp_signal_signal(&sdiffs[i].sid, &sats->prns[j]) > 0) {
       return -1;
     }
   }

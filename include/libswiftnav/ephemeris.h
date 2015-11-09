@@ -14,6 +14,7 @@
 #ifndef LIBSWIFTNAV_EPHEMERIS_H
 #define LIBSWIFTNAV_EPHEMERIS_H
 
+#include "signal.h"
 #include "gpstime.h"
 #include "common.h"
 
@@ -25,7 +26,7 @@ typedef struct {
   gps_time_t toe, toc;
   u8 valid;
   u8 healthy;
-  u8 prn;
+  signal_t sid;
   u8 iode;
 } ephemeris_t;
 

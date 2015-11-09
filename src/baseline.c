@@ -548,21 +548,21 @@ int cmp_amb(const void *a_, const void *b_)
 {
   const ambiguity_t *a = (const ambiguity_t *)a_;
   const ambiguity_t *b = (const ambiguity_t *)b_;
-  return cmp_u8_u8(&(a->prn), &(b->prn));
+  return cmp_signal_signal(&(a->prn), &(b->prn));
 }
 
 int cmp_amb_sdiff(const void *a_, const void *b_)
 {
   const ambiguity_t *a = (const ambiguity_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
-  return cmp_u8_u8(&(a->prn), &(b->prn));
+  return cmp_signal_signal(&(a->prn), &(b->sid));
 }
 
 int cmp_amb_prn(const void *a_, const void *b_)
 {
   const ambiguity_t *a = (const ambiguity_t *)a_;
-  const u8 *b = (const u8 *)b_;
-  return cmp_u8_u8(&(a->prn), b);
+  const signal_t *b = (const signal_t *)b_;
+  return cmp_signal_signal(&(a->prn), b);
 }
 
 /** Calculate least squares baseline solution from a set of single difference
@@ -623,7 +623,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   u8 num_dds = intersection_size - 1;
 
   /* Choose ref sat based on SNR. */
-  u8 ref_prn = choose_reference_sat(intersection_size, intersection_sdiffs);
+  signal_t ref_prn = choose_reference_sat(intersection_size, intersection_sdiffs);
 
   /* Calculate double differenced measurements. */
   sdiff_t sdiff_ref_first[intersection_size];
@@ -656,7 +656,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
                          disable_raim, raim_threshold, 0, 0, 0);
 }
 
-void diff_ambs(u8 ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
+void diff_ambs(signal_t ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
                double *dd_ambs)
 {
   u8 num_dds = num_ambs - 1;
@@ -698,7 +698,7 @@ s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   u8 num = ambs->n + 1;
   ambiguity_t ambts[ambs->n];
   ambiguity_t single_ambs[num];
-  u8 ref_prn = ambs->prns[0];
+  signal_t ref_prn = ambs->prns[0];
   ambiguity_t ref_amb = {.prn = ref_prn, .amb = 0};
 
   /* TODO(dsk) convert ambiguities_t to have a single-differenced ambiguity_t

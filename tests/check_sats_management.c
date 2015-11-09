@@ -8,16 +8,16 @@
 
 START_TEST(test_rebase_1)
 {
-  u8 prns[4] = {2,1,3,4};
-  u8 num_sats = sizeof(prns);
-  u8 new_ref = 3;
+  signal_t prns[] = {{.sat = 2},{.sat = 1},{.sat = 3},{.sat = 4}};
+  u8 num_sats = sizeof(prns)/sizeof(signal_t);
+  signal_t new_ref = {.sat = 3};
 
   sats_management_t sats_management;
   sats_management.num_sats = 4;
-  sats_management.prns[0] = 2;
-  sats_management.prns[1] = 1;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
+  sats_management.prns[0].sat = 2;
+  sats_management.prns[1].sat = 1;
+  sats_management.prns[2].sat = 3;
+  sats_management.prns[3].sat = 4;
 
   set_reference_sat_of_prns(new_ref, num_sats, prns);
   /* Just check the sats_management prns update */

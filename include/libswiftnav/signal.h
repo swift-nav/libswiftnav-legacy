@@ -30,16 +30,25 @@
 #define L1_BAND 0
 
 typedef struct __attribute__((packed)) {
-  u8 constellation;
+  u16 sat;
   u8 band;
-  u16 prn;
+  u8 constellation;
 } signal_t;
 
-static inline void signal_copy(const signal_t *from, signal_t *to)
+static inline int cmp_signal_signal(const void *a, const void *b)
 {
-  to->constellation = from->constellation;
-  to->band = from->band;
-  to->prn = from->prn;
+  const signal_t *a_ = a, *b_ = b;
+  s32 x;
+  if ((x = a_->constellation - b_->constellation))
+    return x;
+  if ((x = a_->band - b_->band))
+    return x;
+  return a_->sat - b_->sat;
+}
+
+static inline bool signal_is_equal(const signal_t a, const signal_t b)
+{
+  return cmp_signal_signal(&a, &b) == 0;
 }
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */

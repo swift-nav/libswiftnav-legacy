@@ -552,8 +552,8 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
 {
   DEBUG_ENTRY();
 
-  u8 ref_prn = amb_test->sats.prns[0];
-  u8 *non_ref_prns = &amb_test->sats.prns[1];
+  signal_t ref_prn = amb_test->sats.prns[0];
+  signal_t *non_ref_prns = &amb_test->sats.prns[1];
   u8 num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
   s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
                                   num_dds, num_sdiffs, sdiffs,
@@ -571,11 +571,11 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
   if (DEBUG) {
     printf("amb_test.sats.prns = {");
     for (u8 i=0; i< amb_test->sats.num_sats; i++) {
-      printf("%u, ", amb_test->sats.prns[i]);
+      printf("%u, ", amb_test->sats.prns[i].sat);
     }
     printf("}\nsdiffs[*].prn      = {");
     for (u8 i=0; i < num_sdiffs; i++) {
-      printf("%u, ", sdiffs[i].prn);
+      printf("%u, ", sdiffs[i].sid.sat);
     }
     printf("}\n");
   }
@@ -584,8 +584,8 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     DEBUG_EXIT();
     return 0;
   }
-  const u8 *prns = amb_test->sats.prns;
-  const u8 amb_ref = amb_test->sats.prns[0];
+  const signal_t *prns = amb_test->sats.prns;
+  const signal_t amb_ref = amb_test->sats.prns[0];
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
     if (j >= num_sdiffs) {
@@ -593,10 +593,10 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       DEBUG_EXIT();
       return 0;
     }
-    if (prns[i] == sdiffs[j].prn) {
+    if (signal_is_equal(prns[i], sdiffs[j].sid)) {
       j++;
     }
-    else if (amb_ref == sdiffs[j].prn) {
+    else if (signal_is_equal(amb_ref, sdiffs[j].sid)) {
       j++;
       i--;
     }
@@ -613,34 +613,34 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
 
 typedef struct {
   u8 num_sats;
-  u8 old_prns[MAX_CHANNELS];
-  u8 new_prns[MAX_CHANNELS];
+  signal_t old_prns[MAX_CHANNELS];
+  signal_t new_prns[MAX_CHANNELS];
 } rebase_prns_t;
 
 static void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't have to do all these lookups every time
 {
   rebase_prns_t *prns = (rebase_prns_t *) arg;
   u8 num_sats = prns->num_sats;
-  u8 *old_prns = prns->old_prns;
-  u8 *new_prns = prns->new_prns;
+  signal_t *old_prns = prns->old_prns;
+  signal_t *new_prns = prns->new_prns;
 
   hypothesis_t *hypothesis = (hypothesis_t *)elem;
 
-  u8 old_ref = old_prns[0];
-  u8 new_ref = new_prns[0];
+  signal_t old_ref = old_prns[0];
+  signal_t new_ref = new_prns[0];
 
   s32 new_N[num_sats-1];
-  s32 index_of_new_ref_in_old = find_index_of_element_in_u8s(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_prns[1]);
   assert(index_of_new_ref_in_old != -1);
 
   s32 val_for_new_ref_in_old_basis = hypothesis->N[index_of_new_ref_in_old];
   for (u8 i=0; i<num_sats-1; i++) {
-    u8 new_prn = new_prns[1+i];
-    if (new_prn == old_ref) {
+    signal_t new_prn = new_prns[1+i];
+    if (signal_is_equal(new_prn, old_ref)) {
       new_N[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_element_in_u8s(num_sats-1, new_prn, &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_prn, &old_prns[1]);
       assert(index_of_this_sat_in_old_basis != -1);
       new_N[i] = hypothesis->N[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
@@ -667,8 +667,8 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
   DEBUG_ENTRY();
 
   u8 changed_ref = 0;
-  u8 old_prns[amb_test->sats.num_sats];
-  memcpy(old_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
+  signal_t old_prns[amb_test->sats.num_sats];
+  memcpy(old_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(signal_t));
 
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   if (sats_management_code != OLD_REF) {
@@ -678,12 +678,12 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
       create_ambiguity_test(amb_test);
     }
     else {
-      u8 new_prns[amb_test->sats.num_sats];
-      memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
+      signal_t new_prns[amb_test->sats.num_sats];
+      memcpy(new_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(signal_t));
 
       rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
-      memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(u8));
-      memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(u8));
+      memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(signal_t));
+      memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(signal_t));
       memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
     }
   }
@@ -765,8 +765,8 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
                        &projection_aggregator);
   log_info("IAR: updates to %"PRIu32"", memory_pool_n_allocated(amb_test->pool));
   log_info("After projection, num_sats = %d", num_dds_in_intersection + 1);
-  u8 work_prns[MAX_CHANNELS];
-  memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(u8));
+  signal_t work_prns[MAX_CHANNELS];
+  memcpy(work_prns, amb_test->sats.prns, amb_test->sats.num_sats * sizeof(signal_t));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
     amb_test->sats.prns[i+1] = work_prns[dd_intersection_ndxs[i]+1];
   }
@@ -877,23 +877,23 @@ static void compute_Z(u8 old_dim, u8 new_dim, const z_t *Z1, const z_t * Z2_inv,
 }
 
 /* TODO(dsk) Use submatrix for this instead? */
-static void remap_prns(ambiguity_test_t *amb_test, u8 ref_prn,
-                       u32 num_added_dds, u8 *added_prns,
+static void remap_prns(ambiguity_test_t *amb_test, signal_t ref_prn,
+                       u32 num_added_dds, signal_t *added_prns,
                        generate_hypothesis_state_t2 *s)
 {
   intersection_count_t *x = s->x;
   u8 i = 0;
   u8 j = 0;
   u8 k = 0;
-  u8 old_prns[x->old_dim];
-  memcpy(old_prns, &amb_test->sats.prns[1], x->old_dim * sizeof(u8));
+  signal_t old_prns[x->old_dim];
+  memcpy(old_prns, &amb_test->sats.prns[1], x->old_dim * sizeof(signal_t));
   while (k < x->old_dim + num_added_dds) {
-    if (j == x->new_dim || (old_prns[i] < added_prns[j] && i != x->old_dim)) {
+    if (j == x->new_dim || ((cmp_signal_signal(&old_prns[i], &added_prns[j]) < 0) && i != x->old_dim)) {
       s->ndxs_of_old_in_new[i] = k;
       amb_test->sats.prns[k+1] = old_prns[i];
       i++;
       k++;
-    } else if (i == x->old_dim || old_prns[i] > added_prns[j]) {
+    } else if (i == x->old_dim || (cmp_signal_signal(&old_prns[i], &added_prns[j]) > 0)) {
       s->ndxs_of_added_in_new[j] = k;
       amb_test->sats.prns[k+1] = added_prns[j];
       j++;
@@ -902,12 +902,12 @@ static void remap_prns(ambiguity_test_t *amb_test, u8 ref_prn,
       log_error("remap_prns: impossible condition reached.");
       printf("old_prns = [");
       for (u8 ii=0; ii < x->old_dim; ii++) {
-        printf("%d, ",old_prns[ii]);
+        printf("%d, ",old_prns[ii].sat);
       }
       printf("]\n");
       printf("added_prns = [");
       for (u8 jj=0; jj < x->old_dim; jj++) {
-        printf("%d, ", added_prns[jj]);
+        printf("%d, ", added_prns[jj].sat);
       }
       printf("]\n");
       break;
@@ -985,7 +985,7 @@ static void intersection_hypothesis_prod(element_t *new_, void *x_, u32 n, eleme
 }
 
 static s32 add_sats(ambiguity_test_t *amb_test,
-                    u8 ref_prn, u8 *added_prns,
+                    signal_t ref_prn, signal_t *added_prns,
                     intersection_count_t *x)
 {
   generate_hypothesis_state_t2 s;
@@ -1121,24 +1121,24 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
 
   u8 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
-  u8 float_prns[float_sats->num_sats];
+  signal_t float_prns[float_sats->num_sats];
   double N_mean[state_dim];
 
   matrix_reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
-  memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
+  memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(signal_t));
   memcpy(N_mean, float_mean, (float_sats->num_sats-1) * sizeof(double));
 
   /* After this block, float_prns will have the correct reference,
    * as will N_cov and N_mean */
   if (amb_test->sats.num_sats >= 2 &&
-      amb_test->sats.prns[0] != float_sats->prns[0]) {
-    u8 old_prns[float_sats->num_sats];
-    memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
+      !signal_is_equal(amb_test->sats.prns[0], float_sats->prns[0])) {
+    signal_t old_prns[float_sats->num_sats];
+    memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(signal_t));
     set_reference_sat_of_prns(amb_test->sats.prns[0], float_sats->num_sats, float_prns);
     rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
     rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
   }
-  u8 ref_prn = float_prns[0];
+  signal_t ref_prn = float_prns[0];
 
   double N_cov[state_dim * state_dim];
   memcpy(N_cov, float_cov, state_dim * state_dim * sizeof(double));
@@ -1150,9 +1150,10 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
   u32 ndxs_of_new_dds_in_float[MAX_CHANNELS-1];
   u8 num_old_dds = 0;
   u32 ndxs_of_old_dds_in_float[MAX_CHANNELS-1];
-  u8 new_dd_prns[MAX_CHANNELS-1];
+  signal_t new_dd_prns[MAX_CHANNELS-1];
   while (j < float_sats->num_sats) {
-    if (i < amb_test->sats.num_sats && amb_test->sats.prns[i] == float_prns[j]) {
+    if (i < amb_test->sats.num_sats &&
+        signal_is_equal(amb_test->sats.prns[i], float_prns[j])) {
       ndxs_of_old_dds_in_float[num_old_dds++] = j-1;
       i++;
       j++;
@@ -1282,15 +1283,16 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   u32 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
-  u8 float_prns[float_sats->num_sats];
-  memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
+  signal_t float_prns[float_sats->num_sats];
+  memcpy(float_prns, float_sats->prns, float_sats->num_sats * sizeof(signal_t));
   double N_mean[float_sats->num_sats-1];
   memcpy(N_mean, float_mean, (float_sats->num_sats-1) * sizeof(double));
   /* After this block, float_prns will have the correct reference,
    * as will N_cov and N_mean */
-  if (amb_test->sats.num_sats >= 2 && amb_test->sats.prns[0] != float_sats->prns[0]) {
-    u8 old_prns[float_sats->num_sats];
-    memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(u8));
+  if (amb_test->sats.num_sats >= 2 &&
+      !signal_is_equal(amb_test->sats.prns[0], float_sats->prns[0])) {
+    signal_t old_prns[float_sats->num_sats];
+    memcpy(old_prns, float_sats->prns, float_sats->num_sats * sizeof(signal_t));
     set_reference_sat_of_prns(amb_test->sats.prns[0], float_sats->num_sats, float_prns);
     rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
     rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
@@ -1303,9 +1305,10 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   u8 j = 1;
   u8 num_addible_dds = 0;
   u8 ndxs_of_new_dds_in_float[MAX_CHANNELS-1];
-  u8 new_dd_prns[MAX_CHANNELS-1];
+  signal_t new_dd_prns[MAX_CHANNELS-1];
   while (j < float_sats->num_sats) {
-    if (i < amb_test->sats.num_sats && amb_test->sats.prns[i] == float_prns[j]) {
+    if (i < amb_test->sats.num_sats &&
+        signal_is_equal(amb_test->sats.prns[i], float_prns[j])) {
       i++;
       j++;
     } else { //else float_sats[j] is a new one
@@ -1537,7 +1540,7 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
   if (DEBUG) {
     printf("amb_test->sats.prns          = {");
     for (u8 i = 0; i < amb_test->sats.num_sats; i++) {
-      printf("%u, ", amb_test->sats.prns[i]);
+      printf("%u, ", amb_test->sats.prns[i].sat);
     }
     if (amb_test->sats.num_sats < 2) {
       printf("}\nsdiffs_with_ref_first not populated\n");
@@ -1545,7 +1548,7 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
     else {
       printf("}\nsdiffs_with_ref_first[*].prn = {");
       for (u8 i = 0; i < num_sdiffs; i++) {
-        printf("%u, ", sdiffs_with_ref_first[i].prn);
+        printf("%u, ", sdiffs_with_ref_first[i].sid.sat);
       }
       printf("}\n");
     }
@@ -1555,22 +1558,22 @@ u8 find_indices_of_intersection_sats(const ambiguity_test_t *amb_test, const u8 
   u8 j = 1;
   u8 k = 0;
   while (i < amb_test->sats.num_sats && j < num_sdiffs) {
-    if (amb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn) {
+    if (signal_is_equal(amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid)) {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] == sdiffs_with_ref_first[j].prn; i,j,k++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.sat);
       intersection_ndxs[k] = i-1;
       i++;
       j++;
       k++;
     }
-    else if (amb_test->sats.prns[i] < sdiffs_with_ref_first[j].prn) {
+    else if (cmp_signal_signal(&amb_test->sats.prns[i], &sdiffs_with_ref_first[j].sid) < 0) {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] <  sdiffs_with_ref_first[j].prn; i++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.sat);
       i++;
     }
     else {
       log_debug("(%u, \t%u, \t%u, \t%u, \t%u)\t\t\tamb_test->sats.prns[i] >  sdiffs_with_ref_first[j].prn; j++",
-                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].prn);
+                i, j, k, amb_test->sats.prns[i], sdiffs_with_ref_first[j].sid.sat);
       j++;
     }
   }
@@ -1649,8 +1652,8 @@ static s8 no_init(void *x, element_t *elem) {
   return 1;
 }
 void add_sats_old(ambiguity_test_t *amb_test,
-                  u8 ref_prn,
-                  u32 num_added_dds, u8 *added_prns,
+                  signal_t ref_prn,
+                  u32 num_added_dds, signal_t *added_prns,
                   z_t *lower_bounds, z_t *upper_bounds,
                   z_t *Z_inv)
 {
@@ -1668,15 +1671,17 @@ void add_sats_old(ambiguity_test_t *amb_test,
   u8 i = 0;
   u8 j = 0;
   u8 k = 0;
-  u8 old_prns[x0.num_old_dds];
-  memcpy(old_prns, &amb_test->sats.prns[1], x0.num_old_dds * sizeof(u8));
+  signal_t old_prns[x0.num_old_dds];
+  memcpy(old_prns, &amb_test->sats.prns[1], x0.num_old_dds * sizeof(signal_t));
   while (k < x0.num_old_dds + num_added_dds) { //TODO should this be one less, since its just DDs?
-    if (j == x0.num_added_dds || (old_prns[i] < added_prns[j] && i != x0.num_old_dds)) {
+    if (j == x0.num_added_dds ||
+        ((cmp_signal_signal(&old_prns[i], &added_prns[j]) < 0) && i != x0.num_old_dds)) {
       x0.ndxs_of_old_in_new[i] = k;
       amb_test->sats.prns[k+1] = old_prns[i];
       i++;
       k++;
-    } else if (i == x0.num_old_dds || old_prns[i] > added_prns[j]) {
+    } else if (i == x0.num_old_dds ||
+               (cmp_signal_signal(&old_prns[i], &added_prns[j]) > 0)) {
       x0.ndxs_of_added_in_new[j] = k;
       amb_test->sats.prns[k+1] = added_prns[j];
       j++;
@@ -1685,12 +1690,12 @@ void add_sats_old(ambiguity_test_t *amb_test,
       log_error("add_sats_old: impossible condition reached.");
       printf("old_prns = [");
       for (u8 ii=0; ii < x0.num_old_dds; ii++) {
-        printf("%d, ",old_prns[ii]);
+        printf("%d, ",old_prns[ii].sat);
       }
       printf("]\n");
       printf("added_prns = [");
       for (u8 jj=0; jj < x0.num_old_dds; jj++) {
-        printf("%d, ", added_prns[jj]);
+        printf("%d, ", added_prns[jj].sat);
       }
       printf("]\n");
       break;

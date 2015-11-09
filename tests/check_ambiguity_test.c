@@ -14,19 +14,19 @@
 START_TEST(test_update_sats_same_sats)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 4,
-                                        .prns = {3,1,2,4}}};
-  sdiff_t sdiffs[4] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 4}};
+                                        {{.sat = 3},{.sat = 1},{.sat = 2},{.sat = 4}}}};
+  sdiff_t sdiffs[4] = {{.sid = {.sat = 1}},
+                       {.sid = {.sat = 2}},
+                       {.sid = {.sat = 3}},
+                       {.sid = {.sat = 4}}};
   u8 num_sdiffs = 4;
 
   ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, NULL, NULL, NULL, NULL, false);
 
-  fail_unless(amb_test.sats.prns[0] == 3);
-  fail_unless(amb_test.sats.prns[1] == 1);
-  fail_unless(amb_test.sats.prns[2] == 2);
-  fail_unless(amb_test.sats.prns[3] == 4);
+  fail_unless(amb_test.sats.prns[0].sat == 3);
+  fail_unless(amb_test.sats.prns[1].sat == 1);
+  fail_unless(amb_test.sats.prns[2].sat == 2);
+  fail_unless(amb_test.sats.prns[3].sat == 4);
 }
 END_TEST
 
@@ -35,23 +35,23 @@ START_TEST(test_bad_measurements)
 {
   ambiguity_test_t amb_test;
 
-  sdiff_t sdiffs[5] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 5},
-                       {.prn = 6}};
+  sdiff_t sdiffs[5] = {{.sid = {.sat = 1}},
+                       {.sid = {.sat = 2}},
+                       {.sid = {.sat = 3}},
+                       {.sid = {.sat = 5}},
+                       {.sid = {.sat = 6}}};
   u8 num_sdiffs = 5;
 
 
   sats_management_t float_sats = {.num_sats = 5,
-                                  .prns = {3, 1, 2, 5, 6}};
+                                  .prns = {{.sat = 3}, {.sat = 1}, {.sat = 2}, {.sat = 5}, {.sat = 6}}};
   double U[16];
   matrix_eye(4, U);
   double D[4] = {1, 1, 1, 1};
   double est[5] = {1, 2, 5, 6};
 
   sats_management_t amb_sats_init = {.num_sats = 5,
-                                     .prns = {3, 1, 2, 4, 5}};
+                                     .prns = {{.sat = 3}, {.sat = 1}, {.sat = 2}, {.sat = 4}, {.sat = 5}}};
   hypothesis_t hyp_init = {.N = {1,2,4,5}};
 
   create_empty_ambiguity_test(&amb_test);
@@ -62,11 +62,11 @@ START_TEST(test_bad_measurements)
    * It should have dropped PRN 4 and include PRN 6. */
   ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, est, U, D, false);
   fail_unless(amb_test.sats.num_sats == 5);
-  fail_unless(amb_test.sats.prns[0] == 3);
-  fail_unless(amb_test.sats.prns[1] == 1);
-  fail_unless(amb_test.sats.prns[2] == 2);
-  fail_unless(amb_test.sats.prns[3] == 5);
-  fail_unless(amb_test.sats.prns[4] == 6);
+  fail_unless(amb_test.sats.prns[0].sat == 3);
+  fail_unless(amb_test.sats.prns[1].sat == 1);
+  fail_unless(amb_test.sats.prns[2].sat == 2);
+  fail_unless(amb_test.sats.prns[3].sat == 5);
+  fail_unless(amb_test.sats.prns[4].sat == 6);
   /* Reset the amb_test to what it was before ambiguity_update_sats */
   create_empty_ambiguity_test(&amb_test);
   memcpy(&amb_test.sats, &amb_sats_init, sizeof(sats_management_t));
@@ -76,10 +76,10 @@ START_TEST(test_bad_measurements)
    * It should have dropped PRN 4 and NOT include PRN 6. */
   ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, est, U, D, true);
   fail_unless(amb_test.sats.num_sats == 4);
-  fail_unless(amb_test.sats.prns[0] == 3);
-  fail_unless(amb_test.sats.prns[1] == 1);
-  fail_unless(amb_test.sats.prns[2] == 2);
-  fail_unless(amb_test.sats.prns[3] == 5);
+  fail_unless(amb_test.sats.prns[0].sat == 3);
+  fail_unless(amb_test.sats.prns[1].sat == 1);
+  fail_unless(amb_test.sats.prns[2].sat == 2);
+  fail_unless(amb_test.sats.prns[3].sat == 5);
   /* And it should have dropped PRN's value from the hypothesis,
    * which should still be there and still be the only one. */
   hyp = (hypothesis_t *) amb_test.pool->allocated_nodes_head->elem;
@@ -97,15 +97,14 @@ START_TEST(test_update_sats_rebase)
   create_empty_ambiguity_test(&amb_test);
 
   amb_test.sats.num_sats = 4;
-  amb_test.sats.prns[0] = 3;
-  amb_test.sats.prns[1] = 1;
-  amb_test.sats.prns[2] = 2;
-  amb_test.sats.prns[3] = 4;
+  amb_test.sats.prns[0].sat = 3;
+  amb_test.sats.prns[1].sat = 1;
+  amb_test.sats.prns[2].sat = 2;
+  amb_test.sats.prns[3].sat = 4;
 
-  sdiff_t sdiffs[3] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0},
-                      // {.prn = 3, .snr = 0},
-                       {.prn = 4, .snr = 1}};
+  sdiff_t sdiffs[3] = {{.sid = {.sat = 1}, .snr = 0},
+                       {.sid = {.sat = 2}, .snr = 0},
+                       {.sid = {.sat = 4}, .snr = 1}};
   u8 num_sdiffs = 3;
 
   hypothesis_t *hyp = (hypothesis_t *)memory_pool_add(amb_test.pool);
@@ -117,9 +116,9 @@ START_TEST(test_update_sats_rebase)
 
   ambiguity_update_sats(&amb_test, num_sdiffs, sdiffs, &float_sats, NULL, NULL, NULL, false);
   fail_unless(amb_test.sats.num_sats == 3);
-  fail_unless(amb_test.sats.prns[0] == 4);
-  fail_unless(amb_test.sats.prns[1] == 1);
-  fail_unless(amb_test.sats.prns[2] == 2);
+  fail_unless(amb_test.sats.prns[0].sat == 4);
+  fail_unless(amb_test.sats.prns[1].sat == 1);
+  fail_unless(amb_test.sats.prns[2].sat == 2);
   fail_unless(hyp->N[0] == -2);
   fail_unless(hyp->N[1] == -1);
 }
@@ -130,14 +129,14 @@ START_TEST(test_ambiguity_update_reference)
   srandom(1);
 
   ambiguity_test_t amb_test = {.sats = {.num_sats = 4,
-                                        .prns = {3,1,2,4}}};
+                                        .prns = {{.sat = 3},{.sat = 1},{.sat = 2},{.sat = 4}}}};
   create_empty_ambiguity_test(&amb_test);
 
   amb_test.sats.num_sats = 4;
 
-  sdiff_t sdiffs[4] = {{.prn = 1, .snr = 0},
-                       {.prn = 2, .snr = 0},
-                       {.prn = 4, .snr = 1}};
+  sdiff_t sdiffs[4] = {{.sid = {.sat = 1}, .snr = 0},
+                       {.sid = {.sat = 2}, .snr = 0},
+                       {.sid = {.sat = 4}, .snr = 1}};
   u8 num_sdiffs = 3;
 
   for (u32 i=0; i<3; i++) {
@@ -159,18 +158,18 @@ END_TEST
 START_TEST(test_sats_match)
 {
   ambiguity_test_t amb_test = {.sats = {.num_sats = 3,
-                                        .prns = {3,1,2}}};
-  sdiff_t sdiffs[4] = {{.prn = 1},
-                       {.prn = 2},
-                       {.prn = 3},
-                       {.prn = 4}};
+                                        .prns = {{.sat = 3},{.sat = 1},{.sat = 2}}}};
+  sdiff_t sdiffs[4] = {{.sid = {.sat = 1}},
+                       {.sid = {.sat = 2}},
+                       {.sid = {.sat = 3}},
+                       {.sid = {.sat = 4}}};
   u8 num_sdiffs = 4;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
   num_sdiffs = 3;
   fail_unless(sats_match(&amb_test, num_sdiffs, sdiffs));
 
-  sdiffs[0].prn = 22;
+  sdiffs[0].sid.sat = 22;
   fail_unless(!sats_match(&amb_test, num_sdiffs, sdiffs));
 
 }
@@ -234,9 +233,10 @@ START_TEST(test_amb_sat_inclusion)
   matrix_copy(state_dim, state_dim, b, cov_mat);
 
   /* Take some block, factor */
-  u8 prns[dim];
+  signal_t prns[dim];
+  memset(prns, 0, sizeof(prns));
   for (u8 i = 0; i < dim+1; i++) {
-    prns[i] = i;
+    prns[i].sat = i;
   }
   double block[dim * dim];
   resize_matrix(state_dim, state_dim, dim, dim, cov_mat, block);
@@ -255,7 +255,7 @@ START_TEST(test_amb_sat_inclusion)
   sats_management_t float_sats = {
     .num_sats = dim+1,
   };
-  memcpy(float_sats.prns, prns, (dim+1) * sizeof(u8));
+  memcpy(float_sats.prns, prns, (dim+1) * sizeof(signal_t));
 
   u16 pool_size;
   u8 flag;

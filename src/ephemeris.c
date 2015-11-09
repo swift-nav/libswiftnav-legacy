@@ -334,7 +334,7 @@ bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b)
 {
   return (a->valid == b->valid) &&
          (a->healthy == b->healthy) &&
-         (a->prn == b->prn) &&
+         signal_is_equal(a->sid, b->sid) &&
          (a->iode == b->iode) &&
          (a->tgd == b->tgd) &&
          (a->crs == b->crs) &&
