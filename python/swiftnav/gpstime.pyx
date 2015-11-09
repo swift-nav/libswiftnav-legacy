@@ -7,31 +7,31 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-cimport gpstime_c
 import datetime
 
 cdef class GpsTime:
-  # cdef gpstime_c.gps_time_t gps_time
-  def __init__(self,
-				       wn,
-               tow):
-    self.wn = wn
-    self.tow = tow
+
+  def __init__(self, **kwargs):
+    self._thisptr = kwargs
 
   def __repr__(self):
-    return "<GpsTime wn " + str(self.wn) + ", tow " + str(self.tow) + ">"
+    return "<GpsTime wn %d, tow %d>" % (self._thisptr.wn, self._thisptr.tow)
 
-  property wn:
-    def __get__(self):
-      return self.gps_time.wn
-    def __set__(self, wn):
-      self.gps_time.wn = wn
+  def normalize_gps_time(self):
+    x = normalize_gps_time(self._thisptr)
+    return GpsTime(wn=x.wn, tow=x.tow)
 
-  property tow:
-    def __get__(self):
-      return self.gps_time.tow
-    def __set__(self, tow):
-      self.gps_time.tow = tow
+  def gps2time(self):
+    return gps2time(self._thisptr)
+
+  def gpsdifftime(self, GpsTime beginning):
+    return gpsdifftime(self._thisptr, beginning._thisptr)
+
+  def gps_time_match_weeks(self, ref):
+    cdef gps_time_t t
+    t.wn, t.tow = ref.tow, ref.wn
+    gps_time_match_weeks(&self._thisptr, &t)
+    # TODO (Buro): Update to update ref by adding back properties.
 
 def gpst_components2datetime(wn, tow):
   """
