@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Swift Navigation Inc.
+# Copyright (C) 2015 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -9,167 +9,25 @@
 
 # cython: embedsignature=True
 
-cimport track_c
-from nav_msg cimport NavMsg
-from nav_msg import NavMsg
-from gpstime cimport *
-from gpstime_c cimport *
-from gpstime import GpsTime
-from ephemeris_c cimport ephemeris_t
-from track_c cimport channel_measurement_t, navigation_measurement_t
+"""Tracking
+
+Functions used in tracking.
+"""
+
 from common cimport *
+from ephemeris cimport ephemeris_t
+from ephemeris cimport Ephemeris
+from ephemeris import Ephemeris
+from gpstime cimport *
+from gpstime import GpsTime
 from libc.stdlib cimport malloc, free
+from libc.string cimport memset, memcpy
+from signal cimport GNSSSignal
+from signal import GNSSSignal
 
-cdef class ChannelMeasurement:
-  cdef channel_measurement_t meas
+# Discriminators
 
-  def __cinit__(self, prn, code_phase, code_freq, carr_phase, carr_freq, TOW_ms, rx_time, snr):
-    self.meas.prn = prn
-    self.meas.code_phase_chips = code_phase
-    self.meas.code_phase_rate = code_freq
-    self.meas.carrier_phase = carr_phase
-    self.meas.carrier_freq = carr_freq
-    self.meas.time_of_week_ms = TOW_ms
-    self.meas.receiver_time = rx_time
-    self.meas.snr = snr
-
-
-  property prn:
-    def __get__(self):
-      return self.meas.prn
-
-  def __repr__(self):
-    return '<ChannelMeasurement ' + str((self.meas.prn,
-                self.meas.code_phase_chips,
-                self.meas.code_phase_rate,
-                self.meas.carrier_phase,
-                self.meas.carrier_freq,
-                self.meas.time_of_week_ms,
-                self.meas.receiver_time,
-                self.meas.snr)) + '>'
-
-cdef class NavigationMeasurement:
-  def __cinit__(self, raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
-                doppler, sat_pos, sat_vel, snr, lock_time, tot, prn, lock_counter):
-    self.meas.raw_pseudorange = raw_pseudorange
-    self.meas.pseudorange = pseudorange
-    self.meas.carrier_phase = carrier_phase
-    self.meas.raw_doppler = raw_doppler
-    self.meas.doppler = doppler
-    for i in range(3):
-      self.meas.sat_pos[i] = sat_pos[i]
-      self.meas.sat_vel[i] = sat_vel[i]
-    self.meas.snr = snr
-    self.meas.lock_time = lock_time
-    self.meas.tot.tow = tot.tow
-    self.meas.tot.wn = tot.wn
-    self.meas.prn = prn
-    self.meas.lock_counter = lock_counter
-
-  property raw_pseudorange:
-    def __get__(self):
-      return self.meas.raw_pseudorange
-    def __set__(self, raw_pseudorange):
-      self.meas.raw_pseudorange = raw_pseudorange
-
-  property pseudorange:
-    def __get__(self):
-      return self.meas.pseudorange
-    def __set__(self, pseudorange):
-      self.meas.pseudorange = pseudorange
-
-  property carrier_phase:
-    def __get__(self):
-      return self.meas.carrier_phase
-    def __set__(self, carrier_phase):
-      self.meas.carrier_phase = carrier_phase
-
-  property raw_doppler:
-    def __get__(self):
-      return self.meas.raw_doppler
-    def __set__(self, raw_doppler):
-      self.meas.raw_doppler = raw_doppler
-
-  property doppler:
-    def __get__(self):
-      return self.meas.doppler
-    def __set__(self, doppler):
-      self.meas.doppler = doppler
-
-  property sat_pos:
-    def __get__(self):
-      return (self.meas.sat_pos[0], self.meas.sat_pos[1], self.meas.sat_pos[2])
-    def __set__(self, sat_pos):
-      for i in range(3):
-        self.meas.sat_pos[i] = sat_pos[i]
-
-  property sat_vel:
-    def __get__(self):
-      return (self.meas.sat_vel[0], self.meas.sat_vel[1], self.meas.sat_vel[2])
-    def __set__(self, sat_vel):
-      for i in range(3):
-        self.meas.sat_vel[i] = sat_vel[i]
-
-  property snr:
-    def __get__(self):
-      return self.meas.snr
-    def __set__(self, snr):
-      self.meas.snr = snr
-
-  property lock_time:
-    def __get__(self):
-      return self.meas.lock_time
-    def __set__(self, lock_time):
-      self.meas.lock_time = lock_time
-
-  property tot:
-    def __get__(self):
-      return GpsTime(self.meas.tot.wn, self.meas.tot.tow)
-    def __set__(self, tot):
-      self.meas.tot.tow = tot.tow
-      self.meas.tot.wn = tot.wn
-
-  property prn:
-    def __get__(self):
-      return self.meas.prn
-    def __set__(self, prn):
-      self.meas.prn = prn
-
-  property lock_counter:
-    def __get__(self):
-      return self.meas.lock_counter
-    def __set__(self, lock_counter):
-      self.meas.lock_counter = lock_counter
-
-  def __repr__(self):
-    return '<NavigationMeasurement ' + \
-           str((self.meas.tot.tow,
-                self.meas.pseudorange,
-                self.meas.carrier_phase,
-                self.meas.doppler)) + '>'
-
-def calc_navigation_measurement(double t, chan_meas, es):
-  n_channels = len(chan_meas)
-  nav_meas = [NavigationMeasurement(0, 0, 0, 0, 0, (0,0,0), (0,0,0), 0, 0, GpsTime(0,0), 0, 0) for n in range(n_channels)]
-
-  cdef channel_measurement_t** chan_meas_ptrs = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t*))
-  cdef navigation_measurement_t** nav_meas_ptrs = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t*))
-  cdef ephemeris_t** es_ptrs = <ephemeris_t**>malloc(n_channels*sizeof(ephemeris_t*))
-
-  for n in range(n_channels):
-    chan_meas_ptrs[n] = &((<ChannelMeasurement?>chan_meas[n]).meas)
-    nav_meas_ptrs[n] = &((<NavigationMeasurement?>nav_meas[n]).meas)
-    es_ptrs[n] = &((<NavMsg?>es[n]).eph)
-
-  track_c.calc_navigation_measurement_(n_channels, chan_meas_ptrs, nav_meas_ptrs, t, es_ptrs)
-
-  free(chan_meas_ptrs)
-  free(nav_meas_ptrs)
-  free(es_ptrs)
-
-  return nav_meas
-
-def calc_loop_gains(float bw, float zeta, float k, float loop_freq):
+def calc_loop_gains_(float bw, float zeta, float k, float loop_freq):
   """
   Wraps function :libswiftnav:`calc_loop_gains`.
 
@@ -190,12 +48,11 @@ def calc_loop_gains(float bw, float zeta, float k, float loop_freq):
     The tuple `(pgain, igain)`.
 
   """
-  cdef float pgain
-  cdef float igain
-  track_c.calc_loop_gains(bw, zeta, k, loop_freq, &pgain, &igain)
+  cdef float pgain, igain
+  calc_loop_gains(bw, zeta, k, loop_freq, &pgain, &igain)
   return (pgain, igain)
 
-def costas_discriminator(complex p):
+def costas_discriminator_(complex p):
   """
   Wraps the function :libswiftnav:`costas_discriminator`.
 
@@ -212,22 +69,22 @@ def costas_discriminator(complex p):
     The discriminator value.
 
   """
-  return track_c.costas_discriminator(p.real, p.imag)
+  return costas_discriminator_(p.real, p.imag)
 
-def dll_discriminator(complex e, complex p, complex l):
+def frequency_discriminator_(complex p, complex prev_p):
   """
-  Wraps the function :libswiftnav:`dll_discriminator`.
+  Wraps the function :libswiftnav:`frequency_discriminator`.
 
   Parameters
   ----------
-  e : complex, :math:`I_E + Q_E j`
-    The early correlation. The real component contains the in-phase
+  p : complex, :math:`I_P + Q_P j`
+    The prompt correlation. The real component contains the in-phase
     correlation and the imaginary component contains the quadrature
     correlation.
-  p : complex, :math:`I_P + Q_P j`
-    The prompt correlation.
-  l : complex, :math:`I_L + Q_L j`
-    The late correlation.
+  prev_p : complex, :math:`I_P + Q_P j`
+    The prompt correlation. The real component contains the in-phase
+    correlation and the imaginary component contains the quadrature
+    correlation.
 
   Returns
   -------
@@ -235,15 +92,50 @@ def dll_discriminator(complex e, complex p, complex l):
     The discriminator value.
 
   """
-  cdef track_c.correlation_t cs[3]
-  cs[0].I = e.real
-  cs[0].Q = e.imag
-  cs[1].I = p.real
-  cs[1].Q = p.imag
-  cs[2].I = l.real
-  cs[2].Q = l.imag
+  return frequency_discriminator(p.real, p.imag, prev_p.real, prev_p.imag)
 
-  return track_c.dll_discriminator(cs)
+cdef class Correlation:
+
+  def __init__(self, **kwargs):
+    memset(&self._thisptr, 0, sizeof(correlation_t))
+    if kwargs:
+      self._thisptr = kwargs
+
+def dll_discriminator_(cs):
+  """
+  Wraps the function :libswiftnav:`dll_discriminator`.
+
+  Parameters
+  ----------
+  cs : [complex], :math:`I_E + Q_E j`
+    The early correlation. The real component contains the in-phase
+    correlation and the imaginary component contains the quadrature
+    correlation. The prompt correlation. The late correlation.
+
+  Returns
+  -------
+  out : float
+    The discriminator value.
+
+  """
+  # TODO (Buro): Make this array initialization less janky.
+  cdef correlation_t cs_[3]
+  cs_[0] = cs[0]._thisptr
+  cs_[1] = cs[1]._thisptr
+  cs_[2] = cs[2]._thisptr
+  return dll_discriminator(cs_)
+
+# Tracking loop: Aided
+
+cdef class AidedLoopFilter:
+
+  def __cinit__(self, y0, pgain, igain, aiding_igain):
+    aided_lf_init(&self._thisptr, y0, pgain, igain, aiding_igain)
+
+  def update(self, p_i_error, aiding_error):
+    return aided_lf_update(&self._thisptr, p_i_error, aiding_error)
+
+# Tracking loop: Simple
 
 cdef class SimpleLoopFilter:
   """
@@ -263,10 +155,8 @@ cdef class SimpleLoopFilter:
 
   """
 
-  cdef track_c.simple_lf_state_t s
-
   def __cinit__(self, y0, pgain, igain):
-    track_c.simple_lf_init(&self.s, y0, pgain, igain)
+    simple_lf_init(&self._thisptr, y0, pgain, igain)
 
   def update(self, error):
     """
@@ -283,62 +173,7 @@ cdef class SimpleLoopFilter:
       The updated value of the output variable.
 
     """
-    return track_c.simple_lf_update(&self.s, error)
-
-  property y:
-    """The output variable."""
-    def __get__(self):
-      return self.s.y
-
-cdef class AidedLoopFilter:
-  """
-  Wraps the `libswiftnav` aided first-order loop filter implementation.
-
-  It's a PI filter using an extra I aiding error term.
-
-  The loop filter state, :libswiftnav:`simple_lf_state_t` is maintained by the
-  class instance.
-
-  Parameters
-  ----------
-  y0 : float
-    The initial output variable value.
-  pgain : float
-    The proportional gain.
-  igain : float
-    The integral gain.
-  aiding_igain : float
-    The aiding integral gain.
-
-  """
-
-  cdef track_c.aided_lf_state_t s
-
-  def __cinit__(self, y0, pgain, igain, aiding_igain):
-    track_c.aided_lf_init(&self.s, y0, pgain, igain, aiding_igain)
-
-  def update(self, p_i_error, aiding_error):
-    """
-    Wraps the function :libswiftnav:`simple_lf_update`.
-
-    Parameters
-    ----------
-    error : float
-      The error input.
-
-    Returns
-    -------
-    out : float
-      The updated value of the output variable.
-
-    """
-    return track_c.aided_lf_update(&self.s, p_i_error, aiding_error)
-
-  property y:
-    """The output variable."""
-    def __get__(self):
-      return self.s.y
-
+    return simple_lf_update(&self._thisptr, error)
 
 cdef class SimpleTrackingLoop:
   """
@@ -350,59 +185,26 @@ cdef class SimpleTrackingLoop:
   For a full description of the loop filter parameters, see
   :libswiftnav:`calc_loop_gains`.
 
-  Parameters
-  ----------
-  code_params : (float, float, float)
-    Code tracking loop parameter tuple, `(bw, zeta, k)`.
-  carr_params : (float, float, float)
-    Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
-  loop_freq : float
-    The frequency with which loop updates are performed.
-
   """
 
-  cdef track_c.simple_tl_state_t s
-  cdef float loop_freq
-  cdef float code_bw, code_zeta, code_k
-  cdef float carr_bw, carr_zeta, carr_k
+  def __cinit__(self, loop_freq,
+                code_freq, code_bw, code_zeta, code_k,
+                carr_freq, carr_bw, carr_zeta, carr_k):
+    simple_tl_init(&self._thisptr, loop_freq,
+                   code_freq, code_bw, code_zeta, code_k,
+                   carr_freq, carr_bw, carr_zeta, carr_k)
 
-  def __cinit__(self, code_params, carr_params, loop_freq):
-    self.loop_freq = loop_freq
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
 
-  def start(self, code_freq, carr_freq):
-    """
-    (Re-)initialise the tracking loop.
-
-    Parameters
-    ----------
-    code_freq : float
-      The code phase rate (i.e. frequency).
-    carr_freq : float
-      The carrier frequency.
-
-    """
-    track_c.simple_tl_init(&self.s, self.loop_freq,
-                           code_freq, self.code_bw,
-                           self.code_zeta, self.code_k,
-                           carr_freq, self.carr_bw,
-                           self.carr_zeta, self.carr_k)
-
-  def update(self, complex e, complex p, complex l):
+  def update(self, cs):
     """
     Wraps the function :libswiftnav:`simple_tl_update`.
 
     Parameters
     ----------
-    e : complex, :math:`I_E + Q_E j`
+    cs : [complex], :math:`I_E + Q_E j`
       The early correlation. The real component contains the in-phase
       correlation and the imaginary component contains the quadrature
-      correlation.
-    p : complex, :math:`I_P + Q_P j`
-      The prompt correlation.
-    l : complex, :math:`I_L + Q_L j`
-      The late correlation.
+      correlation. The prompt correlation. The late correlation.
 
     Returns
     -------
@@ -410,26 +212,12 @@ cdef class SimpleTrackingLoop:
       The tuple (code_freq, carrier_freq).
 
     """
-    cdef track_c.correlation_t cs[3]
-    cs[0].I = e.real
-    cs[0].Q = e.imag
-    cs[1].I = p.real
-    cs[1].Q = p.imag
-    cs[2].I = l.real
-    cs[2].Q = l.imag
-    track_c.simple_tl_update(&self.s, cs)
+    cdef correlation_t cs_[3]
+    cs_[0] = cs[0]._thisptr
+    cs_[1] = cs[1]._thisptr
+    cs_[2] = cs[2]._thisptr
+    simple_tl_update(&self._thisptr, cs_)
     return (self.code_freq, self.carr_freq)
-
-  property code_freq:
-    """The code phase rate (i.e. frequency)."""
-    def __get__(self):
-      return self.s.code_freq
-
-  property carr_freq:
-    """The carrier frequency."""
-    def __get__(self):
-      return self.s.carr_freq
-
 
 cdef class AidedTrackingLoop:
   """
@@ -444,55 +232,23 @@ cdef class AidedTrackingLoop:
   For a full description of the loop filter parameters, see
   :libswiftnav:`calc_loop_gains`.
 
-  Parameters
-  ----------
-  code_params : (float, float, float)
-    Code tracking loop parameter tuple, `(bw, zeta, k)`.
-  carr_params : (float, float, float)
-    Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
-  loop_freq : float
-    The frequency with which loop updates are performed.
-  carr_freq_igain : float
-    FLL aiding gain
-  carr_to_code : float
-    Ratio of carrier to code frequency (1540 for GPS L1 C/A) or zero
-    to disable carrier aiding.
-
   """
 
-  cdef track_c.aided_tl_state_t s
-  cdef float loop_freq
-  cdef float code_bw, code_zeta, code_k
-  cdef float carr_to_code
-  cdef float carr_bw, carr_zeta, carr_k
-  cdef float carr_freq_igain
+  def __cinit__(self, **kwargs):
+    self._thisptr = kwargs
+    aided_tl_init(&self._thisptr,
+                  self._thisptr.loop_freq,
+                  self._thisptr.code_freq,
+                  self._thisptr.code_bw,
+                  self._thisptr.code_zeta,
+                  self._thisptr.code_k,
+                  self._thisptr.carr_to_code,
+                  self._thisptr.carr_freq,
+                  self._thisptr.carr_bw,
+                  self._thisptr.carr_zeta,
+                  self._thisptr.carr_k,
+                  self._thisptr.carr_freq_b1)
 
-  def __cinit__(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
-    self.loop_freq = loop_freq
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
-    self.carr_freq_igain = carr_freq_igain
-    self.carr_to_code = carr_to_code
-
-  def start(self, code_freq, carr_freq):
-    """
-    (Re-)initialise the tracking loop.
-
-    Parameters
-    ----------
-    code_freq : float
-      The code phase rate (i.e. frequency).
-    carr_freq : float
-      The carrier frequency.
-
-    """
-    track_c.aided_tl_init(&self.s, self.loop_freq,
-                           code_freq,
-                           self.code_bw, self.code_zeta, self.code_k,
-                           self.carr_to_code,
-                           carr_freq,
-                           self.carr_bw, self.carr_zeta, self.carr_k,
-                           self.carr_freq_igain)
 
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     """
@@ -514,26 +270,22 @@ cdef class AidedTrackingLoop:
     self.code_bw, self.code_zeta, self.code_k = code_params
     self.carr_bw, self.carr_zeta, self.carr_k = carr_params
     self.carr_freq_igain = carr_freq_igain
-    track_c.aided_tl_retune(&self.s, self.loop_freq,
+    aided_tl_retune(&self._thisptr, self.loop_freq,
                             self.code_bw, self.code_zeta, self.code_k,
                             self.carr_to_code,
                             self.carr_bw, self.carr_zeta, self.carr_k,
                             self.carr_freq_igain)
 
-  def update(self, complex e, complex p, complex l):
+  def update(self, cs):
     """
     Wraps the function :libswiftnav:`aided_tl_update`.
 
     Parameters
     ----------
-    e : complex, :math:`I_E + Q_E j`
+    cs : [complex], :math:`I_E + Q_E j`
       The early correlation. The real component contains the in-phase
       correlation and the imaginary component contains the quadrature
-      correlation.
-    p : complex, :math:`I_P + Q_P j`
-      The prompt correlation.
-    l : complex, :math:`I_L + Q_L j`
-      The late correlation.
+      correlation. The prompt correlation. The late correlation.
 
     Returns
     -------
@@ -541,25 +293,12 @@ cdef class AidedTrackingLoop:
       The tuple (code_freq, carrier_freq).
 
     """
-    cdef track_c.correlation_t cs[3]
-    cs[0].I = e.real
-    cs[0].Q = e.imag
-    cs[1].I = p.real
-    cs[1].Q = p.imag
-    cs[2].I = l.real
-    cs[2].Q = l.imag
-    track_c.aided_tl_update(&self.s, cs)
+    cdef correlation_t cs_[3]
+    cs_[0] = cs[0]._thisptr
+    cs_[1] = cs[1]._thisptr
+    cs_[2] = cs[2]._thisptr
+    aided_tl_update(&self._thisptr, cs_)
     return (self.code_freq, self.carr_freq)
-
-  property code_freq:
-    """The code phase rate (i.e. frequency)."""
-    def __get__(self):
-      return self.s.code_freq
-
-  property carr_freq:
-    """The carrier frequency."""
-    def __get__(self):
-      return self.s.carr_freq
 
 cdef class CompTrackingLoop:
   """
@@ -572,71 +311,29 @@ cdef class CompTrackingLoop:
   For a full description of the loop filter parameters, see
   :libswiftnav:`calc_loop_gains`.
 
-  Parameters
-  ----------
-  code_params : (float, float, float)
-    Code tracking loop parameter tuple, `(bw, zeta, k)`.
-  carr_params : (float, float, float)
-    Carrier tracking loop parameter tuple, `(bw, zeta, k)`.
-  loop_freq : float
-    The frequency with which loop updates are performed.
-  tau : float
-    The complimentary filter cross-over frequency.
-  cpc : float
-    The number of carrier cycles per complete code, or equivalently the ratio
-    of the carrier frequency to the nominal code frequency.
-  sched : int, optional
-    The gain scheduling count.
-
   """
 
-  cdef track_c.comp_tl_state_t s
-  cdef float loop_freq, cpc, tau
-  cdef float code_bw, code_zeta, code_k
-  cdef float carr_bw, carr_zeta, carr_k
-  cdef u32 sched
+  def __cinit__(self, loop_freq,
+                code_freq, code_bw, code_zeta, code_k,
+                carr_freq, carr_bw, carr_zeta, carr_k,
+                tau, cpc, sched):
+    comp_tl_init(&self._thisptr, loop_freq,
+                    code_freq, code_bw,
+                    code_zeta, code_k,
+                    carr_freq, carr_bw,
+                    carr_zeta, carr_k,
+                    tau, cpc, sched)
 
-  def __cinit__(self, code_params, carr_params, loop_freq, tau, cpc, sched=0):
-    self.loop_freq = loop_freq
-    self.tau = tau
-    self.cpc = cpc
-    self.sched = sched
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
-
-  def start(self, code_freq, carr_freq):
-    """
-    (Re-)initialise the tracking loop.
-
-    Parameters
-    ----------
-    code_freq : float
-      The code phase rate (i.e. frequency) difference from nominal.
-    carr_freq : float
-      The carrier frequency difference from nominal, i.e. Doppler shift.
-
-    """
-    track_c.comp_tl_init(&self.s, self.loop_freq,
-                         code_freq, self.code_bw,
-                         self.code_zeta, self.code_k,
-                         carr_freq, self.carr_bw,
-                         self.carr_zeta, self.carr_k,
-                         self.tau, self.cpc, self.sched)
-
-  def update(self, complex e, complex p, complex l):
+  def update(self, cs):
     """
     Wraps the function :libswiftnav:`comp_tl_update`.
 
     Parameters
     ----------
-    e : complex, :math:`I_E + Q_E j`
+    cs : [complex], :math:`I_E + Q_E j`
       The early correlation. The real component contains the in-phase
       correlation and the imaginary component contains the quadrature
-      correlation.
-    p : complex, :math:`I_P + Q_P j`
-      The prompt correlation.
-    l : complex, :math:`I_L + Q_L j`
-      The late correlation.
+      correlation. The prompt correlation. The late correlation.
 
     Returns
     -------
@@ -644,26 +341,48 @@ cdef class CompTrackingLoop:
       The tuple (code_freq, carrier_freq).
 
     """
-    cdef track_c.correlation_t cs[3]
-    cs[0].I = e.real
-    cs[0].Q = e.imag
-    cs[1].I = p.real
-    cs[1].Q = p.imag
-    cs[2].I = l.real
-    cs[2].Q = l.imag
-    track_c.comp_tl_update(&self.s, cs)
-    return (self.code_freq, self.carr_freq)
+    cdef correlation_t cs_[3]
+    cs_[0] = cs[0]._thisptr
+    cs_[1] = cs[1]._thisptr
+    cs_[2] = cs[2]._thisptr
+    comp_tl_update(&self._thisptr, cs_)
+    return (self._thisptr.code_freq, self._thisptr.carr_freq)
 
-  property code_freq:
-    """The code phase rate (i.e. frequency)."""
-    def __get__(self):
-      return self.s.code_freq
+cdef class LockDetector:
+  """
+  Wraps the `libswiftnav` PLL lock detector implementation.
 
-  property carr_freq:
-    """The carrier frequency."""
-    def __get__(self):
-      return self.s.carr_freq
+  The detector state, :libswiftnav:`lock_detect_t` is maintained by
+  the class instance.
 
+  """
+
+  def __cinit__(self, **kwargs):
+    self._thisptr = kwargs
+    lock_detect_init(&self._thisptr,
+                     self._thisptr.k1,
+                     self._thisptr.k2,
+                     self._thisptr.thislp,
+                     self._thisptr.lo)
+
+  def reinit(self, k1, k2, lp, lo):
+    lock_detect_reinit(&self._thisptr, k1, k2, lp, lo)
+
+  def update(self, I, Q, DT):
+    lock_detect_update(&self._thisptr, I, Q, DT)
+    return (self._thisptr.outo, self._thisptr.outp)
+
+
+cdef class AliasDetector:
+
+  def __cinit__(self, acc_len, time_diff):
+    alias_detect_init(&self._thisptr, acc_len, time_diff)
+
+  def first(self, I, Q):
+    alias_detect_first(&self._thisptr, I, Q)
+
+  def second(self, I, Q):
+    return alias_detect_second(&self._thisptr, I, Q)
 
 cdef class CN0Estimator:
   """
@@ -672,23 +391,14 @@ cdef class CN0Estimator:
   The estimator state, :libswiftnav:`cn0_est_state_t` is maintained by
   the class instance.
 
-  Parameters
-  ----------
-  bw : float
-    The loop noise bandwidth in Hz.
-  cn0_0 : float
-    The initial value of :math:`C / N_0` in dBHz.
-  cutoff_freq : float
-    The low-pass filter cutoff frequency, :math:`f_c`, in Hz.
-  loop_freq : float
-    The loop update frequency, :math:`f`, in Hz.
-
   """
 
-  cdef track_c.cn0_est_state_t s
-
-  def __cinit__(self, bw, cn0_0, cutoff_freq, loop_freq):
-    track_c.cn0_est_init(&self.s, bw, cn0_0, cutoff_freq, loop_freq)
+  def __cinit__(self, **kwargs):
+    cn0_est_init(&self._thisptr,
+                 self._thisptr.bw,
+                 self._thisptr.cn0_0,
+                 self._thisptr.cutoff_freq,
+                 self._thisptr.loop_freq)
 
   def update(self, I, Q):
     """
@@ -707,47 +417,101 @@ cdef class CN0Estimator:
       The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
 
     """
-    return track_c.cn0_est(&self.s, I, Q)
+    return cn0_est(&self._thisptr, I, Q)
 
-cdef class LockDetector:
+
+cdef class ChannelMeasurement:
+
+  def __init__(self, **kwargs):
+    memset(&self._thisptr, 0, sizeof(channel_measurement_t))
+    if kwargs:
+      self._thisptr = kwargs
+
+  def __getattr__(self, k):
+    return self._thisptr.get(k)
+
+cdef class NavigationMeasurement:
+
+  def __init__(self,
+               raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
+               doppler, sat_pos, sat_vel, snr, lock_time,
+               GpsTime tot, GNSSSignal sid, lock_counter):
+    self._thisptr.raw_pseudorange = raw_pseudorange
+    self._thisptr.pseudorange = pseudorange
+    self._thisptr.carrier_phase = carrier_phase
+    self._thisptr.raw_doppler = raw_doppler
+    self._thisptr.doppler = doppler
+    for i in range(3):
+      self._thisptr.sat_pos[i] = sat_pos[i]
+      self._thisptr.sat_vel[i] = sat_vel[i]
+    self._thisptr.snr = snr
+    self._thisptr.lock_time = lock_time
+    self._thisptr.tot = tot._thisptr
+    self._thisptr.sid = sid._thisptr
+    self._thisptr.lock_counter = lock_counter
+
+  def __getattr__(self, k):
+    return self._thisptr.get(k)
+
+  def __rich_cmp__(self, nav_msg, op):
+    cdef navigation_measurement_t nav_msg_ = nav_msg._thisptr
+    return nav_meas_cmp(<void *>(&self._thisptr), <void *>(&nav_msg_))
+
+# TODO (Buro): Change NavigationMeasurement so that it's
+# zero-initialized without having to do this bullshit.
+def empty_nav_meas():
   """
-  Wraps the `libswiftnav` PLL lock detector implementation.
-
-  The detector state, :libswiftnav:`lock_detect_t` is maintained by
-  the class instance.
-
-  Parameters
-  ----------
-  k1 : float
-    Low-pass filter coefficient
-  k2 : float
-    I arm divisor
-  lp : u16
-    Pessimistic count threshold
-  lo : u16
-    Optimistic count threshold
   """
+  return NavigationMeasurement(0, 0, 0, 0, 0, (0, 0, 0), (0, 0, 0), 0, 0, GpsTime(0, 0), 0, 0)
 
-  cdef track_c.lock_detect_t ld
+cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c_nav_meas):
+  """
+  """
+  if n_c_nav_meas < len(py_nav_meas):
+    raise ValueError("The length of the c nav_meas array (" + str(n_c_nav_meas) + \
+                      ") must be at least the length of the python nav_meas array " + \
+                      str(len(py_nav_meas)) + ").")
+  cdef navigation_measurement_t sd_
+  for (i, nav_meas) in enumerate(py_nav_meas):
+    sd_ = (<NavigationMeasurement> nav_meas)._thisptr
+    memcpy(&c_nav_meas[i], &sd_, sizeof(navigation_measurement_t))
 
-  def __cinit__(self, k1, k2, lp, lo):
-    track_c.lock_detect_init(&self.ld, k1, k2, lp, lo)
+# TODO (Buro): Remove mallocs, etc. here. Do all this in-place
+def _calc_navigation_measurement(chan_meas, nav_meas, nav_time, ephemerides):
+  """
+  """
+  n_channels = len(chan_meas)
+  nav_meas = [empty_nav_meas() for n in range(n_channels)]
+  cdef channel_measurement_t** chan_meas_ = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t *))
+  cdef navigation_measurement_t** nav_meas_ = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t *))
+  cdef ephemeris_t** ephs = <ephemeris_t**>malloc(n_channels*sizeof(ephemeris_t *))
+  for n in range(n_channels):
+    chan_meas_[n] = &((<ChannelMeasurement ?>chan_meas[n])._thisptr)
+    nav_meas_[n] = &((<NavigationMeasurement ?>nav_meas[n])._thisptr)
+    ephs[n] = &((<Ephemeris ?>ephemerides[n])._thisptr)
+  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, nav_time, ephs)
+  free(chan_meas_)
+  free(nav_meas_)
+  free(ephs)
+  return nav_meas
 
-  def reinit(self, k1, k2, lp, lo):
-    track_c.lock_detect_reinit(&self.ld, k1, k2, lp, lo)
-
-  def update(self, P, coherent_ms):
-    track_c.lock_detect_update(&self.ld, P.real, P.imag, coherent_ms)
-    return (self.ld.outo, self.ld.outp)
-
-
-cdef class AliasDetector:
-  cdef track_c.alias_detect_t ad
-  def __cinit__(self, acc_len, time_diff):
-    track_c.alias_detect_init(&self.ad, acc_len, time_diff)
-
-  def first(self, P):
-    track_c.alias_detect_first(&self.ad, P.real, P.imag)
-
-  def second(self, P):
-    return track_c.alias_detect_second(&self.ad, P.real, P.imag)
+# TODO (Buro): Remove mallocs, etc. here. Also, wow, this is awful
+def _tdcp_doppler(m_new, m_old):
+  n_new = len(m_new)
+  n_old = len(m_old)
+  n_corrected = min(n_new, n_old)
+  m_corrected = [empty_nav_meas() for n in range(n_corrected)]
+  cdef navigation_measurement_t** m_new_ = <navigation_measurement_t **>malloc(n_new*sizeof(navigation_measurement_t *))
+  cdef navigation_measurement_t** m_old_ = <navigation_measurement_t **>malloc(n_old*sizeof(navigation_measurement_t *))
+  cdef navigation_measurement_t* m_corrected_ = <navigation_measurement_t *>malloc(n_corrected*sizeof(navigation_measurement_t *))
+  for n in range(n_new):
+    m_new_[n] = &((<NavigationMeasurement?>m_new[n])._thisptr)
+  for n in range(n_old):
+    m_old_[n] = &((<NavigationMeasurement?>m_old[n])._thisptr)
+  for n in range(n_corrected):
+    m_corrected_[n] = (<NavigationMeasurement?>m_corrected[n])._thisptr
+  n_written = tdcp_doppler(n_new, m_new_[0], n_old, m_old_[0], m_corrected_)
+  free(m_new_)
+  free(m_old_)
+  free(m_corrected_)
+  return m_corrected[:n_written]

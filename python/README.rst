@@ -39,8 +39,14 @@ To install libswiftnav-python (from the root of the source tree)::
     $ python setup.py build
     $ (sudo) python setup.py install
 
+
 Building Documentation
 ----------------------
+
+Much of this library provides bindings for functions in
+libswiftnav. Please see the accompanying comments and implementation
+of the C source for additional details that might be missing in this
+package.
 
 Building the documentation requires the libswiftnav-python source code
 and some additional packages:

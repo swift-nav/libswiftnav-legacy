@@ -315,4 +315,3 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
   }
   return 0;
 }
-

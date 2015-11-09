@@ -9,44 +9,41 @@
 
 # cython: profile=True
 
-import numpy as np
-cimport numpy as np
-cimport libc.math
+"""Correlation
+
+Correlators used for tracking.
+"""
+
 cimport cython
-cimport correlate_c
+cimport libc.math
+cimport numpy as np
 from common cimport *
 from libc.math cimport M_PI
+import numpy as np
 
 cdef extern from "complexobject.h":
+  struct Py_complex:
+    double real
+    double imag
 
-    struct Py_complex:
-        double real
-        double imag
+  ctypedef class __builtin__.complex [object PyComplexObject]:
+    cdef Py_complex cval
 
-    ctypedef class __builtin__.complex [object PyComplexObject]:
-        cdef Py_complex cval
-
-def track_correlate(np.ndarray[char, ndim=1, mode="c"] samples,
-                    code_freq, code_phase, carr_freq, carr_phase,
-                    np.ndarray[char, ndim=1, mode="c"] code,
-                    sampling_freq):
+def track_correlate_(np.ndarray[char, ndim=1, mode="c"] samples,
+                     code_freq, code_phase, carr_freq, carr_phase,
+                     np.ndarray[char, ndim=1, mode="c"] code,
+                     sampling_freq):
   cdef double init_code_phase = code_phase
   cdef double init_carr_phase = carr_phase
   cdef double I_E, Q_E, I_P, Q_P, I_L, Q_L
   cdef unsigned int blksize
-
-  correlate_c.track_correlate(
-    <s8*>&samples[0], <s8*>&code[0],
-    &init_code_phase, code_freq / sampling_freq,
-    &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
-    &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize
-  )
-
+  track_correlate(<s8*>&samples[0], <s8*>&code[0],
+                  &init_code_phase, code_freq / sampling_freq,
+                  &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
+                  &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
   # TODO: Pass pointers to Python complex number real and imag parts directly
   # to C function
   E = I_E + Q_E*1.j
   P = I_P + Q_P*1.j
   L = I_L + Q_L*1.j
-
   return (E, P, L, blksize, init_code_phase, init_carr_phase)
-
