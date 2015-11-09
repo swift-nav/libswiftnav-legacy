@@ -9,7 +9,7 @@
 
 from common cimport *
 from almanac_c cimport *
-from gpstime_c cimport *
+from gpstime cimport *
 from single_diff_c cimport *
 
 cdef extern from "libswiftnav/float_kf.h":
@@ -50,11 +50,10 @@ cdef extern from "libswiftnav/float_kf.h":
   void assign_decor_obs_mtx_from_alms(u8 num_sats, almanac_t *alms, gps_time_t timestamp,
                                     double ref_ecef[3], double *decor_mtx, double *obs_mtx)
 
-  void get_kf(kf_t *kf, double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+  void get_kf(kf_t *kf, double phase_var, double code_var, double pos_var, double vel_var, double int_var,
             double pos_init_var, double vel_init_var, double int_init_var,
             u8 num_sats, sdiff_t *sats_with_ref_first, double *dd_measurements, double ref_ecef[3], double dt)
-  kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var, 
+  kf_t get_kf_from_alms(double phase_var, double code_var, double pos_var, double vel_var, double int_var,
                       u8 num_sats, almanac_t *alms, gps_time_t timestamp, double ref_ecef[3], double dt)
 
   void least_squares_solve(kf_t *kf, double *measurements, double *lsq_state)
-

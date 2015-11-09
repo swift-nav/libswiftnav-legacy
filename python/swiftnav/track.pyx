@@ -9,21 +9,17 @@
 
 # cython: embedsignature=True
 
-cimport track_c
+from common cimport *
+from ephemeris cimport ephemeris_t
+from gpstime cimport *
+from gpstime import GpsTime
+from libc.stdlib cimport malloc, free
 from nav_msg cimport NavMsg
 from nav_msg import NavMsg
-from gpstime cimport *
-from gpstime_c cimport *
-from gpstime import GpsTime
-from ephemeris_c cimport ephemeris_t
-from track_c cimport channel_measurement_t, navigation_measurement_t
-from common cimport *
-from libc.stdlib cimport malloc, free
 
 cdef class ChannelMeasurement:
-  cdef channel_measurement_t meas
 
-  def __cinit__(self, prn, code_phase, code_freq, carr_phase, carr_freq, TOW_ms, rx_time, snr):
+  def __init__(self, prn, code_phase, code_freq, carr_phase, carr_freq, TOW_ms, rx_time, snr):
     self.meas.prn = prn
     self.meas.code_phase_chips = code_phase
     self.meas.code_phase_rate = code_freq
@@ -33,23 +29,9 @@ cdef class ChannelMeasurement:
     self.meas.receiver_time = rx_time
     self.meas.snr = snr
 
-
-  property prn:
-    def __get__(self):
-      return self.meas.prn
-
-  def __repr__(self):
-    return '<ChannelMeasurement ' + str((self.meas.prn,
-                self.meas.code_phase_chips,
-                self.meas.code_phase_rate,
-                self.meas.carrier_phase,
-                self.meas.carrier_freq,
-                self.meas.time_of_week_ms,
-                self.meas.receiver_time,
-                self.meas.snr)) + '>'
-
 cdef class NavigationMeasurement:
-  def __cinit__(self, raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
+
+  def __init__(self, raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
                 doppler, sat_pos, sat_vel, snr, lock_time, tot, prn, lock_counter):
     self.meas.raw_pseudorange = raw_pseudorange
     self.meas.pseudorange = pseudorange
@@ -66,107 +48,20 @@ cdef class NavigationMeasurement:
     self.meas.prn = prn
     self.meas.lock_counter = lock_counter
 
-  property raw_pseudorange:
-    def __get__(self):
-      return self.meas.raw_pseudorange
-    def __set__(self, raw_pseudorange):
-      self.meas.raw_pseudorange = raw_pseudorange
-
-  property pseudorange:
-    def __get__(self):
-      return self.meas.pseudorange
-    def __set__(self, pseudorange):
-      self.meas.pseudorange = pseudorange
-
-  property carrier_phase:
-    def __get__(self):
-      return self.meas.carrier_phase
-    def __set__(self, carrier_phase):
-      self.meas.carrier_phase = carrier_phase
-
-  property raw_doppler:
-    def __get__(self):
-      return self.meas.raw_doppler
-    def __set__(self, raw_doppler):
-      self.meas.raw_doppler = raw_doppler
-
-  property doppler:
-    def __get__(self):
-      return self.meas.doppler
-    def __set__(self, doppler):
-      self.meas.doppler = doppler
-
-  property sat_pos:
-    def __get__(self):
-      return (self.meas.sat_pos[0], self.meas.sat_pos[1], self.meas.sat_pos[2])
-    def __set__(self, sat_pos):
-      for i in range(3):
-        self.meas.sat_pos[i] = sat_pos[i]
-
-  property sat_vel:
-    def __get__(self):
-      return (self.meas.sat_vel[0], self.meas.sat_vel[1], self.meas.sat_vel[2])
-    def __set__(self, sat_vel):
-      for i in range(3):
-        self.meas.sat_vel[i] = sat_vel[i]
-
-  property snr:
-    def __get__(self):
-      return self.meas.snr
-    def __set__(self, snr):
-      self.meas.snr = snr
-
-  property lock_time:
-    def __get__(self):
-      return self.meas.lock_time
-    def __set__(self, lock_time):
-      self.meas.lock_time = lock_time
-
-  property tot:
-    def __get__(self):
-      return GpsTime(self.meas.tot.wn, self.meas.tot.tow)
-    def __set__(self, tot):
-      self.meas.tot.tow = tot.tow
-      self.meas.tot.wn = tot.wn
-
-  property prn:
-    def __get__(self):
-      return self.meas.prn
-    def __set__(self, prn):
-      self.meas.prn = prn
-
-  property lock_counter:
-    def __get__(self):
-      return self.meas.lock_counter
-    def __set__(self, lock_counter):
-      self.meas.lock_counter = lock_counter
-
-  def __repr__(self):
-    return '<NavigationMeasurement ' + \
-           str((self.meas.tot.tow,
-                self.meas.pseudorange,
-                self.meas.carrier_phase,
-                self.meas.doppler)) + '>'
-
 def calc_navigation_measurement(double t, chan_meas, es):
   n_channels = len(chan_meas)
   nav_meas = [NavigationMeasurement(0, 0, 0, 0, 0, (0,0,0), (0,0,0), 0, 0, GpsTime(0,0), 0, 0) for n in range(n_channels)]
-
   cdef channel_measurement_t** chan_meas_ptrs = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t*))
   cdef navigation_measurement_t** nav_meas_ptrs = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t*))
   cdef ephemeris_t** es_ptrs = <ephemeris_t**>malloc(n_channels*sizeof(ephemeris_t*))
-
   for n in range(n_channels):
     chan_meas_ptrs[n] = &((<ChannelMeasurement?>chan_meas[n]).meas)
     nav_meas_ptrs[n] = &((<NavigationMeasurement?>nav_meas[n]).meas)
     es_ptrs[n] = &((<NavMsg?>es[n]).eph)
-
   track_c.calc_navigation_measurement_(n_channels, chan_meas_ptrs, nav_meas_ptrs, t, es_ptrs)
-
   free(chan_meas_ptrs)
   free(nav_meas_ptrs)
   free(es_ptrs)
-
   return nav_meas
 
 def calc_loop_gains(float bw, float zeta, float k, float loop_freq):
@@ -419,17 +314,6 @@ cdef class SimpleTrackingLoop:
     cs[2].Q = l.imag
     track_c.simple_tl_update(&self.s, cs)
     return (self.code_freq, self.carr_freq)
-
-  property code_freq:
-    """The code phase rate (i.e. frequency)."""
-    def __get__(self):
-      return self.s.code_freq
-
-  property carr_freq:
-    """The carrier frequency."""
-    def __get__(self):
-      return self.s.carr_freq
-
 
 cdef class AidedTrackingLoop:
   """
@@ -685,8 +569,6 @@ cdef class CN0Estimator:
 
   """
 
-  cdef track_c.cn0_est_state_t s
-
   def __cinit__(self, bw, cn0_0, cutoff_freq, loop_freq):
     track_c.cn0_est_init(&self.s, bw, cn0_0, cutoff_freq, loop_freq)
 
@@ -728,8 +610,6 @@ cdef class LockDetector:
     Optimistic count threshold
   """
 
-  cdef track_c.lock_detect_t ld
-
   def __cinit__(self, k1, k2, lp, lo):
     track_c.lock_detect_init(&self.ld, k1, k2, lp, lo)
 
@@ -742,12 +622,12 @@ cdef class LockDetector:
 
 
 cdef class AliasDetector:
-  cdef track_c.alias_detect_t ad
+
   def __cinit__(self, acc_len, time_diff):
-    track_c.alias_detect_init(&self.ad, acc_len, time_diff)
+    alias_detect_init(&self.ad, acc_len, time_diff)
 
   def first(self, P):
-    track_c.alias_detect_first(&self.ad, P.real, P.imag)
+    alias_detect_first(&self.ad, P.real, P.imag)
 
   def second(self, P):
-    return track_c.alias_detect_second(&self.ad, P.real, P.imag)
+    return alias_detect_second(&self.ad, P.real, P.imag)

@@ -8,8 +8,8 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from almanac_c cimport *
-from gpstime_c cimport *
+from almanac cimport *
+from gpstime cimport *
 from observation_c cimport *
 
 cdef extern from "libswiftnav/amb_kf.h":

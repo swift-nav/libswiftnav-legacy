@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Swift Navigation Inc.
+# Copyright (C) 2015 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -7,16 +7,15 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-import numpy as np
 cimport numpy as np
-cimport ephemeris_c
+from cpython.object cimport Py_EQ
 from gpstime cimport *
-from gpstime_c cimport *
 from gpstime import GpsTime
 from libc.string cimport memcpy
+import numpy as np
 
 cdef class Ephemeris:
-  cdef ephemeris_c.ephemeris_t ephemeris
+
   def __init__(self,
                tgd,
                crs, crc, cuc, cus, cic, cis,
@@ -26,195 +25,56 @@ cdef class Ephemeris:
                valid,
                healthy,
                prn):
-    self.tgd = tgd
-    self.crs = crs
-    self.crc = crc
-    self.cuc = cuc
-    self.cus = cus
-    self.cic = cic
-    self.cis = cis
-    self.dn  = dn
-    self.m0  = m0
-    self.ecc   = ecc
-    self.sqrta = sqrta
-    self.omega0   = omega0
-    self.omegadot = omegadot
-    self.w   = w
-    self.inc = inc
-    self.inc_dot = inc_dot
-    self.af0 = af0
-    self.af1 = af1
-    self.af2 = af2
-    self.toe = toe
-    self.toc = toc
-    self.valid   = int(valid)
-    self.healthy = healthy
-    self.prn = int(prn)
+    self._thisptr.tgd = tgd
+    self._thisptr.crs = crs
+    self._thisptr.crc = crc
+    self._thisptr.cuc = cuc
+    self._thisptr.cus = cus
+    self._thisptr.cic = cic
+    self._thisptr.cis = cis
+    self._thisptr.dn = dn
+    self._thisptr.m0 = m0
+    self._thisptr.ecc = ecc
+    self._thisptr.sqrta = sqrta
+    self._thisptr.omega0 = omega0
+    self._thisptr.omegadot = omegadot
+    self._thisptr.w   = w
+    self._thisptr.inc = inc
+    self._thisptr.inc_dot = inc_dot
+    self._thisptr.af0 = af0
+    self._thisptr.af1 = af1
+    self._thisptr.af2 = af2
+    self._thisptr.toe = toe
+    self._thisptr.toc = toc
+    self._thisptr.valid   = int(valid)
+    self._thisptr.healthy = healthy
+    self._thisptr.prn = int(prn)
 
   def __repr__(self):
-    return "<Ephemeris prn=" + str(self.prn) + ", toe=" + str(self.toe) + ">"
+    return "<Ephemeris prn=%d, toe=%d>" % (self._thisptr.prn, self._thisptr.toe)
 
-  property tgd:
-    def __get__(self):
-        return self.ephemeris.tgd
-    def __set__(self, tgd):
-        self.ephemeris.tgd = tgd
+  def calc_sat_state(self, GpsTime time):
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = np.array([0,0,0], dtype=np.double)
+    cdef double clock_err, clock_rate_err
+    calc_sat_state(&(self._thisptr), time._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
+    return (pos, vel, clock_err, clock_rate_err)
 
-  property crs:
-    def __get__(self):
-        return self.ephemeris.crs
-    def __set__(self, crs):
-        self.ephemeris.crs = crs
+  def ephemeris_good(self, GpsTime time):
+    return ephemeris_good(&(self._thisptr), time._thisptr)
 
-  property crc:
-    def __get__(self):
-        return self.ephemeris.crc
-    def __set__(self, crc):
-        self.ephemeris.crc = crc
+  def __rich_cmp__(self, eph2, op):
+    if op != Py_EQ:
+      return False
+    cdef ephemeris_t eph = eph2._thisptr
+    return ephemeris_equal(&self._thisptr, &eph)
 
-  property cuc:
-    def __get__(self):
-        return self.ephemeris.cuc
-    def __set__(self, cuc):
-        self.ephemeris.cuc = cuc
-
-  property cus:
-    def __get__(self):
-        return self.ephemeris.cus
-    def __set__(self, cus):
-        self.ephemeris.cus = cus
-
-  property cic:
-    def __get__(self):
-        return self.ephemeris.cic
-    def __set__(self, cic):
-        self.ephemeris.cic = cic
-
-  property cis:
-    def __get__(self):
-        return self.ephemeris.cis
-    def __set__(self, cis):
-        self.ephemeris.cis = cis
-
-  property dn:
-    def __get__(self):
-        return self.ephemeris.dn
-    def __set__(self, dn):
-        self.ephemeris.dn = dn
-
-  property m0:
-    def __get__(self):
-        return self.ephemeris.m0
-    def __set__(self, m0):
-        self.ephemeris.m0 = m0
-
-  property ecc:
-    def __get__(self):
-        return self.ephemeris.ecc
-    def __set__(self, ecc):
-        self.ephemeris.ecc = ecc
-
-  property sqrta:
-    def __get__(self):
-        return self.ephemeris.sqrta
-    def __set__(self, sqrta):
-        self.ephemeris.sqrta = sqrta
-
-  property omega0:
-    def __get__(self):
-        return self.ephemeris.omega0
-    def __set__(self, omega0):
-        self.ephemeris.omega0 = omega0
-
-  property omegadot:
-    def __get__(self):
-        return self.ephemeris.omegadot
-    def __set__(self, omegadot):
-        self.ephemeris.omegadot = omegadot
-
-  property w:
-    def __get__(self):
-        return self.ephemeris.w
-    def __set__(self, w):
-        self.ephemeris.w = w
-
-  property inc:
-    def __get__(self):
-        return self.ephemeris.inc
-    def __set__(self, inc):
-        self.ephemeris.inc = inc
-
-  property inc_dot:
-    def __get__(self):
-        return self.ephemeris.inc_dot
-    def __set__(self, inc_dot):
-        self.ephemeris.inc_dot = inc_dot
-
-  property af0:
-    def __get__(self):
-        return self.ephemeris.af0
-    def __set__(self, af0):
-        self.ephemeris.af0 = af0
-
-  property af1:
-    def __get__(self):
-        return self.ephemeris.af1
-    def __set__(self, af1):
-        self.ephemeris.af1 = af1
-
-  property af2:
-    def __get__(self):
-        return self.ephemeris.af2
-    def __set__(self, af2):
-        self.ephemeris.af2 = af2
-
-  property toe:
-    def __get__(self):
-        return GpsTime(self.ephemeris.toe.wn, self.ephemeris.toe.tow)
-    def __set__(self, toe):
-        self.ephemeris.toe.wn  = toe.wn
-        self.ephemeris.toe.tow = toe.tow
-
-  property toc:
-    def __get__(self):
-        return GpsTime(self.ephemeris.toc.wn, self.ephemeris.toc.tow)
-    def __set__(self, toc):
-        self.ephemeris.toc.wn  = toc.wn
-        self.ephemeris.toc.tow = toc.tow
-
-  property valid:
-    def __get__(self):
-        return self.ephemeris.valid
-    def __set__(self, valid):
-        self.ephemeris.valid = valid
-
-  property healthy:
-    def __get__(self):
-        return self.ephemeris.healthy
-    def __set__(self, healthy):
-        self.ephemeris.healthy = healthy
-
-  property prn:
-    def __get__(self):
-        return self.ephemeris.prn
-    def __set__(self, prn):
-        self.ephemeris.prn = prn
-
-def calc_sat_state(Ephemeris eph, GpsTime time):
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos_ = \
-    np.array([0,0,0], dtype=np.double)
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel_ = \
-    np.array([0,0,0], dtype=np.double)
-
-  cdef double clock_err
-  cdef double clock_rate_err
-
-  cdef ephemeris_c.ephemeris_t eph_ = eph.ephemeris
-  cdef gpstime_c.gps_time_t t_      = time.gps_time
-
-  ephemeris_c.calc_sat_state(&eph_, t_,
-                 &pos_[0], &vel_[0],
-                 &clock_err, &clock_rate_err
-                 )
-
-  return pos_, vel_, clock_err, clock_rate_err
+# TODO (Buro): Fix this!
+# def decode_eph(np.ndarray[np.uint32_t, ndim=2] frame_words):
+#   cdef ephemeris_t tmp
+#   decode_ephemeris(frame_words, &tmp)
+#   return Ephemeris(tmp.tgd, tmp.crs, tmp.crc, tmp.cuc, tmp.cus, tmp.cic, tmp.cis,
+#                    tmp.dn, tmp.m0, tmp.ecc, tmp.sqrta, tmp.omega0, tmp.omegadot,
+#                    tmp.w, tmp.inc, tmp.inc_dot, tmp.af0, tmp.af1, tmp.af2,
+#                    tmp.toe, tmp.toc,
+#                    tmp.valid, tmp.healthy, tmp.prn)

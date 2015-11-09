@@ -1,4 +1,6 @@
-# Copyright (C) 2013 Swift Navigation Inc.
+#!/usr/bin/env python
+# Copyright (C) 2015 Swift Navigation Inc.
+# Contact: Bhaskar Mookerji <mookerji@swiftnav.com>
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -7,10 +9,10 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-from common cimport *
+import swiftnav.almanac
 
-cdef extern from "libswiftnav/gpstime.h":
-  ctypedef struct gps_time_t:
-    u16 wn
-    double tow
+def test_imports():
+  """Verify that distributed packages survive setuptools installation.
 
+  """
+  asesrt True

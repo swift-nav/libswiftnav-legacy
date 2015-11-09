@@ -8,8 +8,8 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from track_c cimport navigation_measurement_t
-from gpstime_c cimport gps_time_t
+from gpstime cimport gps_time_t
+from track cimport navigation_measurement_t
 
 cdef extern from "libswiftnav/pvt.h":
   ctypedef struct dops_t:
@@ -37,4 +37,3 @@ cdef extern from "libswiftnav/pvt.h":
               u8 disable_raim,
               gnss_solution *soln,
               dops_t *dops)
-

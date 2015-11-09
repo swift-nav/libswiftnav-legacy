@@ -18,9 +18,7 @@ from observation_c cimport *
 from observation import SingleDiff
 from observation cimport SingleDiff
 from almanac cimport *
-from almanac_c cimport *
 from gpstime cimport *
-from gpstime_c cimport *
 from libc.string cimport memcpy
 from libc.stdio cimport printf
 from sats_management_c cimport *
@@ -69,7 +67,7 @@ def dgnss_iar_resolved():
 
 def dgnss_iar_num_hyps():
   return dgnss_management_c.dgnss_iar_num_hyps()
-  
+
 def dgnss_iar_num_sats():
   return dgnss_management_c.dgnss_iar_num_sats()
 
@@ -279,4 +277,3 @@ def get_ambiguity_test():
   test = AmbiguityTest()
   test.test = dgnss_management_c.get_ambiguity_test()
   return test
-

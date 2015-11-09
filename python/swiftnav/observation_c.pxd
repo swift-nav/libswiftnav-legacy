@@ -8,8 +8,7 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from almanac_c cimport *
-from gpstime_c cimport *
+from gpstime cimport *
 
 cdef extern from "libswiftnav/observation.h":
   ctypedef struct sdiff_t:

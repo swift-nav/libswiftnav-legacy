@@ -9,9 +9,10 @@
 
 cimport pvt_c
 from libc.stdlib cimport malloc, free
+from gpstime cimport gps_time_t
 
 from common cimport *
-from track_c cimport navigation_measurement_t
+from track cimport navigation_measurement_t
 from track cimport NavigationMeasurement
 
 cdef class Solution:
@@ -67,13 +68,9 @@ cdef class Solution:
 def calc_PVT(nav_meas):
   n_used = len(nav_meas)
   cdef navigation_measurement_t* nav_meas_array = <navigation_measurement_t*>malloc(n_used*sizeof(navigation_measurement_t))
-
   for n in range(n_used):
     nav_meas_array[n] = (<NavigationMeasurement?>nav_meas[n]).meas
-
   s = Solution()
   pvt_c.calc_PVT(n_used, nav_meas_array, False, &(s.soln), &(s.dops))
-
   free(nav_meas_array)
-
   return s

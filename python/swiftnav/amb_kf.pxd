@@ -8,6 +8,3 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 cimport amb_kf_c
-
-cdef class KalmanFilter:
-  cdef amb_kf_c.nkf_t kf

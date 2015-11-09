@@ -14,7 +14,6 @@ from libc.string cimport memcpy, memcmp, memset
 from almanac cimport *
 from almanac_c cimport *
 from gpstime cimport *
-from gpstime_c cimport *
 from single_diff_c cimport *
 from dgnss_management_c cimport *
 
@@ -59,7 +58,7 @@ def predict_forward(KalmanFilter kf, state_mean, state_cov_UDU):
   memcpy(&state_mean_[0], kf.kf.state_mean, kf.state_dim * sizeof(double))
   memcpy(&state_cov_U_[0,0], kf.kf.state_cov_U, kf.state_dim * kf.state_dim * sizeof(double))
   memcpy(&state_cov_D_[0], kf.kf.state_cov_D, kf.state_dim * sizeof(double))
-  
+
   return state_mean_, UDU_decomposition(state_cov_U_, state_cov_D_)
 
 def update_scalar_measurement(h, R, U, D):
@@ -143,8 +142,8 @@ cdef class KalmanFilter:
   def __init__(self,
                np.ndarray[np.double_t, ndim=2, mode="c"] transition_mtx,
                np.ndarray[np.double_t, ndim=2, mode="c"] transition_cov,
-               np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx, 
-               np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx, 
+               np.ndarray[np.double_t, ndim=2, mode="c"] decor_mtx,
+               np.ndarray[np.double_t, ndim=2, mode="c"] decor_obs_mtx,
                np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov,
                np.ndarray[np.double_t, ndim=1, mode="c"] state_mean,
                np.ndarray[np.double_t, ndim=2, mode="c"] state_cov_U,
@@ -231,7 +230,7 @@ cdef class KalmanFilter:
   #   def __set__(self, np.ndarray[np.uint8_t, ndim=1, mode="c"] prns_with_ref_first):
   #     self.num_sats = len(prns_with_ref_first)
   #     memcpy(self.kf.prns_with_ref_first, &prns_with_ref_first[0], self.num_sats * sizeof(u8))
-      
+
 
   property transition_mtx:
     def __get__(self):
@@ -305,7 +304,7 @@ cdef class KalmanFilter:
     def __set__(self, np.ndarray[np.double_t, ndim=1, mode="c"] state_cov_D):
       memcpy(self.kf.state_cov_D, &state_cov_D[0], self.state_dim * sizeof(double))
 
-  
+
 
 def get_transition_mtx(num_sats, dt):
   state_dim = num_sats + 5
@@ -321,7 +320,7 @@ def get_d_mtx(num_sats):
   return D
 
 def get_decor_obs_cov(num_diffs, phase_var, code_var):
-  
+
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] decor_obs_cov = \
     np.empty(2 * num_diffs, dtype=np.double)
 
@@ -343,8 +342,3 @@ def least_squares_solve(KalmanFilter kf, measurements):
                                  &measurements_[0],
                                  &lsq_state[0])
   return lsq_state[:kf.state_dim]
-
-
-
-
-
