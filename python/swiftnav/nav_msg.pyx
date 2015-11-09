@@ -7,35 +7,20 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
+from ephemeris cimport ephemeris_t
+from gpstime cimport gps_time_t
+
 cdef class NavMsg:
+
   def __cinit__(self):
-    nav_msg_c.nav_msg_init(&self.state)
-    self.eph_valid = False
-    self.bit_phase = 0
-    self.bit_phase_ref = -1
+    nav_msg_init(&self._thisptr)
 
   def update(self, corr_prompt_real, ms):
-    tow = nav_msg_c.nav_msg_update(&self.state, corr_prompt_real, ms)
-    self.bit_phase = self.state.bit_phase
-    self.bit_phase_ref = self.state.bit_phase_ref
-    if nav_msg_c.subframe_ready(&self.state):
-      #self.eph.valid = 0
-      nav_msg_c.process_subframe(&self.state, &self.eph)
-      if self.eph.valid:
-        self.eph_valid = True
-      else:
-        self.eph_valid = False
-        #return Ephemeris(&self.eph)
-    return None if tow < 0 else tow
+    return nav_msg_update(&self._thisptr, corr_prompt_real, ms)
 
-  def gps_week_num(self):
-    if self.eph_valid:
-      return self.eph.toe.wn
-    else:
-      return None
+  def subframe_ready(self):
+    return subframe_ready(&self._thisptr)
 
-  #property cptr:
-    #def __get__(self):
-      #return &self.eph
-
-
+  def process_subframe(self, e):
+    cdef ephemeris_t tmp = e._thisptr
+    return process_subframe(&self._thisptr, &tmp)
