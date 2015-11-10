@@ -24,31 +24,35 @@
 #define SBAS_SATS (WAAS_SATS + EGNOS_SATS + GAGAN_SATS + MSAS_SATS + SDCM_SATS)
 #define ALL_SATS (GPS_L1_SATS + SBAS_SATS)
 
-#define GPS_CONSTELLATION 0
-#define SBAS_CONSTELLATION 1
+#define CONSTELLATION_GPS 0
+#define CONSTELLATION_SBAS 1
 
-#define L1_BAND 0
+#define BAND_L1 0
 
 typedef struct __attribute__((packed)) {
   u16 sat;
   u8 band;
   u8 constellation;
-} signal_t;
+} gnss_signal_t;
 
-static inline int cmp_signal_signal(const void *a, const void *b)
+static inline int sid_compare(const gnss_signal_t a, const gnss_signal_t b)
 {
-  const signal_t *a_ = a, *b_ = b;
   s32 x;
-  if ((x = a_->constellation - b_->constellation))
+  if ((x = a.constellation - b.constellation))
     return x;
-  if ((x = a_->band - b_->band))
+  if ((x = a.band - b.band))
     return x;
-  return a_->sat - b_->sat;
+  return a.sat - b.sat;
 }
 
-static inline bool signal_is_equal(const signal_t a, const signal_t b)
+static inline int cmp_sid_sid(const void *a, const void *b)
 {
-  return cmp_signal_signal(&a, &b) == 0;
+  return sid_compare(*(gnss_signal_t *)a, *(gnss_signal_t*)b);
+}
+
+static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
+{
+  return sid_compare(a, b) == 0;
 }
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */

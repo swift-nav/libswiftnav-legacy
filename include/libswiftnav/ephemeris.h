@@ -26,7 +26,7 @@ typedef struct {
   gps_time_t toe, toc;
   u8 valid;
   u8 healthy;
-  signal_t sid;
+  gnss_signal_t sid;
   u8 iode;
 } ephemeris_t;
 

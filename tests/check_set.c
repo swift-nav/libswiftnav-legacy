@@ -167,36 +167,36 @@ START_TEST(test_is_prn_set)
               "is_prn_set(" #set ") != " #result);
 
   /* Normal set. */
-  signal_t prns1[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 33}, {.sat = 44}, {.sat = 200}};
+  gnss_signal_t prns1[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 33}, {.sat = 44}, {.sat = 200}};
   TEST_IS_SET(prns1, true);
 
   /* Empty set. */
   fail_unless(is_prn_set(0, prns1) == true);
 
   /* Single element set. */
-  signal_t prns2[] = {{.sat = 22}};
+  gnss_signal_t prns2[] = {{.sat = 22}};
   TEST_IS_SET(prns2, true);
 
   /* Repeated elements. */
 
-  signal_t prns3[] = {{.sat = 22}, {.sat = 22}};
+  gnss_signal_t prns3[] = {{.sat = 22}, {.sat = 22}};
   TEST_IS_SET(prns3, false);
 
-  signal_t prns4[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 3}};
+  gnss_signal_t prns4[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 3}};
   TEST_IS_SET(prns4, false);
 
-  signal_t prns5[] = {{.sat = 1}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}};
+  gnss_signal_t prns5[] = {{.sat = 1}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}};
   TEST_IS_SET(prns5, false);
 
   /* Incorrectly sorted. */
 
-  signal_t prns6[] = {{.sat = 22}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}};
+  gnss_signal_t prns6[] = {{.sat = 22}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}};
   TEST_IS_SET(prns6, false);
 
-  signal_t prns7[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 1}};
+  gnss_signal_t prns7[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 1}};
   TEST_IS_SET(prns7, false);
 
-  signal_t prns8[] = {{.sat = 0}, {.sat = 1}, {.sat = 22}, {.sat = 3}, {.sat = 4}};
+  gnss_signal_t prns8[] = {{.sat = 0}, {.sat = 1}, {.sat = 22}, {.sat = 3}, {.sat = 4}};
   TEST_IS_SET(prns8, false);
 }
 END_TEST

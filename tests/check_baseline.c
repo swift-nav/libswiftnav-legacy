@@ -301,7 +301,7 @@ START_TEST(test_baseline_ref_first)
    * This should verify that the loop can start correctly. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
+    .sids = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -325,7 +325,7 @@ START_TEST(test_baseline_ref_middle)
    * This should verify that the induction works. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
+    .sids = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -354,7 +354,7 @@ START_TEST(test_baseline_ref_end)
    * This should verify that the loop can terminate correctly.*/
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
+    .sids = {{.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}, {.sat = 5}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -384,7 +384,7 @@ START_TEST(test_baseline_fixed_point)
    * matching the baseline. */
   ambiguities_t ambs = {
     .n = 4,
-    .prns = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
+    .sids = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
     .ambs = {0, 0, 0, 0}
   };
 
@@ -418,7 +418,7 @@ START_TEST(test_baseline_few_sats)
 {
   ambiguities_t ambs = {
     .n = 0,
-    .prns = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
+    .sids = {{.sat = 5}, {.sat = 1}, {.sat = 2}, {.sat = 3}, {.sat = 4}},
     .ambs = {0, 0, 0, 0}
   };
 

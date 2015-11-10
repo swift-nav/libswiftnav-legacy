@@ -32,14 +32,14 @@ int cmp_sdiff(const void *a_, const void *b_)
   const sdiff_t *a = (const sdiff_t *)a_;
   const sdiff_t *b = (const sdiff_t *)b_;
 
-  return cmp_signal_signal(&a->sid, &b->sid);
+  return sid_compare(a->sid, b->sid);
 }
 
-int cmp_sdiff_prn(const void *a_, const void *b_)
+int cmp_sdiff_sid(const void *a_, const void *b_)
 {
   const sdiff_t *a = (const sdiff_t *)a_;
-  const u16 *b = (const u16 *)b_;
-  return cmp_signal_signal(&(a->sid), b);
+  const gnss_signal_t *b = (const gnss_signal_t *)b_;
+  return sid_compare(a->sid, *b);
 }
 
 /** Create a single difference from two observations.
@@ -139,7 +139,7 @@ u8 make_propagated_sdiffs_wip(u8 n_local, navigation_measurement_t *m_local,
 
 int sdiff_search_prn(const void *a, const void *b)
 {
-  return cmp_signal_signal((signal_t*)a, &((sdiff_t *)b)->sid);
+  return sid_compare(*(gnss_signal_t*)a, ((sdiff_t *)b)->sid);
 }
 
 /** Propagates remote measurements to a local time and makes sdiffs.
@@ -295,7 +295,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prns, u8 num_dds,
+s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *non_ref_prns, u8 num_dds,
                                    u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
@@ -337,14 +337,14 @@ s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prn
   /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
    * and the reference sat. */
   while (i < num_dds) {
-    if (signal_is_equal(non_ref_prns[i], sdiffs_in[j].sid)) {
+    if (sid_is_equal(non_ref_prns[i], sdiffs_in[j].sid)) {
       /* When we find a non-ref sat, we fill in the next measurement. */
       memcpy(&sdiffs_out[i+1], &sdiffs_in[j], sizeof(sdiff_t));
       dd_meas[i] = sdiffs_in[j].carrier_phase;
       dd_meas[i+num_dds] = sdiffs_in[j].pseudorange;
       i++;
       j++;
-    } else if (signal_is_equal(ref_prn, sdiffs_in[j].sid)) {
+    } else if (sid_is_equal(ref_prn, sdiffs_in[j].sid)) {
       /* when we find the ref sat, we copy it over and raise the FOUND flag */
       memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
       ref_phase =  sdiffs_in[j].carrier_phase;
@@ -352,7 +352,7 @@ s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prn
       j++;
       found_ref = 1;
     }
-    else if (cmp_signal_signal(&non_ref_prns[i], &sdiffs_in[j].sid) > 0) {
+    else if (sid_compare(non_ref_prns[i], sdiffs_in[j].sid) > 0) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
        * i prn is higher than the j one, it means that the i one might be in the
        * j set for higher j, and that the current j prn isn't in the i set. */
@@ -372,7 +372,7 @@ s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prn
    * This case is never checked for j = num_dds as i only runs to num_dds-1. */
   /* TODO: This function could be refactored to be a lot clearer. */
   while (!found_ref && j < num_sdiffs ) {
-    if (signal_is_equal(ref_prn, sdiffs_in[j].sid)) {
+    if (sid_is_equal(ref_prn, sdiffs_in[j].sid)) {
       memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
       ref_phase =  sdiffs_in[j].carrier_phase;
       ref_pseudorange = sdiffs_in[j].pseudorange;
@@ -405,12 +405,12 @@ s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prn
   return 0;
 }
 
-s8 copy_sdiffs_put_ref_first(const signal_t ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   s8 not_found = -1;
   u8 j = 1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (signal_is_equal(sdiffs[i].sid, ref_prn)) {
+    if (sid_is_equal(sdiffs[i].sid, ref_prn)) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
       not_found = 0;
     }

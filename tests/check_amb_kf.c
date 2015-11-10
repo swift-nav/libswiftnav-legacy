@@ -298,8 +298,8 @@ START_TEST(test_kf_update)
 }
 END_TEST
 
-void assign_state_rebase_mtx(const u8 num_sats, const signal_t *old_prns,
-                             const signal_t *new_prns, double *rebase_mtx);
+void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_prns,
+                             const gnss_signal_t *new_prns, double *rebase_mtx);
 
 START_TEST(test_rebase_state)
 {
@@ -313,7 +313,7 @@ START_TEST(test_rebase_state)
   double m4[dim*dim];
   double id[dim*dim];
 
-  signal_t prns1[] = {
+  gnss_signal_t prns1[] = {
     {.sat = 2},
     {.sat = 1},
     {.sat = 3},
@@ -322,7 +322,7 @@ START_TEST(test_rebase_state)
     {.sat = 6}
   };
 
-  signal_t prns2[] = {
+  gnss_signal_t prns2[] = {
     {.sat = 5},
     {.sat = 1},
     {.sat = 2},

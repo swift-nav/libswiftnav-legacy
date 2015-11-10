@@ -677,10 +677,10 @@ void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
  *  \param list the prn list to search
  *  \return index of x in list, or -1 if no element is equal to x
  */
-s32 find_index_of_signal(const u32 num_elements, const signal_t x, const signal_t *list)
+s32 find_index_of_signal(const u32 num_elements, const gnss_signal_t x, const gnss_signal_t *list)
 {
   for (u32 i=0; i<num_elements; i++) {
-    if (cmp_signal_signal(&x, &list[i]) == 0) {
+    if (sid_is_equal(x, list[i])) {
       return i;
     }
   }
@@ -688,15 +688,15 @@ s32 find_index_of_signal(const u32 num_elements, const signal_t x, const signal_
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_mean_N(double *mean, const u8 num_sats, const signal_t *old_prns, const signal_t *new_prns)
+void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
-  signal_t old_ref = old_prns[0];
-  signal_t new_ref = new_prns[0];
+  gnss_signal_t old_ref = old_prns[0];
+  gnss_signal_t new_ref = new_prns[0];
 
-  if (signal_is_equal(old_ref, new_ref)) {
+  if (sid_is_equal(old_ref, new_ref)) {
     /* Nothing needs to be done; same basis. */
     return;
   }
@@ -707,8 +707,8 @@ void rebase_mean_N(double *mean, const u8 num_sats, const signal_t *old_prns, co
 
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
   for (u8 i=0; i<state_dim; i++) {
-    signal_t new_prn = new_prns[1+i];
-    if (signal_is_equal(new_prn, old_ref)) {
+    gnss_signal_t new_prn = new_prns[1+i];
+    if (sid_is_equal(new_prn, old_ref)) {
       new_mean[i] = - val_for_new_ref_in_old_basis;
     }
     else {
@@ -721,17 +721,17 @@ void rebase_mean_N(double *mean, const u8 num_sats, const signal_t *old_prns, co
 }
 
 /* REQUIRES num_sats > 1 */
-static void assign_state_rebase_mtx(const u8 num_sats, const signal_t *old_prns,
-                                    const signal_t *new_prns, double *rebase_mtx)
+static void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_prns,
+                                    const gnss_signal_t *new_prns, double *rebase_mtx)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
-  signal_t old_ref = old_prns[0];
-  signal_t new_ref = new_prns[0];
+  gnss_signal_t old_ref = old_prns[0];
+  gnss_signal_t new_ref = new_prns[0];
 
-  if (signal_is_equal(old_ref, new_ref)) {
+  if (sid_is_equal(old_ref, new_ref)) {
     /* No rebase needs to occur, return identity. */
     matrix_eye(state_dim, rebase_mtx);
     return;
@@ -753,7 +753,7 @@ static void assign_state_rebase_mtx(const u8 num_sats, const signal_t *old_prns,
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const signal_t *old_prns, const signal_t *new_prns)
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -778,7 +778,7 @@ void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const signal_
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const signal_t *old_prns, const signal_t *new_prns)
+void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
@@ -791,7 +791,7 @@ void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats
 
 
 /* REQUIRES num_sats > 1 */
-void rebase_nkf(nkf_t *kf, u8 num_sats, const signal_t *old_prns, const signal_t *new_prns)
+void rebase_nkf(nkf_t *kf, u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
 {
   assert(num_sats > 1);
   rebase_mean_N(kf->state_mean, num_sats, old_prns, new_prns);

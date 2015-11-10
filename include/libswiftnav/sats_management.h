@@ -27,10 +27,10 @@
  */
 typedef struct {
   u8 num_sats;
-  signal_t prns[MAX_CHANNELS];
+  gnss_signal_t sids[MAX_CHANNELS];
 } sats_management_t;
 
-signal_t choose_reference_sat(const u8 num_sats, const sdiff_t *sats);
+gnss_signal_t choose_reference_sat(const u8 num_sats, const sdiff_t *sats);
 
 void init_sats_management(sats_management_t *sats_management,
                           const u8 num_sats, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
@@ -40,7 +40,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
                           const u8 num_sats, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 void update_sats_sats_management(sats_management_t *sats_management, u8 num_non_ref_sdiffs, sdiff_t *non_ref_sdiffs);
 
-void set_reference_sat_of_prns(signal_t ref_prn, u8 num_sats, signal_t *prns);
+void set_reference_sat_of_prns(gnss_signal_t ref_prn, u8 num_sats, gnss_signal_t *prns);
 s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs, sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first);
 
 #endif /* LIBSWIFTNAV_SATS_MANAGEMENT_H */

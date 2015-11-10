@@ -27,14 +27,14 @@ typedef struct {
   double sat_vel[3];
   double snr;
   u16 lock_counter;
-  signal_t sid;
+  gnss_signal_t sid;
 } sdiff_t;
 
 int cmp_sdiff(const void *a_, const void *b_);
 int cmp_amb(const void *a_, const void *b_);
 int cmp_amb_sdiff(const void *a_, const void *b_);
-int cmp_sdiff_prn(const void *a_, const void *b_);
-int cmp_amb_prn(const void *a_, const void *b_);
+int cmp_sdiff_sid(const void *a_, const void *b_);
+int cmp_amb_sid(const void *a_, const void *b_);
 
 u8 single_diff(u8 n_a, navigation_measurement_t *m_a,
                u8 n_b, navigation_measurement_t *m_b,
@@ -51,14 +51,14 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           ephemeris_t *es, gps_time_t t,
                           sdiff_t *sds);
 
-s8 make_dd_measurements_and_sdiffs(signal_t ref_prn, const signal_t *non_ref_prns, u8 num_dds,
+s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *non_ref_prns, u8 num_dds,
                                    u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out);
 
 u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
                        u8 *sats_to_drop);
 
-s8 copy_sdiffs_put_ref_first(const signal_t ref_prn, const u8 num_sdiffs,
+s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_prn, const u8 num_sdiffs,
                              const sdiff_t *sdiffs,
                              sdiff_t *sdiffs_with_ref_first);
 

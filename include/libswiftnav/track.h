@@ -139,7 +139,7 @@ typedef struct {
  * \see calc_navigation_measurement()
  */
 typedef struct {
-  signal_t sid;            /**< Satellite signal. */
+  gnss_signal_t sid;       /**< Satellite signal. */
   double code_phase_chips; /**< The code-phase in chips at `receiver_time`. */
   double code_phase_rate;  /**< Code phase rate in chips/s. */
   double carrier_phase;    /**< Carrier phase in cycles. */
@@ -168,7 +168,7 @@ typedef struct {
   double snr;
   double lock_time;
   gps_time_t tot;
-  signal_t sid;
+  gnss_signal_t sid;
   u16 lock_counter;
 } navigation_measurement_t;
 
