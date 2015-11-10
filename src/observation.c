@@ -183,9 +183,9 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
 
   /* Loop over m_a and m_b and check if a PRN is present in both. */
   for (i=0, j=0; i<n_local && j<n_remote; i++, j++) {
-    if (m_local[i].sid.sat < m_remote[j].sid.sat)
+    if (sid_compare(m_local[i].sid, m_remote[j].sid) < 0)
       j--;
-    else if (m_local[i].sid.sat > m_remote[j].sid.sat)
+    else if (sid_compare(m_local[i].sid, m_remote[j].sid) > 0)
       i--;
     else if (ephemeris_good(&es[m_local[i].sid.sat], t)) {
       double clock_err;

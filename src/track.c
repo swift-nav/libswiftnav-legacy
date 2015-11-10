@@ -814,8 +814,8 @@ void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[], 
  */
 int nav_meas_cmp(const void *a, const void *b)
 {
-  return ((navigation_measurement_t*)a)->sid.sat
-       - ((navigation_measurement_t*)b)->sid.sat;
+  return sid_compare(((navigation_measurement_t*)a)->sid,
+                     ((navigation_measurement_t*)b)->sid);
 }
 
 /** Set measurement precise Doppler using time difference of carrier phase.
@@ -841,9 +841,9 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
 
   /* Loop over m_new and m_old and check if a PRN is present in both. */
   for (i=0, j=0; i<n_new && j<n_old; i++, j++) {
-    if (m_new[i].sid.sat < m_old[j].sid.sat)
+    if (sid_compare(m_new[i].sid, m_old[j].sid) < 0)
       j--;
-    else if (m_new[i].sid.sat > m_old[j].sid.sat)
+    else if (sid_compare(m_new[i].sid, m_old[j].sid) > 0)
       i--;
     else {
       /* Copy m_new to m_corrected. */
