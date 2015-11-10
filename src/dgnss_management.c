@@ -268,7 +268,6 @@ void dgnss_update(dgnss_state_t *dgs, u8 num_sats, const sdiff_t *sdiffs,
   make_measurements(num_sats-1, sdiffs_with_ref_first, dd_measurements);
 
   /* all the added/dropped sat stuff */
-//<<<<<<< HEAD
   dgnss_update_sats(dgs, num_sats, receiver_ecef, sdiffs_with_ref_first, dd_measurements);
 
   /* Unless the KF says otherwise, DONT TRUST THE MEASUREMENTS */
@@ -350,7 +349,6 @@ s8 dgnss_iar_get_single_hyp(const dgnss_state_t *dgs, double *dhyp)
  *
  * \param s Pointer to ambiguity state structure
  */
-//<<<<<<< HEAD
 void dgnss_update_ambiguity_state(dgnss_state_t *dgs, ambiguity_state_t *s)
 {
   /* Float filter */
@@ -400,7 +398,6 @@ void dgnss_update_ambiguity_state(dgnss_state_t *dgs, ambiguity_state_t *s)
  *          2 if we are using a float baseline.
  *         -1 if we can't give a baseline.
  */
-//<<<<<<< HEAD
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
                   u8 *num_used, double b[3],
