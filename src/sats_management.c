@@ -22,14 +22,14 @@
 gnss_signal_t choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {
   double best_snr=sats[0].snr;
-  gnss_signal_t best_prn = sats[0].sid;
+  gnss_signal_t best_sid = sats[0].sid;
   for (u8 i=1; i<num_sats; i++) {
     if (sats[i].snr > best_snr) {
       best_snr = sats[i].snr;
-      best_prn = sats[i].sid;
+      best_sid = sats[i].sid;
     }
   }
-  return best_prn;
+  return best_sid;
 }
 
 //assumes both sets are ordered
@@ -84,33 +84,33 @@ static u8 intersect_sats(const u8 num_sats1, const u8 num_sdiffs, const gnss_sig
  *  Inserts the old ref prn so the tail of the array is sorted.
  */
 /* TODO use the set abstraction fnoble is working on. */
-void set_reference_sat_of_prns(const gnss_signal_t ref_prn, const u8 num_sats, gnss_signal_t *prns)
+void set_reference_sat_of_sids(const gnss_signal_t ref_sid, const u8 num_sats, gnss_signal_t *sids)
 {
-  gnss_signal_t old_ref = prns[0];
+  gnss_signal_t old_ref = sids[0];
   u8 j;
-  if (!sid_is_equal(old_ref, ref_prn)) {
+  if (!sid_is_equal(old_ref, ref_sid)) {
     j = 1;
-    gnss_signal_t old_prns[num_sats];
-    memcpy(old_prns, prns, num_sats * sizeof(gnss_signal_t));
+    gnss_signal_t old_sids[num_sats];
+    memcpy(old_sids, sids, num_sats * sizeof(gnss_signal_t));
     u8 set_old_yet = 0;
-    prns[0] = ref_prn;
+    sids[0] = ref_sid;
     for (u8 i=1; i<num_sats; i++) {
-      if (!sid_is_equal(old_prns[i], ref_prn)) {
-        if ((sid_compare(old_prns[i], old_ref) > 0) &&
+      if (!sid_is_equal(old_sids[i], ref_sid)) {
+        if ((sid_compare(old_sids[i], old_ref) > 0) &&
             set_old_yet == 0) {
-          prns[j] = old_ref;
+          sids[j] = old_ref;
           j++;
           i--;
           set_old_yet++;
         }
         else {
-          prns[j] = old_prns[i];
+          sids[j] = old_sids[i];
           j++;
         }
       }
     }
     if (set_old_yet == 0) {
-      prns[j] = old_ref;
+      sids[j] = old_ref;
       set_old_yet++;
     }
     assert(set_old_yet == 1);
@@ -122,31 +122,31 @@ void set_reference_sat_of_prns(const gnss_signal_t ref_prn, const u8 num_sats, g
  *  Inserts the old ref prn so the tail of the sats_management array is sorted.
  */
 /* TODO use the set abstraction fnoble is working on. */
-static void set_reference_sat(const gnss_signal_t ref_prn, sats_management_t *sats_management,
+static void set_reference_sat(const gnss_signal_t ref_sid, sats_management_t *sats_management,
                               const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   DEBUG_ENTRY();
 
   gnss_signal_t old_ref = sats_management->sids[0];
-  log_debug("ref_prn = %u", ref_prn);
+  log_debug("ref_sid = %u", ref_sid);
   log_debug("old_ref = %u", old_ref);
   u8 j;
-  if (!sid_is_equal(old_ref, ref_prn)) {
+  if (!sid_is_equal(old_ref, ref_sid)) {
     j = 1;
-    gnss_signal_t old_prns[sats_management->num_sats];
-    memcpy(old_prns, sats_management->sids, sats_management->num_sats * sizeof(gnss_signal_t));
+    gnss_signal_t old_sids[sats_management->num_sats];
+    memcpy(old_sids, sats_management->sids, sats_management->num_sats * sizeof(gnss_signal_t));
     u8 set_old_yet = 0;
-    sats_management->sids[0] = ref_prn;
+    sats_management->sids[0] = ref_sid;
     for (u8 i=1; i<sats_management->num_sats; i++) {
-      if (!sid_is_equal(old_prns[i], ref_prn)) {
-        if ((sid_compare(old_prns[i], old_ref) > 0) && set_old_yet == 0) {
+      if (!sid_is_equal(old_sids[i], ref_sid)) {
+        if ((sid_compare(old_sids[i], old_ref) > 0) && set_old_yet == 0) {
           sats_management->sids[j] = old_ref;
           j++;
           i--;
           set_old_yet++;
         }
         else {
-          sats_management->sids[j] = old_prns[i];
+          sats_management->sids[j] = old_sids[i];
           j++;
         }
       }
@@ -160,7 +160,7 @@ static void set_reference_sat(const gnss_signal_t ref_prn, sats_management_t *sa
 
   j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (!sid_is_equal(sdiffs[i].sid, ref_prn)) {
+    if (!sid_is_equal(sdiffs[i].sid, ref_sid)) {
       log_debug("prn[%u] = %u", j, sdiffs[i].sid.sat);
       memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
       j++;
@@ -173,14 +173,14 @@ static void set_reference_sat(const gnss_signal_t ref_prn, sats_management_t *sa
   DEBUG_EXIT();
 }
 
-static void set_reference_sat_and_prns(const gnss_signal_t ref_prn, sats_management_t *sats_management,
+static void set_reference_sat_and_sids(const gnss_signal_t ref_sid, sats_management_t *sats_management,
                                        const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   sats_management->num_sats = num_sdiffs;
-  sats_management->sids[0] = ref_prn;
+  sats_management->sids[0] = ref_sid;
   u8 j=1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (!sid_is_equal(sdiffs[i].sid, ref_prn)) {
+    if (!sid_is_equal(sdiffs[i].sid, ref_sid)) {
       sats_management->sids[j] = sdiffs[i].sid;
       if (sdiffs_with_ref_first) {
         memcpy(&sdiffs_with_ref_first[j], &sdiffs[i], sizeof(sdiff_t));
@@ -205,8 +205,8 @@ void init_sats_management(sats_management_t *sats_management,
     return;
   }
 
-  gnss_signal_t ref_prn = choose_reference_sat(num_sdiffs, sdiffs);
-  set_reference_sat_and_prns(ref_prn, sats_management,
+  gnss_signal_t ref_sid = choose_reference_sat(num_sdiffs, sdiffs);
+  set_reference_sat_and_sids(ref_sid, sats_management,
                              num_sdiffs, sdiffs, sdiffs_with_ref_first);
   DEBUG_EXIT();
 }
@@ -237,7 +237,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
   DEBUG_ENTRY();
 
   s8 return_code;
-  gnss_signal_t ref_prn;
+  gnss_signal_t ref_sid;
 
   if (sats_management->num_sats <= 1) {
     // Need to init first.
@@ -246,7 +246,7 @@ s8 rebase_sats_management(sats_management_t *sats_management,
 
   // Check if old reference is in sdiffs
   if (bsearch(&(sats_management->sids[0]), sdiffs, num_sdiffs, sizeof(sdiff_t), &sdiff_search_prn)) {
-    ref_prn = sats_management->sids[0];
+    ref_sid = sats_management->sids[0];
     return_code = OLD_REF;
   }
   else {
@@ -275,11 +275,11 @@ s8 rebase_sats_management(sats_management_t *sats_management,
         }
         printf("}\n");
       }
-      ref_prn = choose_reference_sat(num_intersection, intersection_sats);
+      ref_sid = choose_reference_sat(num_intersection, intersection_sats);
       return_code = NEW_REF;
     }
   }
-  set_reference_sat(ref_prn, sats_management,
+  set_reference_sat(ref_sid, sats_management,
                     num_sdiffs, sdiffs, sdiffs_with_ref_first);
 
   DEBUG_EXIT();
@@ -300,9 +300,9 @@ s8 match_sdiffs_to_sats_man(sats_management_t *sats, u8 num_sdiffs,
                             sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   u8 j = 1;
-  gnss_signal_t ref_prn = sats->sids[0];
+  gnss_signal_t ref_sid = sats->sids[0];
   for (u8 i=0; i<num_sdiffs && j<sats->num_sats; i++) {
-    if (sid_is_equal(sdiffs[i].sid, ref_prn)) {
+    if (sid_is_equal(sdiffs[i].sid, ref_sid)) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
     }
     else if (sid_is_equal(sdiffs[i].sid, sats->sids[j])) {

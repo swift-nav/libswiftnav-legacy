@@ -19,7 +19,7 @@ START_TEST(test_rebase_1)
   sats_management.sids[2].sat = 3;
   sats_management.sids[3].sat = 4;
 
-  set_reference_sat_of_prns(new_ref, num_sats, prns);
+  set_reference_sat_of_sids(new_ref, num_sats, prns);
   /* Just check the sats_management prns update */
   set_reference_sat(new_ref, &sats_management, 0, 0, 0);
   /* TODO make a better test */

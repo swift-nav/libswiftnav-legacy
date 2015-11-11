@@ -51,7 +51,7 @@ s8 least_squares_solve_b_external_ambs(u8 num_dds, const double *ambs,
          const double ref_ecef[3], double b[3],
          bool disable_raim, double raim_threshold);
 
-void diff_ambs(gnss_signal_t ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
+void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
                double *dd_ambs);
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const ambiguity_t *single_ambs,

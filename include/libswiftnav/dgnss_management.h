@@ -50,7 +50,7 @@ void dgnss_init(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3]);
 void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
                   bool disable_raim, double raim_threshold);
 void dgnss_rebase_ref(u8 num_sats, sdiff_t *sdiffs, double reciever_ecef[3],
-                      gnss_signal_t old_prns[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
+                      gnss_signal_t old_sids[MAX_CHANNELS], sdiff_t *corrected_sdiffs);
 nkf_t * get_dgnss_nkf(void);
 sats_management_t * get_sats_management(void);
 ambiguity_test_t* get_ambiguity_test(void);
@@ -86,8 +86,8 @@ double dgnss_iar_pool_ll(u8 num_ambs, double *ambs);
 double dgnss_iar_pool_prob(u8 num_ambs, double *ambs);
 u8 get_amb_kf_mean(double *ambs);
 u8 get_amb_kf_cov(double *cov);
-u8 get_amb_kf_prns(gnss_signal_t *prns);
-u8 get_amb_test_prns(gnss_signal_t *prns);
+u8 get_amb_kf_sids(gnss_signal_t *sids);
+u8 get_amb_test_sids(gnss_signal_t *sids);
 u8 dgnss_iar_MLE_ambs(s32 *ambs);
 
 #endif /* LIBSWIFTNAV_DGNSS_MANAGEMENT_H */

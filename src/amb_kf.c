@@ -688,13 +688,13 @@ s32 find_index_of_signal(const u32 num_elements, const gnss_signal_t x, const gn
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
+void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
-  gnss_signal_t old_ref = old_prns[0];
-  gnss_signal_t new_ref = new_prns[0];
+  gnss_signal_t old_ref = old_sids[0];
+  gnss_signal_t new_ref = new_sids[0];
 
   if (sid_is_equal(old_ref, new_ref)) {
     /* Nothing needs to be done; same basis. */
@@ -702,17 +702,17 @@ void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_prn
   }
 
   double new_mean[state_dim];
-  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_sids[1]);
   assert(index_of_new_ref_in_old != -1);
 
   double val_for_new_ref_in_old_basis = mean[index_of_new_ref_in_old];
   for (u8 i=0; i<state_dim; i++) {
-    gnss_signal_t new_prn = new_prns[1+i];
+    gnss_signal_t new_prn = new_sids[1+i];
     if (sid_is_equal(new_prn, old_ref)) {
       new_mean[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_prn, &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_prn, &old_sids[1]);
       assert(index_of_this_sat_in_old_basis != -1);
       new_mean[i] = mean[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
@@ -721,15 +721,15 @@ void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_prn
 }
 
 /* REQUIRES num_sats > 1 */
-static void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_prns,
-                                    const gnss_signal_t *new_prns, double *rebase_mtx)
+static void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_sids,
+                                    const gnss_signal_t *new_sids, double *rebase_mtx)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
   memset(rebase_mtx, 0, state_dim * state_dim * sizeof(double));
-  gnss_signal_t old_ref = old_prns[0];
-  gnss_signal_t new_ref = new_prns[0];
+  gnss_signal_t old_ref = old_sids[0];
+  gnss_signal_t new_ref = new_sids[0];
 
   if (sid_is_equal(old_ref, new_ref)) {
     /* No rebase needs to occur, return identity. */
@@ -737,15 +737,15 @@ static void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_
     return;
   }
 
-  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_sids[1]);
   assert(index_of_new_ref_in_old != -1);
-  s32 index_of_old_ref_in_new = find_index_of_signal(num_sats-1, old_ref, &new_prns[1]);
+  s32 index_of_old_ref_in_new = find_index_of_signal(num_sats-1, old_ref, &new_sids[1]);
   assert(index_of_old_ref_in_new != -1);
 
   for (u8 i=0; i<state_dim; i++) {
     rebase_mtx[i*state_dim + index_of_new_ref_in_old] = -1;
     if (i != (u8) index_of_old_ref_in_new) {
-      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_prns[i+1], &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_sids[i+1], &old_sids[1]);
       assert(index_of_this_sat_in_old_basis != -1);
       rebase_mtx[i*state_dim + index_of_this_sat_in_old_basis] = 1;
     }
@@ -753,13 +753,13 @@ static void assign_state_rebase_mtx(const u8 num_sats, const gnss_signal_t *old_
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
   double rebase_mtx[state_dim * state_dim];
-  assign_state_rebase_mtx(num_sats, old_prns, new_prns, rebase_mtx);
+  assign_state_rebase_mtx(num_sats, old_sids, new_sids, rebase_mtx);
 
   double intermediate_cov[state_dim * state_dim];
   /* TODO make more efficient via structure of rebase_mtx. */
@@ -778,24 +778,24 @@ void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const gnss_si
 }
 
 /* REQUIRES num_sats > 1 */
-void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
+void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids)
 {
   assert(num_sats > 1);
   u8 state_dim = num_sats - 1;
 
   double state_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, state_cov_U, state_cov_D, state_cov);
-  rebase_covariance_sigma(state_cov, num_sats, old_prns, new_prns);
+  rebase_covariance_sigma(state_cov, num_sats, old_sids, new_sids);
   matrix_udu(state_dim, state_cov, state_cov_U, state_cov_D);
 }
 
 
 /* REQUIRES num_sats > 1 */
-void rebase_nkf(nkf_t *kf, u8 num_sats, const gnss_signal_t *old_prns, const gnss_signal_t *new_prns)
+void rebase_nkf(nkf_t *kf, u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids)
 {
   assert(num_sats > 1);
-  rebase_mean_N(kf->state_mean, num_sats, old_prns, new_prns);
-  rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_prns, new_prns);
+  rebase_mean_N(kf->state_mean, num_sats, old_sids, new_sids);
+  rebase_covariance_udu(kf->state_cov_U, kf->state_cov_D, num_sats, old_sids, new_sids);
 }
 
 void nkf_state_projection(nkf_t *kf,

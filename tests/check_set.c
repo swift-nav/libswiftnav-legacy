@@ -163,15 +163,15 @@ START_TEST(test_is_prn_set)
 {
 
 #define TEST_IS_SET(set, result) \
-  fail_unless(is_prn_set(sizeof(set)/sizeof(set[0]), set) == result, \
-              "is_prn_set(" #set ") != " #result);
+  fail_unless(is_sid_set(sizeof(set)/sizeof(set[0]), set) == result, \
+              "is_sid_set(" #set ") != " #result);
 
   /* Normal set. */
   gnss_signal_t prns1[] = {{.sat = 0}, {.sat = 1}, {.sat = 2}, {.sat = 33}, {.sat = 44}, {.sat = 200}};
   TEST_IS_SET(prns1, true);
 
   /* Empty set. */
-  fail_unless(is_prn_set(0, prns1) == true);
+  fail_unless(is_sid_set(0, prns1) == true);
 
   /* Single element set. */
   gnss_signal_t prns2[] = {{.sat = 22}};

@@ -623,14 +623,14 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   u8 num_dds = intersection_size - 1;
 
   /* Choose ref sat based on SNR. */
-  gnss_signal_t ref_prn = choose_reference_sat(intersection_size, intersection_sdiffs);
+  gnss_signal_t ref_sid = choose_reference_sat(intersection_size, intersection_sdiffs);
 
   /* Calculate double differenced measurements. */
   sdiff_t sdiff_ref_first[intersection_size];
   u32 sdiff_ref_index = remove_element(intersection_size, sizeof(sdiff_t),
                                        intersection_sdiffs,
                                        &(sdiff_ref_first[1]),  /* New set */
-                                       &ref_prn, cmp_sdiff_sid);
+                                       &ref_sid, cmp_sdiff_sid);
   memcpy(sdiff_ref_first, &intersection_sdiffs[sdiff_ref_index],
          sizeof(sdiff_t));
 
@@ -648,7 +648,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   /* Calculate double differenced ambiguities. */
   double dd_ambs[num_dds];
-  diff_ambs(ref_prn, intersection_size, intersection_ambs, dd_ambs);
+  diff_ambs(ref_sid, intersection_size, intersection_ambs, dd_ambs);
 
   /* Compute least squares solution. */
   *num_used = intersection_size;
@@ -656,7 +656,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
                          disable_raim, raim_threshold, 0, 0, 0);
 }
 
-void diff_ambs(gnss_signal_t ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
+void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
                double *dd_ambs)
 {
   u8 num_dds = num_ambs - 1;
@@ -665,7 +665,7 @@ void diff_ambs(gnss_signal_t ref_prn, u8 num_ambs, const ambiguity_t *amb_set,
   u32 amb_ref_index = remove_element(num_ambs, sizeof(ambiguity_t),
                                      amb_set,
                                      amb_no_ref,  /* New set */
-                                     &ref_prn, cmp_amb_sid);
+                                     &ref_sid, cmp_amb_sid);
   for (u32 i = 0; i < num_dds; i++) {
     dd_ambs[i] = amb_no_ref[i].amb - amb_set[amb_ref_index].amb;
   }

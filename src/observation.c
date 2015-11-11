@@ -295,7 +295,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  *        -1 if they are not,
  *        -2 if non_ref_prns is not an ordered set.
  */
-s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *non_ref_prns, u8 num_dds,
+s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_sid, const gnss_signal_t *non_ref_sids, u8 num_dds,
                                    u8 num_sdiffs, const sdiff_t *sdiffs_in,
                                    double *dd_meas, sdiff_t *sdiffs_out)
 {
@@ -307,9 +307,9 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
   }
 
   if (DEBUG) {
-    printf("ref_prn = %u\nnon_ref_prns = {", ref_prn.sat);
+    printf("ref_sid = %u\nnon_ref_sids = {", ref_sid.sat);
     for (u8 i=0; i < num_dds; i++) {
-      printf("%d, ", non_ref_prns[i].sat);
+      printf("%d, ", non_ref_sids[i].sat);
     }
     printf("}\nnum_dds = %u\nnum_sdiffs = %u\nsdiffs[*].prn = {", num_dds, num_sdiffs);
     for (u8 i=0; i < num_sdiffs; i++) {
@@ -318,11 +318,11 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
     printf("}\n");
   }
 
-  if (!is_prn_set(num_dds, non_ref_prns)) {
+  if (!is_sid_set(num_dds, non_ref_sids)) {
     log_error("There is disorder in the amb_test sats.");
-    printf("amb_test sat prns = {%u, ", ref_prn.sat);
+    printf("amb_test sat prns = {%u, ", ref_sid.sat);
     for (u8 k=0; k < num_dds; k++) {
-      printf("%u, ", non_ref_prns[k].sat);
+      printf("%u, ", non_ref_sids[k].sat);
     }
     printf("}\n");
     DEBUG_EXIT();
@@ -337,14 +337,14 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
   /* Go through the sdiffs, pulling out the measurements of the non-ref amb sats
    * and the reference sat. */
   while (i < num_dds) {
-    if (sid_is_equal(non_ref_prns[i], sdiffs_in[j].sid)) {
+    if (sid_is_equal(non_ref_sids[i], sdiffs_in[j].sid)) {
       /* When we find a non-ref sat, we fill in the next measurement. */
       memcpy(&sdiffs_out[i+1], &sdiffs_in[j], sizeof(sdiff_t));
       dd_meas[i] = sdiffs_in[j].carrier_phase;
       dd_meas[i+num_dds] = sdiffs_in[j].pseudorange;
       i++;
       j++;
-    } else if (sid_is_equal(ref_prn, sdiffs_in[j].sid)) {
+    } else if (sid_is_equal(ref_sid, sdiffs_in[j].sid)) {
       /* when we find the ref sat, we copy it over and raise the FOUND flag */
       memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
       ref_phase =  sdiffs_in[j].carrier_phase;
@@ -352,7 +352,7 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
       j++;
       found_ref = 1;
     }
-    else if (sid_compare(non_ref_prns[i], sdiffs_in[j].sid) > 0) {
+    else if (sid_compare(non_ref_sids[i], sdiffs_in[j].sid) > 0) {
       /* If both sets are ordered, and we increase j (and possibly i), and the
        * i prn is higher than the j one, it means that the i one might be in the
        * j set for higher j, and that the current j prn isn't in the i set. */
@@ -372,7 +372,7 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
    * This case is never checked for j = num_dds as i only runs to num_dds-1. */
   /* TODO: This function could be refactored to be a lot clearer. */
   while (!found_ref && j < num_sdiffs ) {
-    if (sid_is_equal(ref_prn, sdiffs_in[j].sid)) {
+    if (sid_is_equal(ref_sid, sdiffs_in[j].sid)) {
       memcpy(&sdiffs_out[0], &sdiffs_in[j], sizeof(sdiff_t));
       ref_phase =  sdiffs_in[j].carrier_phase;
       ref_pseudorange = sdiffs_in[j].pseudorange;
@@ -405,12 +405,12 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_prn, const gnss_signal_t *n
   return 0;
 }
 
-s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_prn, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
+s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_sid, const u8 num_sdiffs, const sdiff_t *sdiffs, sdiff_t *sdiffs_with_ref_first)
 {
   s8 not_found = -1;
   u8 j = 1;
   for (u8 i=0; i<num_sdiffs; i++) {
-    if (sid_is_equal(sdiffs[i].sid, ref_prn)) {
+    if (sid_is_equal(sdiffs[i].sid, ref_sid)) {
       memcpy(sdiffs_with_ref_first, &sdiffs[i], sizeof(sdiff_t));
       not_found = 0;
     }
@@ -425,21 +425,21 @@ s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_prn, const u8 num_sdiffs, c
   return not_found;
 }
 
-static bool contains_prn(u8 len, u8 *prns, u8 prn)
+static bool contains_sid(u8 len, gnss_signal_t *sids, gnss_signal_t sid)
 {
   for (u8 i = 0; i < len; i++) {
-    if (prns[i] == prn) {
+    if (sid_is_equal(sids[i], sid)) {
       return true;
     }
   }
   return false;
 }
 
-u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, u8 *sats_to_drop)
+u8 filter_sdiffs(u8 num_sdiffs, sdiff_t *sdiffs, u8 num_sats_to_drop, gnss_signal_t *sats_to_drop)
 {
   u8 new_num_sdiffs = 0;
   for (u8 i = 0; i < num_sdiffs; i++) {
-    if (!contains_prn(num_sats_to_drop, sats_to_drop, sdiffs[i].sid.sat)) {
+    if (!contains_sid(num_sats_to_drop, sats_to_drop, sdiffs[i].sid)) {
       if (new_num_sdiffs != i) {
         memcpy(&sdiffs[new_num_sdiffs], &sdiffs[i], sizeof(sdiff_t));
       }

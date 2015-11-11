@@ -34,9 +34,9 @@ CMP_FUNCTION(s32, s32)
  * \param prns Array of PRNs
  * \return `TRUE` if the PRNs form an ordered set, else `FALSE`
  */
-bool is_prn_set(u8 n, const gnss_signal_t *prns)
+bool is_sid_set(u8 n, const gnss_signal_t *sids)
 {
-  return is_set(n, sizeof(gnss_signal_t), prns, cmp_sid_sid);
+  return is_set(n, sizeof(gnss_signal_t), sids, cmp_sid_sid);
 }
 
 /* Tests if an array forms a sorted set with no duplicate elements.

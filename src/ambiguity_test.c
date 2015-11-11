@@ -552,10 +552,10 @@ s8 make_ambiguity_dd_measurements_and_sdiffs(ambiguity_test_t *amb_test, u8 num_
 {
   DEBUG_ENTRY();
 
-  gnss_signal_t ref_prn = amb_test->sats.sids[0];
-  gnss_signal_t *non_ref_prns = &amb_test->sats.sids[1];
+  gnss_signal_t ref_sid = amb_test->sats.sids[0];
+  gnss_signal_t *non_ref_sids = &amb_test->sats.sids[1];
   u8 num_dds = CLAMP_DIFF(amb_test->sats.num_sats, 1);
-  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_prn, non_ref_prns,
+  s8 valid_sdiffs = make_dd_measurements_and_sdiffs(ref_sid, non_ref_sids,
                                   num_dds, num_sdiffs, sdiffs,
                                   ambiguity_dd_measurements, amb_sdiffs);
 
@@ -584,7 +584,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
     DEBUG_EXIT();
     return 0;
   }
-  const gnss_signal_t *prns = amb_test->sats.sids;
+  const gnss_signal_t *sids = amb_test->sats.sids;
   const gnss_signal_t amb_ref = amb_test->sats.sids[0];
   u8 j=0;
   for (u8 i = 1; i<amb_test->sats.num_sats; i++) { //TODO will not having a j condition cause le fault du seg?
@@ -593,7 +593,7 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
       DEBUG_EXIT();
       return 0;
     }
-    if (sid_is_equal(prns[i], sdiffs[j].sid)) {
+    if (sid_is_equal(sids[i], sdiffs[j].sid)) {
       j++;
     }
     else if (sid_is_equal(amb_ref, sdiffs[j].sid)) {
@@ -613,34 +613,34 @@ s8 sats_match(const ambiguity_test_t *amb_test, const u8 num_sdiffs, const sdiff
 
 typedef struct {
   u8 num_sats;
-  gnss_signal_t old_prns[MAX_CHANNELS];
-  gnss_signal_t new_prns[MAX_CHANNELS];
+  gnss_signal_t old_sids[MAX_CHANNELS];
+  gnss_signal_t new_sids[MAX_CHANNELS];
 } rebase_prns_t;
 
 static void rebase_hypothesis(void *arg, element_t *elem) //TODO make it so it doesn't have to do all these lookups every time
 {
-  rebase_prns_t *prns = (rebase_prns_t *) arg;
-  u8 num_sats = prns->num_sats;
-  gnss_signal_t *old_prns = prns->old_prns;
-  gnss_signal_t *new_prns = prns->new_prns;
+  rebase_prns_t *sids = (rebase_prns_t *) arg;
+  u8 num_sats = sids->num_sats;
+  gnss_signal_t *old_sids = sids->old_sids;
+  gnss_signal_t *new_sids = sids->new_sids;
 
   hypothesis_t *hypothesis = (hypothesis_t *)elem;
 
-  gnss_signal_t old_ref = old_prns[0];
-  gnss_signal_t new_ref = new_prns[0];
+  gnss_signal_t old_ref = old_sids[0];
+  gnss_signal_t new_ref = new_sids[0];
 
   s32 new_N[num_sats-1];
-  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_prns[1]);
+  s32 index_of_new_ref_in_old = find_index_of_signal(num_sats-1, new_ref, &old_sids[1]);
   assert(index_of_new_ref_in_old != -1);
 
   s32 val_for_new_ref_in_old_basis = hypothesis->N[index_of_new_ref_in_old];
   for (u8 i=0; i<num_sats-1; i++) {
-    gnss_signal_t new_prn = new_prns[1+i];
-    if (sid_is_equal(new_prn, old_ref)) {
+    gnss_signal_t new_sid = new_sids[1+i];
+    if (sid_is_equal(new_sid, old_ref)) {
       new_N[i] = - val_for_new_ref_in_old_basis;
     }
     else {
-      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_prn, &old_prns[1]);
+      s32 index_of_this_sat_in_old_basis = find_index_of_signal(num_sats-1, new_sid, &old_sids[1]);
       assert(index_of_this_sat_in_old_basis != -1);
       new_N[i] = hypothesis->N[index_of_this_sat_in_old_basis] - val_for_new_ref_in_old_basis;
     }
@@ -667,8 +667,8 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
   DEBUG_ENTRY();
 
   u8 changed_ref = 0;
-  gnss_signal_t old_prns[amb_test->sats.num_sats];
-  memcpy(old_prns, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
+  gnss_signal_t old_sids[amb_test->sats.num_sats];
+  memcpy(old_sids, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
 
   s8 sats_management_code = rebase_sats_management(&amb_test->sats, num_sdiffs, sdiffs, sdiffs_with_ref_first);
   if (sats_management_code != OLD_REF) {
@@ -678,13 +678,13 @@ u8 ambiguity_update_reference(ambiguity_test_t *amb_test, const u8 num_sdiffs, c
       create_ambiguity_test(amb_test);
     }
     else {
-      gnss_signal_t new_prns[amb_test->sats.num_sats];
-      memcpy(new_prns, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
+      gnss_signal_t new_sids[amb_test->sats.num_sats];
+      memcpy(new_sids, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
 
-      rebase_prns_t prns = {.num_sats = amb_test->sats.num_sats};
-      memcpy(prns.old_prns, old_prns, amb_test->sats.num_sats * sizeof(gnss_signal_t));
-      memcpy(prns.new_prns, new_prns, amb_test->sats.num_sats * sizeof(gnss_signal_t));
-      memory_pool_map(amb_test->pool, &prns, &rebase_hypothesis);
+      rebase_prns_t sids = {.num_sats = amb_test->sats.num_sats};
+      memcpy(sids.old_sids, old_sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
+      memcpy(sids.new_sids, new_sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
+      memory_pool_map(amb_test->pool, &sids, &rebase_hypothesis);
     }
   }
 
@@ -765,10 +765,10 @@ u8 ambiguity_sat_projection(ambiguity_test_t *amb_test, const u8 num_dds_in_inte
                        &projection_aggregator);
   log_info("IAR: updates to %"PRIu32"", memory_pool_n_allocated(amb_test->pool));
   log_info("After projection, num_sats = %d", num_dds_in_intersection + 1);
-  gnss_signal_t work_prns[MAX_CHANNELS];
-  memcpy(work_prns, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
+  gnss_signal_t work_sids[MAX_CHANNELS];
+  memcpy(work_sids, amb_test->sats.sids, amb_test->sats.num_sats * sizeof(gnss_signal_t));
   for (u8 i=0; i<num_dds_in_intersection; i++) {
-    amb_test->sats.sids[i+1] = work_prns[dd_intersection_ndxs[i]+1];
+    amb_test->sats.sids[i+1] = work_sids[dd_intersection_ndxs[i]+1];
   }
   amb_test->sats.num_sats = num_dds_in_intersection+1;
 
@@ -877,43 +877,43 @@ static void compute_Z(u8 old_dim, u8 new_dim, const z_t *Z1, const z_t * Z2_inv,
 }
 
 /* TODO(dsk) Use submatrix for this instead? */
-static void remap_prns(ambiguity_test_t *amb_test, gnss_signal_t ref_prn,
-                       u32 num_added_dds, gnss_signal_t *added_prns,
+static void remap_sids(ambiguity_test_t *amb_test, gnss_signal_t ref_sid,
+                       u32 num_added_dds, gnss_signal_t *added_sids,
                        generate_hypothesis_state_t2 *s)
 {
   intersection_count_t *x = s->x;
   u8 i = 0;
   u8 j = 0;
   u8 k = 0;
-  gnss_signal_t old_prns[x->old_dim];
-  memcpy(old_prns, &amb_test->sats.sids[1], x->old_dim * sizeof(gnss_signal_t));
+  gnss_signal_t old_sids[x->old_dim];
+  memcpy(old_sids, &amb_test->sats.sids[1], x->old_dim * sizeof(gnss_signal_t));
   while (k < x->old_dim + num_added_dds) {
-    if (j == x->new_dim || ((sid_compare(old_prns[i], added_prns[j]) < 0) && i != x->old_dim)) {
+    if (j == x->new_dim || ((sid_compare(old_sids[i], added_sids[j]) < 0) && i != x->old_dim)) {
       s->ndxs_of_old_in_new[i] = k;
-      amb_test->sats.sids[k+1] = old_prns[i];
+      amb_test->sats.sids[k+1] = old_sids[i];
       i++;
       k++;
-    } else if (i == x->old_dim || (sid_compare(old_prns[i], added_prns[j]) > 0)) {
+    } else if (i == x->old_dim || (sid_compare(old_sids[i], added_sids[j]) > 0)) {
       s->ndxs_of_added_in_new[j] = k;
-      amb_test->sats.sids[k+1] = added_prns[j];
+      amb_test->sats.sids[k+1] = added_sids[j];
       j++;
       k++;
     } else {
-      log_error("remap_prns: impossible condition reached.");
-      printf("old_prns = [");
+      log_error("remap_sids: impossible condition reached.");
+      printf("old_sids = [");
       for (u8 ii=0; ii < x->old_dim; ii++) {
-        printf("%d, ",old_prns[ii].sat);
+        printf("%d, ",old_sids[ii].sat);
       }
       printf("]\n");
-      printf("added_prns = [");
+      printf("added_sids = [");
       for (u8 jj=0; jj < x->old_dim; jj++) {
-        printf("%d, ", added_prns[jj].sat);
+        printf("%d, ", added_sids[jj].sat);
       }
       printf("]\n");
       break;
     }
   }
-  amb_test->sats.sids[0] = ref_prn;
+  amb_test->sats.sids[0] = ref_sid;
   amb_test->sats.num_sats = k+1;
 }
 
@@ -985,13 +985,13 @@ static void intersection_hypothesis_prod(element_t *new_, void *x_, u32 n, eleme
 }
 
 static s32 add_sats(ambiguity_test_t *amb_test,
-                    gnss_signal_t ref_prn, gnss_signal_t *added_prns,
+                    gnss_signal_t ref_sid, gnss_signal_t *added_sids,
                     intersection_count_t *x)
 {
   generate_hypothesis_state_t2 s;
   s.x = x;
   s.Z_new_inv = x->Z2_inv;
-  remap_prns(amb_test, ref_prn, x->new_dim, added_prns, &s);
+  remap_sids(amb_test, ref_sid, x->new_dim, added_sids, &s);
   s32 count = memory_pool_product_generator(amb_test->pool, &s, MAX_HYPOTHESES, sizeof(s),
                   &intersection_init,
                   &intersection_generate_next_hypothesis1,
@@ -1121,24 +1121,24 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
 
   u8 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
-  gnss_signal_t float_prns[float_sats->num_sats];
+  gnss_signal_t float_sids[float_sats->num_sats];
   double N_mean[state_dim];
 
   matrix_reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
-  memcpy(float_prns, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
+  memcpy(float_sids, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
   memcpy(N_mean, float_mean, (float_sats->num_sats-1) * sizeof(double));
 
-  /* After this block, float_prns will have the correct reference,
+  /* After this block, float_sids will have the correct reference,
    * as will N_cov and N_mean */
   if (amb_test->sats.num_sats >= 2 &&
       !sid_is_equal(amb_test->sats.sids[0], float_sats->sids[0])) {
-    gnss_signal_t old_prns[float_sats->num_sats];
-    memcpy(old_prns, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
-    set_reference_sat_of_prns(amb_test->sats.sids[0], float_sats->num_sats, float_prns);
-    rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
-    rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
+    gnss_signal_t old_sids[float_sats->num_sats];
+    memcpy(old_sids, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
+    set_reference_sat_of_sids(amb_test->sats.sids[0], float_sats->num_sats, float_sids);
+    rebase_mean_N(N_mean, float_sats->num_sats, old_sids, float_sids);
+    rebase_covariance_sigma(float_cov, float_sats->num_sats, old_sids, float_sids);
   }
-  gnss_signal_t ref_prn = float_prns[0];
+  gnss_signal_t ref_sid = float_sids[0];
 
   double N_cov[state_dim * state_dim];
   memcpy(N_cov, float_cov, state_dim * state_dim * sizeof(double));
@@ -1150,16 +1150,16 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
   u32 ndxs_of_new_dds_in_float[MAX_CHANNELS-1];
   u8 num_old_dds = 0;
   u32 ndxs_of_old_dds_in_float[MAX_CHANNELS-1];
-  gnss_signal_t new_dd_prns[MAX_CHANNELS-1];
+  gnss_signal_t new_dd_sids[MAX_CHANNELS-1];
   while (j < float_sats->num_sats) {
     if (i < amb_test->sats.num_sats &&
-        sid_is_equal(amb_test->sats.sids[i], float_prns[j])) {
+        sid_is_equal(amb_test->sats.sids[i], float_sids[j])) {
       ndxs_of_old_dds_in_float[num_old_dds++] = j-1;
       i++;
       j++;
     } else { //else float_sats[j] is a new one
       ndxs_of_new_dds_in_float[num_addible_dds] = j-1;
-      new_dd_prns[num_addible_dds] = float_prns[j];
+      new_dd_sids[num_addible_dds] = float_sids[j];
       num_addible_dds++;
       j++;
     }
@@ -1254,7 +1254,7 @@ u8 ambiguity_sat_inclusion(ambiguity_test_t *amb_test, const u8 num_dds_in_inter
     if (fits == 1) {
       /* Sats should be added. The struct x contains new_dim, the correct
        * number to add, along with the matrices needed to do so . */
-      s32 num_hyps = add_sats(amb_test, ref_prn, new_dd_prns, &x);
+      s32 num_hyps = add_sats(amb_test, ref_sid, new_dd_sids, &x);
       if (num_hyps == 0) {
         return 2;
       } else {
@@ -1283,19 +1283,19 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   u32 state_dim = float_sats->num_sats-1;
   double float_cov[state_dim * state_dim];
   matrix_reconstruct_udu(state_dim, float_cov_U, float_cov_D, float_cov);
-  gnss_signal_t float_prns[float_sats->num_sats];
-  memcpy(float_prns, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
+  gnss_signal_t float_sids[float_sats->num_sats];
+  memcpy(float_sids, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
   double N_mean[float_sats->num_sats-1];
   memcpy(N_mean, float_mean, (float_sats->num_sats-1) * sizeof(double));
   /* After this block, float_prns will have the correct reference,
    * as will N_cov and N_mean */
   if (amb_test->sats.num_sats >= 2 &&
       !sid_is_equal(amb_test->sats.sids[0], float_sats->sids[0])) {
-    gnss_signal_t old_prns[float_sats->num_sats];
-    memcpy(old_prns, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
-    set_reference_sat_of_prns(amb_test->sats.sids[0], float_sats->num_sats, float_prns);
-    rebase_mean_N(N_mean, float_sats->num_sats, old_prns, float_prns);
-    rebase_covariance_sigma(float_cov, float_sats->num_sats, old_prns, float_prns);
+    gnss_signal_t old_sids[float_sats->num_sats];
+    memcpy(old_sids, float_sats->sids, float_sats->num_sats * sizeof(gnss_signal_t));
+    set_reference_sat_of_sids(amb_test->sats.sids[0], float_sats->num_sats, float_sids);
+    rebase_mean_N(N_mean, float_sats->num_sats, old_sids, float_sids);
+    rebase_covariance_sigma(float_cov, float_sats->num_sats, old_sids, float_sids);
   }
   double N_cov[(float_sats->num_sats-1) * (float_sats->num_sats-1)];
   memcpy(N_cov, float_cov, state_dim * state_dim * sizeof(double)); //TODO we can just use N_cov throughout
@@ -1305,15 +1305,15 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
   u8 j = 1;
   u8 num_addible_dds = 0;
   u8 ndxs_of_new_dds_in_float[MAX_CHANNELS-1];
-  gnss_signal_t new_dd_prns[MAX_CHANNELS-1];
+  gnss_signal_t new_dd_sids[MAX_CHANNELS-1];
   while (j < float_sats->num_sats) {
     if (i < amb_test->sats.num_sats &&
-        sid_is_equal(amb_test->sats.sids[i], float_prns[j])) {
+        sid_is_equal(amb_test->sats.sids[i], float_sids[j])) {
       i++;
       j++;
     } else { //else float_sats[j] is a new one
       ndxs_of_new_dds_in_float[num_addible_dds] = j-1;
-      new_dd_prns[num_addible_dds] = float_prns[j];
+      new_dd_sids[num_addible_dds] = float_sids[j];
       num_addible_dds++;
       j++;
     }
@@ -1339,7 +1339,7 @@ u8 ambiguity_sat_inclusion_old(ambiguity_test_t *amb_test, u8 num_dds_in_interse
                                             lower_bounds, upper_bounds, &num_dds_to_add,
                                             Z_inv);
   if (add_any_sats == 1) {
-    add_sats_old(amb_test, float_prns[0], num_dds_to_add, new_dd_prns, lower_bounds, upper_bounds, Z_inv);
+    add_sats_old(amb_test, float_sids[0], num_dds_to_add, new_dd_sids, lower_bounds, upper_bounds, Z_inv);
     log_debug("adding sats");
     DEBUG_EXIT();
     return 1;
@@ -1652,8 +1652,8 @@ static s8 no_init(void *x, element_t *elem) {
   return 1;
 }
 void add_sats_old(ambiguity_test_t *amb_test,
-                  gnss_signal_t ref_prn,
-                  u32 num_added_dds, gnss_signal_t *added_prns,
+                  gnss_signal_t ref_sid,
+                  u32 num_added_dds, gnss_signal_t *added_sids,
                   z_t *lower_bounds, z_t *upper_bounds,
                   z_t *Z_inv)
 {
@@ -1671,37 +1671,37 @@ void add_sats_old(ambiguity_test_t *amb_test,
   u8 i = 0;
   u8 j = 0;
   u8 k = 0;
-  gnss_signal_t old_prns[x0.num_old_dds];
-  memcpy(old_prns, &amb_test->sats.sids[1], x0.num_old_dds * sizeof(gnss_signal_t));
+  gnss_signal_t old_sids[x0.num_old_dds];
+  memcpy(old_sids, &amb_test->sats.sids[1], x0.num_old_dds * sizeof(gnss_signal_t));
   while (k < x0.num_old_dds + num_added_dds) { //TODO should this be one less, since its just DDs?
     if (j == x0.num_added_dds ||
-        ((sid_compare(old_prns[i], added_prns[j]) < 0) && i != x0.num_old_dds)) {
+        ((sid_compare(old_sids[i], added_sids[j]) < 0) && i != x0.num_old_dds)) {
       x0.ndxs_of_old_in_new[i] = k;
-      amb_test->sats.sids[k+1] = old_prns[i];
+      amb_test->sats.sids[k+1] = old_sids[i];
       i++;
       k++;
     } else if (i == x0.num_old_dds ||
-               (sid_compare(old_prns[i], added_prns[j]) > 0)) {
+               (sid_compare(old_sids[i], added_sids[j]) > 0)) {
       x0.ndxs_of_added_in_new[j] = k;
-      amb_test->sats.sids[k+1] = added_prns[j];
+      amb_test->sats.sids[k+1] = added_sids[j];
       j++;
       k++;
     } else {
       log_error("add_sats_old: impossible condition reached.");
       printf("old_prns = [");
       for (u8 ii=0; ii < x0.num_old_dds; ii++) {
-        printf("%d, ",old_prns[ii].sat);
+        printf("%d, ",old_sids[ii].sat);
       }
       printf("]\n");
-      printf("added_prns = [");
+      printf("added_sids = [");
       for (u8 jj=0; jj < x0.num_old_dds; jj++) {
-        printf("%d, ", added_prns[jj].sat);
+        printf("%d, ", added_sids[jj].sat);
       }
       printf("]\n");
       break;
     }
   }
-  amb_test->sats.sids[0] = ref_prn;
+  amb_test->sats.sids[0] = ref_sid;
   amb_test->sats.num_sats = k+1;
 
   if (x0.num_old_dds == 0 && memory_pool_n_allocated(amb_test->pool) == 0) {
