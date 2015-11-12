@@ -285,7 +285,7 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
  * \param num_dds                    The number of dds used in the IAR
  *                                   (length of non_ref_prns).
  * \param num_sdiffs                 The number of sdiffs being passed in.
- * \param sdiffs                     The sdiffs to pull measurements out of.
+ * \param sdiffs_in                  The sdiffs to pull measurements out of.
  * \param dd_meas                    The output vector of DD measurements
  *                                   to be used to update the IAR.
  * \param sdiffs_out                 The sdiffs that correspond to the IAR PRNs.

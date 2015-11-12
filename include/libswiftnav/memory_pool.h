@@ -51,12 +51,12 @@ s8 memory_pool_init(memory_pool_t *new_pool, u32 n_elements,
                     size_t element_size, void *buff);
 void memory_pool_destroy(memory_pool_t *pool);
 s32 memory_pool_n_free(memory_pool_t *pool);
-s32 memory_pool_n_allocated(memory_pool_t *pool);
+s32 memory_pool_n_allocated(const memory_pool_t *pool);
 u8 memory_pool_empty(memory_pool_t *pool);
 u32 memory_pool_n_elements(memory_pool_t *pool);
 
 element_t *memory_pool_add(memory_pool_t *pool);
-s32 memory_pool_to_array(memory_pool_t *pool, void *array);
+s32 memory_pool_to_array(const memory_pool_t *pool, void *array);
 
 s32 memory_pool_map(memory_pool_t *pool, void *arg,
                     void (*f)(void *arg, element_t *elem));

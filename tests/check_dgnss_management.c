@@ -8,43 +8,41 @@
 #include "amb_kf.h"
 #include "printing_utils.h"
 
-extern sats_management_t sats_management;
-extern nkf_t nkf;
-extern ambiguity_test_t ambiguity_test;
+dgnss_state_t dgs;
 
 START_TEST(test_dgnss_update_ambiguity_state_1)
 {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 1;
-  sats_management.prns[1] = 2;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
-  nkf.state_dim = 4;
-  nkf.state_mean[0] = 1;
-  nkf.state_mean[1] = 2;
-  nkf.state_mean[2] = 3;
-  nkf.state_mean[3] = 4;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 1;
+  dgs.sats_management.prns[1] = 2;
+  dgs.sats_management.prns[2] = 3;
+  dgs.sats_management.prns[3] = 4;
+  dgs.sats_management.prns[4] = 5;
+  dgs.nkf.state_dim = 4;
+  dgs.nkf.state_mean[0] = 1;
+  dgs.nkf.state_mean[1] = 2;
+  dgs.nkf.state_mean[2] = 3;
+  dgs.nkf.state_mean[3] = 4;
 
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 2;
-  ambiguity_test.amb_check.matching_ndxs[2] = 3;
-  ambiguity_test.amb_check.matching_ndxs[3] = 5;
-  ambiguity_test.sats.num_sats = 7;
-  ambiguity_test.sats.prns[0] = 1;
-  ambiguity_test.sats.prns[1] = 2;
-  ambiguity_test.sats.prns[2] = 3;
-  ambiguity_test.sats.prns[3] = 4;
-  ambiguity_test.sats.prns[4] = 5;
-  ambiguity_test.sats.prns[5] = 6;
-  ambiguity_test.sats.prns[6] = 7;
-  ambiguity_test.amb_check.ambs[0] = 20;
-  ambiguity_test.amb_check.ambs[1] = 21;
-  ambiguity_test.amb_check.ambs[2] = 22;
-  ambiguity_test.amb_check.ambs[3] = 23;
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 3;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 5;
+  dgs.ambiguity_test.sats.num_sats = 7;
+  dgs.ambiguity_test.sats.prns[0] = 1;
+  dgs.ambiguity_test.sats.prns[1] = 2;
+  dgs.ambiguity_test.sats.prns[2] = 3;
+  dgs.ambiguity_test.sats.prns[3] = 4;
+  dgs.ambiguity_test.sats.prns[4] = 5;
+  dgs.ambiguity_test.sats.prns[5] = 6;
+  dgs.ambiguity_test.sats.prns[6] = 7;
+  dgs.ambiguity_test.amb_check.ambs[0] = 20;
+  dgs.ambiguity_test.amb_check.ambs[1] = 21;
+  dgs.ambiguity_test.amb_check.ambs[2] = 22;
+  dgs.ambiguity_test.amb_check.ambs[3] = 23;
 
   ambiguity_state_t s = {
     .float_ambs = {
@@ -62,7 +60,7 @@ START_TEST(test_dgnss_update_ambiguity_state_1)
   ambiguity_state_t s_out;
   memset(&s_out, 0, sizeof(s_out));
 
-  dgnss_update_ambiguity_state(&s_out);
+  dgnss_update_ambiguity_state(&dgs, &s_out);
 
   fail_unless(memcmp(&s, &s_out, sizeof(s)) == 0);
 }
@@ -70,74 +68,74 @@ END_TEST
 
 START_TEST(test_dgnss_update_ambiguity_state_2)
 {
-  sats_management.num_sats = 5;
-  sats_management.prns[0] = 1;
-  sats_management.prns[1] = 2;
-  sats_management.prns[2] = 3;
-  sats_management.prns[3] = 4;
-  sats_management.prns[4] = 5;
-  nkf.state_dim = 4;
-  nkf.state_mean[0] = 1;
-  nkf.state_mean[1] = 2;
-  nkf.state_mean[2] = 3;
-  nkf.state_mean[3] = 4;
+  dgs.sats_management.num_sats = 5;
+  dgs.sats_management.prns[0] = 1;
+  dgs.sats_management.prns[1] = 2;
+  dgs.sats_management.prns[2] = 3;
+  dgs.sats_management.prns[3] = 4;
+  dgs.sats_management.prns[4] = 5;
+  dgs.nkf.state_dim = 4;
+  dgs.nkf.state_mean[0] = 1;
+  dgs.nkf.state_mean[1] = 2;
+  dgs.nkf.state_mean[2] = 3;
+  dgs.nkf.state_mean[3] = 4;
 
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
-  ambiguity_test.amb_check.matching_ndxs[0] = 0;
-  ambiguity_test.amb_check.matching_ndxs[1] = 2;
-  ambiguity_test.amb_check.matching_ndxs[2] = 3;
-  ambiguity_test.amb_check.matching_ndxs[3] = 5;
-  ambiguity_test.sats.num_sats = 7;
-  ambiguity_test.sats.prns[0] = 1;
-  ambiguity_test.sats.prns[1] = 2;
-  ambiguity_test.sats.prns[2] = 3;
-  ambiguity_test.sats.prns[3] = 4;
-  ambiguity_test.sats.prns[4] = 5;
-  ambiguity_test.sats.prns[5] = 6;
-  ambiguity_test.sats.prns[6] = 7;
-  ambiguity_test.amb_check.ambs[0] = 20;
-  ambiguity_test.amb_check.ambs[1] = 21;
-  ambiguity_test.amb_check.ambs[2] = 22;
-  ambiguity_test.amb_check.ambs[3] = 23;
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.matching_ndxs[0] = 0;
+  dgs.ambiguity_test.amb_check.matching_ndxs[1] = 2;
+  dgs.ambiguity_test.amb_check.matching_ndxs[2] = 3;
+  dgs.ambiguity_test.amb_check.matching_ndxs[3] = 5;
+  dgs.ambiguity_test.sats.num_sats = 7;
+  dgs.ambiguity_test.sats.prns[0] = 1;
+  dgs.ambiguity_test.sats.prns[1] = 2;
+  dgs.ambiguity_test.sats.prns[2] = 3;
+  dgs.ambiguity_test.sats.prns[3] = 4;
+  dgs.ambiguity_test.sats.prns[4] = 5;
+  dgs.ambiguity_test.sats.prns[5] = 6;
+  dgs.ambiguity_test.sats.prns[6] = 7;
+  dgs.ambiguity_test.amb_check.ambs[0] = 20;
+  dgs.ambiguity_test.amb_check.ambs[1] = 21;
+  dgs.ambiguity_test.amb_check.ambs[2] = 22;
+  dgs.ambiguity_test.amb_check.ambs[3] = 23;
 
   ambiguity_state_t s_out;
 
   /* No fixed solution. */
 
   /* Uninitialized. */
-  ambiguity_test.amb_check.initialized = 0;
-  dgnss_update_ambiguity_state(&s_out);
+  dgs.ambiguity_test.amb_check.initialized = 0;
+  dgnss_update_ambiguity_state(&dgs, &s_out);
   fail_unless(s_out.fixed_ambs.n == 0);
 
   /* Too few sats. */
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 0;
-  dgnss_update_ambiguity_state(&s_out);
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 0;
+  dgnss_update_ambiguity_state(&dgs, &s_out);
   fail_unless(s_out.fixed_ambs.n == 0);
 
-  ambiguity_test.amb_check.initialized = 1;
-  ambiguity_test.amb_check.num_matching_ndxs = 4;
+  dgs.ambiguity_test.amb_check.initialized = 1;
+  dgs.ambiguity_test.amb_check.num_matching_ndxs = 4;
 
   /* No float solution. */
 
   /* Too few sats. */
-  sats_management.num_sats = 0;
-  nkf.state_dim = 0;
-  dgnss_update_ambiguity_state(&s_out);
+  dgs.sats_management.num_sats = 0;
+  dgs.nkf.state_dim = 0;
+  dgnss_update_ambiguity_state(&dgs, &s_out);
   fail_unless(s_out.float_ambs.n == 0);
 
-  sats_management.num_sats = 1;
-  nkf.state_dim = 0;
-  dgnss_update_ambiguity_state(&s_out);
+  dgs.sats_management.num_sats = 1;
+  dgs.nkf.state_dim = 0;
+  dgnss_update_ambiguity_state(&dgs, &s_out);
   fail_unless(s_out.float_ambs.n == 0);
 
   /* Ensure we check num_sats first as state_dim may not be valid if num_sats
    * is too low. */
-  sats_management.num_sats = 1;
-  nkf.state_dim = 22;
-  dgnss_update_ambiguity_state(&s_out);
+  dgs.sats_management.num_sats = 1;
+  dgs.nkf.state_dim = 22;
+  dgnss_update_ambiguity_state(&dgs, &s_out);
   fail_unless(s_out.float_ambs.n == 0);
 }
 END_TEST
