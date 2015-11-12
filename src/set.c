@@ -26,7 +26,6 @@ int cmp_##ta##_##tb(const void * a, const void * b) \
   return (*da > *db) - (*da < *db);                 \
 }
 
-CMP_FUNCTION(u8, u8)
 CMP_FUNCTION(s32, s32)
 
 /* Tests if an array of PRNs form a sorted set with no duplicate elements.
@@ -35,9 +34,9 @@ CMP_FUNCTION(s32, s32)
  * \param prns Array of PRNs
  * \return `TRUE` if the PRNs form an ordered set, else `FALSE`
  */
-bool is_prn_set(u8 n, const u8 *prns)
+bool is_sid_set(u8 n, const gnss_signal_t *sids)
 {
-  return is_set(n, sizeof(u8), prns, cmp_u8_u8);
+  return is_set(n, sizeof(gnss_signal_t), sids, cmp_sid_sid);
 }
 
 /* Tests if an array forms a sorted set with no duplicate elements.

@@ -346,7 +346,7 @@ static s8 pvt_iter(double rx_state[],
  *
  * \return
  *   - `1`: repaired solution, using one fewer observation
- *          returns prn of removed measurement if removed_prn ptr is passed
+ *          returns sid of removed measurement if removed_sid ptr is passed
  *
  *   - `-1`: no reasonable solution possible
  */
@@ -355,7 +355,7 @@ static s8 pvt_repair(double rx_state[],
                      const navigation_measurement_t nav_meas[n_used],
                      double omp[n_used],
                      double H[4][4],
-                     u8 *removed_prn)
+                     gnss_signal_t *removed_sid)
 {
   /* Try solving with n-1 navigation measurements. */
   s8 one_less = n_used - 1;
@@ -400,8 +400,8 @@ static s8 pvt_repair(double rx_state[],
     nav_meas_subset[bad_sat] = nav_meas_subset[one_less];
     s8 flag = pvt_iter(rx_state, n_used - 1, nav_meas_subset, omp, H);
     assert(flag == 0);
-    if (removed_prn) {
-      *removed_prn = nav_meas[bad_sat].prn;
+    if (removed_sid) {
+      *removed_sid = nav_meas[bad_sat].sid;
     }
     return 1;
   } else {
@@ -417,7 +417,7 @@ static s8 pvt_repair(double rx_state[],
  * \param nav_meas array of measurements
  * \param disable_raim passing True will omit raim check/repair functionality
  * \param H see pvt_solve
- * \param removed_prn if not null and repair occurs, returns dropped prn
+ * \param removed_sid if not null and repair occurs, returns dropped sid
  * \param residual if not null, return double value of residual
  *
  * \return Non-negative values indicate success; see below
@@ -427,7 +427,7 @@ static s8 pvt_repair(double rx_state[],
  *        (exactly 4 measurements, or explicitly disabled)
  *
  *    `1`: repaired solution, using one fewer observation
- *        returns prn of removed measurement if removed_prn ptr is passed
+ *        returns sid of removed measurement if removed_sid ptr is passed
  *
  *    `0`: initial solution ok
  *
@@ -442,7 +442,7 @@ static s8 pvt_solve_raim(double rx_state[],
                          const navigation_measurement_t nav_meas[n_used],
                          bool disable_raim,
                          double H[4][4],
-                         u8 *removed_prn,
+                         gnss_signal_t *removed_sid,
                          double residual)
 {
   double omp[n_used];
@@ -475,7 +475,7 @@ static s8 pvt_solve_raim(double rx_state[],
        */
       return -2;
     }
-    return pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_prn);
+    return pvt_repair(rx_state, n_used, nav_meas, omp, H, removed_sid);
   }
 }
 
@@ -535,9 +535,9 @@ s8 calc_PVT(const u8 n_used,
   soln->valid = 0;
   soln->n_used = n_used; // Keep track of number of working channels
 
-  u8 removed_prn = -1;
+  gnss_signal_t removed_sid;
   s8 raim_flag = pvt_solve_raim(rx_state, n_used, nav_meas, disable_raim,
-                                H, &removed_prn, 0);
+                                H, &removed_sid, 0);
 
   if (raim_flag < 0) {
     /* Didn't converge or least squares integrity check failed. */

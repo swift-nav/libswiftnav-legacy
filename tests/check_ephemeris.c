@@ -123,7 +123,7 @@ START_TEST(test_ephemeris_equal)
       "Ephemerides should not be equal (healthy)");
   memset(&a, 0, sizeof(a));
 
-  a.prn = 1;
+  a.sid.sat = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (prn)");
   memset(&a, 0, sizeof(a));
