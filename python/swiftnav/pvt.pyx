@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Swift Navigation Inc.
+# Copyright (C) 2015 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -7,73 +7,43 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-cimport pvt_c
 from libc.stdlib cimport malloc, free
-
-from common cimport *
-from track_c cimport navigation_measurement_t
 from track cimport NavigationMeasurement
+from track cimport navigation_measurement_t
 
-cdef class Solution:
-  def __repr__(self):
-    return "<Solution %f, %f, %f>" % (57.2957795*self.pos_llh[0],
-                                      57.2957795*self.pos_llh[1],
-                                      self.pos_llh[2])
+cdef class GNSSSolution:
 
-  property pos_llh:
-    def __get__(self):
-      return (self.soln.pos_llh[0],
-              self.soln.pos_llh[1],
-              self.soln.pos_llh[2])
+  def __init__(self, **kwargs):
+    if kwargs:
+      self._thisptr = kwargs
 
-  property pos_ecef:
-    def __get__(self):
-      return (self.soln.pos_ecef[0],
-              self.soln.pos_ecef[1],
-              self.soln.pos_ecef[2])
+cdef class DOPS:
 
-  property vel_ned:
-    def __get__(self):
-      return (self.soln.vel_ned[0],
-              self.soln.vel_ned[1],
-              self.soln.vel_ned[2])
+  def __init__(self, **kwargs):
+    if kwargs:
+      self._thisptr = kwargs
 
-  property vel_ecef:
-    def __get__(self):
-      return (self.soln.vel_ecef[0],
-              self.soln.vel_ecef[1],
-              self.soln.vel_ecef[2])
+def calc_PVT_(nav_meas, disable_raim=False):
+  """Wraps the function :libswiftnav:`calc_PVT`.
 
-  property tow:
-    def __get__(self):
-      return self.soln.time.tow
+  Parameters
+  ----------
+  nav_meas : [NavigationMeasurement]
+    Navigation measurements
+  disable_raim : bool
+    Disable RAIM
 
-  property clock_offset:
-    def __get__(self):
-      return self.soln.clock_offset
+  Returns
+  -------
+  (GNSSSolution, DOPS)
 
-  property clock_bias:
-    def __get__(self):
-      return self.soln.clock_bias
-
-  property dops:
-    def __get__(self):
-      return (self.dops.pdop,
-              self.dops.gdop,
-              self.dops.tdop,
-              self.dops.hdop,
-              self.dops.vdop)
-
-def calc_PVT(nav_meas):
+  """
   n_used = len(nav_meas)
-  cdef navigation_measurement_t* nav_meas_array = <navigation_measurement_t*>malloc(n_used*sizeof(navigation_measurement_t))
-
+  cdef navigation_measurement_t* nav_meas_ = <navigation_measurement_t *>malloc(n_used*sizeof(navigation_measurement_t))
   for n in range(n_used):
-    nav_meas_array[n] = (<NavigationMeasurement?>nav_meas[n]).meas
-
-  s = Solution()
-  pvt_c.calc_PVT(n_used, nav_meas_array, False, &(s.soln), &(s.dops))
-
-  free(nav_meas_array)
-
-  return s
+    nav_meas_[n] = (<NavigationMeasurement?>nav_meas[n])._thisptr
+  dops_ = DOPS()
+  soln = GNSSSolution()
+  calc_PVT(n_used, nav_meas_, disable_raim, &soln._thisptr, &dops_._thisptr)
+  free(nav_meas_)
+  return (soln, dops_)
