@@ -253,7 +253,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
  * \return Number of sats with changed lock counter
  */
 u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
-                       u8 *sats_to_drop)
+                       gnss_signal_t *sats_to_drop)
 {
   assert(sds != NULL);
   assert(lock_counters != NULL);
@@ -261,11 +261,11 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
 
   u8 num_sats_to_drop = 0;
   for (u8 i = 0; i<n_sds; i++) {
-    u16 prn = sds[i].sid.sat;
+    gnss_signal_t sid = sds[i].sid;
     u16 new_count = sds[i].lock_counter;
-    if (new_count != lock_counters[prn]) {
-      sats_to_drop[num_sats_to_drop++] = prn;
-      lock_counters[prn] = new_count;
+    if (new_count != lock_counters[sid.sat]) {
+      sats_to_drop[num_sats_to_drop++] = sid;
+      lock_counters[sid.sat] = new_count;
     }
   }
   return num_sats_to_drop;

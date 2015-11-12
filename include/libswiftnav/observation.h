@@ -56,7 +56,7 @@ s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_sid, const gnss_signal_t *n
                                    double *dd_meas, sdiff_t *sdiffs_out);
 
 u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
-                       u8 *sats_to_drop);
+                       gnss_signal_t *sats_to_drop);
 
 s8 copy_sdiffs_put_ref_first(const gnss_signal_t ref_sid, const u8 num_sdiffs,
                              const sdiff_t *sdiffs,
