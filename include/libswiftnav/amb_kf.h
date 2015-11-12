@@ -70,8 +70,8 @@ void set_nkf(nkf_t *kf, double amb_drift_var, double phase_var, double code_var,
             u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double *dd_measurements, double ref_ecef[3]);
 void set_nkf_matrices(nkf_t *kf, double phase_var, double code_var,
                      u8 num_sdiffs, sdiff_t *sdiffs_with_ref_first, double ref_ecef[3]);
-s32 find_index_of_element_in_u8s(const u32 num_elements, const u8 x, const u8 *list);
-void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
+s32 find_index_of_signal(const u32 num_elements, const gnss_signal_t x, const gnss_signal_t *list);
+void rebase_nkf(nkf_t *kf, u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids);
 
 void nkf_state_projection(nkf_t *kf,
                                     u8 num_old_non_ref_sats,
@@ -84,11 +84,10 @@ void nkf_state_inclusion(nkf_t *kf,
                          double *estimates,
                          double int_init_var);
 
-void rebase_nkf(nkf_t *kf, u8 num_sats, u8 *old_prns, u8 *new_prns);
-void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, u8 *old_prns, u8 *new_prns);
+void rebase_covariance_udu(double *state_cov_U, double *state_cov_D, u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids);
 
-void rebase_mean_N(double *mean, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
-void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const u8 *old_prns, const u8 *new_prns);
+void rebase_mean_N(double *mean, const u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids);
+void rebase_covariance_sigma(double *state_cov, const u8 num_sats, const gnss_signal_t *old_sids, const gnss_signal_t *new_sids);
 
 double get_sos_innov(const nkf_t *kf, const double *decor_obs);
 double compute_innovation_terms(u32 state_dim, const double *h,
