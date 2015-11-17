@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "logging.h"
 #include "linear_algebra.h"
@@ -22,6 +23,58 @@
 
 #define EPHEMERIS_VALID_TIME (4*60*60) /* seconds +/- from epoch.
                                           TODO: should be 2 hrs? */
+
+/** Calculate satellite position, velocity from xyz ephemeris.
+ *
+ * References:
+ *   -# WAAS Specification FAA-E-2892b 4.4.11
+ *
+ * \param e Ephemeris struct
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is older (or newer) than 4 hours
+ */
+static s8 calc_sat_state_xyz(const ephemeris_t *e, gps_time_t t,
+                             double pos[3], double vel[3],
+                             double *clock_err, double *clock_rate_err)
+{
+  /*
+   *Ephemeris did not get time-stammped when it was received.
+   */
+  if (e->toe.wn == 0)
+    return -1;
+
+  if (!e->valid || !e->healthy)
+    return -1;
+
+  const ephemeris_xyz_t *ex = &e->xyz;
+  u8 ndays = t.tow / DAY_SECS;
+  double tod = t.tow - DAY_SECS * ndays;
+  double dt = tod - ex->toa;
+
+  if (dt > DAY_SECS/2)
+    dt -= DAY_SECS;
+  else if (dt < -DAY_SECS/2)
+    dt += DAY_SECS;
+
+  vel[0] = ex->rate[0];
+  vel[1] = ex->rate[1];
+  vel[2] = ex->rate[2];
+
+  pos[0] = ex->pos[0] + ex->rate[0] * dt +
+           0.5 * ex->acc[0] * pow(dt, 2);
+  pos[1] = ex->pos[1] + ex->rate[1] * dt +
+           0.5 * ex->acc[1] * pow(dt, 2);
+  pos[2] = ex->pos[2] + ex->rate[2] * dt +
+           0.5 * ex->acc[2] * pow(dt, 2);
+
+  memcpy(clock_err, &(ex->a_gf0), sizeof(double));
+  memcpy(clock_rate_err, &(ex->a_gf1), sizeof(double));
+
+  return 0;
+}
 
 /** Calculate satellite position, velocity and clock offset from ephemeris.
  *
@@ -40,26 +93,22 @@
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
-                  double pos[3], double vel[3],
-                  double *clock_err, double *clock_rate_err)
+static s8 calc_sat_state_kepler(const ephemeris_t *e,
+                                gps_time_t t,
+                                double pos[3], double vel[3],
+                                double *clock_err, double *clock_rate_err)
 {
-  assert(pos != NULL);
-  assert(vel != NULL);
-  assert(clock_err != NULL);
-  assert(clock_rate_err != NULL);
-  assert(ephemeris != NULL);
+  const ephemeris_kepler_t *k = &e->kepler;
 
   /* Calculate satellite clock terms */
 
   /* Seconds from clock data reference time (toc) */
-  double dt = gpsdifftime(t, ephemeris->toc);
-  *clock_err = ephemeris->af0 + dt * (ephemeris->af1 + dt * ephemeris->af2)
-               - ephemeris->tgd;
-  *clock_rate_err = ephemeris->af1 + 2.0 * dt * ephemeris->af2;
+  double dt = gpsdifftime(t, k->toc);
+  *clock_err = k->af0 + dt * (k->af1 + dt * k->af2) - k->tgd;
+  *clock_rate_err = k->af1 + 2.0 * dt * k->af2;
 
   /* Seconds from the time from ephemeris reference epoch (toe) */
-  dt = gpsdifftime(t, ephemeris->toe);
+  dt = gpsdifftime(t, e->toe);
 
   /* If dt is greater than 4 hours our ephemeris isn't valid. */
   if (fabs(dt) > EPHEMERIS_VALID_TIME) {
@@ -70,19 +119,19 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
   /* Calculate position per IS-GPS-200D p 97 Table 20-IV */
 
   /* Semi-major axis in meters. */
-  double a = ephemeris->sqrta * ephemeris->sqrta;
+  double a = k->sqrta * k->sqrta;
   /* Corrected mean motion in radians/sec. */
-  double ma_dot = sqrt(GPS_GM / (a * a * a)) + ephemeris->dn;
+  double ma_dot = sqrt(GPS_GM / (a * a * a)) + k->dn;
   /* Corrected mean anomaly in radians. */
-  double ma = ephemeris->m0 + ma_dot * dt;
+  double ma = k->m0 + ma_dot * dt;
 
   /* Iteratively solve for the Eccentric Anomaly
    * (from Keith Alter and David Johnston) */
   double ea = ma; /* Starting value for E. */
   double ea_old;
   double temp;
-  double ecc = ephemeris->ecc;
-  u32 count = 0;
+  double ecc = k->ecc;
+  u8 count = 0;
 
   /* TODO: Implement convergence test using integer difference of doubles,
    * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
@@ -99,34 +148,32 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
   double ea_dot = ma_dot / temp;
 
   /* Relativistic correction term. */
-  double einstein = GPS_F * ecc * ephemeris->sqrta * sin(ea);
+  double einstein = GPS_F * ecc * k->sqrta * sin(ea);
   *clock_err += einstein;
 
   /* Begin calc for True Anomaly and Argument of Latitude */
   double temp2 = sqrt(1.0 - ecc * ecc);
   /* Argument of Latitude = True Anomaly + Argument of Perigee. */
-  double al = atan2(temp2 * sin(ea), cos(ea) - ecc) + ephemeris->w;
+  double al = atan2(temp2 * sin(ea), cos(ea) - ecc) + k->w;
   double al_dot = temp2 * ea_dot / temp;
 
   /* Calculate corrected argument of latitude based on position. */
-  double cal = al + ephemeris->cus * sin(2.0 * al) + ephemeris->cuc * cos(2.0 * al);
-  double cal_dot = al_dot * (1.0 + 2.0 * (ephemeris->cus * cos(2.0 * al)
-                                          - ephemeris->cuc * sin(2.0 * al)));
+  double cal = al + k->cus * sin(2.0 * al) + k->cuc * cos(2.0 * al);
+  double cal_dot = al_dot * (1.0 + 2.0 * (k->cus * cos(2.0 * al)
+                                          - k->cuc * sin(2.0 * al)));
 
   /* Calculate corrected radius based on argument of latitude. */
-  double r = a * temp + ephemeris->crc * cos(2.0 * al)
-             + ephemeris->crs * sin(2.0 * al);
+  double r = a * temp + k->crc * cos(2.0 * al) + k->crs * sin(2.0 * al);
   double r_dot = a * ecc * sin(ea) * ea_dot
-                 + 2.0 * al_dot * (ephemeris->crs * cos(2.0 * al)
-                                   - ephemeris->crc * sin(2.0 * al));
+                 + 2.0 * al_dot * (k->crs * cos(2.0 * al)
+                                   - k->crc * sin(2.0 * al));
 
   /* Calculate inclination based on argument of latitude. */
-  double inc = ephemeris->inc + ephemeris->inc_dot * dt
-               + ephemeris->cic * cos(2.0 * al)
-               + ephemeris->cis * sin(2.0 * al);
-  double inc_dot = ephemeris->inc_dot
-                   + 2.0 * al_dot * (ephemeris->cis * cos(2.0 * al)
-                                     - ephemeris->cic * sin(2.0 * al));
+  double inc = k->inc + k->inc_dot * dt + k->cic * cos(2.0 * al)
+               + k->cis * sin(2.0 * al);
+  double inc_dot = k->inc_dot
+                   + 2.0 * al_dot * (k->cis * cos(2.0 * al)
+                                     - k->cic * sin(2.0 * al));
 
   /* Calculate position and velocity in orbital plane. */
   double x = r * cos(cal);
@@ -135,9 +182,8 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
   double y_dot = r_dot * sin(cal) + x * cal_dot;
 
   /* Corrected longitude of ascenting node. */
-  double om_dot = ephemeris->omegadot - GPS_OMEGAE_DOT;
-  double om = ephemeris->omega0 + dt * om_dot
-              - GPS_OMEGAE_DOT * ephemeris->toe.tow;
+  double om_dot = k->omegadot - GPS_OMEGAE_DOT;
+  double om = k->omega0 + dt * om_dot - GPS_OMEGAE_DOT * e->toe.tow;
 
   /* Compute the satellite's position in Earth-Centered Earth-Fixed
    * coordiates. */
@@ -154,6 +200,45 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
 
   return 0;
 }
+
+/** Calculate satellite position, velocity and clock offset from ephemeris.
+ *
+ * Dispatch to internal function for Kepler/XYZ ephemeris depending on
+ * constellation.
+ *
+ * \param t GPS time at which to calculate the satellite state
+ * \param e Ephemeris struct
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is older (or newer) than 4 hours
+ */
+s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
+                  double pos[3], double vel[3],
+                  double *clock_err, double *clock_rate_err)
+{
+  assert(pos != NULL);
+  assert(vel != NULL);
+  assert(clock_err != NULL);
+  assert(clock_rate_err != NULL);
+  assert(e != NULL);
+
+  switch (e->sid.constellation) {
+  case CONSTELLATION_GPS:
+    return calc_sat_state_kepler(e, t, pos, vel, clock_err, clock_rate_err);
+  case CONSTELLATION_SBAS:
+    return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
+  default:
+    assert("unsupported constellation");
+    return -1;
+  }
+}
+
 /** Is this ephemeris usable?
  *
  * \todo This should actually be more than just the "valid" flag.
@@ -165,7 +250,7 @@ s8 calc_sat_state(const ephemeris_t *ephemeris, gps_time_t t,
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_good(ephemeris_t *eph, gps_time_t t)
+u8 ephemeris_good(const ephemeris_t *eph, gps_time_t t)
 {
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double dt = gpsdifftime(t, eph->toe);
@@ -191,6 +276,8 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
+  assert(e->sid.constellation == CONSTELLATION_GPS);
+  ephemeris_kepler_t *k = &e->kepler;
 
   /* These unions facilitate signed/unsigned conversion and sign extension. */
   union {
@@ -215,25 +302,25 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   /* GPS week number (mod 1024): Word 3, bits 20-30 */
   e->toe.wn = (frame_words[0][3-3] >> (30-10) & 0x3FF);
   e->toe.wn += GPS_WEEK_CYCLE * 1024;
-  e->toc.wn = e->toe.wn;
+  k->toc.wn = e->toe.wn;
 
   /* Health flag: Word 3, bit 17 */
   e->healthy = !(frame_words[0][3-3] >> (30-17) & 1);
 
   /* t_gd: Word 7, bits 17-24 */
   onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
-  e->tgd = onebyte.s8 * pow(2,-31);
+  k->tgd = onebyte.s8 * pow(2,-31);
 
   /* t_oc: Word 8, bits 8-24 */
-  e->toc.tow = (frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;
+  k->toc.tow = (frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;
 
   /* a_f2: Word 9, bits 1-8 */
   onebyte.u8 = frame_words[0][9-3] >> (30-8) & 0xFF;
-  e->af2 = onebyte.s8 * pow(2,-55);
+  k->af2 = onebyte.s8 * pow(2,-55);
 
   /* a_f1: Word 9, bits 9-24 */
   twobyte.u16 = frame_words[0][9-3] >> (30-24) & 0xFFFF;
-  e->af1 = twobyte.s16 * pow(2,-43);
+  k->af1 = twobyte.s16 * pow(2,-43);
 
   /* a_f0: Word 10, bits 1-22 */
   fourbyte.u32 = frame_words[0][10-3] >> (30-22) & 0x3FFFFF;
@@ -241,40 +328,40 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   fourbyte.u32 <<= 10;
   /* Carry the sign bit back down and reduce to signed 22 bit value */
   fourbyte.s32 >>= 10;
-  e->af0 = fourbyte.s32 * pow(2,-31);
+  k->af0 = fourbyte.s32 * pow(2,-31);
 
   /* Subframe 2: crs, dn, m0, cuc, ecc, cus, sqrta, toe */
 
   /* crs: Word 3, bits 9-24 */
   twobyte.u16 = frame_words[1][3-3] >> (30-24) & 0xFFFF;
-  e->crs = twobyte.s16 * pow(2,-5);
+  k->crs = twobyte.s16 * pow(2,-5);
 
   /* dn: Word 4, bits 1-16 */
   twobyte.u16 = frame_words[1][4-3] >> (30-16) & 0xFFFF;
-  e->dn = twobyte.s16 * pow(2,-43) * GPS_PI;
+  k->dn = twobyte.s16 * pow(2,-43) * GPS_PI;
 
   /* m0: Word 4, bits 17-24 and word 5, bits 1-24 */
   fourbyte.u32 = ((frame_words[1][4-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[1][5-3] >> (30-24) & 0xFFFFFF);
-  e->m0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
+  k->m0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
   /* cuc: Word 6, bits 1-16 */
   twobyte.u16 = frame_words[1][6-3] >> (30-16) & 0xFFFF;
-  e->cuc = twobyte.s16 * pow(2,-29);
+  k->cuc = twobyte.s16 * pow(2,-29);
 
   /* ecc: Word 6, bits 17-24 and word 7, bits 1-24 */
   fourbyte.u32 = ((frame_words[1][6-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[1][7-3] >> (30-24) & 0xFFFFFF);
-  e->ecc = fourbyte.u32 * pow(2,-33);
+  k->ecc = fourbyte.u32 * pow(2,-33);
 
   /* cus: Word 8, bits 1-16 */
   twobyte.u16 = frame_words[1][8-3] >> (30-16) & 0xFFFF;
-  e->cus = twobyte.s16 * pow(2,-29);
+  k->cus = twobyte.s16 * pow(2,-29);
 
   /* sqrta: Word 8, bits 17-24 and word 9, bits 1-24 */
   fourbyte.u32 = ((frame_words[1][8-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[1][9-3] >> (30-24) & 0xFFFFFF);
-  e->sqrta = fourbyte.u32 * pow(2,-19);
+  k->sqrta = fourbyte.u32 * pow(2,-19);
 
   /* t_oe: Word 10, bits 1-16 */
   e->toe.tow = (frame_words[1][10-3] >> (30-16) & 0xFFFF) * 16;
@@ -284,30 +371,30 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 
   /* cic: Word 3, bits 1-16 */
   twobyte.u16 = frame_words[2][3-3] >> (30-16) & 0xFFFF;
-  e->cic = twobyte.s16 * pow(2,-29);
+  k->cic = twobyte.s16 * pow(2,-29);
 
   /* omega0: Word 3, bits 17-24 and word 4, bits 1-24 */
   fourbyte.u32 = ((frame_words[2][3-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[2][4-3] >> (30-24) & 0xFFFFFF);
-  e->omega0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
+  k->omega0 = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
   /* cis: Word 5, bits 1-16 */
   twobyte.u16 = frame_words[2][5-3] >> (30-16) & 0xFFFF;
-  e->cis = twobyte.s16 * pow(2,-29);
+  k->cis = twobyte.s16 * pow(2,-29);
 
   /* inc (i0): Word 5, bits 17-24 and word 6, bits 1-24 */
   fourbyte.u32 = ((frame_words[2][5-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[2][6-3] >> (30-24) & 0xFFFFFF);
-  e->inc = fourbyte.s32 * pow(2,-31) * GPS_PI;
+  k->inc = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
   /* crc: Word 7, bits 1-16 */
   twobyte.u16 = frame_words[2][7-3] >> (30-16) & 0xFFFF;
-  e->crc = twobyte.s16 * pow(2,-5);
+  k->crc = twobyte.s16 * pow(2,-5);
 
   /* w (omega): Word 7, bits 17-24 and word 8, bits 1-24 */
   fourbyte.u32 = ((frame_words[2][7-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[2][8-3] >> (30-24) & 0xFFFFFF);
-  e->w = fourbyte.s32 * pow(2,-31) * GPS_PI;
+  k->w = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
   /* Omega_dot: Word 9, bits 1-24 */
   fourbyte.u32 = frame_words[2][9-3] >> (30-24) & 0xFFFFFF;
@@ -315,27 +402,38 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   fourbyte.u32 <<= 8;
   /* Sign extend it */
   fourbyte.s32 >>= 8;
-  e->omegadot = fourbyte.s32 * pow(2,-43) * GPS_PI;
+  k->omegadot = fourbyte.s32 * pow(2,-43) * GPS_PI;
 
   /* iode: Word 10, bits 1-8 */
-  e->iode = frame_words[2][10-3] >> (30-8) & 0xFF;
+  k->iode = frame_words[2][10-3] >> (30-8) & 0xFF;
 
   /* inc_dot (IDOT): Word 10, bits 9-22 */
   twobyte.u16 = frame_words[2][10-3] >> (30-22) & 0x3FFF;
   twobyte.u16 <<= 2;
   /* Sign extend */
   twobyte.s16 >>= 2;
-  e->inc_dot = twobyte.s16 * pow(2,-43) * GPS_PI;
+  k->inc_dot = twobyte.s16 * pow(2,-43) * GPS_PI;
 
   e->valid = 1;
 }
 
-bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b)
+static bool ephemeris_xyz_equal(const ephemeris_xyz_t *a,
+                                const ephemeris_xyz_t *b)
 {
-  return (a->valid == b->valid) &&
-         (a->healthy == b->healthy) &&
-         sid_is_equal(a->sid, b->sid) &&
-         (a->iode == b->iode) &&
+  return (a->iod == b->iod) &&
+         (a->toa == b->toa) &&
+         (a->ura == b->ura) &&
+         (a->a_gf0 == b->a_gf0) &&
+         (a->a_gf1 == b->a_gf1) &&
+         (memcmp(a->pos, b->pos, sizeof(a->pos)) == 0) &&
+         (memcmp(a->rate, b->rate, sizeof(a->rate)) == 0) &&
+         (memcmp(a->acc, b->acc, sizeof(a->acc)) == 0);
+}
+
+static bool ephemeris_kepler_equal(const ephemeris_kepler_t *a,
+                                   const ephemeris_kepler_t *b)
+{
+  return (a->iode == b->iode) &&
          (a->tgd == b->tgd) &&
          (a->crs == b->crs) &&
          (a->crc == b->crc) &&
@@ -355,9 +453,27 @@ bool ephemeris_equal(ephemeris_t *a, ephemeris_t *b)
          (a->af0 == b->af0) &&
          (a->af1 == b->af1) &&
          (a->af2 == b->af2) &&
-         (a->toe.wn == b->toe.wn) &&
-         (a->toe.tow == b->toe.tow) &&
          (a->toc.wn == b->toc.wn) &&
          (a->toc.tow == b->toc.tow);
+}
+
+bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
+{
+  if (!sid_is_equal(a->sid, b->sid) ||
+      (a->valid != b->valid) ||
+      (a->healthy != b->healthy) ||
+      (a->toe.wn != b->toe.wn) ||
+      (a->toe.tow != b->toe.tow))
+    return false;
+
+  switch (a->sid.constellation) {
+  case CONSTELLATION_GPS:
+    return ephemeris_kepler_equal(&a->kepler, &b->kepler);
+  case CONSTELLATION_SBAS:
+    return ephemeris_xyz_equal(&a->xyz, &b->xyz);
+  default:
+    assert("unsupported constellation");
+    return false;
+  }
 }
 
