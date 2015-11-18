@@ -1,8 +1,7 @@
 /** \mainpage
 
-libswiftnav is a platform independent library of GNSS related functions.
-This library implements GNSS related functions and algorithms for use by
-software-defined GNSS receivers and other software.
+Libswiftnav is a platform independent library that implements GNSS functions
+and algorithms for use by software-defined GNSS receivers or software requiring
 
 It is intended to be as portable as possible and is written in standards
 compliant C with no dependancies other than the standard C libraries.

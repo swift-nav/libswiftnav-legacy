@@ -3,18 +3,21 @@ libswiftnav
 
 [![Build status][1]][2]
 
-libswiftnav is a platform independent library of GNSS related functions.
-This library implements GNSS related functions and algorithms for use by
-software-defined GNSS receivers and other software.
+Libswiftnav is a platform independent library that implements GNSS functions
+and algorithms for use by software-defined GNSS receivers or software requiring
+GNNS functionality. It is intended to be as portable as possible 
+and is written in standards compliant C with no dependancies other than the 
+standard C libraries.
 
-It is intended to be as portable as possible and is written in standards
-compliant C with no dependancies other than the standard C libraries.
+ Libswiftnav does not provide any functionality for communicating with
+Swift Navigation receivers.  See [libsbp](https://github.com/swift-nav/libsbp) to communicate with receivers using Swift Binary Protocol (SBP).
 
-Full documentation available online at http://docs.swift-nav.com/libswiftnav
 
-For installation, see docs/install.dox
+For Doxygen documentation, see [docs.swift-nav.com.](http://docs.swift-nav.com/libswiftnav)
 
-For development help, see DEVELOPMENT.rst.
+For installation, see [docs/install.dox.](http://docs.swift-nav.com/libswiftnav/install.html)
+
+For development help, see [DEVELOPMENT.rst](https://github.com/swift-nav/libswiftnav/blob/master/DEVELOPMENT.rst)
 
 [1]: https://travis-ci.org/swift-nav/libswiftnav.png
 [2]: https://travis-ci.org/swift-nav/libswiftnav
