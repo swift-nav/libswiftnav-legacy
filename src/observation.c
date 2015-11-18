@@ -193,6 +193,9 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
+      /* TODO: (kleeman) I think this should be the time of transmit, not
+       *    the receiver time, though perhaps it doesn't matter much since
+       *    later we only use the difference in dinstance?*/
       calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
                      &clock_err, &clock_rate_err);
       sds[n].sid = m_local[i].sid;
