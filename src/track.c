@@ -14,6 +14,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <assert.h>
 
 #include "constants.h"
 #include "prns.h"
@@ -21,6 +22,8 @@
 #include "ephemeris.h"
 #include "tropo.h"
 #include "coord_system.h"
+#include "signal.h"
+#include "set.h"
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -743,6 +746,58 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
   }
 
   return s->log_bw - 10.f*log10f(s->nsr);
+}
+
+
+void hatch_filter_init(hatch_state_t *s, u8 ns)
+{
+  for (u8 i=0; i<ns; i++) {
+    sid_mark_invalid(&s[i].sid);
+  }
+}
+
+static void hatch_intersection_f(void *context, u32 n,
+                                 const void *a, const void *b)
+{
+  (void)n;
+  navigation_measurement_t *nm = (navigation_measurement_t *)a;
+  hatch_state_t *s = (hatch_state_t *)b;
+  double N = *(double *)context;
+
+  /* Double checking. */
+  assert(sid_is_equal(s->sid, nm->sid));
+
+  nm->pseudorange = (1 / N) * nm->pseudorange
+                    + ((N - 1) / N) * (s->last_pseudorange
+                                        + nm->carrier_phase
+                                        - s->last_carrier_phase);
+}
+
+static int cmp_hatch_nm(const void *a, const void *b)
+{
+  navigation_measurement_t *nm = (navigation_measurement_t *)a;
+  hatch_state_t *s = (hatch_state_t *)b;
+  return sid_compare(nm->sid, s->sid);
+}
+
+void hatch_filter_update(hatch_state_t *s, u8 ns, double N, u8 nm,
+                         navigation_measurement_t *nms)
+{
+  assert(ns >= nm);
+
+  intersection_map(nm, sizeof(navigation_measurement_t), nms,
+                   ns, sizeof(hatch_state_t), s,
+                   cmp_hatch_nm, &N, hatch_intersection_f);
+
+  u8 i;
+  for (i=0; i<MIN(ns, nm); i++) {
+    s[i].sid = nms[i].sid;
+    s[i].last_pseudorange = nms[i].pseudorange;
+    s[i].last_carrier_phase = nms[i].carrier_phase;
+  }
+  for (; i<ns; i++) {
+    sid_mark_invalid(&s[i].sid);
+  }
 }
 
 /** Calculate observations from tracking channel measurements.

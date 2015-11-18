@@ -26,6 +26,7 @@
 
 #define CONSTELLATION_GPS 0
 #define CONSTELLATION_SBAS 1
+#define CONSTELLATION_INVALID 255
 
 #define BAND_L1 0
 
@@ -53,6 +54,13 @@ static inline int cmp_sid_sid(const void *a, const void *b)
 static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 {
   return sid_compare(a, b) == 0;
+}
+
+/** Sets a signal ID such that it will not compare equal with any valid signal
+ * ID. */
+static inline void sid_mark_invalid(gnss_signal_t *s)
+{
+  s->constellation = CONSTELLATION_INVALID;
 }
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */

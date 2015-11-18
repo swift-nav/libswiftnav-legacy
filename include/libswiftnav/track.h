@@ -172,6 +172,15 @@ typedef struct {
   u16 lock_counter;
 } navigation_measurement_t;
 
+typedef struct {
+  double last_pseudorange;
+  double last_carrier_phase;
+  gnss_signal_t sid;
+  u16 last_lock_counter;
+} hatch_state_t;
+
+#define HATCH_N_DEFAULT 5
+
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
                      float *b0, float *b1);
 float costas_discriminator(float I, float Q);
@@ -230,6 +239,10 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
 float cn0_est(cn0_est_state_t *s, float I, float Q);
+
+void hatch_filter_init(hatch_state_t *s, u8 ns);
+void hatch_filter_update(hatch_state_t *s, u8 ns, double N, u8 nm,
+                         navigation_measurement_t *nms);
 
 void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
                                  navigation_measurement_t nav_meas[],
