@@ -13,102 +13,102 @@ START_TEST(test_ephemeris_equal)
 
   fail_unless(ephemeris_equal(&a, &b), "Ephemerides should be equal");
 
-  a.tgd = 1;
+  a.kepler.tgd = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (tgd)");
   memset(&a, 0, sizeof(a));
 
-  a.tgd = 1;
+  a.kepler.tgd = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (tgd)");
   memset(&a, 0, sizeof(a));
 
-  a.crs = 1;
+  a.kepler.crs = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (crs)");
   memset(&a, 0, sizeof(a));
 
-  a.crc = 1;
+  a.kepler.crc = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (crc)");
   memset(&a, 0, sizeof(a));
 
-  a.cuc = 1;
+  a.kepler.cuc = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (cuc)");
   memset(&a, 0, sizeof(a));
 
-  a.cus = 1;
+  a.kepler.cus = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (cus)");
   memset(&a, 0, sizeof(a));
 
-  a.cic = 1;
+  a.kepler.cic = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (cic)");
   memset(&a, 0, sizeof(a));
 
-  a.cis = 1;
+  a.kepler.cis = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (cis)");
   memset(&a, 0, sizeof(a));
 
-  a.dn = 1;
+  a.kepler.dn = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (dn)");
   memset(&a, 0, sizeof(a));
 
-  a.m0 = 1;
+  a.kepler.m0 = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (m0)");
   memset(&a, 0, sizeof(a));
 
-  a.ecc = 1;
+  a.kepler.ecc = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (ecc)");
   memset(&a, 0, sizeof(a));
 
-  a.sqrta = 1;
+  a.kepler.sqrta = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (sqrta)");
   memset(&a, 0, sizeof(a));
 
-  a.omega0 = 1;
+  a.kepler.omega0 = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (omega0)");
   memset(&a, 0, sizeof(a));
 
-  a.omegadot = 1;
+  a.kepler.omegadot = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (omegadot)");
   memset(&a, 0, sizeof(a));
 
-  a.w = 1;
+  a.kepler.w = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (w)");
   memset(&a, 0, sizeof(a));
 
-  a.inc = 1;
+  a.kepler.inc = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (inc)");
   memset(&a, 0, sizeof(a));
 
-  a.inc_dot = 1;
+  a.kepler.inc_dot = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (inc_dot)");
   memset(&a, 0, sizeof(a));
 
-  a.af0 = 1;
+  a.kepler.af0 = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (af0)");
   memset(&a, 0, sizeof(a));
 
-  a.af1 = 1;
+  a.kepler.af1 = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (af1)");
   memset(&a, 0, sizeof(a));
 
-  a.af2 = 1;
+  a.kepler.af2 = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (af2)");
   memset(&a, 0, sizeof(a));
@@ -128,7 +128,7 @@ START_TEST(test_ephemeris_equal)
       "Ephemerides should not be equal (prn)");
   memset(&a, 0, sizeof(a));
 
-  a.iode = 1;
+  a.kepler.iode = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (iode)");
   memset(&a, 0, sizeof(a));
@@ -143,12 +143,12 @@ START_TEST(test_ephemeris_equal)
       "Ephemerides should not be equal (toe.tow)");
   memset(&a, 0, sizeof(a));
 
-  a.toc.wn = 1;
+  a.kepler.toc.wn = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (toc.wn)");
   memset(&a, 0, sizeof(a));
 
-  a.toc.tow = 1;
+  a.kepler.toc.tow = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (toc.tow)");
   memset(&a, 0, sizeof(a));
