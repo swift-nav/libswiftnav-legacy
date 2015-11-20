@@ -14,7 +14,7 @@
 #define LIBSWIFTNAV_ALMANAC_H
 
 #include "common.h"
-#include "almanac.h"
+#include "signal.h"
 
 /** \addtogroup almanac
  * \{ */
@@ -32,9 +32,31 @@ typedef struct {
   double af0;   /**< 0-order clock correction in seconds. */
   double af1;   /**< 1-order clock correction in seconds/second. */
   u16 week;     /**< GPS week number, modulo 1024. */
-  u8 prn;       /**< PRN number of the satellite. */
+} almanac_gps_t;
+
+/** Structure containing the SBAS almanac for one satellite. */
+typedef struct {
+  u8 data_id;   /**< Data ID. */
+
+  u16 x;        /**< X coordinate ECEF. */
+  u16 y;        /**< Y coordinate ECEF. */
+  u16 z;        /**< Z coordinate ECEF. */
+
+  u8 x_rate;    /**< X coordinate rate of change [m/s]. */
+  u8 y_rate;    /**< Y coordinate rate of change [m/s]. */
+  u8 z_rate;    /**< Z coordinate rate of change [m/s]. */
+
+  u16 t0;       /**< Time of day [seconds]. */
+} almanac_sbas_t;
+
+typedef struct {
+  gnss_signal_t sid; /**< Signal ID. */
   u8 healthy;   /**< Satellite health status. */
   u8 valid;     /**< Almanac is valid. */
+  union {
+    almanac_gps_t gps;
+    almanac_sbas_t sbas;
+  };
 } almanac_t;
 
 /** \} */
