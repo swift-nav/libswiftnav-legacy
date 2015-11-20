@@ -33,6 +33,8 @@ enum band {
 #define GPS_FIRST_PRN 0
 #define SBAS_FIRST_PRN 120
 
+#define SID_STR_LEN_MAX 16
+
 typedef struct __attribute__((packed)) {
   u16 sat;
   u8 band;
@@ -58,6 +60,24 @@ static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 {
   return sid_compare(a, b) == 0;
 }
+
+/** Print a string representation of sid to the buffer s of capacity n.
+ *  Returns the number of characters printed, excluding the terminating null.
+ */
+int sid_to_string(char *s, int n, gnss_signal_t sid);
+
+/** Returns true if sid corresponds to a known constellation, band, and
+ *  satellite identifier.
+ */
+bool sid_valid(gnss_signal_t sid);
+
+/** Converts the global index i in [0, NUM_SATS) to the corresponding sid
+ */
+gnss_signal_t sid_from_index(u32 i);
+
+/** Converts sid to a global index in [0, NUM_SATS)
+ */
+u32 sid_to_index(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
 
