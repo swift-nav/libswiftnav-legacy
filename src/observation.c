@@ -58,7 +58,7 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
   const navigation_measurement_t *m_b = (const navigation_measurement_t *)b;
   sdiff_t *sds = (sdiff_t *)context;
 
-  sds[n].sid.sat = m_a->sid.sat;
+  sds[n].sid = m_a->sid;
   sds[n].pseudorange = m_a->raw_pseudorange - m_b->raw_pseudorange;
   sds[n].carrier_phase = m_a->carrier_phase - m_b->carrier_phase;
   sds[n].doppler = m_a->raw_doppler - m_b->raw_doppler;
@@ -168,7 +168,8 @@ int cmp_sid_sdiff(const void *a, const void *b)
  *                           correspond to the i-th element of m_remote).
  * \param remote_pos_ecef   The position of the remote receiver (presumed
  *                           constant in ecef).
- * \param es
+ * \param e                 Array of pointers to ephemerides corresponding
+ *                          to the signals in m_local
  * \param t
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
@@ -176,7 +177,7 @@ int cmp_sid_sdiff(const void *a, const void *b)
 u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
-                          ephemeris_t *es, gps_time_t t,
+                          const ephemeris_t *e[], gps_time_t t,
                           sdiff_t *sds)
 {
   u8 i, j, n = 0;
@@ -187,12 +188,12 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       j--;
     else if (sid_compare(m_local[i].sid, m_remote[j].sid) > 0)
       i--;
-    else if (ephemeris_good(&es[m_local[i].sid.sat], t)) {
+    else if (ephemeris_good(e[i], t)) {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
-      calc_sat_state(&es[m_local[i].sid.sat], t, local_sat_pos, local_sat_vel,
+      calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
                      &clock_err, &clock_rate_err);
       sds[n].sid = m_local[i].sid;
       double dx = local_sat_pos[0] - remote_pos_ecef[0];
@@ -245,14 +246,15 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
  *
  * The lock counter values are then updated to reflect their changed values.
  *
- * \param n_sds        Number of single difference observations passed in
- * \param sds          Array of single difference observations
- * \param lock_counter Array of lock counter values, indexed by PRN
- * \param sats_to_drop Output array of PRNs for which the lock counter value
- *                     has changed
+ * \param n_sds         Number of single difference observations passed in
+ * \param sds           Array of single difference observations
+ * \param lock_counters Array of lock counter values corresponding to signals
+ *                      in sds
+ * \param sats_to_drop  Output array of signals for which the lock counter value
+ *                      has changed
  * \return Number of sats with changed lock counter
  */
-u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
+u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters[],
                        gnss_signal_t *sats_to_drop)
 {
   assert(sds != NULL);
@@ -261,11 +263,10 @@ u8 check_lock_counters(u8 n_sds, const sdiff_t *sds, u16 *lock_counters,
 
   u8 num_sats_to_drop = 0;
   for (u8 i = 0; i<n_sds; i++) {
-    gnss_signal_t sid = sds[i].sid;
     u16 new_count = sds[i].lock_counter;
-    if (new_count != lock_counters[sid.sat]) {
-      sats_to_drop[num_sats_to_drop++] = sid;
-      lock_counters[sid.sat] = new_count;
+    if (new_count != *lock_counters[i]) {
+      sats_to_drop[num_sats_to_drop++] = sds[i].sid;
+      *lock_counters[i] = new_count;
     }
   }
   return num_sats_to_drop;
