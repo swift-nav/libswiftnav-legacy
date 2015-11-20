@@ -11,6 +11,7 @@
  */
 
 #include <math.h>
+#include <assert.h>
 
 #include "constants.h"
 #include "linear_algebra.h"
@@ -24,7 +25,42 @@
  * \see coord_system
  * \{ */
 
-/** Calculate the position / velocity state of a satellite from the almanac.
+/** Calculate the position / velocity state of a satellite from the SBAS
+ *  almanac.
+ *
+ * \param alm  Pointer to an almanac structure for the satellite of interest.
+ * \param t    GPS time of week at which to calculate the satellite state in
+ *             seconds since Sunday.
+ * \param pos  The satellite position in ECEF coordinates is returned in this
+ *             vector.
+ * \param vel  The satellite velocity in ECEF coordinates is returned in this
+ *             vector. Ignored if NULL.
+ */
+static void sbas_calc_sat_state_almanac(const almanac_t* alm_, double t,
+                                        double pos[3], double vel[3])
+{
+  const almanac_sbas_t *alm = &alm_->sbas;
+
+  u8 days = t / DAY_SECS;
+  double tod = t - (days * DAY_SECS);
+  double dt = tod - alm->t0;
+
+  if (dt > DAY_SECS/2)
+    dt -= DAY_SECS;
+  else if (dt < -DAY_SECS/2)
+    dt += DAY_SECS;
+
+  vel[0] = alm->x_rate;
+  vel[1] = alm->y_rate;
+  vel[2] = alm->z_rate;
+
+  pos[0] = alm->x + alm->x_rate * dt;
+  pos[1] = alm->y + alm->y_rate * dt;
+  pos[2] = alm->z + alm->z_rate * dt;
+}
+
+/** Calculate the position / velocity state of a satellite from the GPS
+ *  almanac.
  *
  * \param alm  Pointer to an almanac structure for the satellite of interest.
  * \param t    GPS time of week at which to calculate the satellite state in
@@ -36,9 +72,10 @@
  * \param vel  The satellite velocity in ECEF coordinates is returned in this
  *             vector. Ignored if NULL.
  */
-void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
-                            double pos[3], double vel[3])
+static void gps_calc_sat_state_almanac(const almanac_t* alm_, double t, s16 week,
+                                       double pos[3], double vel[3])
 {
+  const almanac_gps_t *alm = &alm_->gps;
   /* Seconds since the almanac reference epoch. */
   double dt = t - alm->toa;
 
@@ -120,6 +157,33 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
     vel[2] = y_dot * sin(alm->inc);
   }
 
+}
+
+/** Calculate the position / velocity state of a satellite from the almanac.
+ *
+ * \param alm  Pointer to an almanac structure for the satellite of interest.
+ * \param t    GPS time of week at which to calculate the satellite state in
+ *             seconds since Sunday.
+ * \param week GPS week number modulo 1024 or pass -1 to assume within one
+ *             half-week of the almanac time of applicability.
+ * \param pos  The satellite position in ECEF coordinates is returned in this
+ *             vector.
+ * \param vel  The satellite velocity in ECEF coordinates is returned in this
+ *             vector. Ignored if NULL.
+ */
+void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
+                            double pos[3], double vel[3])
+{
+  switch(alm->sid.constellation) {
+  case CONSTELLATION_GPS:
+    gps_calc_sat_state_almanac(alm, t, week, pos, vel);
+    break;
+  case CONSTELLATION_SBAS:
+    sbas_calc_sat_state_almanac(alm, t, pos, vel);
+    break;
+  default:
+    assert("unsupported constellation");
+  }
 }
 
 /** Calculate the azimuth and elevation of a satellite from a reference
