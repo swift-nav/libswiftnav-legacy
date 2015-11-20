@@ -30,7 +30,7 @@ enum band {
   BAND_COUNT,
 };
 
-#define GPS_FIRST_PRN 0
+#define GPS_FIRST_PRN 1
 #define SBAS_FIRST_PRN 120
 
 #define SID_STR_LEN_MAX 16
