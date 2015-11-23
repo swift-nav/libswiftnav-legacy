@@ -16,8 +16,8 @@ from signal cimport gnss_signal_t
 
 cdef class NavMsg:
 
-  def __cinit__(self):
-    nav_msg_init(&self._thisptr)
+  def __cinit__(self, sid):
+    nav_msg_init(&self._thisptr, sid)
 
   def __getattr__(self, k):
     return self._thisptr.get(k)

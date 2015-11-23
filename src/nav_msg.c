@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #include <libswiftnav/logging.h>
 #include <libswiftnav/constants.h>
@@ -24,13 +25,29 @@
    strong signal (sync will take longer on a weak signal) */
 #define BITSYNC_THRES 22
 
-void nav_msg_init(nav_msg_t *n)
+/* Bit lengths for different constellations. Bounded by BIT_LENGTH_MAX */
+#define BIT_LENGTH_GPS_L1 20
+#define BIT_LENGTH_SBAS_L1 2
+
+void nav_msg_init(nav_msg_t *n, gnss_signal_t sid)
 {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(nav_msg_t));
   n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
+
+  assert(sid.band == BAND_L1);
+  switch (sid.constellation) {
+  case CONSTELLATION_GPS:
+    n->bit_length = BIT_LENGTH_GPS_L1;
+    break;
+  case CONSTELLATION_SBAS:
+    n->bit_length = BIT_LENGTH_SBAS_L1;
+    break;
+  default:
+    assert("unsupported constellation");
+  }
 }
 
 static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
@@ -109,20 +126,20 @@ ____bit_integrate is sum of these after 20th call__________
      bit_integrate */
   n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
   n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
-  if (n->bitsync_count < 20) {
+  if (n->bitsync_count < n->bit_length) {
     n->bitsync_count++;
     return;  /* That rolling accumulator is not valid yet */
   }
 
   /* Add the accumulator to the histogram for the relevant phase */
-  n->bitsync_histogram[(n->bit_phase) % 20] += abs(n->bit_integrate);
+  n->bitsync_histogram[(n->bit_phase) % n->bit_length] += abs(n->bit_integrate);
 
-  if (n->bit_phase == 20 - 1) {
+  if (n->bit_phase == n->bit_length - 1) {
     /* Histogram is valid.  Find the two highest values. */
     u32 max = 0, next_best = 0;
     u32 max_prev_corr = 0;
     u8 max_i = 0;
-    for (u8 i = 0; i < 20; i++) {
+    for (u8 i = 0; i < n->bit_length; i++) {
       u32 v = n->bitsync_histogram[i];
       if (v > max) {
         next_best = max;
@@ -166,7 +183,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
   s32 TOW_ms = TOW_INVALID;
 
   n->bit_phase += ms;
-  n->bit_phase %= 20;
+  n->bit_phase %= n->bit_length;
   n->bit_integrate += corr_prompt_real;
   /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
    * offsets corresponds to the nav bit edges?) */
