@@ -745,8 +745,8 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
   return s->log_bw - 10.f*log10f(s->nsr);
 }
 
-void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
-                                 navigation_measurement_t nav_meas[],
+void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
+                                 navigation_measurement_t *nav_meas[],
                                  double nav_time, const ephemeris_t* e[])
 {
   double TOTs[n_channels];
@@ -754,27 +754,27 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
   double clock_err[n_channels], clock_rate_err[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
-    TOTs[i] = 1e-3 * meas[i].time_of_week_ms;
-    TOTs[i] += meas[i].code_phase_chips / 1.023e6;
-    TOTs[i] += (nav_time - meas[i].receiver_time) * meas[i].code_phase_rate / 1.023e6;
+    TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
+    TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
+    TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
 
     /** \todo Maybe keep track of week number in tracking channel
         state or derive it from system time. */
-    nav_meas[i].tot.tow = TOTs[i];
-    gps_time_match_weeks(&nav_meas[i].tot, &e[i]->toe);
+    nav_meas[i]->tot.tow = TOTs[i];
+    gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
 
-    nav_meas[i].raw_doppler = meas[i].carrier_freq;
-    nav_meas[i].snr = meas[i].snr;
-    nav_meas[i].sid = meas[i].sid;
+    nav_meas[i]->raw_doppler = meas[i]->carrier_freq;
+    nav_meas[i]->snr = meas[i]->snr;
+    nav_meas[i]->sid = meas[i]->sid;
 
-    nav_meas[i].carrier_phase = meas[i].carrier_phase;
-    nav_meas[i].carrier_phase += (nav_time - meas[i].receiver_time) * meas[i].carrier_freq;
+    nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
+    nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
 
-    nav_meas[i].lock_counter = meas[i].lock_counter;
+    nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
     /* calc sat clock error */
-    calc_sat_state(e[i], nav_meas[i].tot,
-                   nav_meas[i].sat_pos, nav_meas[i].sat_vel,
+    calc_sat_state(e[i], nav_meas[i]->tot,
+                   nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
 
     /* remove clock error to put all tots within the same time window */
@@ -783,14 +783,14 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
   }
 
   for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i].raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
+    nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
 
-    nav_meas[i].pseudorange = nav_meas[i].raw_pseudorange \
+    nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err[i]*GPS_C;
-    nav_meas[i].doppler = nav_meas[i].raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
 
-    nav_meas[i].tot.tow -= clock_err[i];
-    nav_meas[i].tot = normalize_gps_time(nav_meas[i].tot);
+    nav_meas[i]->tot.tow -= clock_err[i];
+    nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
   }
 }
 
