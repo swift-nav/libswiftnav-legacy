@@ -20,7 +20,6 @@
  * \{ */
 
 #define MAX_CHANNELS 11 /**< Maximum sats we can track */
-#define MAX_SATS 32 /**< Maximum sats in the universe */
 
 #define R2D (180.0 / M_PI) /**< Conversion factor from radians to degrees. */
 #define D2R (M_PI / 180.0) /**< Conversion factor from degrees to radians. */
