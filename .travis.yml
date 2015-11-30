@@ -11,7 +11,13 @@ before_install:
   - sudo apt-get install cmake check
 
 script:
+  # Test libswiftnav
   - mkdir build
   - cd build/
   - cmake ../
   - make
+  - sudo make install
+  # Test libswiftnav-python
+  - cd ../python
+  - sudo pip install tox
+  - tox

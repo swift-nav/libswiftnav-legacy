@@ -14,11 +14,12 @@ Obtaining the source
 --------------------
 
 The libswiftnav-python source and release tarballs are available from
-GitHub, https://github.com/swift-nav/libswiftnav-python. The latest
+GitHub, https://github.com/swift-nav/libswiftnav. The latest
 development version of libswiftnav-python can be cloned from github
 using this command::
 
-   $ git clone git://github.com/swift-nav/libswiftnav-python.git
+   $ git clone git://github.com/swift-nav/libswiftnav.git
+   $ cd python
 
 Requirements
 --------------------

@@ -9,7 +9,16 @@ include .gitignore
 include LICENSE
 include LICENSE.GPLv3
 include tox.ini
-recursive-include libswiftnav/ *
+recursive-include ../ *
+recursive-include ../CBLAS/ *
+recursive-include ../CMakeLists.txt  *
+recursive-include ../checks/ *
+recursive-include ../clapack-3.2.1-CMAKE/ *
+recursive-include ../cmake/ *
+recursive-include ../include/ *
+recursive-include ../libfec/ *
+recursive-include ../src/ *
+recursive-include ../tests/ *
 prune libswiftnav/build/
 recursive-include swiftnav/ *.py
 recursive-include swiftnav/ *.pyx
