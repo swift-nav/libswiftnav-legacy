@@ -7,6 +7,8 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
+import warnings
+
 cimport pvt_c
 from libc.stdlib cimport malloc, free
 
@@ -64,6 +66,16 @@ cdef class Solution:
               self.dops.hdop,
               self.dops.vdop)
 
+_calc_pvt_codes = {2: "Solution converged but RAIM unavailable or disabled",
+                   1: "Solution converged, failed RAIM but was successfully repaired",
+                   -1: "PDOP is too high to yield a good solution.",
+                   -2: "Altitude is unreasonable.",
+                   -3: "Velocity is greater than or equal to 1000 kts.",
+                   -4: "RAIM check failed and repair was unsuccessful",
+                   -5: "RAIM check failed and repair was impossible (not enough measurements)",
+                   -6: "pvt_iter didn't converge",
+                   -7: "< 4 measurements"}
+
 def calc_PVT(nav_meas):
   n_used = len(nav_meas)
   cdef navigation_measurement_t* nav_meas_array = <navigation_measurement_t*>malloc(n_used*sizeof(navigation_measurement_t))
@@ -72,8 +84,11 @@ def calc_PVT(nav_meas):
     nav_meas_array[n] = (<NavigationMeasurement?>nav_meas[n]).meas
 
   s = Solution()
-  pvt_c.calc_PVT(n_used, nav_meas_array, False, &(s.soln), &(s.dops))
-
+  cdef s8 ret
+  ret = pvt_c.calc_PVT(n_used, nav_meas_array, False, &(s.soln), &(s.dops))
   free(nav_meas_array)
+
+  if not ret == 0:
+    warnings.warn(_calc_pvt_codes[ret])
 
   return s
