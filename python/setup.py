@@ -5,11 +5,11 @@ setup_args = dict(
   version = get_git_version(),
   description = 'Python bindings to the libswiftnav library.',
   license = 'LGPLv3',
-  url = 'http://www.swift-nav.com',
+  url = 'http://www.swiftnav.com',
   author = 'Swift Navigation Inc.',
-  author_email = 'info@swift-nav.com',
-  maintainer = 'Fergus Noble',
-  maintainer_email = 'fergus@swift-nav.com',
+  author_email = 'dev@swiftnav.com',
+  maintainer = 'Swift Navigation',
+  maintainer_email = 'dev@swiftnav.com',
   packages = ['swiftnav'],
 )
 
@@ -27,26 +27,37 @@ if __name__ == "__main__":
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
     return Extension(
       ext_name, [ext_path],
-      include_dirs = [np.get_include(), '.'],
+      include_dirs = [np.get_include(), '.', '../include/libswiftnav/'],
       extra_compile_args = ['-O0', '-g'],
       extra_link_args = ['-g'],
       libraries = ['m', 'swiftnav'],
     )
   ext_names = [
+    'swiftnav.edc',
+    'swiftnav.signal',
     'swiftnav.coord_system',
+    'swiftnav.constants',
     'swiftnav.nav_msg',
     'swiftnav.pvt',
     'swiftnav.correlate',
     'swiftnav.track',
     'swiftnav.almanac',
-    'swiftnav.lam',
+    'swiftnav.lambda_',
     'swiftnav.ephemeris',
     'swiftnav.linear_algebra',
     'swiftnav.amb_kf',
     'swiftnav.gpstime',
     'swiftnav.observation',
     'swiftnav.dgnss_management',
-    'swiftnav.ambiguity_test'
+    'swiftnav.ambiguity_test',
+    'swiftnav.baseline',
+    'swiftnav.bits',
+    'swiftnav.filter_utils',
+    'swiftnav.memory_pool',
+    'swiftnav.prns',
+    'swiftnav.sats_management',
+    'swiftnav.tropo',
+    'swiftnav.set',
   ]
   extensions = [make_extension(name) for name in ext_names]
   setup_args['ext_modules'] = extensions

@@ -21,7 +21,7 @@ def test_imports():
   import swiftnav.dgnss_management
   import swiftnav.ephemeris
   import swiftnav.gpstime
-  import swiftnav.lam
+  import swiftnav.lambda_
   import swiftnav.linear_algebra
   import swiftnav.nav_msg
   import swiftnav.pvt

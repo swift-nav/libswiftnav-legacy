@@ -300,4 +300,3 @@ Suite* ambiguity_test_suite(void)
 
   return s;
 }
-
