@@ -167,7 +167,7 @@ float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
 {
   float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
   float cross = prev_I * Q - I * prev_Q;
-  return atan2f(cross, dot) / ((float) M_PI);
+  return atan2f(cross, dot) / (2.0 * M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -555,7 +555,7 @@ float alias_detect_second(alias_detect_t *a, float I, float Q)
   a->cross += (a->first_I * Q - I * a->first_Q) / a->acc_len;
   a->fl_count++;
   if (a->fl_count == a->acc_len) {
-    float err = atan2f(a->cross, a->dot) / ((float)M_PI * a->dt);
+    float err = atan2f(a->cross, a->dot) / (2.0 * M_PI * a->dt);
     a->fl_count = 0;
     a->cross = 0;
     a->dot = 0;
