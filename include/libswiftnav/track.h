@@ -220,6 +220,7 @@ void comp_tl_init(comp_tl_state_t *s, float loop_freq,
 void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3]);
 
 void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff);
+void alias_detect_reinit(alias_detect_t *a, u32 acc_len, float time_diff);
 void alias_detect_first(alias_detect_t *a, float I, float Q);
 float alias_detect_second(alias_detect_t *a, float I, float Q);
 
