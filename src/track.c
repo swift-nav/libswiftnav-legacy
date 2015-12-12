@@ -776,14 +776,13 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     calc_sat_state(e[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
-
-    /* remove clock error to put all tots within the same time window */
-    if ((TOTs[i] + clock_err[i]) > min_TOF)
-      min_TOF = TOTs[i];
   }
 
   for (u8 i=0; i<n_channels; i++) {
-    nav_meas[i]->raw_pseudorange = (min_TOF - TOTs[i])*GPS_C + GPS_NOMINAL_RANGE;
+  /* Using nav_time as the reference here lets us back out the
+  * time of transmission later.
+  */
+    nav_meas[i]->raw_pseudorange = (nav_time - TOTs[i])*GPS_C;
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err[i]*GPS_C;
