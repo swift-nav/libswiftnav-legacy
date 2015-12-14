@@ -750,7 +750,6 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
                                  double nav_time, const ephemeris_t* e[])
 {
   double TOTs[n_channels];
-  double min_TOF = -DBL_MAX;
   double clock_err[n_channels], clock_rate_err[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
