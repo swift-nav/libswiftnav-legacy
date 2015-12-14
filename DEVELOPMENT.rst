@@ -7,6 +7,7 @@ Tools needed:
  - doxygen
  - convert from ImageMagick
  - pip install gcovr diff-cover
+ - pdflatex from TeX Live
 
 To get started, run::
 
