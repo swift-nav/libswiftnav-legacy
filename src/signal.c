@@ -25,7 +25,8 @@ typedef struct {
 
 static const char * constellation_strs[CONSTELLATION_COUNT] = {
   [CONSTELLATION_GPS] = "GPS",
-  [CONSTELLATION_SBAS] = "SBAS"
+  [CONSTELLATION_SBAS] = "SBAS",
+  [CONSTELLATION_QZSS] = "QZSS"
 };
 
 static const char * band_strs[BAND_COUNT] = {
@@ -36,8 +37,10 @@ static const char * unknown_str = "?";
 
 static u16 sat_get_gps(u32 local_index);
 static u16 sat_get_sbas(u32 local_index);
+static u16 sat_get_qzss(u32 local_index);
 static u32 local_index_get_gps(u16 sat);
 static u32 local_index_get_sbas(u16 sat);
+static u32 local_index_get_qzss(u16 sat);
 
 static const sat_group_t sat_groups[CONSTELLATION_COUNT] = {
   [CONSTELLATION_GPS] = {
@@ -47,6 +50,10 @@ static const sat_group_t sat_groups[CONSTELLATION_COUNT] = {
   [CONSTELLATION_SBAS] = {
     CONSTELLATION_SBAS, BAND_L1, NUM_SATS_SBAS,
     sat_get_sbas, local_index_get_sbas
+  },
+  [CONSTELLATION_QZSS] = {
+    CONSTELLATION_QZSS, BAND_L1, NUM_SATS_QZSS,
+    sat_get_qzss, local_index_get_qzss
   }
 };
 
@@ -60,6 +67,11 @@ static u16 sat_get_sbas(u32 local_index)
   return local_index + SBAS_FIRST_PRN;
 }
 
+static u16 sat_get_qzss(u32 local_index)
+{
+  return local_index + QZSS_FIRST_PRN;
+}
+
 static u32 local_index_get_gps(u16 sat)
 {
   return sat - GPS_FIRST_PRN;
@@ -68,6 +80,11 @@ static u32 local_index_get_gps(u16 sat)
 static u32 local_index_get_sbas(u16 sat)
 {
   return sat - SBAS_FIRST_PRN;
+}
+
+static u32 local_index_get_qzss(u16 sat)
+{
+  return sat - QZSS_FIRST_PRN;
 }
 
 int sid_to_string(char *s, int n, gnss_signal_t sid)

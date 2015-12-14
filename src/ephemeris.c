@@ -468,6 +468,7 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
 
   switch (a->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     return ephemeris_kepler_equal(&a->kepler, &b->kepler);
   case CONSTELLATION_SBAS:
     return ephemeris_xyz_equal(&a->xyz, &b->xyz);
@@ -476,4 +477,3 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
     return false;
   }
 }
-

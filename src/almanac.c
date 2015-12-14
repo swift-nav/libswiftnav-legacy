@@ -176,6 +176,7 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
 {
   switch(alm->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     gps_calc_sat_state_almanac(alm, t, week, pos, vel);
     break;
   case CONSTELLATION_SBAS:
@@ -241,4 +242,3 @@ double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
 }
 
 /** \} */
-
