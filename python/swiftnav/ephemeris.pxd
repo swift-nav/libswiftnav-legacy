@@ -19,6 +19,7 @@ cdef extern from "libswiftnav/ephemeris.h":
     double dn, m0, ecc, sqrta, omega0, omegadot, w, inc, inc_dot
     double af0, af1, af2
     gps_time_t toc
+    u16 iodc
     u8 iode
 
   ctypedef struct ephemeris_xyz_t:
@@ -27,13 +28,14 @@ cdef extern from "libswiftnav/ephemeris.h":
     double acc[3]
     u8 iod
     u16 toa
-    u8 ura
     double a_gf0
     double a_gf1
 
   ctypedef struct ephemeris_t:
     gnss_signal_t sid
     gps_time_t toe
+    float ura
+    u8 fit_interval
     u8 valid
     u8 healthy
     # HACK: Actually an anonymous union in libswiftnat!

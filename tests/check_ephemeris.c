@@ -13,124 +13,29 @@ START_TEST(test_ephemeris_equal)
 
   fail_unless(ephemeris_equal(&a, &b), "Ephemerides should be equal");
 
-  a.kepler.tgd = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (tgd)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.tgd = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (tgd)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.crs = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (crs)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.crc = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (crc)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.cuc = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (cuc)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.cus = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (cus)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.cic = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (cic)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.cis = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (cis)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.dn = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (dn)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.m0 = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (m0)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.ecc = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (ecc)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.sqrta = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (sqrta)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.omega0 = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (omega0)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.omegadot = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (omegadot)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.w = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (w)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.inc = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (inc)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.inc_dot = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (inc_dot)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.af0 = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (af0)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.af1 = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (af1)");
-  memset(&a, 0, sizeof(a));
-
-  a.kepler.af2 = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (af2)");
-  memset(&a, 0, sizeof(a));
-
   a.valid = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (valid)");
+    "Ephemerides should not be equal (valid)");
   memset(&a, 0, sizeof(a));
 
   a.healthy = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (healthy)");
+    "Ephemerides should not be equal (healthy)");
   memset(&a, 0, sizeof(a));
 
   a.sid.sat = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (prn)");
+    "Ephemerides should not be equal (sid.sat)");
   memset(&a, 0, sizeof(a));
 
-  a.kepler.iode = 1;
+  a.sid.band = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (iode)");
+    "Ephemerides should not be equal (sid.band)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+    "Ephemerides should not be equal (sid.constellation)");
   memset(&a, 0, sizeof(a));
 
   a.toe.wn = 1;
@@ -143,14 +48,230 @@ START_TEST(test_ephemeris_equal)
       "Ephemerides should not be equal (toe.tow)");
   memset(&a, 0, sizeof(a));
 
-  a.kepler.toc.wn = 1;
+  a.ura = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (toc.wn)");
+      "Ephemerides should not be equal (ura)");
   memset(&a, 0, sizeof(a));
 
+  a.fit_interval = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (fit_interval)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.tgd = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.tgd)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.crs = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.crs)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.crc = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.crc)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.cuc = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.cuc)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.cus = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.cus)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.cic = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.cic)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.cis = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.cis)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.dn = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.dn)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.m0 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.m0)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.ecc = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.ecc)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.sqrta = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.sqrta)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.omega0 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.omega0)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.omegadot = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.omegadot)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.w = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.w)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.inc = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.inc)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.inc_dot = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.inc_dot)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.af0 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.af0)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.af1 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.af1)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.af2 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.af2)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.iode = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.iode)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.iodc = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.iodc)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
+  a.kepler.toc.wn = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (kepler.toc.wn)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_GPS;
   a.kepler.toc.tow = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (toc.tow)");
+      "Ephemerides should not be equal (kepler.toc.tow)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.pos[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.pos[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.pos[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.pos[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.pos[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.pos[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.rate[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.rate[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.rate[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.rate[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.rate[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.rate[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.acc[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.acc[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.acc[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.acc[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.acc[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.acc[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.iod = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.tod)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.toa = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.toa)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.a_gf0 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.a_gf0)");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.constellation = CONSTELLATION_SBAS;
+  a.xyz.a_gf1 = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (xyz.a_gf1)");
   memset(&a, 0, sizeof(a));
 }
 END_TEST
@@ -165,4 +286,3 @@ Suite* ephemeris_suite(void)
 
   return s;
 }
-

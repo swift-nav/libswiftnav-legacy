@@ -46,6 +46,8 @@ typedef struct {
   u8 bitsync_count;
   s32 bitsync_prev_corr[20];
   u32 bitsync_histogram[20];
+
+  u8 alert;
 } nav_msg_t;
 
 void nav_msg_init(nav_msg_t *n);
@@ -54,4 +56,3 @@ bool subframe_ready(nav_msg_t *n);
 s8 process_subframe(nav_msg_t *n, ephemeris_t *e);
 
 #endif /* LIBSWIFTNAV_NAV_MSG_H */
-

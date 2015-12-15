@@ -24,6 +24,7 @@ typedef struct {
   double dn, m0, ecc, sqrta, omega0, omegadot, w, inc, inc_dot;
   double af0, af1, af2;
   gps_time_t toc;
+  u16 iodc;
   u8 iode;
 } ephemeris_kepler_t;
 
@@ -33,7 +34,6 @@ typedef struct {
   double acc[3];
   u8 iod;
   u16 toa;
-  u8 ura;
   double a_gf0;
   double a_gf1;
 } ephemeris_xyz_t;
@@ -41,6 +41,8 @@ typedef struct {
 typedef struct {
   gnss_signal_t sid;
   gps_time_t toe;
+  float ura;
+  u8 fit_interval;
   u8 valid;
   u8 healthy;
   union {
@@ -55,8 +57,9 @@ s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
 
 u8 ephemeris_good(const ephemeris_t *eph, gps_time_t t);
 
+float decode_ura_index(const u8 index);
+u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
 void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */
-
