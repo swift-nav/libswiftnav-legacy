@@ -276,7 +276,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
-  assert(e->sid.constellation == CONSTELLATION_GPS);
+  assert((e->sid.constellation == CONSTELLATION_GPS) || (e->sid.constellation == CONSTELLATION_QZSS));
   ephemeris_kepler_t *k = &e->kepler;
 
   /* These unions facilitate signed/unsigned conversion and sign extension. */
@@ -308,6 +308,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   e->healthy = !(frame_words[0][3-3] >> (30-17) & 1);
 
   /* t_gd: Word 7, bits 17-24 */
+  // TODO
   onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
   k->tgd = onebyte.s8 * pow(2,-31);
 
