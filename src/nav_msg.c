@@ -21,33 +21,12 @@
 #include <libswiftnav/bits.h>
 #include <libswiftnav/nav_msg.h>
 
-/* Approx number of nav bit edges needed to accept bit sync for a
-   strong signal (sync will take longer on a weak signal) */
-#define BITSYNC_THRES 22
-
-/* Bit lengths for different constellations. Bounded by BIT_LENGTH_MAX */
-#define BIT_LENGTH_GPS_L1 20
-#define BIT_LENGTH_SBAS_L1 2
-
-void nav_msg_init(nav_msg_t *n, gnss_signal_t sid)
+void nav_msg_init(nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
   memset(n, 0, sizeof(nav_msg_t));
-  n->bit_phase_ref = BITSYNC_UNSYNCED;
   n->next_subframe_id = 1;
   n->bit_polarity = BIT_POLARITY_UNKNOWN;
-
-  assert(sid.band == BAND_L1);
-  switch (sid.constellation) {
-  case CONSTELLATION_GPS:
-    n->bit_length = BIT_LENGTH_GPS_L1;
-    break;
-  case CONSTELLATION_SBAS:
-    n->bit_length = BIT_LENGTH_SBAS_L1;
-    break;
-  default:
-    assert("unsupported constellation");
-  }
 }
 
 static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
@@ -89,118 +68,22 @@ static u32 extract_word(nav_msg_t *n, u16 bit_index, u8 n_bits, u8 invert)
   return word >> (32 - n_bits);
 }
 
-/* TODO: Bit synchronization that can operate with multi-ms integration times
-   e.g. http://www.thinkmind.org/download.php?articleid=spacomm_2013_2_30_30070
- */
-static void update_bit_sync(nav_msg_t *n, s32 corr_prompt_real)
-{
-  /* On 20th call:
-     bit_phase = 0
-     bitsync_count = 20
-     bit_integrate holds sum of first 20 correlations
-     bitsync_histogram is all zeros
-     bitsync_prev_corr[0]=0, others hold previous correlations ([1] = first)
-     In this function:
-       bitsync_prev_corr[0] <= corr_prompt_real (20th correlation)
-       bitsync_histogram[0] <= sum of corrs [0..19]
-     On 21st call:
-     bit_phase = 1
-     bit_integrate holds sum of corrs [0..20]
-       bit_integrate -= bitsync_prev_corr[1]
-         bit_integrate now holds sum of corrs [1..20]
-       bitsync_histogram[1] <= bit_integrate
-     ...
-     On 39th call:
-     bit_phase = 19
-00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
-____bit_integrate is sum of these after 20th call__________
-                                                         __________________after 39th call__________________________
-
-       after subtraction, bit_integrate holds sum of corrs [19..38]
-       bitsync_histogram[19] <= bit_integrate. Now fully populated.
-       Suppose first correlation happened to be first ms of a nav bit
-        then max_i = bit_phase_ref = 0.
-  */
-
-  /* Maintain a rolling sum of the 20 most recent correlations in
-     bit_integrate */
-  n->bit_integrate -= n->bitsync_prev_corr[n->bit_phase];
-  n->bitsync_prev_corr[n->bit_phase] = corr_prompt_real;
-  if (n->bitsync_count < n->bit_length) {
-    n->bitsync_count++;
-    return;  /* That rolling accumulator is not valid yet */
-  }
-
-  /* Add the accumulator to the histogram for the relevant phase */
-  n->bitsync_histogram[(n->bit_phase) % n->bit_length] += abs(n->bit_integrate);
-
-  if (n->bit_phase == n->bit_length - 1) {
-    /* Histogram is valid.  Find the two highest values. */
-    u32 max = 0, next_best = 0;
-    u32 max_prev_corr = 0;
-    u8 max_i = 0;
-    for (u8 i = 0; i < n->bit_length; i++) {
-      u32 v = n->bitsync_histogram[i];
-      if (v > max) {
-        next_best = max;
-        max = v;
-        max_i = i;
-      } else if (v > next_best) {
-        next_best = v;
-      }
-      /* Also find the highest value from the last 20 correlations.
-         We'll use this to normalize the threshold score. */
-      v = abs(n->bitsync_prev_corr[i]);
-      if (v > max_prev_corr)
-        max_prev_corr = v;
-    }
-    /* Form score from difference between the best and the second-best */
-    if (max - next_best > BITSYNC_THRES * 2 * max_prev_corr) {
-      /* We are synchronized! */
-      n->bit_phase_ref = max_i;
-      /* TODO: Subtract necessary older prev_corrs from bit_integrate to
-         ensure it will be correct for the upcoming first dump */
-    }
-  }
-}
-
 /** Navigation message decoding update.
- * Called once per tracking loop update. Performs the necessary steps to
- * recover the nav bit clock, store the nav bits and decode them.
+ * Called once per nav bit interval. Performs the necessary steps to
+ * store the nav bits and decode them.
  *
  * Also extracts and returns the GPS time of week each time a new subframe is
  * received.
  *
  * \param n Nav message decode state struct
- * \param corr_prompt_real In-phase prompt correlation from tracking loop
- * \param ms Number of milliseconds integration performed in the correlation
+ * \param bit_val State of the nav bit to process
  *
  * \return The GPS time of week in milliseconds of the current code phase
  *         rollover, or `TOW_INVALID` (-1) if unknown
  */
-s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
+s32 nav_msg_update(nav_msg_t *n, bool bit_val)
 {
   s32 TOW_ms = TOW_INVALID;
-
-  n->bit_phase += ms;
-  n->bit_phase %= n->bit_length;
-  n->bit_integrate += corr_prompt_real;
-  /* Do we have bit phase lock yet? (Do we know which of the 20 possible PRN
-   * offsets corresponds to the nav bit edges?) */
-  if (n->bit_phase_ref == BITSYNC_UNSYNCED)
-    update_bit_sync(n, corr_prompt_real);
-
-  if (n->bit_phase != n->bit_phase_ref) {
-    /* Either we don't have bit phase lock, or this particular
-       integration is not aligned to a nav bit boundary. */
-    return TOW_INVALID;
-  }
-
-  /* Dump the nav bit, i.e. determine the sign of the correlation over the
-   * nav bit period. */
-  bool bit_val = n->bit_integrate > 0;
-  /* Zero the accumulator for the next nav bit. */
-  n->bit_integrate = 0;
 
   /* The following is offset by 27 to allow the handover word to be
    * overwritten.  This is not a problem as it's handled below and
