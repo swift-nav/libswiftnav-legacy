@@ -34,7 +34,7 @@ enum band {
 
 #define GPS_FIRST_PRN 1
 #define SBAS_FIRST_PRN 120
-#define QZSS_FIRST_PRN 193
+#define QZSS_FIRST_PRN 192
 
 #define SID_STR_LEN_MAX 16
 
