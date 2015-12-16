@@ -230,6 +230,7 @@ s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     return calc_sat_state_kepler(e, t, pos, vel, clock_err, clock_rate_err);
   case CONSTELLATION_SBAS:
     return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
