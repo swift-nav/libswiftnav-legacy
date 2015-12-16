@@ -775,14 +775,12 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     calc_sat_state(e[i], nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
-  }
-
-  for (u8 i=0; i<n_channels; i++) {
-  /* Using nav_time as the reference here lets us back out the
-  * time of transmission later.
-  */
+    /* Using nav_time as the reference here lets us back out the
+     * time of transmission later.
+    */
     nav_meas[i]->raw_pseudorange = (nav_time - TOTs[i])*GPS_C;
-
+    printf("nav_time: %7.3f \t TOT: %7.3f \t raw_pseudorange: %10.3f",
+           nav_time, TOTs[i], nav_meas[i]->raw_pseudorange);
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err[i]*GPS_C;
     nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
