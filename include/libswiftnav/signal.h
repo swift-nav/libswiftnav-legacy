@@ -16,7 +16,9 @@
 #include "common.h"
 
 #define NUM_SATS_GPS 32
-#define NUM_SATS_SBAS 22
+// TODO too many PRNs, ahould only be 19 from 120- 138
+//#define NUM_SATS_SBAS 22
+#define NUM_SATS_SBAS 19
 #define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS)
 
 enum constellation {
@@ -80,4 +82,3 @@ gnss_signal_t sid_from_index(u32 i);
 u32 sid_to_index(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
-
