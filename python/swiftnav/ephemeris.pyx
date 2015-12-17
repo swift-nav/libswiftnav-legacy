@@ -25,6 +25,8 @@ cdef class Ephemeris:
     memset(&self._thisptr, 0, sizeof(ephemeris_t))
     self._thisptr.sid = kwargs.pop('sid')
     self._thisptr.toe = kwargs.pop('toe')
+    self._thisptr.ura = kwargs.pop('ura')
+    self._thisptr.fit_interval = kwargs.pop('fit_interval')
     self._thisptr.valid = kwargs.pop('valid')
     self._thisptr.healthy = kwargs.pop('healthy')
     if 'kepler' in kwargs:

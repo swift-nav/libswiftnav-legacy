@@ -267,6 +267,7 @@ s32 nav_msg_update(nav_msg_t *n, s32 corr_prompt_real, u8 ms)
         n->subframe_start_index = 0;
     }
   }
+
   return TOW_ms;
 }
 
@@ -364,7 +365,14 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     return -2;
   }
 
-  u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it?
+  n->alert = sf_word2 >> 12 & 0x01; // Alert flag, bit 18
+  if (n->alert) {
+    char buf[SID_STR_LEN_MAX];
+    sid_to_string(buf, sizeof(buf), e->sid);
+    log_warn("%s alert flag set! Ignoring satellite.", buf);
+  }
+
+  u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it? bits 20-22
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
