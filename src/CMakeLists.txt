@@ -42,6 +42,7 @@ set(libswiftnav_SRCS
   printing_utils.c
   filter_utils.c
   signal.c
+  ionosphere.c
   ${plover_SRCS}
 
   CACHE INTERNAL ""
