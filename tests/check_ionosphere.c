@@ -7,8 +7,10 @@
 START_TEST(test_calc_ionosphere)
 {
   gps_time_t t = {.wn = 1875, .tow = 479820};
-  ionosphere_t i = {.a0 = 0.1583e-7, .a1 = -0.7451e-8, .a2 = -0.5960e-7, .a3 = 0.1192e-6,
-                    .b0 = 0.1290e6, .b1 = -0.2130e6, .b2 = 0.6554e5, .b3 = 0.3277e6};
+  ionosphere_t i = {.a0 = 0.1583e-7, .a1 = -0.7451e-8,
+                    .a2 = -0.5960e-7, .a3 = 0.1192e-6,
+                    .b0 = 0.1290e6, .b1 = -0.2130e6,
+                    .b2 = 0.6554e5, .b3 = 0.3277e6};
   double lat_u = -35.3 * D2R, lon_u = 149.1 * D2R;
   double a = 0.0 * D2R, e = 15.0 * D2R;
   double d_true = 7.202;
