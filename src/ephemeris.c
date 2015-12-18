@@ -301,7 +301,7 @@ u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
       fit_interval = 8;
     } else if (((iodc >= 248) && (iodc <= 255)) || (iodc == 496)) {
       fit_interval = 14;
-    } else if ((iodc >= 497) && (iodc <= 503)) {
+    } else if (((iodc >= 497) && (iodc <= 503)) || ((iodc >= 1021) && (iodc <= 1023))) {
       fit_interval = 26;
     } else if ((iodc >= 504) && (iodc <= 510)) {
       fit_interval = 50;
