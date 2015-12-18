@@ -241,4 +241,3 @@ double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
 }
 
 /** \} */
-

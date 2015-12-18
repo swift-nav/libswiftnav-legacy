@@ -21,6 +21,10 @@
 #include "constants.h"
 #include "ephemeris.h"
 
+/** \defgroup ephemeris Ephemeris
+ * Functions and calculations related to the GPS ephemeris.
+ * \{ */
+
 /** Calculate satellite position, velocity from xyz ephemeris.
  *
  * References:
@@ -565,3 +569,5 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
     return false;
   }
 }
+
+/** \} */

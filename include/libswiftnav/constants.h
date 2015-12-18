@@ -34,7 +34,7 @@
 /** The official GPS value of Pi.
  * This is the value used by the CS to curve fit ephemeris parameters and
  * should be used in all ephemeris calculations. */
-#define GPS_PI 3.14159265358979323846
+#define GPS_PI 3.1415926535898
 
 /** The GPS L1 center frequency in Hz. */
 #define GPS_L1_HZ 1.57542e9
@@ -101,5 +101,3 @@
 /* \} */
 
 #endif /* LIBSWIFTNAV_CONSTANTS_H */
-
-

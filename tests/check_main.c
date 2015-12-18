@@ -28,6 +28,7 @@ int main(void)
   srunner_add_suite(sr, set_suite());
   srunner_add_suite(sr, viterbi_suite());
   srunner_add_suite(sr, gpstime_test_suite());
+  srunner_add_suite(sr, ionosphere_suite());
 
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);
