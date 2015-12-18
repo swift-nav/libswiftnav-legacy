@@ -10,12 +10,13 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <float.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "constants.h"
 #include "ionosphere.h"
 
-// TODO add unit tests for a bunch of inputs
 /** \defgroup ionosphere Ionospheric models
  * Implemenations of ionoshperic delay correction models.
  * \{ */
@@ -32,7 +33,7 @@
  * \param e Elevation of the satellite [rad]
  * \param i Ionosphere parameters struct from GPS NAV data
  *
- * \return  Ionospheric delay for GPS L1 frequency [s]
+ * \return  Ionospheric delay distance for GPS L1 frequency [m]
  */
 double calc_ionosphere(gps_time_t t_gps,
                        double lat_u, double lon_u,
@@ -70,7 +71,7 @@ double calc_ionosphere(gps_time_t t_gps,
   if (t > 86400.0) {
     t -= 86400.0;
   }
-  if (t < 86400) {
+  if (t < 0.0) {
     t += 86400.0;
   }
 
@@ -102,7 +103,7 @@ double calc_ionosphere(gps_time_t t_gps,
     d_l1 = sf * (5e-9 + amp * (1.0 - x_2 / 2.0 + x_2 * x_2 / 24.0));
   }
 
-  // TODO dont use during extended ops
+  d_l1 *= GPS_C;
 
   return d_l1;
 }
