@@ -17,11 +17,13 @@
 
 #define NUM_SATS_GPS 32
 #define NUM_SATS_SBAS 22
-#define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS)
+#define NUM_SATS_QZSS 5
+#define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_QZSS)
 
 enum constellation {
   CONSTELLATION_GPS,
   CONSTELLATION_SBAS,
+  CONSTELLATION_QZSS,
   CONSTELLATION_COUNT,
 };
 
@@ -32,6 +34,7 @@ enum band {
 
 #define GPS_FIRST_PRN 1
 #define SBAS_FIRST_PRN 120
+#define QZSS_FIRST_PRN 192
 
 #define SID_STR_LEN_MAX 16
 
@@ -80,4 +83,3 @@ gnss_signal_t sid_from_index(u32 i);
 u32 sid_to_index(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
-

@@ -105,6 +105,7 @@ static void gps_calc_sat_state_almanac(const almanac_t* alm_, double t, s16 week
   double ea = ma;  /* Starting value for E. */
   double ea_old;
   double temp;
+  // TODO: inclination offset for QZSS different from GPS
   double ecc = alm->ecc;
   u32 count = 0;
 
@@ -144,6 +145,7 @@ static void gps_calc_sat_state_almanac(const almanac_t* alm_, double t, s16 week
 
   /* Compute the satellite's position in Earth-Centered Earth-Fixed
    * coordinates. */
+  // TODO: inclination offset for QZSS different from GPS
   pos[0] = x * cos(om) - y * cos(alm->inc) * sin(om);
   pos[1] = x * sin(om) + y * cos(alm->inc) * cos(om);
   pos[2] = y * sin(alm->inc);
@@ -176,6 +178,7 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
 {
   switch(alm->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     gps_calc_sat_state_almanac(alm, t, week, pos, vel);
     break;
   case CONSTELLATION_SBAS:
@@ -241,4 +244,3 @@ double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
 }
 
 /** \} */
-

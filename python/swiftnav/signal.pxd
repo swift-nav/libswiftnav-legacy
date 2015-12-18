@@ -12,16 +12,9 @@ from libcpp cimport bool
 
 cdef extern from "libswiftnav/signal.h":
   enum:
-    GPS_L1_SATS
-    WAAS_SATS
-    EGNOS_SATS
-    GAGAN_SATS
-    MSAS_SATS
-    SDCM_SATS
-    SBAS_SATS
-    ALL_SATS
     CONSTELLATION_GPS
     CONSTELLATION_SBAS
+    CONSTELLATION_QZSS
     BAND_L1
 
   ctypedef struct gnss_signal_t:

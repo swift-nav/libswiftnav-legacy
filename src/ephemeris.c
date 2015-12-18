@@ -227,6 +227,7 @@ s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     return calc_sat_state_kepler(e, t, pos, vel, clock_err, clock_rate_err);
   case CONSTELLATION_SBAS:
     return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
@@ -331,7 +332,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
-  assert(e->sid.constellation == CONSTELLATION_GPS);
+  assert((e->sid.constellation == CONSTELLATION_GPS) || (e->sid.constellation == CONSTELLATION_QZSS));
   ephemeris_kepler_t *k = &e->kepler;
 
   char buf[SID_STR_LEN_MAX];
@@ -379,6 +380,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   }
 
   /* t_gd: Word 7, bits 17-24 */
+  // TODO
   onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
   k->tgd = onebyte.s8 * pow(2,-31);
 
@@ -557,6 +559,7 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
 
   switch (a->sid.constellation) {
   case CONSTELLATION_GPS:
+  case CONSTELLATION_QZSS:
     return ephemeris_kepler_equal(&a->kepler, &b->kepler);
   case CONSTELLATION_SBAS:
     return ephemeris_xyz_equal(&a->xyz, &b->xyz);
