@@ -171,6 +171,8 @@ typedef struct {
   gps_time_t tot;
   gnss_signal_t sid;
   u16 lock_counter;
+  u8 healthy;
+  u8 alert;
 } navigation_measurement_t;
 
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
