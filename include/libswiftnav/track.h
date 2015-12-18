@@ -155,6 +155,7 @@ typedef struct {
                                 ambiguity is reset.  If this number changes it
                                 is an indication you should reset integer
                                 ambiguity resolution for this channel. */
+  u8 alert;                /**< The GPS alert flag from navigation data. */
 } channel_measurement_t;
 
 typedef struct {
@@ -241,4 +242,3 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
                 navigation_measurement_t *m_corrected);
 
 #endif /* LIBSWIFTNAV_TRACK_H */
-
