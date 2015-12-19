@@ -9,7 +9,7 @@
 
 from almanac cimport *
 from common cimport *
-from gpstime cimport *
+from time cimport *
 from libcpp cimport bool as bool_
 from observation cimport *
 from signal cimport *

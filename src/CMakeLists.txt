@@ -9,7 +9,7 @@ file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
 include_directories("${PROJECT_SOURCE_DIR}/CBLAS/include")
 include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
 
-include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
+include_directories("${PROJECT_SOURCE_DIR}/include")
 
 set_source_files_properties(${plover_SRCS} PROPERTIES GENERATED TRUE)
 set_source_files_properties(${plover_HDRS} PROPERTIES GENERATED TRUE)
@@ -26,7 +26,7 @@ set(libswiftnav_SRCS
   linear_algebra.c
   prns.c
   almanac.c
-  gpstime.c
+  time.c
   edc.c
   rtcm3.c
   bits.c

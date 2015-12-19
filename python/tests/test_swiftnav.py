@@ -20,7 +20,7 @@ def test_imports():
   import swiftnav.correlate
   import swiftnav.dgnss_management
   import swiftnav.ephemeris
-  import swiftnav.gpstime
+  import swiftnav.time
   import swiftnav.lambda_
   import swiftnav.linear_algebra
   import swiftnav.nav_msg

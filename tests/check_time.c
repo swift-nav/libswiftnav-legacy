@@ -1,9 +1,10 @@
 #include <check.h>
 #include <stdio.h>
 #include <math.h>
-#include "check_utils.h"
 
-#include "gpstime.h"
+#include <libswiftnav/time.h>
+
+#include "check_utils.h"
 
 START_TEST(test_gpsdifftime)
 {
@@ -29,9 +30,9 @@ START_TEST(test_gpsdifftime)
 }
 END_TEST
 
-Suite* gpstime_test_suite(void)
+Suite* time_test_suite(void)
 {
-  Suite *s = suite_create("GPS time handling");
+  Suite *s = suite_create("Time handling");
 
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_gpsdifftime);
@@ -39,4 +40,3 @@ Suite* gpstime_test_suite(void)
 
   return s;
 }
-

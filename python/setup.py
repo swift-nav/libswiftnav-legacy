@@ -46,7 +46,7 @@ if __name__ == "__main__":
     'swiftnav.ephemeris',
     'swiftnav.linear_algebra',
     'swiftnav.amb_kf',
-    'swiftnav.gpstime',
+    'swiftnav.time',
     'swiftnav.observation',
     'swiftnav.dgnss_management',
     'swiftnav.ambiguity_test',

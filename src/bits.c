@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "bits.h"
+#include <libswiftnav/bits.h>
 
 /** \defgroup bits Bit Utils
  * Bit field packing, unpacking and utility functions.
@@ -117,4 +117,3 @@ void setbits(u8 *buff, u32 pos, u32 len, s32 data)
 }
 
 /** \} */
-

@@ -13,14 +13,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include "logging.h"
-#include "amb_kf.h"
-#include "baseline.h"
-#include "observation.h"
-#include "dgnss_management.h"
-#include "linear_algebra.h"
-#include "filter_utils.h"
-#include "ambiguity_test.h"
+
+#include <libswiftnav/logging.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/dgnss_management.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/filter_utils.h>
+#include <libswiftnav/ambiguity_test.h>
 
 nkf_t nkf;
 sats_management_t sats_management;

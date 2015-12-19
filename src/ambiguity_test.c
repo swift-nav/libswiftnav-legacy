@@ -16,18 +16,19 @@
 #include <cblas.h>
 #include <stdio.h>
 #include <string.h>
-#include "logging.h"
-#include "ambiguity_test.h"
-#include "common.h"
-#include "constants.h"
-#include "linear_algebra.h"
-#include "observation.h"
-#include "amb_kf.h"
-#include "lambda.h"
-#include "memory_pool.h"
-#include "printing_utils.h"
-#include "filter_utils.h"
-#include "sats_management.h"
+
+#include <libswiftnav/logging.h>
+#include <libswiftnav/ambiguity_test.h>
+#include <libswiftnav/common.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/lambda.h>
+#include <libswiftnav/memory_pool.h>
+#include <libswiftnav/printing_utils.h>
+#include <libswiftnav/filter_utils.h>
+#include <libswiftnav/sats_management.h>
 
 #define RAW_PHASE_BIAS_VAR 0
 #define DECORRELATED_PHASE_BIAS_VAR 0

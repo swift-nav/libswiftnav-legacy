@@ -2,12 +2,12 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <linear_algebra.h>
-#include <constants.h>
-#include <baseline.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/printing_utils.h>
 
 #include "check_utils.h"
-#include "printing_utils.h"
 
 START_TEST(test_predict_carrier_obs)
 {
@@ -566,4 +566,3 @@ Suite* baseline_test_suite(void)
 
   return s;
 }
-

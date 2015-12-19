@@ -1,11 +1,11 @@
-
 #include <check.h>
-#include <fec.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+
+#include <libfec/fec.h>
 
 int compare_files(FILE *f1, FILE *f2)
 {
@@ -100,4 +100,3 @@ Suite* viterbi_suite(void)
 
   return s;
 }
-

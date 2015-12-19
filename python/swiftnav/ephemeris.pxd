@@ -8,7 +8,7 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from gpstime cimport gps_time_t
+from time cimport gps_time_t
 from signal cimport gnss_signal_t
 
 cdef extern from "libswiftnav/ephemeris.h":

@@ -14,8 +14,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "constants.h"
-#include "ionosphere.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/ionosphere.h>
 
 /** \defgroup ionosphere Ionospheric models
  * Implemenations of ionoshperic delay correction models.

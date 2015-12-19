@@ -13,7 +13,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "set.h"
+#include <libswiftnav/set.h>
 
 /** \defgroup set Utility functions for dealing with sets
  * \{ */
@@ -211,7 +211,7 @@ u32 remove_element(u32 na, size_t sa, const void *as, void *a_out,
                    void *b, cmp_fn cmp)
 {
   /* Index of first element that isn't less than b.
-   * This element will be removed. 
+   * This element will be removed.
    * If b is larger than all of as, the last element of as will be removed. */
   u32 index = insertion_index(na, sa, as, b, cmp);
 
@@ -246,4 +246,3 @@ u32 insert_element(u32 na, size_t sa, const void *as, void *a_out,
 }
 
 /** \} */
-

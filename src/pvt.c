@@ -17,13 +17,12 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "constants.h"
-#include <logging.h>
-#include "linear_algebra.h"
-#include "coord_system.h"
-#include "track.h"
-
-#include "pvt.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/coord_system.h>
+#include <libswiftnav/track.h>
+#include <libswiftnav/pvt.h>
 
 static double vel_solve(double rx_vel[],
                         const u8 n_used,
@@ -599,4 +598,3 @@ s8 calc_PVT(const u8 n_used,
 
   return raim_flag;
 }
-

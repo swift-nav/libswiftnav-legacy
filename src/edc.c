@@ -10,7 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "edc.h"
+#include <libswiftnav/edc.h>
 
 /** \defgroup edc Error Detection and Correction
  * Error detection and correction functions.

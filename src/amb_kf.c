@@ -24,16 +24,16 @@
 #include <clapack.h>
 #include <math.h>
 
-#include "logging.h"
-#include "linear_algebra.h"
-#include "constants.h"
-#include "track.h"
-#include "almanac.h"
-#include "gpstime.h"
-#include "baseline.h"
-#include "filter_utils.h"
-#include "amb_kf.h"
-#include "set.h"
+#include <libswiftnav/logging.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/track.h>
+#include <libswiftnav/almanac.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/filter_utils.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/set.h>
 
 
 /** \defgroup amb_kf Float Ambiguity Resolution

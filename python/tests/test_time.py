@@ -9,7 +9,7 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-import swiftnav.gpstime as t
+import swiftnav.time as t
 
 # TODO (Buro): Add back case with WN_UNKNOWN?
 def test_gpsdifftime():

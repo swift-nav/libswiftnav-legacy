@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 /* DEBUG off by default, enable it on a per-file basis. */
 #ifndef DEBUG
@@ -116,4 +116,3 @@ do {                                \
 /** \} */
 
 #endif /* LIBSWIFTNAV_LOGGING_H */
-

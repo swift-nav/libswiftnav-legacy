@@ -16,10 +16,10 @@
 #include <assert.h>
 #include <string.h>
 
-#include "logging.h"
-#include "linear_algebra.h"
-#include "constants.h"
-#include "ephemeris.h"
+#include <libswiftnav/logging.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/ephemeris.h>
 
 /** \defgroup ephemeris Ephemeris
  * Functions and calculations related to the GPS ephemeris.

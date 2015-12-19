@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_SIGNAL_H
 #define LIBSWIFTNAV_SIGNAL_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 #define NUM_SATS_GPS 32
 #define NUM_SATS_SBAS 22
@@ -80,4 +80,3 @@ gnss_signal_t sid_from_index(u32 i);
 u32 sid_to_index(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
-

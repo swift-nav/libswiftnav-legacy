@@ -12,7 +12,7 @@
 from common cimport *
 from posix.types cimport time_t
 
-cdef extern from "libswiftnav/gpstime.h":
+cdef extern from "libswiftnav/time.h":
   u8 GPS_WEEK_CYCLE
   u8 GPS_MINUS_UTC_SECS
   u16 GPS_EPOCH

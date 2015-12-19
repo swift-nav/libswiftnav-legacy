@@ -18,8 +18,8 @@ from common cimport *
 from ephemeris cimport ephemeris_t
 from ephemeris cimport Ephemeris
 from ephemeris import Ephemeris
-from gpstime cimport *
-from gpstime import GpsTime
+from time cimport *
+from time import GpsTime
 from libc.stdlib cimport malloc, free
 from libc.string cimport memset, memcpy
 from signal cimport GNSSSignal

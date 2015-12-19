@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_LINEAR_ALGEBRA_H
 #define LIBSWIFTNAV_LINEAR_ALGEBRA_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
  #define VEC_PRINTF(v, _n) {                                         \
     printf("%s:%u <|%s| %lf",                                        \
@@ -82,4 +82,3 @@ void vector_cross(const double a[3], const double b[3], double c[3]);
 double vector_distance(u32 n, const double *a, const double *b);
 
 #endif  /* LIBSWIFTNAV_LINEAR_ALGEBRA_H */
-

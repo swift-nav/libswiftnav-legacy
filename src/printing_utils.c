@@ -12,10 +12,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "constants.h"
-#include "common.h"
-#include "ambiguity_test.h"
-#include "printing_utils.h"
+
+#include <libswiftnav/constants.h>
+#include <libswiftnav/common.h>
+#include <libswiftnav/ambiguity_test.h>
+#include <libswiftnav/printing_utils.h>
 
 /** Prints a matrix of doubles.
  *
@@ -121,5 +122,3 @@ void print_s32_gemv(u32 m, u32 n, s32 *M, s32 *v)
     }
   }
 }
-
-

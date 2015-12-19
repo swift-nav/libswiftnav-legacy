@@ -13,7 +13,7 @@ cimport numpy as np
 from fmt_utils import fmt_repr
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy, memset
-from gpstime cimport *
+from time cimport *
 from ephemeris cimport *
 from signal cimport *
 from track cimport *

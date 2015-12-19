@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <set.h>
+#include <libswiftnav/set.h>
 
 #include "check_utils.h"
 
@@ -223,4 +223,3 @@ Suite* set_suite(void)
 
   return s;
 }
-

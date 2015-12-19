@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_AMBIGUITY_TEST_H
 #define LIBSWIFTNAV_AMBIGUITY_TEST_H
 
-#include "memory_pool.h"
-#include "sats_management.h"
+#include <libswiftnav/memory_pool.h>
+#include <libswiftnav/sats_management.h>
 
 #define MAX_HYPOTHESES 1000
 
@@ -64,7 +64,7 @@ typedef struct {
   z_t *itr_upper_bounds;
   z_t *box_lower_bounds;
   z_t *box_upper_bounds;
-} intersection_count_t; 
+} intersection_count_t;
 
 typedef struct {
   intersection_count_t *x;

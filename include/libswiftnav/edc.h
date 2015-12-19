@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_EDC_H
 #define LIBSWIFTNAV_EDC_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 u32 crc24q(const u8 *buf, u32 len, u32 crc);
 

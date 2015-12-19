@@ -12,9 +12,9 @@
 
 #include <math.h>
 
-#include "constants.h"
-#include "linear_algebra.h"
-#include "coord_system.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/coord_system.h>
 
 /** \defgroup coord_system Coordinate systems
  * Functions used for converting between various coordinate systems.
@@ -31,7 +31,7 @@
  *      Retrieved 00:47, March 26, 2012.
  * \{ */
 
-/** Converts from an LLH coordinate in radians 
+/** Converts from an LLH coordinate in radians
 * into a LLH coordinate in decimal degrees
 *
 * Conversion from radians to degrees is done using
@@ -49,12 +49,12 @@ void llhrad2deg(const double llh_rad[3], double llh_deg[3]) {
 }
 
 
-/** Converts from an LLH coordinate in decimal degrees 
-* into a LLH coordinate in radians. 
+/** Converts from an LLH coordinate in decimal degrees
+* into a LLH coordinate in radians.
 *
 * Conversion from degrees to radians is done using
 * a simple direct conversion formula:
-* \f$radians = \frac{degrees * \pi}{180}\f$ 
+* \f$radians = \frac{degrees * \pi}{180}\f$
 *
 * Safe to pass same pointer as input and output value, eg:
 *  llhdeg2rad(arr1, arr1);
@@ -377,4 +377,3 @@ void wgsecef2azel(const double ecef[3], const double ref_ecef[3],
 }
 
 /** \} */
-

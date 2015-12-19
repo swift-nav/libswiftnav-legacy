@@ -10,10 +10,10 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "signal.h"
-
 #include <stdio.h>
 #include <assert.h>
+
+#include <libswiftnav/signal.h>
 
 typedef struct {
   u8 constellation;

@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_SATS_MANAGEMENT_H
 #define LIBSWIFTNAV_SATS_MANAGEMENT_H
 
-#include "constants.h"
-#include "observation.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/observation.h>
 
 #define OLD_REF 0
 #define NEW_REF 1

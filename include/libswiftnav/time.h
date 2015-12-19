@@ -15,7 +15,7 @@
 
 #include <time.h>
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 /** Number of rollovers in the 10-bit broadcast GPS week number.
  * Update on next rollover on April 7, 2019.
@@ -48,5 +48,3 @@ double gpsdifftime(gps_time_t end, gps_time_t beginning);
 void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
 
 #endif /* LIBSWIFTNAV_TIME_H */
-
-

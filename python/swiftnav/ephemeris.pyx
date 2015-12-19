@@ -14,8 +14,8 @@
 cimport numpy as np
 from cpython.object cimport Py_EQ
 from fmt_utils import fmt_repr
-from gpstime cimport *
-from gpstime import GpsTime
+from time cimport *
+from time import GpsTime
 from libc.string cimport memcpy, memset
 import numpy as np
 

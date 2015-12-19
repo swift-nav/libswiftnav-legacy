@@ -14,9 +14,9 @@
 #ifndef LIBSWIFTNAV_EPHEMERIS_H
 #define LIBSWIFTNAV_EPHEMERIS_H
 
-#include "signal.h"
-#include "gpstime.h"
-#include "common.h"
+#include <libswiftnav/signal.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/common.h>
 
 typedef struct {
   double tgd;

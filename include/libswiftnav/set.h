@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_SET_H
 #define LIBSWIFTNAV_SET_H
 
-#include "common.h"
-#include "signal.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 
 /** \addtogroup set
  * \{ */
@@ -54,4 +54,3 @@ u32 remove_element(u32 na, size_t sa, const void *as, void *a_out,
 u32 insert_element(u32 na, size_t sa, const void *as, void *a_out,
                    void *b, cmp_fn cmp);
 #endif /* LIBSWIFTNAV_SET_H */
-

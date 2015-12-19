@@ -8,7 +8,7 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from gpstime cimport gps_time_t
+from time cimport gps_time_t
 from track cimport navigation_measurement_t
 
 cdef extern from "libswiftnav/pvt.h":

@@ -1,9 +1,10 @@
 #include <check.h>
 #include <stdio.h>
 #include <math.h>
-#include "check_utils.h"
 
-#include "pvt.h"
+#include <libswiftnav/pvt.h>
+
+#include "check_utils.h"
 
 static navigation_measurement_t nm1 = {
   .sid = {.sat = 9},
@@ -118,7 +119,7 @@ START_TEST(test_dops)
                      .hdop = 1.75922, .vdop = 2.04761};
 
   const double dop_tol = 1e-3;
-  
+
   navigation_measurement_t nms[6] =
     {nm1, nm2, nm3, nm4, nm5, nm6};
 
@@ -159,4 +160,3 @@ Suite* pvt_test_suite(void)
 
   return s;
 }
-

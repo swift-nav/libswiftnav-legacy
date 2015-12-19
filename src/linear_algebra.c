@@ -14,9 +14,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
-#include "linear_algebra.h"
+#include <libswiftnav/linear_algebra.h>
 
 
 /* Todo(MP) -- Implement fast linear solve (all-in-one) with Cholesky
@@ -988,4 +988,3 @@ double vector_distance(u32 n, const double *a, const double *b) {
 
 /* \} */
 /* \} */
-

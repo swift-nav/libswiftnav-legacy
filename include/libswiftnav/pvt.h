@@ -14,8 +14,8 @@
 #ifndef LIBSWIFTNAV_PVT_H
 #define LIBSWIFTNAV_PVT_H
 
-#include "common.h"
-#include "track.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/track.h>
 
 #define PVT_MAX_ITERATIONS 10
 
@@ -86,4 +86,3 @@ s8 calc_PVT(const u8 n_used,
             dops_t *dops);
 
 #endif /* LIBSWIFTNAV_PVT_H */
-

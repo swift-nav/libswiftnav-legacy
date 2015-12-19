@@ -15,10 +15,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "logging.h"
-#include "constants.h"
-#include "bits.h"
-#include "nav_msg.h"
+#include <libswiftnav/logging.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/bits.h>
+#include <libswiftnav/nav_msg.h>
 
 /* Approx number of nav bit edges needed to accept bit sync for a
    strong signal (sync will take longer on a weak signal) */

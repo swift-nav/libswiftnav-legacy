@@ -13,11 +13,11 @@
 #ifndef LIBSWIFTNAV_DGNSS_MANAGEMENT_H
 #define LIBSWIFTNAV_DGNSS_MANAGEMENT_H
 
-#include "amb_kf.h"
-#include "sats_management.h"
-#include "ambiguity_test.h"
-#include "baseline.h"
-#include "constants.h"
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/sats_management.h>
+#include <libswiftnav/ambiguity_test.h>
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/constants.h>
 
 typedef struct {
   double phase_var_test;

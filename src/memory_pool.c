@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "memory_pool.h"
+#include <libswiftnav/memory_pool.h>
 
 inline static size_t calc_node_size(size_t element_size)
 {
@@ -826,5 +826,3 @@ s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, siz
 }
 
 /** \} */
-
-

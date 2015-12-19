@@ -16,7 +16,7 @@
 #include <tmmintrin.h>
 #endif
 
-#include "correlate.h"
+#include <libswiftnav/correlate.h>
 
 /** \defgroup corr Correlation
  * Correlators used for tracking.
@@ -155,5 +155,3 @@ void track_correlate(s8* samples, s8* code,
 #endif /* !__SSSE3__ */
 
 /** \} */
-
-

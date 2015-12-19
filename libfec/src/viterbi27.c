@@ -4,7 +4,8 @@
  */
 
 #include <stdlib.h>
-#include "fec.h"
+
+#include <libfec/fec.h>
 
 static union branchtab27 Branchtab27[2] __attribute__ ((aligned(16)));
 

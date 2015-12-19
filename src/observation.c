@@ -13,13 +13,13 @@
 #include <string.h>
 #include <assert.h>
 
-#include "logging.h"
-#include "linear_algebra.h"
-#include "ephemeris.h"
-#include "constants.h"
-#include "sats_management.h"
-#include "set.h"
-#include "observation.h"
+#include <libswiftnav/logging.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/sats_management.h>
+#include <libswiftnav/set.h>
+#include <libswiftnav/observation.h>
 
 /** \defgroup single_diff Single Difference Observations
  * Functions for storing and manipulating single difference observations.
@@ -483,4 +483,3 @@ void debug_sdiffs(u8 n, sdiff_t *sds)
 }
 
 /** \} */
-
