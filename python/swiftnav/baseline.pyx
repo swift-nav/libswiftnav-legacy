@@ -171,4 +171,7 @@ def lesq_solve_raim_(dd_obs, N, DE, disable_raim, raim_threshold):
                                  &N_[0], &DE_[0,0], &b[0],
                                  disable_raim, raim_threshold,
                                  &num_used, &residuals[0], &removed_obs)
-  return (code, num_used, residuals, removed_obs, b)
+  # If we drop satellites from the solution, then the residuals array will only
+  # contain `num_used` valid residuals. Truncate before returning.
+  residuals_ = residuals[:num_used]
+  return (code, num_used, residuals_, removed_obs, b)

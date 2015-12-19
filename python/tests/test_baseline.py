@@ -304,7 +304,7 @@ def test_lesq_repair8():
   code, num_used, residuals, removed_obs, b \
     = bl.lesq_solve_raim_(dd_obs, N, DE, False, bl.DEFAULT_RAIM_THRESHOLD_)
   assert num_used == 7
-  assert np.allclose(residuals, np.array([0, 0, 0, 0, 0, 0, 0, 0]))
+  assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 7
   assert np.allclose(b, np.array([ 0.19023801,  0.19023801,  0.19023801]))
   assert code == 1, "Expecting 1 for repaired solution, got: %i." % code
@@ -323,7 +323,7 @@ def test_lesq_repair1():
   code, num_used, residuals, removed_obs, b \
     = bl.lesq_solve_raim_(dd_obs, N, DE, False, bl.DEFAULT_RAIM_THRESHOLD_)
   assert num_used == 4
-  assert np.allclose(residuals, np.array([0, 0, 0, 0, 0]))
+  assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 4
   assert np.allclose(b, np.array([ 0.19023801,  0.19023801,  0.19023801]))
   assert code == 1, "Expecting 1 for repaired solution, got: %i." % code
@@ -361,6 +361,6 @@ def test_lesq_repair2():
     = bl.lesq_solve_raim_(dd_obs, N, DE, False, bl.DEFAULT_RAIM_THRESHOLD_)
   assert np.allclose(b, np.array([ 0.1705906,  -0.00802221, -0.00802221]))
   assert num_used == 0
-  assert np.allclose(residuals, np.array([[0, 0, 0, 0]]))
+  assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 0
   assert code == -4, "Expecting -4 for not enough dds to repair, got: %i." % code
