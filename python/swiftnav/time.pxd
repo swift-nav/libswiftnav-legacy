@@ -17,14 +17,16 @@ cdef extern from "libswiftnav/time.h":
   u8 GPS_MINUS_UTC_SECS
   u16 GPS_EPOCH
   double WN_UNKNOWN
+  u16 WEEK_SECS
+  u16 DAYS_SECS
 
   ctypedef struct gps_time_t:
     double tow
     s16 wn
 
-  gps_time_t normalize_gps_time(gps_time_t)
-  time_t gps2time(gps_time_t t)
-  double gpsdifftime(gps_time_t end, gps_time_t beginning)
+  void normalize_gps_time(const gps_time_t *t)
+  time_t gps2time(const gps_time_t *t_gps)
+  double gpsdifftime(const gps_time_t *end, const gps_time_t *beginning)
   void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref)
 
 cdef class GpsTime:
