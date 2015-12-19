@@ -17,7 +17,7 @@ START_TEST(test_calc_ionosphere)
 
   const double d_tol = 1e-3;
 
-  double d_l1 = calc_ionosphere(t, lat_u, lon_u, a, e, &i);
+  double d_l1 = calc_ionosphere(&t, lat_u, lon_u, a, e, &i);
   double d_err = fabs(d_l1 - d_true);
 
   fail_unless(d_err < d_tol,
@@ -39,7 +39,7 @@ START_TEST(test_calc_ionosphere)
   e = 20.0 * D2R;
   d_true = 23.784;
 
-  d_l1 = calc_ionosphere(t, lat_u, lon_u, a, e, &i);
+  d_l1 = calc_ionosphere(&t, lat_u, lon_u, a, e, &i);
   d_err = fabs(d_l1 - d_true);
 
   fail_unless(d_err < d_tol,

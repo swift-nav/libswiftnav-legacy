@@ -15,10 +15,9 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/constants.h>
 
-// TODO add a doc group
-
-/* TODO: does it make sense to be passing structs by value in all
-   these functions? */
+/** \defgroup time Time functions
+ * Functions to handle GPS and UTC time values.
+ * \{ */
 
 /** Normalize a `gps_time_t` GPS time struct.
  * Ensures that the time of week is greater than zero and less than one week by
@@ -27,34 +26,31 @@
  * \param t GPS time struct.
  * \return Normalized GPS time struct.
  */
-/* TODO: Either normalise in place or rename to normalised. */
-gps_time_t normalize_gps_time(gps_time_t t)
+void normalize_gps_time(gps_time_t *t)
 {
-  while(t.tow < 0) {
-    t.tow += WEEK_SECS;
-    t.wn -= 1;
+  while(t->tow < 0) {
+    t->tow += WEEK_SECS;
+    t->wn += 1;
   }
 
-  while(t.tow > WEEK_SECS) {
-    t.tow -= WEEK_SECS;
-    t.wn += 1;
+  while(t->tow > WEEK_SECS) {
+    t->tow -= WEEK_SECS;
+    t->wn -= 1;
   }
-
-  return t;
 }
 
 /** Convert a `gps_time_t` GPS time to a Unix `time_t`.
  * \note Adjusts for leap seconds using the current constant offset.
  *
- * \param gps_t GPS time struct.
+ * \param t_gps GPS time struct.
  * \return Unix time.
  */
-time_t gps2time(gps_time_t gps_t)
+time_t gps2time(const gps_time_t *t_gps)
 {
   time_t t = GPS_EPOCH - GPS_MINUS_UTC_SECS;
 
-  t += WEEK_SECS*gps_t.wn;
-  t += (s32)gps_t.tow;
+  t += WEEK_SECS * t_gps->wn;
+  t += (s32)t_gps->tow;
 
   return t;
 }
@@ -69,10 +65,10 @@ time_t gps2time(gps_time_t gps_t)
  *                  the result is negative.
  * \return The time difference in seconds between `beginning` and `end`.
  */
-double gpsdifftime(gps_time_t end, gps_time_t beginning)
+double gpsdifftime(const gps_time_t *end, const gps_time_t *beginning)
 {
-  double dt = end.tow - beginning.tow;
-  if (end.wn == WN_UNKNOWN || beginning.wn == WN_UNKNOWN) {
+  double dt = end->tow - beginning->tow;
+  if (end->wn == WN_UNKNOWN || beginning->wn == WN_UNKNOWN) {
     /* One or both of the week numbers is unspecified.  Assume times
        are within +/- 0.5 weeks of each other. */
     if (dt > WEEK_SECS / 2)
@@ -81,7 +77,7 @@ double gpsdifftime(gps_time_t end, gps_time_t beginning)
       dt += WEEK_SECS;
   } else {
     /* Week numbers were provided - use them. */
-    dt += (end.wn - beginning.wn) * WEEK_SECS;
+    dt += (end->wn - beginning->wn) * WEEK_SECS;
   }
   return dt;
 }
@@ -101,3 +97,5 @@ void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref)
   else if (dt < -WEEK_SECS / 2)
     t->wn++;
 }
+
+/** \} */

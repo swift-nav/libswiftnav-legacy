@@ -51,11 +51,11 @@ typedef struct {
   };
 } ephemeris_t;
 
-s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
+s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err);
 
-u8 ephemeris_good(const ephemeris_t *eph, gps_time_t t);
+u8 ephemeris_good(const ephemeris_t *eph, const gps_time_t *t);
 
 float decode_ura_index(const u8 index);
 u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc);

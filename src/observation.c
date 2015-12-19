@@ -177,7 +177,7 @@ int cmp_sid_sdiff(const void *a, const void *b)
 u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
-                          const ephemeris_t *e[], gps_time_t t,
+                          const ephemeris_t *e[], const gps_time_t *t,
                           sdiff_t *sds)
 {
   u8 i, j, n = 0;

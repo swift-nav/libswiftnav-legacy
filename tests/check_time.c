@@ -24,7 +24,7 @@ START_TEST(test_gpsdifftime)
   const double tow_tol = 1e-10;
   for (size_t i = 0;
        i < sizeof(testcases) / sizeof(struct gpsdifftime_testcase); i++) {
-    double dt = gpsdifftime(testcases[i].a, testcases[i].b);
+    double dt = gpsdifftime(&testcases[i].a, &testcases[i].b);
     fail_unless(fabs(dt - testcases[i].dt) < tow_tol,
                 "gpsdifftime test case %d failed, dt = %.12f", i, dt);
   }
