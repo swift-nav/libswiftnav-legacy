@@ -11,7 +11,7 @@
 
 import numpy as np
 import swiftnav.ephemeris as e
-import swiftnav.time as g
+import swiftnav.time as t
 
 tol = 1e-10
 

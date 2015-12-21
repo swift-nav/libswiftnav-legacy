@@ -12,7 +12,7 @@
 from swiftnav.pvt import calc_PVT_
 import numpy as np
 import pytest
-import swiftnav.time as t
+import swiftnav.time as ti
 import swiftnav.track as t
 import swiftnav.observation as o
 import swiftnav.signal as s
@@ -25,7 +25,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=1, band=0, constellation=0),
                            pseudorange=22932174.156858064,
                            raw_pseudorange=22932174.156858064,
@@ -33,7 +33,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=2, band=0, constellation=0),
                            pseudorange=24373231.648055989,
                            raw_pseudorange=24373231.648055989,
@@ -41,7 +41,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=3, band=0, constellation=0),
                            pseudorange=24779663.252316438,
                            raw_pseudorange=24779663.252316438,
@@ -49,7 +49,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=4, band=0, constellation=0),
                            pseudorange=26948717.022331879,
                            raw_pseudorange=26948717.022331879,
@@ -57,7 +57,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=5, band=0, constellation=0),
                            pseudorange=23327405.435463827,
                            raw_pseudorange=23327405.435463827,
@@ -65,7 +65,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=6, band=0, constellation=0),
                            pseudorange=27371419.016328193,
                            raw_pseudorange=27371419.016328193,
@@ -73,7 +73,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=7, band=0, constellation=0),
                            pseudorange=26294221.697782904,
                            raw_pseudorange=26294221.697782904,
@@ -81,7 +81,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0)),
+                           tot=ti.GpsTime(tow=0, wn=0)),
    t.NavigationMeasurement(sid=s.GNSSSignal(sat=8, band=0, constellation=0),
                            pseudorange=25781999.479948733,
                            raw_pseudorange=25781999.479948733,
@@ -89,7 +89,7 @@ nms = \
                            sat_vel=(0, 0, 0), carrier_phase=0,
                            raw_doppler=0, doppler=0, lock_counter=0,
                            snr=0, lock_time=0,
-                           tot=t.GpsTime(tow=0, wn=0))]
+                           tot=ti.GpsTime(tow=0, wn=0))]
 
 TOL = 1e-10
 
