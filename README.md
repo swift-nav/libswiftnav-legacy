@@ -1,7 +1,7 @@
 libswiftnav
 ===========
 
-[![Build Status](https://travis-ci.org/swift-nav/libswiftnav.svg?branch=master)](https://travis-ci.org/swift-nav/libswiftnav)
+[![Build status][1]][2]
 
 Libswiftnav is a platform independent library that implements GNSS functions
 and algorithms for use by software-defined GNSS receivers or software requiring
@@ -19,5 +19,5 @@ For installation, see [docs/install.dox.](http://docs.swift-nav.com/libswiftnav/
 
 For development help, see [DEVELOPMENT.rst](https://github.com/swift-nav/libswiftnav/blob/master/DEVELOPMENT.rst)
 
-[1]: https://travis-ci.org/swift-nav/libswiftnav.png
+[1]: https://travis-ci.org/swift-nav/libswiftnav.svg?branch=master
 [2]: https://travis-ci.org/swift-nav/libswiftnav
