@@ -30,7 +30,7 @@
 #define HUNDRED_YEARS_DAYS (24 * FOUR_YEARS_DAYS + 4 * COMMON_YEAR_DAYS)
 
 /** Number of days in 400 years. */
-#define  FOUR_HUNDRED_YEARS_DAYS (3 * HUNDRED_YEARS_DAYS + 25 * FOUR_YEARS_DAYS)
+#define FOUR_HUNDRED_YEARS_DAYS (3 * HUNDRED_YEARS_DAYS + 25 * FOUR_YEARS_DAYS)
 
 /** Number of seconds in a minute. */
 #define MINUTE_SECS (60)
@@ -52,7 +52,6 @@
 /** Offset between GPS and UTC times in seconds.
  * Update when a new leap second is inserted and be careful about times in the
  * past when this offset was different.
- * TODO handle leap seconds properly!
  */
 #define GPS_MINUS_UTC_SECS 17
 
@@ -80,8 +79,8 @@ typedef struct {
   double a1;
   gps_time_t tot;
   gps_time_t t_lse;
-  u8 dt_ls;
-  u8 dt_lsf;
+  s8 dt_ls;
+  s8 dt_lsf;
 } utc_params_t;
 
 /** Structure representing UTC time. */

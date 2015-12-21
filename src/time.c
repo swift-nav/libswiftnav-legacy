@@ -11,6 +11,8 @@
  */
 
 #include <math.h>
+#include <assert.h>
+#include <stdio.h>
 
 #include <libswiftnav/time.h>
 #include <libswiftnav/constants.h>
@@ -43,17 +45,30 @@ void normalize_gps_time(gps_time_t *t)
 // TODO add day of week field to utc_time
 void gps2utc(const utc_params_t *p, const gps_time_t *t, utc_time_t *u)
 {
+  assert(t != NULL);
+  assert(u != NULL);
+
+  static utc_params_t p_default = {
+    .a0 = 0.0, .a1 = 0.0,
+    .tot.wn = 0, .tot.tow = 0,
+    .t_lse.wn = 0, .t_lse.tow = 0,
+    .dt_ls = GPS_MINUS_UTC_SECS, .dt_lsf = GPS_MINUS_UTC_SECS
+  };
+
+  /* If p is NULL, use default leap seconds */
+  if (p == NULL) {
+    p = &p_default;
+  }
+
   /* Seconds from current time to leap second effctivity time */
   double dt_lse = gpsdifftime(t, &p->t_lse);
 
   /* Seconds from UTC data reference time (tot) */
   double dt = gpsdifftime(t, &p->tot); // TODO when making tot need to set WN correct
 
-  // TODO move to header and python - split into hours?
-
   /* Check if we are near the LS effectivity time and pick correct LS offset */
   bool within_6hrs = false;
-  u8 dt_ls;
+  s8 dt_ls;
   if ((dt_lse >= -6 * HOUR_SECS) && (dt_lse <= 6 * HOUR_SECS)) {
     /* We are within 6 hours before or after LS effectivity time */
     dt_ls = p->dt_ls;
@@ -102,10 +117,14 @@ void gps2utc(const utc_params_t *p, const gps_time_t *t, utc_time_t *u)
   /* Calculate the years */
 
   /* Days from 1 Jan 1980. GPS epoch is 6 Jan 1980 */
-  u8 day_of_week = t->tow / DAY_SECS;
-  day_of_week += ((fmod(t->tow, DAY_SECS) > 23 * HOUR_SECS) &&
+  u32 modified_julian_days = MJD_JAN_6_1980 + t->wn * 7 + t->tow / DAY_SECS;
+  printf("%d ", modified_julian_days);
+  modified_julian_days += ((fmod(t->tow, DAY_SECS) > 23 * HOUR_SECS) &&
                  (t_utc < 1 * HOUR_SECS));
-  u32 modified_julian_days = MJD_JAN_6_1980 + t->wn * 7 + day_of_week;
+  printf("%d ", modified_julian_days);
+  modified_julian_days -= ((fmod(t->tow, DAY_SECS) < 1 * HOUR_SECS) &&
+                 (t_utc > 23 * HOUR_SECS));
+  printf("%d\n", modified_julian_days);
   u32 days_since_1601 = modified_julian_days - MJD_JAN_1_1601;
 
   /* Calculate the number of leap years */
