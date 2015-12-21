@@ -87,7 +87,7 @@ typedef struct {
 /** Structure representing UTC time. */
 typedef struct {
   u16 year;           /**< Number of years AD. In four digit format. */
-  u8 year_day;        /**< Day of the year (1 - 366). */
+  u16 year_day;       /**< Day of the year (1 - 366). */
   u8 month;           /**< Month of the year (1 - 12). 0 = January, 12 = December. */
   u8 month_day;       /**< Day of the month (1 - 31). */
   u8 week_day;        /**< Day of the week (1 - 7). 1 = Monday, 7 = Sunday. */

@@ -1,6 +1,7 @@
 #include <check.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 
 #include <libswiftnav/time.h>
 #include <libswiftnav/constants.h>
@@ -52,6 +53,54 @@ START_TEST(test_normalize_gps_time)
 }
 END_TEST
 
+START_TEST(test_gps2utc_time)
+{
+  utc_params_t p;
+  memset(&p, 0, sizeof(p));
+
+  time_t t_gps = 0;
+  while (t_gps < (1 * DAY_SECS + 1)) {
+    time_t t_unix = t_gps + 315964800;
+    struct tm *date = gmtime(&t_unix);
+
+    gps_time_t t = {.wn = t_gps / WEEK_SECS, .tow = t_gps % WEEK_SECS};
+
+    utc_time_t u;
+    gps2utc(&p, &t, &u);
+
+    fail_unless((date->tm_year + 1900) == u.year,
+                "gmtime test, expected year %d, got %d, time = %s",
+                date->tm_year + 1900, u.year, asctime(date));
+    fail_unless((date->tm_mon + 1) == u.month,
+                "gmtime test, expected month %d, got %d, time = %s",
+                date->tm_mon + 1, u.month, asctime(date));
+    fail_unless((date->tm_yday + 1) == u.year_day,
+                "gmtime test, expected year_day %d, got %d, time = %s",
+                date->tm_yday + 1, u.year_day, asctime(date));
+    fail_unless(date->tm_mday == u.month_day,
+                "gmtime test, expected month_day %d, got %d, time = %s",
+                date->tm_mday, u.month_day, asctime(date));
+    fail_unless(date->tm_wday == (u.week_day % 7),
+                "gmtime test, expected week_day %d, got %d, time = %s",
+                date->tm_wday, u.week_day % 7, asctime(date));
+    fail_unless(date->tm_hour == u.hour,
+                "gmtime test, expected hour %d, got %d, time = %s",
+                date->tm_hour, u.hour, asctime(date));
+    fail_unless(date->tm_min == u.minute,
+                "gmtime test, expected minute %d, got %d, time = %s",
+                date->tm_min, u.minute, asctime(date));
+    fail_unless(date->tm_sec == u.second_int,
+                "gmtime test, expected second_int %d, got %d, time = %s",
+                date->tm_sec, u.second_int, asctime(date));
+    fail_unless(0.0 == u.second_frac,
+                "gmtime test, expected second_frac %f, got %f, time = %s",
+                0.0, u.second_frac, asctime(date));
+
+    t_gps++;
+  }
+}
+END_TEST
+
 START_TEST(test_gps_time_match_weeks)
 {
   struct gps_time_match_weeks_testcase {
@@ -81,6 +130,54 @@ START_TEST(test_gps_time_match_weeks)
 }
 END_TEST
 
+START_TEST(test_gps2utc_date)
+{
+  utc_params_t p;
+  memset(&p, 0, sizeof(p));
+
+  time_t t_gps = 0;
+  while (t_gps < 100L * 365 * DAY_SECS) {
+    time_t t_unix = t_gps + 315964800;
+    struct tm *date = gmtime(&t_unix);
+
+    gps_time_t t = {.wn = t_gps / WEEK_SECS, .tow = t_gps % WEEK_SECS};
+
+    utc_time_t u;
+    gps2utc(&p, &t, &u);
+
+    fail_unless((date->tm_year + 1900) == u.year,
+                "gmtime test, expected year %d, got %d, time = %s",
+                date->tm_year + 1900, u.year, asctime(date));
+    fail_unless((date->tm_mon + 1) == u.month,
+                "gmtime test, expected month %d, got %d, time = %s",
+                date->tm_mon + 1, u.month, asctime(date));
+    fail_unless((date->tm_yday + 1) == u.year_day,
+                "gmtime test, expected year_day %d, got %d, time = %s",
+                date->tm_yday + 1, u.year_day, asctime(date));
+    fail_unless(date->tm_mday == u.month_day,
+                "gmtime test, expected month_day %d, got %d, time = %s",
+                date->tm_mday, u.month_day, asctime(date));
+    fail_unless(date->tm_wday == (u.week_day % 7),
+                "gmtime test, expected week_day %d, got %d, time = %s",
+                date->tm_wday, u.week_day % 7, asctime(date));
+    fail_unless(date->tm_hour == u.hour,
+                "gmtime test, expected hour %d, got %d, time = %s",
+                date->tm_hour, u.hour, asctime(date));
+    fail_unless(date->tm_min == u.minute,
+                "gmtime test, expected minute %d, got %d, time = %s",
+                date->tm_min, u.minute, asctime(date));
+    fail_unless(date->tm_sec == u.second_int,
+                "gmtime test, expected second_int %d, got %d, time = %s",
+                date->tm_sec, u.second_int, asctime(date));
+    fail_unless(0.0 == u.second_frac,
+                "gmtime test, expected second_frac %f, got %f, time = %s",
+                0.0, u.second_frac, asctime(date));
+
+    t_gps += DAY_SECS;
+  }
+}
+END_TEST
+
 Suite* time_test_suite(void)
 {
   Suite *s = suite_create("Time handling");
@@ -89,6 +186,8 @@ Suite* time_test_suite(void)
   tcase_add_test(tc_core, test_gpsdifftime);
   tcase_add_test(tc_core, test_normalize_gps_time);
   tcase_add_test(tc_core, test_gps_time_match_weeks);
+  tcase_add_test(tc_core, test_gps2utc_time);
+  tcase_add_test(tc_core, test_gps2utc_date);
   suite_add_tcase(s, tc_core);
 
   return s;
