@@ -747,41 +747,6 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
 /** Calculate observations from tracking channel measurements.
  *
- * This function takes flat arrays, for a version taking a arrays of pointers
- * see calc_navigation_measurement_().
- *
- * \param n_channels Number of tracking channel measurements
- * \param meas Array of tracking channel measurements, length `n_channels`
- * \param nav_meas Output array for the observations, length `n_channels`
- * \param nav_time_rx Receiver time at which to calculate the position solution
- *                    in seconds
- * \param nav_time Pointer to GPS time at which to calculate the position
- *                 solution. Can be `NULL` in which case one of the
- *                 pseudoranges is chosen as a reference and set to a nominal
- *                 range, implying a certain receiver clock error
- * \param ephemerides Array of ephemerides
- */
-void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
-                                 navigation_measurement_t nav_meas[],
-                                 double nav_time_rx, gps_time_t *nav_time,
-                                 ephemeris_t ephemerides[])
-{
-  channel_measurement_t* meas_ptrs[n_channels];
-  navigation_measurement_t* nav_meas_ptrs[n_channels];
-  ephemeris_t* ephemerides_ptrs[n_channels];
-
-  for (u8 i=0; i<n_channels; i++) {
-    meas_ptrs[i] = &meas[i];
-    nav_meas_ptrs[i] = &nav_meas[i];
-    ephemerides_ptrs[i] = &ephemerides[meas[i].sid.sat];
-  }
-
-  calc_navigation_measurement_(n_channels, meas_ptrs, nav_meas_ptrs,
-                               nav_time_rx, nav_time, ephemerides_ptrs);
-}
-
-/** Calculate observations from tracking channel measurements.
- *
  * This function takes an array of pointers, for a version taking a flat array
  * see calc_navigation_measurement().
  *
@@ -798,13 +763,12 @@ void calc_navigation_measurement(u8 n_channels, channel_measurement_t meas[],
  *                 range, implying a certain receiver clock error
  * \param ephemerides Array of pointers to ephemerides
  */
-void calc_navigation_measurement_(u8 n_channels, channel_measurement_t* meas[],
-                                  navigation_measurement_t* nav_meas[],
-                                  double nav_time_rx, gps_time_t *nav_time,
-                                  ephemeris_t* ephemerides[])
+void calc_navigation_measurement(u8 n_channels,
+                                 const channel_measurement_t *meas[],
+                                 navigation_measurement_t *nav_meas[],
+                                 double nav_time_rx, gps_time_t *nav_time,
+                                 const ephemeris_t* ephemerides[])
 {
-  double TOTs[n_channels];
-  double min_TOF = -DBL_MAX;
   double clock_err[n_channels], clock_rate_err[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
