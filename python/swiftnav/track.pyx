@@ -475,25 +475,7 @@ cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c
   for (i, nav_meas) in enumerate(py_nav_meas):
     sd_ = (<NavigationMeasurement> nav_meas)._thisptr
     memcpy(&c_nav_meas[i], &sd_, sizeof(navigation_measurement_t))
-
-# TODO (Buro): Remove mallocs, etc. here. Do all this in-place
-def _calc_navigation_measurement(chan_meas, nav_meas, nav_time, ephemerides):
-  """
-  """
-  n_channels = len(chan_meas)
-  nav_meas = [empty_nav_meas() for n in range(n_channels)]
-  cdef channel_measurement_t** chan_meas_ = <channel_measurement_t**>malloc(n_channels*sizeof(channel_measurement_t *))
-  cdef navigation_measurement_t** nav_meas_ = <navigation_measurement_t**>malloc(n_channels*sizeof(navigation_measurement_t *))
-  cdef ephemeris_t** ephs = <ephemeris_t**>malloc(n_channels*sizeof(ephemeris_t *))
-  for n in range(n_channels):
-    chan_meas_[n] = &((<ChannelMeasurement ?>chan_meas[n])._thisptr)
-    nav_meas_[n] = &((<NavigationMeasurement ?>nav_meas[n])._thisptr)
-    ephs[n] = &((<Ephemeris ?>ephemerides[n])._thisptr)
-  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, nav_time, ephs)
-  free(chan_meas_)
-  free(nav_meas_)
-  free(ephs)
-  return nav_meas
+    
 
 # TODO (Buro): Remove mallocs, etc. here. Also, wow, this is awful
 def _tdcp_doppler(m_new, m_old):
