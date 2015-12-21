@@ -24,9 +24,6 @@
 #define R2D (180.0 / M_PI) /**< Conversion factor from radians to degrees. */
 #define D2R (M_PI / 180.0) /**< Conversion factor from degrees to radians. */
 
-#define DAY_SECS (24*60*60) /** < Seconds in a day */
-#define WEEK_SECS (7*DAY_SECS) /** < Seconds in a week */
-
 /** \defgroup gps_constants GPS
  * Constants related to the Global Positioning System.
  * See ICD-GPS-200C.

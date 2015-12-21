@@ -15,10 +15,19 @@ from posix.types cimport time_t
 cdef extern from "libswiftnav/time.h":
   u8 GPS_WEEK_CYCLE
   u8 GPS_MINUS_UTC_SECS
-  u16 GPS_EPOCH
+  u32 GPS_EPOCH
+  u32 MJD_JAN_6_1980
+  u32 MJD_JAN_1_1601
   double WN_UNKNOWN
-  u16 WEEK_SECS
-  u16 DAYS_SECS
+  u32 WEEK_SECS
+  u32 DAY_SECS
+  u32 HOUR_SECS
+  u32 MINUTE_SECS
+  u32 COMMON_YEAR_DAYS
+  u32 LEAP_YEAR_DAYS
+  u32 FOUR_YEARS_DAYS
+  u32 HUNDRED_YEARS_DAYS
+  u32 FOUR_HUNDRED_YEARS_DAYS
 
   ctypedef struct gps_time_t:
     double tow

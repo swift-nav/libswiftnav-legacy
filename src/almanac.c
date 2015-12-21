@@ -16,6 +16,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/time.h>
 #include <libswiftnav/almanac.h>
 
 /** \defgroup almanac Almanac
