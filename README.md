@@ -1,7 +1,7 @@
 libswiftnav
 ===========
 
-libswfitnav/master: [![Build status][1]][2]
+master: [![Build status][1]][2]
 
 Libswiftnav is a platform independent library that implements GNSS functions
 and algorithms for use by software-defined GNSS receivers or software requiring
