@@ -16,8 +16,6 @@
 #include "common.h"
 
 #define NUM_SATS_GPS 32
-// TODO too many PRNs, ahould only be 19 from 120- 138
-//#define NUM_SATS_SBAS 22
 #define NUM_SATS_SBAS 19
 #define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS)
 
