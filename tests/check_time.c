@@ -52,6 +52,35 @@ START_TEST(test_normalize_gps_time)
 }
 END_TEST
 
+START_TEST(test_gps_time_match_weeks)
+{
+  struct gps_time_match_weeks_testcase {
+    gps_time_t t, ref, ret;
+  } testcases[] = {
+    {.t = {0.0, WN_UNKNOWN}, .ref = {0.0, 1234}, .ret = {0.0, 1234}},
+    {.t = {WEEK_SECS-1, WN_UNKNOWN}, .ref = {0.0, 1234}, .ret = {WEEK_SECS-1, 1233}},
+    {.t = {0.0, WN_UNKNOWN}, .ref = {WEEK_SECS-1, 1234}, .ret = {0.0, 1235}},
+    {.t = {WEEK_SECS-1, WN_UNKNOWN}, .ref = {WEEK_SECS-1, 1234}, .ret = {WEEK_SECS-1, 1234}},
+    {.t = {2*DAY_SECS, WN_UNKNOWN}, .ref = {5*DAY_SECS, 1234}, .ret = {2*DAY_SECS, 1234}},
+    {.t = {5*DAY_SECS, WN_UNKNOWN}, .ref = {2*DAY_SECS, 1234}, .ret = {5*DAY_SECS, 1234}},
+    {.t = {0.0, WN_UNKNOWN}, .ref = {WEEK_SECS/2, 1234}, .ret = {0.0, 1234}},
+    {.t = {WEEK_SECS/2, WN_UNKNOWN}, .ref = {0.0, 1234}, .ret = {WEEK_SECS/2, 1234}},
+    {.t = {WEEK_SECS/2+1, WN_UNKNOWN}, .ref = {0.0, 1234}, .ret = {WEEK_SECS/2+1, 1233}},
+    {.t = {0.0, WN_UNKNOWN}, .ref = {WEEK_SECS/2+1, 1234}, .ret = {0.0, 1235}},
+  };
+  for (size_t i = 0;
+       i < sizeof(testcases) / sizeof(struct gps_time_match_weeks_testcase); i++) {
+    gps_time_match_weeks(&testcases[i].t, &testcases[i].ref);
+    fail_unless(testcases[i].t.wn == testcases[i].ret.wn,
+                "gps_time_match_weeks test case %d failed, t.wn = %d, ret.wn = %d",
+                i, testcases[i].t.wn, testcases[i].ret.wn);
+    fail_unless(testcases[i].t.tow == testcases[i].ret.tow,
+                "gps_time_match_weeks test case %d failed, t.tow = %.12f, ret.tow = %.12f",
+                i, testcases[i].t.tow, testcases[i].ret.tow);
+  }
+}
+END_TEST
+
 Suite* time_test_suite(void)
 {
   Suite *s = suite_create("Time handling");
@@ -59,6 +88,7 @@ Suite* time_test_suite(void)
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_gpsdifftime);
   tcase_add_test(tc_core, test_normalize_gps_time);
+  tcase_add_test(tc_core, test_gps_time_match_weeks);
   suite_add_tcase(s, tc_core);
 
   return s;
