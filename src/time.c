@@ -13,8 +13,7 @@
 #include <math.h>
 
 #include <libswiftnav/time.h>
-
-#define WEEK_SECS (7*24*60*60)
+#include <libswiftnav/constants.h>
 
 // TODO add a doc group
 
@@ -33,12 +32,12 @@ gps_time_t normalize_gps_time(gps_time_t t)
 {
   while(t.tow < 0) {
     t.tow += WEEK_SECS;
-    t.wn += 1;
+    t.wn -= 1;
   }
 
   while(t.tow > WEEK_SECS) {
     t.tow -= WEEK_SECS;
-    t.wn -= 1;
+    t.wn += 1;
   }
 
   return t;
