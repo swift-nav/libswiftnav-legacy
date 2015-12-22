@@ -28,6 +28,13 @@
  * \todo Detect and handle rollover more gracefully. */
 #define GPS_WEEK_CYCLE 1
 
+/** The GPS week reference number. The current GPS WN is always assumed to be
+ * later than this reference number. It will keep the WN calculated from the
+ * truncated 10-bit broadcast WN valid for ~20 years after this week.
+ *
+ * Current week number is set to 20 December 2015. */
+#define GPS_WEEK_REFERENCE 1876
+
 /** Offset between GPS and UTC times in seconds.
  * Update when a new leap second is inserted and be careful about times in the
  * past when this offset was different.
@@ -52,5 +59,6 @@ time_t gps2time(const gps_time_t *t);
 
 double gpsdifftime(const gps_time_t *end, const gps_time_t *beginning);
 void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
+u16 gps_adjust_week_cycle(u16 wn_raw, u16 wn_ref);
 
 #endif /* LIBSWIFTNAV_TIME_H */

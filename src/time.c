@@ -98,4 +98,21 @@ void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref)
     t->wn++;
 }
 
+/** Adjust the week number of t to correctly refelct the current week cycle.
+ *
+ * Assumes the current week number cannot be earlier than the reference WN. So
+ * will return the correct WN for at most 20 years after the reference WN.
+ *
+ * \param wn_raw Raw week number from NAV data stream that is modulo 1024
+ * \param wn_ref Reference week number that is from some point in the past
+ * |return The abosolute week number counted from 1980
+ */
+u16 gps_adjust_week_cycle(u16 wn_raw, u16 wn_ref)
+{
+  if (wn_raw >= wn_ref)
+  return wn_raw;
+
+  return wn_raw + 1024 * ((wn_ref + 1023 - wn_raw) / 1024);
+}
+
 /** \} */

@@ -81,6 +81,30 @@ START_TEST(test_gps_time_match_weeks)
 }
 END_TEST
 
+START_TEST(test_gps_adjust_week_cycle)
+{
+  struct gps_adjust_week_cycle_testcase {
+    u16 wn_raw, ret;
+  } testcases[] = {
+    {.wn_raw = 0, .ret = 2048},
+    {.wn_raw = 1023, .ret =2047},
+    {.wn_raw = GPS_WEEK_REFERENCE % 1024, .ret = GPS_WEEK_REFERENCE},
+    {.wn_raw = GPS_WEEK_REFERENCE % 1024 + 1, .ret = GPS_WEEK_REFERENCE + 1},
+    {.wn_raw = GPS_WEEK_REFERENCE % 1024 - 1, .ret = GPS_WEEK_REFERENCE + 1023},
+    {.wn_raw = GPS_WEEK_REFERENCE, .ret = GPS_WEEK_REFERENCE},
+    {.wn_raw = GPS_WEEK_REFERENCE + 1, .ret = GPS_WEEK_REFERENCE + 1},
+  };
+  const u16 wn_ref = GPS_WEEK_REFERENCE;
+  for (size_t i = 0;
+       i < sizeof(testcases) / sizeof(struct gps_adjust_week_cycle_testcase); i++) {
+    u16 wn = gps_adjust_week_cycle(testcases[i].wn_raw, wn_ref);
+    fail_unless(wn == testcases[i].ret,
+                "gps_adjust_week_cycle test case %d failed, wn = %d, ret = %d",
+                i, wn, testcases[i].ret);
+  }
+}
+END_TEST
+
 Suite* time_test_suite(void)
 {
   Suite *s = suite_create("Time handling");
@@ -89,6 +113,7 @@ Suite* time_test_suite(void)
   tcase_add_test(tc_core, test_gpsdifftime);
   tcase_add_test(tc_core, test_normalize_gps_time);
   tcase_add_test(tc_core, test_gps_time_match_weeks);
+  tcase_add_test(tc_core, test_gps_adjust_week_cycle);
   suite_add_tcase(s, tc_core);
 
   return s;

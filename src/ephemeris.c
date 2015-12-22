@@ -363,8 +363,8 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   /* Subframe 1: WN, URA, SV health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0 */
 
   /* GPS week number (mod 1024): Word 3, bits 1-10 */
-  e->toe.wn = frame_words[0][3-3] >> (30-10) & 0x3FF;
-  e->toe.wn += GPS_WEEK_CYCLE * 1024;
+  u16 wn_raw = frame_words[0][3-3] >> (30-10) & 0x3FF;
+  e->toe.wn = gps_adjust_week_cycle(wn_raw, GPS_WEEK_REFERENCE);
   k->toc.wn = e->toe.wn;
 
   /* URA: Word 3, bits 13-16 */
