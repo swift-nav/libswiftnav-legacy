@@ -215,21 +215,21 @@ START_TEST(test_ephemeris_equal)
   memset(&a, 0, sizeof(a));
 
   a.sid.code = CODE_SBAS_L1CA;
-  a.xyz.rate[0] = 1;
+  a.xyz.vel[0] = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (xyz.rate[0])");
+      "Ephemerides should not be equal (xyz.vel[0])");
   memset(&a, 0, sizeof(a));
 
   a.sid.code = CODE_SBAS_L1CA;
-  a.xyz.rate[1] = 1;
+  a.xyz.vel[1] = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (xyz.rate[1])");
+      "Ephemerides should not be equal (xyz.vel[1])");
   memset(&a, 0, sizeof(a));
 
   a.sid.code = CODE_SBAS_L1CA;
-  a.xyz.rate[2] = 1;
+  a.xyz.vel[2] = 1;
   fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (xyz.rate[2])");
+      "Ephemerides should not be equal (xyz.vel[2])");
   memset(&a, 0, sizeof(a));
 
   a.sid.code = CODE_SBAS_L1CA;
@@ -248,18 +248,6 @@ START_TEST(test_ephemeris_equal)
   a.xyz.acc[2] = 1;
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (xyz.acc[2])");
-  memset(&a, 0, sizeof(a));
-
-  a.sid.code = CODE_SBAS_L1CA;
-  a.xyz.iod = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (xyz.tod)");
-  memset(&a, 0, sizeof(a));
-
-  a.sid.code = CODE_SBAS_L1CA;
-  a.xyz.toa = 1;
-  fail_unless(!ephemeris_equal(&a, &b),
-      "Ephemerides should not be equal (xyz.toa)");
   memset(&a, 0, sizeof(a));
 
   a.sid.code = CODE_SBAS_L1CA;

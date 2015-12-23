@@ -25,56 +25,13 @@
  * Functions and calculations related to the GPS ephemeris.
  * \{ */
 
-/** Calculate satellite position, velocity from xyz ephemeris.
+/** Calculate satellite position, velocity and clock offset from SBAS ephemeris.
  *
  * References:
  *   -# WAAS Specification FAA-E-2892b 4.4.11
  *
- * \param e Ephemeris struct
- * \param pos Array into which to write calculated satellite position [m]
- * \param vel Array into which to write calculated satellite velocity [m/s]
- *
- * \return  0 on success,
- *         -1 if ephemeris is older (or newer) than 4 hours
- */
-static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
-                             double pos[3], double vel[3],
-                             double *clock_err, double *clock_rate_err)
-{
-  const ephemeris_xyz_t *ex = &e->xyz;
-  u8 ndays = t->tow / DAY_SECS;
-  double tod = t->tow - DAY_SECS * ndays;
-  double dt = tod - ex->toa;
-
-  if (dt > DAY_SECS/2)
-    dt -= DAY_SECS;
-  else if (dt < -DAY_SECS/2)
-    dt += DAY_SECS;
-
-  vel[0] = ex->rate[0];
-  vel[1] = ex->rate[1];
-  vel[2] = ex->rate[2];
-
-  pos[0] = ex->pos[0] + ex->rate[0] * dt +
-           0.5 * ex->acc[0] * pow(dt, 2);
-  pos[1] = ex->pos[1] + ex->rate[1] * dt +
-           0.5 * ex->acc[1] * pow(dt, 2);
-  pos[2] = ex->pos[2] + ex->rate[2] * dt +
-           0.5 * ex->acc[2] * pow(dt, 2);
-
-  memcpy(clock_err, &(ex->a_gf0), sizeof(double));
-  memcpy(clock_rate_err, &(ex->a_gf1), sizeof(double));
-
-  return 0;
-}
-
-/** Calculate satellite position, velocity and clock offset from ephemeris.
- *
- * References:
- *   -# IS-GPS-200D, Section 20.3.3.3.3.1 and Table 20-IV
- *
+ * \param e Pointer to an ephemeris structure for the satellite of interest
  * \param t GPS time at which to calculate the satellite state
- * \param ephemeris Ephemeris struct
  * \param pos Array into which to write calculated satellite position [m]
  * \param vel Array into which to write calculated satellite velocity [m/s]
  * \param clock_err Pointer to where to store the calculated satellite clock
@@ -83,7 +40,52 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
  *                       clock error [s/s]
  *
  * \return  0 on success,
- *         -1 if ephemeris is older (or newer) than 4 hours
+ *         -1 if ephemeris is not valid or too old
+ */
+static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
+                             double pos[3], double vel[3],
+                             double *clock_err, double *clock_rate_err)
+{
+  // TODO should t be in GPS or SBAS time?
+  // TODO what is the SBAS valid ttime interval?
+
+  const ephemeris_xyz_t *ex = &e->xyz;
+
+  double dt = gpsdifftime(t, &e->toe);
+
+  vel[0] = ex->vel[0] + ex->acc[0] * dt;
+  vel[1] = ex->vel[1] + ex->acc[1] * dt;
+  vel[2] = ex->vel[2] + ex->acc[2] * dt;
+
+  pos[0] = ex->pos[0] + ex->vel[0] * dt +
+           0.5 * ex->acc[0] * pow(dt, 2);
+  pos[1] = ex->pos[1] + ex->vel[1] * dt +
+           0.5 * ex->acc[1] * pow(dt, 2);
+  pos[2] = ex->pos[2] + ex->vel[2] * dt +
+           0.5 * ex->acc[2] * pow(dt, 2);
+
+  memcpy(clock_err, &(ex->a_gf0), sizeof(*clock_err));
+  memcpy(clock_rate_err, &(ex->a_gf1), sizeof(*clock_rate_err));
+
+  return 0;
+}
+
+/** Calculate satellite position, velocity and clock offset from GPS ephemeris.
+ *
+ * References:
+ *   -# IS-GPS-200D, Section 20.3.3.3.3.1 and Table 20-IV
+ *
+ * \param e Pointer to an ephemeris structure for the satellite of interest
+ * \param t GPS time at which to calculate the satellite state
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is not valid or too old
  */
 static s8 calc_sat_state_kepler(const ephemeris_t *e,
                                 const gps_time_t *t,
@@ -192,8 +194,8 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
  * Dispatch to internal function for Kepler/XYZ ephemeris depending on
  * constellation.
  *
+ * \param e Pointer to an ephemeris structure for the satellite of interest
  * \param t GPS time at which to calculate the satellite state
- * \param e Ephemeris struct
  * \param pos Array into which to write calculated satellite position [m]
  * \param vel Array into which to write calculated satellite velocity [m/s]
  * \param clock_err Pointer to where to store the calculated satellite clock
@@ -558,12 +560,10 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 static bool ephemeris_xyz_equal(const ephemeris_xyz_t *a,
                                 const ephemeris_xyz_t *b)
 {
-  return (a->iod == b->iod) &&
-         (a->toa == b->toa) &&
-         (a->a_gf0 == b->a_gf0) &&
+  return (a->a_gf0 == b->a_gf0) &&
          (a->a_gf1 == b->a_gf1) &&
          (memcmp(a->pos, b->pos, sizeof(a->pos)) == 0) &&
-         (memcmp(a->rate, b->rate, sizeof(a->rate)) == 0) &&
+         (memcmp(a->vel, b->vel, sizeof(a->vel)) == 0) &&
          (memcmp(a->acc, b->acc, sizeof(a->acc)) == 0);
 }
 
