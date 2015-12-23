@@ -132,7 +132,7 @@ s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
     return -1;
   }
 }
-// TODO why are there not equiv func in ephemeris
+
 /** Calculate the azimuth and elevation of a satellite from a reference
  * position given the satellite almanac.
  *

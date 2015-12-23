@@ -83,6 +83,10 @@ typedef struct {
 s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err);
+s8 calc_sat_az_el(const ephemeris_t* e, const gps_time_t *t,
+                  const double ref[3], double* az, double* el);
+s8 calc_sat_doppler(const ephemeris_t* e, const gps_time_t *t,
+                    const double ref[3], double *doppler);
 
 u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t);
 u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,

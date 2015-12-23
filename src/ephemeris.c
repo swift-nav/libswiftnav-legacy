@@ -20,6 +20,7 @@
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/coord_system.h>
 
 /** \defgroup ephemeris Ephemeris
  * Functions and calculations related to the GPS ephemeris.
@@ -231,6 +232,73 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
     assert(!"Unsupported constellation");
     return -1;
   }
+}
+
+/** Calculate the azimuth and elevation of a satellite from a reference
+ * position given the satellite ephemeris.
+ *
+ * \param e  Pointer to an ephemeris structure for the satellite of interest.
+ * \param t    GPS time at which to calculate the az/el.
+ * \param ref  ECEF coordinates of the reference point from which the azimuth
+ *             and elevation is to be determined, passed as [X, Y, Z], all in
+ *             meters.
+ * \param az   Pointer to where to store the calculated azimuth output [rad].
+ * \param el   Pointer to where to store the calculated elevation output [rad].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
+ */
+s8 calc_sat_az_el(const ephemeris_t* e, const gps_time_t *t,
+                  const double ref[3], double* az, double* el)
+{
+  double sat_pos[3];
+  double sat_vel[3];
+  double clock_err, clock_rate_err;
+  s8 ret = calc_sat_state(e, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
+  if (ret != 0) {
+    return ret;
+  }
+  wgsecef2azel(sat_pos, ref, az, el);
+
+  return 0;
+}
+
+/** Calculate the Doppler shift of a satellite as observed at a reference
+ * position given the satellite ephemeris.
+ *
+ * \param e  Pointer to an ephemeris structure for the satellite of interest.
+ * \param t    GPS time at which to calculate the az/el.
+ * \param ref  ECEF coordinates of the reference point from which the
+ *             Doppler is to be determined, passed as [X, Y, Z], all in
+ *             meters.
+ * \param doppler The Doppler shift [Hz].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
+ */
+s8 calc_sat_doppler(const ephemeris_t* e, const gps_time_t *t,
+                    const double ref[3], double *doppler)
+{
+  double sat_pos[3];
+  double sat_vel[3];
+  double clock_err, clock_rate_err;
+  double vec_ref_sat[3];
+
+  s8 ret = calc_sat_state(e, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
+  if (ret != 0) {
+    return ret;
+  }
+
+  /* Find the vector from the reference position to the satellite. */
+  vector_subtract(3, sat_pos, ref, vec_ref_sat);
+
+  /* Find the satellite velocity projected on the line of sight vector from the
+   * reference position to the satellite. */
+  double radial_velocity = vector_dot(3, vec_ref_sat, sat_vel) / \
+                           vector_norm(3, vec_ref_sat);
+
+  /* Return the Doppler shift. */
+  *doppler = GPS_L1_HZ * radial_velocity / GPS_C;
+
+  return 0;
 }
 
 /** Is this ephemeris usable?
