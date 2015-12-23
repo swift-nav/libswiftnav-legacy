@@ -133,7 +133,6 @@ s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
   }
 }
 // TODO why are there not equiv func in ephemeris
-// TODO theese should have return, dont forget to add to doc
 /** Calculate the azimuth and elevation of a satellite from a reference
  * position given the satellite almanac.
  *
@@ -144,6 +143,8 @@ s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
  *             meters.
  * \param az   Pointer to where to store the calculated azimuth output [rad].
  * \param el   Pointer to where to store the calculated elevation output [rad].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
 s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
                           const double ref[3], double* az, double* el)
@@ -169,6 +170,8 @@ s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
  *             Doppler is to be determined, passed as [X, Y, Z], all in
  *             meters.
  * \param doppler The Doppler shift [Hz].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
 s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
                             const double ref[3], double *doppler)
@@ -197,6 +200,75 @@ s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
   return 0;
 }
 
-// TODO add is valid and equals functions
+/** Is this almanac usable?
+ *
+ * \todo This should actually be more than just the "valid" flag.
+ *       When we write an is_usable() function, lets use that instead
+ *       of just es[prn].valid.
+ *
+ * \param a Almanac struct
+ * \param t Current time
+ * \return 1 if the ephemeris is valid and not too old.
+ *         0 otherwise.
+ */
+u8 almanac_good(const almanac_t *a, gps_time_t *t)
+{
+  /* Seconds from the time from almanac reference epoch (toe) */
+  double dt = gpsdifftime(t, &a->toa);
+
+  /* TODO: this doesn't exclude almanacs older than a week so could be made
+   * better. */
+  return (a->valid && fabs(dt) < ((u32)a->fit_interval)*60*60);
+}
+
+static bool almanac_xyz_equal(const almanac_xyz_t *a,
+                              const almanac_xyz_t *b)
+{
+  return (memcmp(a->pos, b->pos, sizeof(a->pos)) == 0) &&
+         (memcmp(a->vel, b->vel, sizeof(a->vel)) == 0) &&
+         (memcmp(a->acc, b->acc, sizeof(a->acc)) == 0);
+}
+
+static bool almanac_kepler_equal(const almanac_kepler_t *a,
+                                 const almanac_kepler_t *b)
+{
+  return (a->m0 == b->m0) &&
+         (a->ecc == b->ecc) &&
+         (a->sqrta == b->sqrta) &&
+         (a->omega0 == b->omega0) &&
+         (a->omegadot == b->omegadot) &&
+         (a->w == b->w) &&
+         (a->inc == b->inc) &&
+         (a->af0 == b->af0) &&
+         (a->af1 == b->af1);
+}
+
+/** Are the two almanacs the same?
+ *
+ * \param a First almanac
+ * \param b Second almanac
+ * \return true if they are equal
+ */
+bool almanac_equal(const almanac_t *a, const almanac_t *b)
+{
+  if (!sid_is_equal(a->sid, b->sid) ||
+      (a->ura != b->ura) ||
+      (a->fit_interval != b->fit_interval) ||
+      (a->valid != b->valid) ||
+      (a->healthy != b->healthy) ||
+      (a->toa.wn != b->toa.wn) ||
+      (a->toa.tow != b->toa.tow))
+    return false;
+
+  switch (sid_to_constellation(a->sid)) {
+  case CONSTELLATION_GPS:
+    return almanac_kepler_equal(&a->kepler, &b->kepler);
+  case CONSTELLATION_SBAS:
+    return almanac_xyz_equal(&a->xyz, &b->xyz);
+  default:
+    assert(!"Unsupported constellation");
+    return false;
+  }
+}
 
 /** \} */

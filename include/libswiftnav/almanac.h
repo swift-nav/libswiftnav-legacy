@@ -65,5 +65,7 @@ s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
                           const double ref[3], double* az, double* el);
 s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
                             const double ref[3], double *doppler);
+u8 almanac_good(const almanac_t *a, gps_time_t *t);
+bool almanac_equal(const almanac_t *a, const almanac_t *b);
 
 #endif /* LIBSWIFTNAV_ALMANAC_H */

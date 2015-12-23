@@ -235,17 +235,17 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
 
 /** Is this ephemeris usable?
  *
- * \param eph Ephemeris struct
- * \param t   The current GPS time. This is used to determine the ephemeris age.
+ * \param e Ephemeris struct
+ * \param t The current GPS time. This is used to determine the ephemeris age.
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
+u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t)
 {
-  assert(eph != NULL);
+  assert(e != NULL);
   assert(t != NULL);
 
-  return ephemeris_params_valid(eph->valid, eph->fit_interval, &(eph->toe), t);
+  return ephemeris_params_valid(e->valid, e->fit_interval, &(e->toe), t);
 }
 
 /** Lean version of ephemeris_valid
@@ -258,18 +258,18 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
+u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t)
 {
   assert(t != NULL);
   assert(toe != NULL);
 
-  if (!v) {
+  if (!valid) {
     return 0;
   }
 
   if (fit_interval <= 0) {
-    log_warn("ephemeris_valid used with 0 eph->fit_interval");
+    log_warn("ephemeris_valid used with 0 e->fit_interval");
     return 0;
   }
 
@@ -300,14 +300,14 @@ u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
  * if only the L2(P) signal is bad, but L1 C/A and L2C are fine, we can still
  * use the satellite.
  *
- * \param eph Ephemeris struct
+ * \param e Ephemeris struct
  * \return 1 if the satellite is healthy.
  *         0 otherwise.
  */
-u8 satellite_healthy(const ephemeris_t *eph)
+u8 satellite_healthy(const ephemeris_t *e)
 {
-  if (eph->valid) {
-    return eph->healthy;
+  if (e->valid) {
+    return e->healthy;
   } else {
     /* If we don't yet have an ephemeris, assume satellite is healthy */
     /* Otherwise we will stop tracking the sat and never find out */
@@ -595,6 +595,12 @@ static bool ephemeris_kepler_equal(const ephemeris_kepler_t *a,
          (a->toc.tow == b->toc.tow);
 }
 
+/** Are the two ephemerides the same?
+ *
+ * \param a First ephemeris
+ * \param b Second ephemeris
+ * \return true if they are equal
+ */
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
 {
   if (!sid_is_equal(a->sid, b->sid) ||
