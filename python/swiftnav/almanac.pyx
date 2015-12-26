@@ -85,7 +85,7 @@ cdef class Almanac:
       The tuple (azimuth, elevation) in radians.
 
     """
-    assert len(ref) != 3, "ECEF coordinates must have dimension 3."
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
     cdef double az, el
     calc_sat_az_el_almanac(&self._thisptr, t, week, &ref_[0], &az, &el)
@@ -111,6 +111,6 @@ cdef class Almanac:
       The Doppler shift in Hz.
 
     """
-    assert len(ref) != 3, "ECEF coordinates must have dimension 3."
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
     return calc_sat_doppler_almanac(&self._thisptr, t, week, &ref_[0])
