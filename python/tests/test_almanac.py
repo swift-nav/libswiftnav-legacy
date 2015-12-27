@@ -9,6 +9,7 @@
 # EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
+import numpy as np
 import swiftnav.almanac
 
 def test_imports():
@@ -16,3 +17,42 @@ def test_imports():
 
   """
   assert True
+
+def test_init():
+  alm = {
+    'gps': {
+        'a': 8,
+        'af0': 9,
+        'af1': 10,
+        'argp': 7,
+        'ecc': 8,
+        'inc': 3,
+        'ma': 8,
+        'raaw': 6,
+        'rora': 4,
+        'toa': 2,
+        'week': 11
+    },
+    'healthy': 1,
+    'sid': {
+        'band': 0,
+        'constellation': 0,
+        'sat': 1
+    },
+    'sbas': {
+      'data_id': 1,
+      'x': 1,
+      'y': 2,
+      'z': 3,
+      'x_rate': 4,
+      'y_rate': 5,
+      'z_rate': 6,
+      't0': 7
+    },
+    'valid': 1,
+  }
+
+  satAlmanac = swiftnav.almanac.Almanac(**alm)
+  assert np.isclose(alm['gps']['a'], satAlmanac.gps['a'])
+  assert np.isclose(alm['gps']['ecc'], satAlmanac.gps['ecc'])
+
