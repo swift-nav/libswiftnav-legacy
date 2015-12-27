@@ -39,16 +39,6 @@ def test_init():
         'constellation': 0,
         'sat': 1
     },
-    'sbas': {
-      'data_id': 1,
-      'x': 1,
-      'y': 2,
-      'z': 3,
-      'x_rate': 4,
-      'y_rate': 5,
-      'z_rate': 6,
-      't0': 7
-    },
     'valid': 1,
   }
 

@@ -26,8 +26,13 @@ cdef class Almanac:
 
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(almanac_t))
-    if kwargs:
-      self._thisptr = kwargs
+    self._thisptr.sid = kwargs.pop('sid')
+    self._thisptr.healthy = kwargs.pop('healthy')
+    self._thisptr.valid = kwargs.pop('valid')
+    if 'gps' in kwargs:
+      self._thisptr.gps = kwargs.pop('gps')
+    elif 'sbas' in kwargs:
+      self._thisptr.sbas = kwargs.pop('sbas')
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
