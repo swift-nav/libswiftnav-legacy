@@ -73,7 +73,7 @@ static const u32 crc24qtab[256] = {
 u32 crc24q(const u8 *buf, u32 len, u32 crc)
 {
   for (u32 i = 0; i < len; i++)
-    crc = ((crc << 8) & 0xFFFFFF) ^ crc24qtab[(crc >> 16) ^ buf[i]];
+    crc = ((crc << 8) & 0xFFFFFF) ^ crc24qtab[((crc >> 16) ^ buf[i]) & 0xff];
   return crc;
 }
 
