@@ -9,83 +9,91 @@
 
 int compare_files(FILE *f1, FILE *f2)
 {
-  char ch1, ch2;
-  int flag = 0;
+  int c1, c2;
+  int count = 0;
 
-  ch1 = fgetc(f1);
-  ch2 = fgetc(f2);
+  while (1) {
+    c1 = fgetc(f1);
+    c2 = fgetc(f2);
 
-  while (ch1 != EOF && ch2 != EOF) {
-    if (ch1 != ch2) {
-      flag = 1;
-      return flag;
-    }
-  ch1 = fgetc(f1);
-  ch2 = fgetc(f2);
-  }
-  if (ch1 == EOF && ch2 != ch1) {
-    flag = 1;
-    return flag;
+    if (c1 != c2)
+      return count;
+
+    if (c1 == EOF)
+      return count;
+
+    count++;
   }
 
-  if (ch2 == EOF && ch1 != ch2) {
-    flag = 1;
-    return flag;
-  }
-
-  return flag;
+  return count;
 }
 
 START_TEST(test_viterbi27)
 {
-  int i;
-  struct v27 vp;
-  FILE *waas_data = NULL;
-  FILE *tmp = NULL;
-  FILE *check = NULL;
-  decision_t decisions[250 * 6];
+  #define HISTORY_LENGTH_BITS 64
+  #define DECODE_LENGTH_BITS 32
 
-  int output = open("tmp.bin", O_WRONLY | O_CREAT, 0644);
-  waas_data = fopen("waas_data.bin", "r");
-  check = fopen("waas_check.bin", "r");
+  FILE *waas_symbols = fopen("v27_sym_waas.bin", "r");
+  FILE *waas_bits = fopen("v27_bits_waas.bin", "r");
+  const char *tmp_file = "tmp.bin";
 
-  fseek(waas_data, 0, SEEK_END);
-  long fsize = ftell(waas_data);
-  fseek(waas_data, 0, SEEK_SET);
+  /* Read in viterbi symbols from file */
+  fseek(waas_symbols, 0, SEEK_END);
+  long fsize = ftell(waas_symbols);
+  fseek(waas_symbols, 0, SEEK_SET);
 
-  int nsymbols = fsize;
-  int nbits = nsymbols/2 - 12;
+  unsigned char *symbol_buffer = (unsigned char *)malloc((fsize + 1) *
+                                                         sizeof(unsigned char));
+  fread(symbol_buffer, fsize, 1, waas_symbols);
+  fclose(waas_symbols);
 
-  unsigned char data[nbits];
-  memset(data, 0x42, nbits);
+  /* One symbol per byte in input file */
+  int nbits = fsize/2;
 
-  unsigned char *buffer = (unsigned char *)malloc((fsize + 1) * sizeof(unsigned char));
+  /* Initialize viterbi decoder */
+  v27_t v;
+  v27_decision_t decisions[HISTORY_LENGTH_BITS];
+  v27_poly_t v27_poly;
+  signed char poly_bytes[] = {V27POLYA, V27POLYB};
+  int v27_bit_length = -32; /* hack to process 32 bits before outputting data */
 
-  fread(buffer, fsize, 1, waas_data);
-  fclose(waas_data);
+  v27_poly_init(&v27_poly, poly_bytes);
+  v27_init(&v, decisions, HISTORY_LENGTH_BITS, &v27_poly, 0);
 
-  for(i = 0; i < fsize; i++) {
-    char c = buffer[i];
-    int digit = c - '0';
-    if (digit == 1)
-      buffer[i] = 0xff;
-    else
-      buffer[i] = 0x00;
+  /* Perform decoding, writing output to file */
+  int output = open(tmp_file, O_WRONLY | O_CREAT, 0644);
+  int bit_offset = 0;
+  int output_length_bits = 0;
+  while (bit_offset < nbits) {
+    int bits_to_process = HISTORY_LENGTH_BITS - v27_bit_length;
+    if (bit_offset + bits_to_process > nbits)
+      break;
+
+    v27_update(&v, &symbol_buffer[2*bit_offset], bits_to_process);
+    v27_bit_length += bits_to_process;
+    bit_offset += bits_to_process;
+
+    unsigned char data[HISTORY_LENGTH_BITS / 8];
+    memset(data, 0x43, HISTORY_LENGTH_BITS / 8);
+    v27_chainback_likely(&v, data, HISTORY_LENGTH_BITS);
+
+    /* write out the first DECODE_LENGTH bytes */
+    write(output, data, DECODE_LENGTH_BITS / 8);
+    v27_bit_length -= DECODE_LENGTH_BITS;
+    output_length_bits += DECODE_LENGTH_BITS;
   }
-
-  set_decisions_viterbi27(&vp, decisions);
-  init_viterbi27(&vp, 0);
-  update_viterbi27_blk(&vp, buffer, 250 * 6);
-  chainback_viterbi27(&vp, data, 250 * 6, 0);
-
-  write(output, &data, 250 * 6);
   close(output);
-  tmp = fopen("tmp.bin", "r");
 
-  fail_unless(compare_files(check, tmp) == 0, "Viterbi decoder produced incorect file!");
+  /* compare output with expected result */
+  FILE *tmp = fopen(tmp_file, "r");
+  int match_length_bytes = compare_files(waas_bits, tmp);
 
-  free(buffer);
-  fclose(check);
+  fail_unless(match_length_bytes == output_length_bits / 8,
+      "Viterbi decoder produced incorrect file!\n"
+      "%d %d", match_length_bytes, output_length_bits / 8);
+
+  free(symbol_buffer);
+  fclose(waas_bits);
   fclose(tmp);
 }
 END_TEST

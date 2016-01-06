@@ -69,8 +69,8 @@ else (CMAKE_CROSSCOMPILING)
       COMMAND test_libswiftnav
     )
 
-    file(COPY data/waas_check.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
-    file(COPY data/waas_data.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+    file(COPY data/v27_sym_waas.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
+    file(COPY data/v27_bits_waas.bin DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
     # TODO run even if tests fail?
     # TODO check that we're in a coverage build
