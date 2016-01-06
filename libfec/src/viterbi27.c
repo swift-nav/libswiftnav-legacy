@@ -7,101 +7,90 @@
 
 #include <libfec/fec.h>
 
-static union branchtab27 Branchtab27[2] __attribute__ ((aligned(16)));
+static inline int parity(int x)
+{
+  x ^= x >> 16;
+  x ^= x >> 8;
+  x ^= x >> 4;
+  x &= 0xf;
+  return (0x6996 >> x) & 1;
+}
 
-void set_viterbi27_polynomial(int polys[2])
+/** Initialize a v27_poly_t struct for use with a v27_t decoder.
+ *
+ * \param poly Structure to initialize.
+ * \param polynomial Byte array representing the desired polynomials.
+ */
+void v27_poly_init(v27_poly_t *poly, signed char polynomial[2])
 {
   int state;
 
   for(state = 0; state < 32; state++) {
-    Branchtab27[0].c[state] = (polys[0] < 0) ^ parity((2*state) & abs(polys[0])) ? 255 : 0;
-    Branchtab27[1].c[state] = (polys[1] < 0) ^ parity((2*state) & abs(polys[1])) ? 255 : 0;
+    poly->c0[state] = (polynomial[0] < 0) ^ parity((2*state) & abs(polynomial[0])) ? 255 : 0;
+    poly->c1[state] = (polynomial[1] < 0) ^ parity((2*state) & abs(polynomial[1])) ? 255 : 0;
   }
 }
 
-/* Create a new instance of a Viterbi decoder */
-void init_viterbi27(struct v27 *vp, int starting_state)
+/** Initialize a v27_t struct for Viterbi decoding.
+ *
+ * \param v Structure to initialize
+ * \param decisions Array of v27_decision_t structs, capacity = decisions_count.
+ *                  Must remain valid as long as v is used.
+ * \param decisions_count Size of decisions array. Equal to the number of bit
+ *                        decisions kept in history.
+ * \param poly Struct describing the polynomials to use. Must remain valid as
+ *             long as v is used. May be shared between multiple decoders.
+ * \param initial_state Initial state of the decoder shift register. Usually zero.
+ */
+void v27_init(v27_t *v, v27_decision_t *decisions, unsigned int decisions_count,
+              const v27_poly_t *poly, unsigned char initial_state)
 {
   int i;
-  int polys[2] = { V27POLYA, V27POLYB };
 
-  set_viterbi27_polynomial(polys);
+  v->old_metrics = v->metrics1;
+  v->new_metrics = v->metrics2;
+  v->poly = poly;
+  v->decisions = decisions;
+  v->decisions_index = 0;
+  v->decisions_count = decisions_count;
 
   for(i = 0; i < 64; i++)
-    vp->metrics1.w[i] = 63;
+    v->old_metrics[i] = 63;
 
-  vp->old_metrics = &vp->metrics1;
-  vp->new_metrics = &vp->metrics2;
-  vp->dp = vp->decisions;
-  vp->old_metrics->w[starting_state & 63] = 0; /* Bias known start state */
-}
-
-/* Viterbi chainback */
-int chainback_viterbi27(
-      struct v27 *vp,
-      unsigned char *data, /* Decoded output data */
-      unsigned int nbits, /* Number of data bits */
-      unsigned int endstate) /* Terminal encoder state */
-{
-  decision_t *d;
-
-  if(vp == NULL)
-    return -1;
-
-  d = vp->decisions;
-  /* Make room beyond the end of the encoder register so we can
-   * accumulate a full byte of decoded data
-   */
-  endstate %= 64;
-  endstate <<= 2;
-
-  /* The store into data[] only needs to be done every 8 bits.
-   * But this avoids a conditional branch, and the writes will
-   * combine in the cache anyway
-   */
-  d += 6; /* Look past tail */
-  while(nbits-- != 0) {
-    int k;
-
-    k = (d[nbits].w[(endstate>>2)/32] >> ((endstate>>2)%32)) & 1;
-    data[nbits>>3] = endstate = (endstate >> 1) | (k << 7);
-  }
-
-  return 0;
+  v->old_metrics[initial_state & 63] = 0; /* Bias known start state */
 }
 
 /* C-language butterfly */
 #define BFLY(i) {\
 unsigned int metric,m0,m1,decision;\
-    metric = (Branchtab27[0].c[i] ^ sym0) + (Branchtab27[1].c[i] ^ sym1);\
-    m0 = vp->old_metrics->w[i] + metric;\
-    m1 = vp->old_metrics->w[i+32] + (510 - metric);\
+    metric = (v->poly->c0[i] ^ sym0) + (v->poly->c1[i] ^ sym1);\
+    m0 = v->old_metrics[i] + metric;\
+    m1 = v->old_metrics[i+32] + (510 - metric);\
     decision = (signed int)(m0-m1) > 0;\
-    vp->new_metrics->w[2*i] = decision ? m1 : m0;\
+    v->new_metrics[2*i] = decision ? m1 : m0;\
     d->w[i/16] |= decision << ((2*i)&31);\
     m0 -= (metric+metric-510);\
     m1 += (metric+metric-510);\
     decision = (signed int)(m0-m1) > 0;\
-    vp->new_metrics->w[2*i+1] = decision ? m1 : m0;\
+    v->new_metrics[2*i+1] = decision ? m1 : m0;\
     d->w[i/16] |= decision << ((2*i+1)&31);\
 }
 
-/* Update decoder with a block of demodulated symbols
- * Note that nbits is the number of decoded data bits, not the number
- * of symbols!
+/** Update a v27_t decoder with a block of symbols.
+ *
+ * \param v Structure to update.
+ * \param syms Array of symbols to use. Must contain two symbols per bit.
+ *             0xff = strong 1, 0x00 = strong 0.
+ * \param nbits Number of bits corresponding to the provided symbols.
  */
-int update_viterbi27_blk(struct v27 *vp, const unsigned char *syms, int nbits)
+void v27_update(v27_t *v, const unsigned char *syms, int nbits)
 {
-  void *tmp;
-  decision_t *d;
-
-  if(vp == NULL)
-    return -1;
-
-  d = (decision_t *)vp->dp;
+  unsigned char sym0, sym1;
+  unsigned int *tmp;
+  int normalize = 0;
 
   while(nbits--) {
-    unsigned char sym0,sym1;
+    v27_decision_t *d = &v->decisions[v->decisions_index];
 
     d->w[0] = d->w[1] = 0;
     sym0 = *syms++;
@@ -139,20 +128,89 @@ int update_viterbi27_blk(struct v27 *vp, const unsigned char *syms, int nbits)
     BFLY(29);
     BFLY(30);
     BFLY(31);
-    d++;
+
+    /* Normalize metrics if they are nearing overflow */
+    if(v->new_metrics[0] > (1<<30)) {
+      int i;
+      unsigned int minmetric = 1<<31;
+
+      for(i=0; i<64; i++) {
+        if(v->new_metrics[i] < minmetric)
+          minmetric = v->new_metrics[i];
+      }
+
+      for(i=0; i<64; i++)
+        v->new_metrics[i] -= minmetric;
+
+      normalize += minmetric;
+    }
+
+    /* Advance decision index */
+    if(++v->decisions_index >= v->decisions_count)
+      v->decisions_index = 0;
 
     /* Swap pointers to old and new metrics */
-    tmp = vp->old_metrics;
-    vp->old_metrics = vp->new_metrics;
-    vp->new_metrics = tmp;
+    tmp = v->old_metrics;
+    v->old_metrics = v->new_metrics;
+    v->new_metrics = tmp;
   }
-
-  vp->dp = d;
-  return 0;
 }
 
-
-void set_decisions_viterbi27(struct v27 *vp, decision_t *dec)
+/** Retrieve the most likely output bit sequence with known final state from
+ *  a v27_t decoder.
+ *
+ * \param v Structure to use.
+ * \param data Array used to store output bits, capacity = nbits.
+ * \param nbits Number of bits to retrieve.
+ * \param final_state Known final state of the decoder shift register.
+ */
+void v27_chainback_fixed(v27_t *v, unsigned char *data, unsigned int nbits,
+                         unsigned char final_state)
 {
-  vp->decisions = dec;
+  int k;
+  unsigned int decisions_index = v->decisions_index;
+
+  final_state %= 64;
+  final_state <<= 2;
+
+  while(nbits-- != 0) {
+
+    /* Decrement decision index */
+    decisions_index = (decisions_index == 0) ?
+                        v->decisions_count-1 : decisions_index-1;
+
+    v27_decision_t *d = &v->decisions[decisions_index];
+    k = (d->w[(final_state>>2)/32] >> ((final_state>>2)%32)) & 1;
+    /* The store into data[] only needs to be done every 8 bits.
+     * But this avoids a conditional branch, and the writes will
+     * combine in the cache anyway
+     */
+    data[nbits>>3] = final_state = (final_state >> 1) | (k << 7);
+  }
+}
+
+/** Retrieve the most likely output bit sequence with unknown final state from
+ *  a v27_t decoder.
+ *
+ * \param v Structure to use.
+ * \param data Array used to store output bits, capacity = nbits.
+ * \param nbits Number of bits to retrieve.
+ */
+void v27_chainback_likely(v27_t *v, unsigned char *data, unsigned int nbits)
+{
+  /* Determine state with minimum metric */
+
+  int i;
+  unsigned int best_metric = 0xffffffff;
+  unsigned char best_state = 0;
+  for(i=0; i<64; i++)
+  {
+    if(v->new_metrics[i] < best_metric)
+    {
+      best_metric = v->new_metrics[i];
+      best_state = i;
+    }
+  }
+
+  v27_chainback_fixed(v, data, nbits, best_state);
 }

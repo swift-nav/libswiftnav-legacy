@@ -13,42 +13,35 @@
 #define V27POLYA  0x4f
 #define V27POLYB  0x6d
 
-typedef union {
-  unsigned int w[64];
-} metric_t;
+typedef struct {
+  unsigned char c0[32];
+  unsigned char c1[32];
+} v27_poly_t;
 
-typedef union {
+typedef struct {
   unsigned int w[2];
-} decision_t;
+} v27_decision_t;
 
-union branchtab27 {
-  unsigned char c[32];
-};
-
-/* State info for instance of Viterbi decoder
+/* State info for instance of r=1/2 k=7 Viterbi decoder
  */
-struct v27 {
-  metric_t metrics1; /* path metric buffer 1 */
-  metric_t metrics2; /* path metric buffer 2 */
-  decision_t *dp;          /* Pointer to current decision */
-  metric_t *old_metrics,*new_metrics; /* Pointers to path metrics, swapped on every bit */
-  decision_t *decisions;   /* Beginning of decisions for block */
-};
+typedef struct {
+  unsigned int metrics1[64];      /* Path metric buffer 1 */
+  unsigned int metrics2[64];      /* Path metric buffer 2 */
+  /* Pointers to path metrics, swapped on every bit */
+  unsigned int *old_metrics, *new_metrics;
+  const v27_poly_t *poly;         /* Polynomial to use */
+  v27_decision_t *decisions;      /* Beginning of decisions for block */
+  unsigned int decisions_index;   /* Index of current decision */
+  unsigned int decisions_count;   /* Number of decisions in history */
+} v27_t;
 
-void set_decisions_viterbi27(struct v27 *vp, decision_t *dec);
-void init_viterbi27(struct v27 *vp, int starting_state);
-void set_viterbi27_polynomial(int polys[2]);
-int update_viterbi27_blk(struct v27 *p, const unsigned char sym[], int npairs);
-int chainback_viterbi27(struct v27 *p, unsigned char *data, unsigned int nbits,
-                        unsigned int endstate);
+void v27_poly_init(v27_poly_t *poly, signed char polynomial[2]);
 
-static inline int parity(int x)
-{
-  x ^= x >> 16;
-  x ^= x >> 8;
-  x ^= x >> 4;
-  x &= 0xf;
-  return (0x6996 >> x) & 1;
-}
+void v27_init(v27_t *v, v27_decision_t *decisions, unsigned int decisions_count,
+              const v27_poly_t *poly, unsigned char initial_state);
+void v27_update(v27_t *v, const unsigned char *syms, int nbits);
+void v27_chainback_fixed(v27_t *v, unsigned char *data, unsigned int nbits,
+                         unsigned char final_state);
+void v27_chainback_likely(v27_t *v, unsigned char *data, unsigned int nbits);
 
 #endif
