@@ -34,7 +34,6 @@ set (PLOVER_HS_SRCS
 #   Expects ${unit}.plv in PLOVER_DIR
 #   Generates ${unit}.c in PLOVER_GENERATED_C_DIR
 #         and ${unit}.h in PLOVER_GENERATED_H_DIR
-# TODO add qr, pvt
 set (PLOVER_UNITS
   prelude
   pvt
@@ -64,9 +63,7 @@ Will run if plover subproject is modified and after make clean or clean-generate
       add_custom_command(
         OUTPUT "${PLOVER_GENERATED_C_DIR}/${unit}.c" "${PLOVER_GENERATED_H_DIR}/${unit}.h"
         COMMAND ${CMAKE_PLOVER}
-        # TODO compiler support for plv file imports
           -I "${PLOVER_DIR}"
-          #--out ${unit}
           --cdir "${PLOVER_GENERATED_C_DIR}" --hdir "${PLOVER_GENERATED_H_DIR}"
           --libprefix "plover"
           "${PLOVER_DIR}/${unit}.plv"
