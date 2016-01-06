@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Swift Navigation Inc.
+# Copyright (C) 2015 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -9,15 +9,13 @@
 
 # cython: embedsignature=True
 
-from ephemeris cimport ephemeris_t
 from fmt_utils import fmt_repr
-from time cimport gps_time_t
 from signal cimport gnss_signal_t
 
-cdef class NavMsg:
+cdef class BitSync:
 
-  def __cinit__(self):
-    nav_msg_init(&self._thisptr)
+  def __cinit__(self, sid):
+    bit_sync_init(&self._thisptr, sid)
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
@@ -31,12 +29,8 @@ cdef class NavMsg:
   def from_dict(self, d):
     self._thisptr = d
 
-  def update(self, bit_val):
-    return nav_msg_update(&self._thisptr, bit_val)
-
-  def subframe_ready(self):
-    return subframe_ready(&self._thisptr)
-
-  def process_subframe(self, e):
-    cdef ephemeris_t tmp = e._thisptr
-    return process_subframe(&self._thisptr, &tmp)
+  def update(self, corr_prompt_real, ms):
+    cdef bool result
+    cdef s32 bit_integrate
+    result = bit_sync_update(&self._thisptr, corr_prompt_real, ms, &bit_integrate)
+    return (result, bit_integrate)
