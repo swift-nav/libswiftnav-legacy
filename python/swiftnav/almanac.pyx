@@ -26,8 +26,13 @@ cdef class Almanac:
 
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(almanac_t))
-    if kwargs:
-      self._thisptr = kwargs
+    self._thisptr.sid = kwargs.pop('sid')
+    self._thisptr.healthy = kwargs.pop('healthy')
+    self._thisptr.valid = kwargs.pop('valid')
+    if 'gps' in kwargs:
+      self._thisptr.gps = kwargs.pop('gps')
+    elif 'sbas' in kwargs:
+      self._thisptr.sbas = kwargs.pop('sbas')
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
@@ -85,7 +90,7 @@ cdef class Almanac:
       The tuple (azimuth, elevation) in radians.
 
     """
-    assert len(ref) != 3, "ECEF coordinates must have dimension 3."
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
     cdef double az, el
     calc_sat_az_el_almanac(&self._thisptr, t, week, &ref_[0], &az, &el)
@@ -111,6 +116,6 @@ cdef class Almanac:
       The Doppler shift in Hz.
 
     """
-    assert len(ref) != 3, "ECEF coordinates must have dimension 3."
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
     return calc_sat_doppler_almanac(&self._thisptr, t, week, &ref_[0])
