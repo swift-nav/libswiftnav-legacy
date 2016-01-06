@@ -9,6 +9,7 @@ extern struct navigation_measurement_t (
   sat_vel :: double[3];
   doppler :: double;
 );
+
 extern GPS_L1_HZ :: double;
 extern GPS_OMEGAE_DOT :: double;
 extern GPS_C :: double;
@@ -60,47 +61,3 @@ pvt (inout rx_state :: double[8])
 
     return correction_norm;
 );
-
-extern MAX_OBS_DIM :: u32;
-extern MAX_STATE_DIM :: u32;
-
-extern struct nkf_t (
-  state_dim :: u32;
-  obs_dim :: u32;
-  amb_drift_var :: double;
-  decor_mtx :: double[MAX_OBS_DIM * MAX_OBS_DIM];
-  decor_obs_mtx :: double[MAX_STATE_DIM * MAX_OBS_DIM] storing double[obs_dim, state_dim];
-  decor_obs_cov :: double[MAX_OBS_DIM];
-  null_basis_Q :: double[(MAX_STATE_DIM - 3) * MAX_OBS_DIM];
-  state_mean :: double[MAX_STATE_DIM] storing double[state_dim];
-  state_cov_U :: double[MAX_STATE_DIM * MAX_STATE_DIM] storing UpperUnitTriangular double[state_dim, _];
-  state_cov_D :: double[MAX_STATE_DIM] storing Diagonal double[state_dim, _];
-  l_sos_avg :: double;
-
---  assert (state_dim < MAX_STATE_DIM);
---  assert (ob_dim < MAX_OBS_DIM);
-);
-
---const 0 :: double@ConstantMatrix[n,m];
-
--- @Block (double[2,2],double[2,m-3]; , const 0) double[n,m]
-
-{-
-static get_sos_innov (kf :: *nkf_t) (decor_obs :: double[kf.obs_dim]) :: double
-  := ( --assert (kf != NULL);
-       --assert (decor_obs != NULL);
-
-       if kf.state_dim == 0 or kf.obs_dim == 0
-         then return 0;
-
-       predicted_obs := kf.decor_obs_mtx * kf.state_mean;
-       hu := kf.decor_obs_mtx * kf.state_cov_U   :: double[kf.obs_dim, kf.state_dim];
-       t := diag (hu * kf.state_cov_D * hu^T);
-       y := predicted_obs - decor_obs;
-       sos := (y^T * Diagonal (1 / t) * y)[0];
-       return sos;
-     );
-
-static Diagonal {n} (v :: double[n]) :: double[n,n]
-  := vec i in n, j in n -> if i == j then v[i] else 0.0;
--}

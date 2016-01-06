@@ -50,7 +50,7 @@ double rand_normal (void)
     do {
         x1 = 2 * rand_uniform() - 1.0;
         x2 = 2 * rand_uniform() - 1.0;
-        w = dipow(x1, 2) + dipow(x2, 2);
+        w = x1 * x1 + x2 * x2;
     } while(1.0 <= w);
     w = sqrt(-(2 * log(w) / w));
     return x1 * w;
