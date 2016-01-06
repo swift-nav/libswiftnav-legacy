@@ -18,7 +18,7 @@
 #include <libswiftnav/ionosphere.h>
 
 /** \defgroup ionosphere Ionospheric models
- * Implemenations of ionoshperic delay correction models.
+ * Implemenations of ionospheric delay correction models.
  * \{ */
 
 /** Calculate ionospheric delay using Klobuchar model.
