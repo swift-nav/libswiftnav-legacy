@@ -44,6 +44,7 @@ else (CMAKE_CROSSCOMPILING)
       check_viterbi.c
       check_time.c
       check_ionosphere.c
+      check_signal.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})

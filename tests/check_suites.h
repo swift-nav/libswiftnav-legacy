@@ -20,5 +20,6 @@ Suite* set_suite(void);
 Suite* viterbi_suite(void);
 Suite* time_test_suite(void);
 Suite* ionosphere_suite(void);
+Suite* signal_test_suite(void);
 
 #endif /* CHECK_SUITES_H */
