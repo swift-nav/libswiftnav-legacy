@@ -13,11 +13,11 @@
 #ifndef LIBSWIFTNAV_SINGLE_DIFF_H
 #define LIBSWIFTNAV_SINGLE_DIFF_H
 
-#include "common.h"
-#include "track.h"
-#include "almanac.h"
-#include "ephemeris.h"
-#include "gpstime.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/track.h>
+#include <libswiftnav/almanac.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/time.h>
 
 typedef struct {
   double pseudorange;
@@ -69,4 +69,3 @@ void debug_sdiff(sdiff_t sd);
 void debug_sdiffs(u8 n, sdiff_t *sds);
 
 #endif /* LIBSWIFTNAV_SINGLE_DIFF_H */
-

@@ -16,11 +16,11 @@
 #include <math.h>
 #include <assert.h>
 
-#include "logging.h"
-#include "observation.h"
-#include "constants.h"
-#include "linear_algebra.h"
-#include "filter_utils.h"
+#include <libswiftnav/logging.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/filter_utils.h>
 
 /** \defgroup filter_utils Utility functions for use in filters
  * \{ */
@@ -76,4 +76,3 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
 }
 
 /** \} */
-

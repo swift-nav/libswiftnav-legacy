@@ -17,7 +17,7 @@ else (CMAKE_CROSSCOMPILING)
       set(TEST_LIBS ${TEST_LIBS} rt)
     endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
-    include_directories("${PROJECT_SOURCE_DIR}/include/libswiftnav")
+    include_directories("${PROJECT_SOURCE_DIR}/include")
     include_directories("${PROJECT_SOURCE_DIR}/src")
     include_directories("${PROJECT_SOURCE_DIR}/libfec/include")
 
@@ -42,7 +42,7 @@ else (CMAKE_CROSSCOMPILING)
       check_ephemeris.c
       check_set.c
       check_viterbi.c
-      check_gpstime.c
+      check_time.c
       check_ionosphere.c
     )
 

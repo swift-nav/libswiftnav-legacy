@@ -18,8 +18,8 @@ It has been modified to be more robust against outliers.
 
 cimport numpy as np
 from almanac cimport *
-from gpstime cimport *
-from gpstime cimport *
+from time cimport *
+from time cimport *
 from libc.string cimport memcpy, memcmp, memset
 from linear_algebra import *
 from observation cimport *

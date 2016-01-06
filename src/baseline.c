@@ -17,14 +17,14 @@
 #include <cblas.h>
 #include <clapack.h>
 
-#include "logging.h"
-#include "constants.h"
-#include "baseline.h"
-#include "amb_kf.h"
-#include "linear_algebra.h"
-#include "filter_utils.h"
-#include "set.h"
-#include "sats_management.h" /* choose_reference_sat */
+#include <libswiftnav/logging.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/filter_utils.h>
+#include <libswiftnav/set.h>
+#include <libswiftnav/sats_management.h> /* choose_reference_sat */
 
 /** \defgroup baseline Baseline calculations
  * Functions for relating the baseline vector with carrier phase observations
@@ -731,4 +731,3 @@ void ambiguities_init(ambiguities_t *ambs)
 }
 
 /** \} */
-

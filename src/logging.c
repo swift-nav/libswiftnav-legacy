@@ -12,7 +12,7 @@
 
 #include <stdarg.h>
 
-#include "logging.h"
+#include <libswiftnav/logging.h>
 
 /** \defgroup logging Logging
  * Logging functions.

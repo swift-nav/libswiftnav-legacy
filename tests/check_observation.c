@@ -1,7 +1,7 @@
-
 #include <check.h>
 #include <stdio.h>
-#include "observation.h"
+
+#include <libswiftnav/observation.h>
 
 navigation_measurement_t nm1 = {
   .sid = {.sat = 1},
@@ -231,4 +231,3 @@ Suite* observation_test_suite(void)
 
   return s;
 }
-

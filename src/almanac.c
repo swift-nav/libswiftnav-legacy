@@ -13,10 +13,10 @@
 #include <math.h>
 #include <assert.h>
 
-#include "constants.h"
-#include "linear_algebra.h"
-#include "coord_system.h"
-#include "almanac.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/coord_system.h>
+#include <libswiftnav/almanac.h>
 
 /** \defgroup almanac Almanac
  * Functions and calculations related to the GPS almanac.

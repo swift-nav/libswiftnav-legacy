@@ -12,9 +12,9 @@
 
 #include <math.h>
 
-#include "bits.h"
-#include "edc.h"
-#include "rtcm3.h"
+#include <libswiftnav/bits.h>
+#include <libswiftnav/edc.h>
+#include <libswiftnav/rtcm3.h>
 
 #define RTCM3_PREAMBLE 0xD3 /**< RTCM v3 Frame sync / preamble byte. */
 #define PRUNIT_GPS 299792.458 /**< RTCM v3 Unit of GPS Pseudorange (m) */

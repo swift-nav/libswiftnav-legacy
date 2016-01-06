@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_CORRELATE_H
 #define LIBSWIFTNAV_CORRELATE_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 void track_correlate(s8* samples, s8* code,
                      double* init_code_phase, double code_step,
@@ -24,4 +24,3 @@ void track_correlate(s8* samples, s8* code,
                      u32* num_samples);
 
 #endif /* LIBSWIFTNAV_CORRELATE_H */
-

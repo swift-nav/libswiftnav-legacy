@@ -1,7 +1,7 @@
 
 #include <check.h>
 
-#include <ephemeris.h>
+#include  <libswiftnav/ephemeris.h>
 
 START_TEST(test_ephemeris_equal)
 {

@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <linear_algebra.h>
-#include <ambiguity_test.h>
-#include <printing_utils.h>
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/ambiguity_test.h>
+#include <libswiftnav/printing_utils.h>
 
 #include "check_utils.h"
 

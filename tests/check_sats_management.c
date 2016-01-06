@@ -1,10 +1,13 @@
 #include <check.h>
 #include <stdio.h>
-#include "linear_algebra.h"
-#include "check_utils.h"
-#include "sats_management.c"
-#include "amb_kf.h"
 
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/amb_kf.h>
+
+#include "check_utils.h"
+
+/* Need static method set_reference_sat */
+#include "sats_management.c"
 
 START_TEST(test_rebase_1)
 {

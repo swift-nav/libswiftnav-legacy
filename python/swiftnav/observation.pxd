@@ -9,7 +9,7 @@
 
 from common cimport *
 from ephemeris cimport ephemeris_t
-from gpstime cimport gps_time_t
+from time cimport gps_time_t
 from signal cimport gnss_signal_t
 from track cimport navigation_measurement_t
 

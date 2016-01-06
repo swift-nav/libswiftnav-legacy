@@ -13,9 +13,9 @@
 #ifndef LIBSWIFTNAV_TRACK_H
 #define LIBSWIFTNAV_TRACK_H
 
-#include "common.h"
-#include "ephemeris.h"
-#include "signal.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/signal.h>
 
 /** \addtogroup track
  * \{ */

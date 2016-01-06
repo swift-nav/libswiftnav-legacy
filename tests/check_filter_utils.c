@@ -3,10 +3,10 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <constants.h>
-#include <linear_algebra.h>
-#include <observation.h>
-#include <filter_utils.h>
+#include  <libswiftnav/constants.h>
+#include  <libswiftnav/linear_algebra.h>
+#include  <libswiftnav/observation.h>
+#include  <libswiftnav/filter_utils.h>
 
 START_TEST(test_assign_de_mtx_1)
 {
@@ -83,4 +83,3 @@ Suite* filter_utils_suite(void)
 
   return s;
 }
-

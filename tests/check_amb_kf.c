@@ -2,10 +2,11 @@
 
 #include <check.h>
 
-#include "baseline.h"
-#include "amb_kf.h"
-#include "observation.h"
-#include "linear_algebra.h"
+#include <libswiftnav/baseline.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/linear_algebra.h>
+
 #include "check_utils.h"
 
 /* Need static method assign_state_rebase_mtx */
@@ -361,4 +362,3 @@ Suite* amb_kf_test_suite(void)
 
   return s;
 }
-

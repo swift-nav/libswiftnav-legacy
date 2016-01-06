@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_IONOSHPERE_H
 #define LIBSWIFTNAV_IONOSHPERE_H
 
-#include "common.h"
-#include "gpstime.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/time.h>
 
 typedef struct {
   double a0, a1, a2, a3;

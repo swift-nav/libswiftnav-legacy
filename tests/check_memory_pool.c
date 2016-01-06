@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <memory_pool.h>
+#include <libswiftnav/memory_pool.h>
 
 #include "check_utils.h"
 
@@ -701,4 +701,3 @@ Suite* memory_pool_suite(void)
 
   return s;
 }
-

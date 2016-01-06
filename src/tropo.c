@@ -12,7 +12,7 @@
 
 #include <math.h>
 
-#include "tropo.h"
+#include <libswiftnav/tropo.h>
 
 /* Simple Black model, inspired by GPSTk SimpleTropModel class. */
 
@@ -48,4 +48,3 @@ double tropo_correction(double elevation)
   return (dry_zenith_delay() * dry_mapping_function(elevation)
         + wet_zenith_delay() * wet_mapping_function(elevation));
 }
-

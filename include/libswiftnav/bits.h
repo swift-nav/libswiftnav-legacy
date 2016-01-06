@@ -13,7 +13,7 @@
 #ifndef LIBSWIFTNAV_BITS_H
 #define LIBSWIFTNAV_BITS_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
 
 u8 parity(u32 x);
 u32 getbitu(const u8 *buff, u32 pos, u8 len);

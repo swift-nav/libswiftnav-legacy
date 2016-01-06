@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_ALMANAC_H
 #define LIBSWIFTNAV_ALMANAC_H
 
-#include "common.h"
-#include "signal.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/signal.h>
 
 /** \addtogroup almanac
  * \{ */

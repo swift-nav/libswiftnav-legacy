@@ -3,9 +3,10 @@
 #include <check.h>
 
 #include <stdio.h>
-#include "check_utils.h"
 
-#include <linear_algebra.h>
+#include <libswiftnav/linear_algebra.h>
+
+#include "check_utils.h"
 
 #define LINALG_TOL 1e-10
 #define LINALG_NUM 22
@@ -731,4 +732,3 @@ Suite* linear_algebra_suite(void) {
 
   return s;
 }
-

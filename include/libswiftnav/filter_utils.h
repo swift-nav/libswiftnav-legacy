@@ -15,7 +15,7 @@
 #ifndef LIBSWIFTNAV_FILTER_UTILS_H
 #define LIBSWIFTNAV_FILTER_UTILS_H
 
-#include <common.h>
+#include <libswiftnav/common.h>
 
 double simple_amb_measurement(double carrier, double code);
 
@@ -23,4 +23,3 @@ s8 assign_de_mtx(u8 num_sats, const sdiff_t *sats_with_ref_first,
                  const double ref_ecef[3], double *DE);
 
 #endif /* LIBSWIFTNAV_FILTER_UTILS_H */
-

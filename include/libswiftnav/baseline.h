@@ -13,9 +13,9 @@
 #ifndef LIBSWIFTNAV_BASELINE_H
 #define LIBSWIFTNAV_BASELINE_H
 
-#include "common.h"
-#include "constants.h"
-#include "observation.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/observation.h>
 
 /** \addtogroup baseline
  * \{ */
@@ -68,4 +68,3 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
                    u8 *n_used, double *residuals, u8 *removed_obs);
 
 #endif /* LIBSWIFTNAV_BASELINE_H */
-

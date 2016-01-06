@@ -13,12 +13,12 @@
 #ifndef LIBSWIFTNAV_AMB_KF_H
 #define LIBSWIFTNAV_AMB_KF_H
 
-#include "track.h"
-#include "almanac.h"
-#include "gpstime.h"
-#include "common.h"
-#include "observation.h"
-#include "constants.h"
+#include <libswiftnav/track.h>
+#include <libswiftnav/almanac.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/common.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/constants.h>
 
 /** \addtogroup amb_kf
  * \{ */
@@ -99,4 +99,3 @@ void update_kf_state(nkf_t *kf, double R, const double *f, const double *g,
                    double innov);
 
 #endif /* LIBSWIFTNAV_AMB_KF_H */
-

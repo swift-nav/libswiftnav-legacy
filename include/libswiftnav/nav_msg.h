@@ -13,8 +13,8 @@
 #ifndef LIBSWIFTNAV_NAV_MSG_H
 #define LIBSWIFTNAV_NAV_MSG_H
 
-#include "common.h"
-#include "ephemeris.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/ephemeris.h>
 
 #define NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
 

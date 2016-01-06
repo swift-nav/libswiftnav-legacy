@@ -15,12 +15,12 @@
 #include <math.h>
 #include <float.h>
 
-#include "constants.h"
-#include "prns.h"
-#include "track.h"
-#include "ephemeris.h"
-#include "tropo.h"
-#include "coord_system.h"
+#include <libswiftnav/constants.h>
+#include <libswiftnav/prns.h>
+#include <libswiftnav/track.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/tropo.h>
+#include <libswiftnav/coord_system.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.

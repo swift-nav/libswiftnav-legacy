@@ -19,10 +19,10 @@
 #include <cblas.h>
 #include <clapack.h>
 
-#include "linear_algebra.h"
-#include "amb_kf.h"
-#include "logging.h"
-#include "lambda.h"
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/logging.h>
+#include <libswiftnav/lambda.h>
 
 /* constants/macros ----------------------------------------------------------*/
 

@@ -1,12 +1,13 @@
 
 #include <check.h>
 #include <stdio.h>
-#include "linear_algebra.h"
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/dgnss_management.h>
+#include <libswiftnav/ambiguity_test.h>
+#include <libswiftnav/amb_kf.h>
+#include <libswiftnav/printing_utils.h>
+
 #include "check_utils.h"
-#include "dgnss_management.h"
-#include "ambiguity_test.h"
-#include "amb_kf.h"
-#include "printing_utils.h"
 
 extern sats_management_t sats_management;
 extern nkf_t nkf;

@@ -14,10 +14,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "logging.h"
-#include "observation.h"
-#include "sats_management.h"
-#include "linear_algebra.h"
+
+#include <libswiftnav/logging.h>
+#include <libswiftnav/observation.h>
+#include <libswiftnav/sats_management.h>
+#include <libswiftnav/linear_algebra.h>
 
 gnss_signal_t choose_reference_sat(const u8 num_sats, const sdiff_t *sats)
 {

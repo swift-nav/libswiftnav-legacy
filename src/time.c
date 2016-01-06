@@ -11,9 +11,12 @@
  */
 
 #include <math.h>
-#include "gpstime.h"
+
+#include <libswiftnav/time.h>
 
 #define WEEK_SECS (7*24*60*60)
+
+// TODO add a doc group
 
 /* TODO: does it make sense to be passing structs by value in all
    these functions? */

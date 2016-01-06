@@ -15,7 +15,7 @@ from ambiguity_test cimport *
 from ambiguity_test import AmbiguityTest
 from baseline cimport *
 from constants cimport MAX_SATS
-from gpstime cimport *
+from time cimport *
 from libc.stdio cimport printf
 from libc.string cimport memcpy
 from observation cimport *

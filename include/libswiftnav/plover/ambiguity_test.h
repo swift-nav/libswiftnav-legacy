@@ -1,7 +1,8 @@
 #ifndef PLOVER_GENERATED_AMBIGUITY_TEST_H
 #define PLOVER_GENERATED_AMBIGUITY_TEST_H
 
-#include "common.h"
+#include <libswiftnav/common.h>
+
 typedef struct {
   int n;
   double xs[22];

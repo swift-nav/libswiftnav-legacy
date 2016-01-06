@@ -1,7 +1,7 @@
 
 #include <check.h>
 
-#include <bits.h>
+#include <libswiftnav/bits.h>
 
 START_TEST(test_parity)
 {
@@ -136,4 +136,3 @@ Suite* bits_suite(void)
 
   return s;
 }
-

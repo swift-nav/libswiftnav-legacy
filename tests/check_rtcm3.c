@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <math.h>
 #include <check.h>
-#include "check_utils.h"
 
-#include <rtcm3.h>
+#include <libswiftnav/rtcm3.h>
+
+#include "check_utils.h"
 
 START_TEST(test_rtcm3_check_frame)
 {
@@ -228,4 +229,3 @@ Suite* rtcm3_suite(void)
 
   return s;
 }
-

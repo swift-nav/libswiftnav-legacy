@@ -27,7 +27,7 @@ if __name__ == "__main__":
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
     return Extension(
       ext_name, [ext_path],
-      include_dirs = [np.get_include(), '.', '../include/libswiftnav/'],
+      include_dirs = [np.get_include(), '.', '../include/'],
       extra_compile_args = ['-O0', '-g'],
       extra_link_args = ['-g'],
       libraries = ['m', 'swiftnav'],
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     'swiftnav.ephemeris',
     'swiftnav.linear_algebra',
     'swiftnav.amb_kf',
-    'swiftnav.gpstime',
+    'swiftnav.time',
     'swiftnav.observation',
     'swiftnav.dgnss_management',
     'swiftnav.ambiguity_test',

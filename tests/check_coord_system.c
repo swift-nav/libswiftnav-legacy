@@ -1,10 +1,11 @@
 #include <math.h>
 
 #include <check.h>
-#include "check_utils.h"
 
-#include <coord_system.h>
-#include <constants.h>
+#include <libswiftnav/coord_system.h>
+#include <libswiftnav/constants.h>
+
+#include "check_utils.h"
 
 /* Maximum allowable error in quantities with units of length (in meters). */
 #define MAX_DIST_ERROR_M 1e-6
@@ -44,12 +45,12 @@ const double ecefs[NUM_COORDS][3] = {
   {-(22+EARTH_A), 0, 0},
 };
 
-START_TEST(test_llhdeg2rad) 
+START_TEST(test_llhdeg2rad)
 {
   double rads[3];
 
   llhdeg2rad(llhs[0], rads);
-  
+
   //We expect the zero-point to be the same in degrees and radians
   for (int n=0; n<3; n++) {
     fail_unless(rads[n] == 0);
@@ -58,7 +59,7 @@ START_TEST(test_llhdeg2rad)
   //We expect an arbitrary point to convert correctly
   double swiftHomeLLH[3] = {37.779804,-122.391751, 60.0};
   llhdeg2rad(swiftHomeLLH, rads);
-                             
+
   fail_unless(fabs(rads[0] - 0.659381970558) < MAX_ANGLE_ERROR_RAD);
   fail_unless(fabs(rads[1] + 2.136139032231) < MAX_ANGLE_ERROR_RAD);
   fail_unless(rads[2] == swiftHomeLLH[2]);
@@ -342,7 +343,7 @@ Suite* coord_system_suite(void)
 
   /* Core test case */
   TCase *tc_core = tcase_create("Core");
-  tcase_add_test(tc_core, test_llhdeg2rad);  
+  tcase_add_test(tc_core, test_llhdeg2rad);
   tcase_add_loop_test(tc_core, test_wgsllh2ecef, 0, NUM_COORDS);
   tcase_add_loop_test(tc_core, test_wgsecef2llh, 0, NUM_COORDS);
   tcase_add_loop_test(tc_core, test_wgsllh2ecef2llh, 0, NUM_COORDS);
@@ -357,4 +358,3 @@ Suite* coord_system_suite(void)
 
   return s;
 }
-

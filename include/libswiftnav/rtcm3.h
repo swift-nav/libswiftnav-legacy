@@ -13,10 +13,9 @@
 #ifndef LIBSWIFTNAV_RTCM3_H
 #define LIBSWIFTNAV_RTCM3_H
 
-#include "common.h"
-
-#include "gpstime.h"
-#include "track.h"
+#include <libswiftnav/common.h>
+#include <libswiftnav/time.h>
+#include <libswiftnav/track.h>
 
 s16 rtcm3_check_frame(u8 *buff);
 s8 rtcm3_write_frame(u16 len, u8 *buff);
