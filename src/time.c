@@ -13,8 +13,7 @@
 #include <math.h>
 
 #include <libswiftnav/time.h>
-
-#define WEEK_SECS (7*24*60*60)
+#include <libswiftnav/constants.h>
 
 // TODO add a doc group
 
@@ -33,12 +32,12 @@ gps_time_t normalize_gps_time(gps_time_t t)
 {
   while(t.tow < 0) {
     t.tow += WEEK_SECS;
-    t.wn += 1;
+    t.wn -= 1;
   }
 
   while(t.tow > WEEK_SECS) {
     t.tow -= WEEK_SECS;
-    t.wn -= 1;
+    t.wn += 1;
   }
 
   return t;
@@ -87,8 +86,8 @@ double gpsdifftime(gps_time_t end, gps_time_t beginning)
   return dt;
 }
 
-/** Set the week number of t so as to minimize the magnitude of the
- * time difference between t and ref.
+/** Given an uknown week number in t, fill in the week number from ref
+ * under the assumption the two times are seperated by less than a week.
  *
  * \param t Pointer to GPS time whose week number will be set
  * \param ref Reference GPS time
