@@ -19,7 +19,6 @@
 #include <libswiftnav/prns.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/ephemeris.h>
-#include <libswiftnav/tropo.h>
 #include <libswiftnav/coord_system.h>
 
 /** \defgroup track Tracking
