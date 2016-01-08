@@ -16,12 +16,13 @@
 #include <libswiftnav/common.h>
 #include <libswiftnav/time.h>
 
+/** Structure holding Klobuchar ionospheric model parameters. */
 typedef struct {
   double a0, a1, a2, a3;
   double b0, b1, b2, b3;
 } ionosphere_t;
 
-double calc_ionosphere(gps_time_t t_gps,
+double calc_ionosphere(const gps_time_t *t_gps,
                        double lat_u, double lon_u,
                        double a, double e,
                        const ionosphere_t *i);

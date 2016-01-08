@@ -17,6 +17,12 @@
 
 #include <libswiftnav/common.h>
 
+/** Number of seconds in a week. */
+#define WEEK_SECS (7*24*60*60)
+
+/** Number of seconds in a day. */
+#define DAY_SECS (24*60*60)
+
 /** Number of rollovers in the 10-bit broadcast GPS week number.
  * Update on next rollover on April 7, 2019.
  * \todo Detect and handle rollover more gracefully. */
@@ -40,11 +46,11 @@ typedef struct __attribute__((packed)) {
   s16 wn;     /**< GPS week number. */
 } gps_time_t;
 
-gps_time_t normalize_gps_time(gps_time_t);
+void normalize_gps_time(gps_time_t *t_gps);
 
-time_t gps2time(gps_time_t t);
+time_t gps2time(const gps_time_t *t);
 
-double gpsdifftime(gps_time_t end, gps_time_t beginning);
+double gpsdifftime(const gps_time_t *end, const gps_time_t *beginning);
 void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
 
 #endif /* LIBSWIFTNAV_TIME_H */

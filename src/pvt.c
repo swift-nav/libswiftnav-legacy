@@ -582,7 +582,7 @@ s8 calc_PVT(const u8 n_used,
   soln->time.tow += nav_meas[0].pseudorange / GPS_C;
   /* Subtract clock offset. */
   soln->time.tow -= rx_state[3] / GPS_C;
-  soln->time = normalize_gps_time(soln->time);
+  normalize_gps_time(&soln->time);
 
   u8 ret;
   if ((ret = filter_solution(soln, dops))) {

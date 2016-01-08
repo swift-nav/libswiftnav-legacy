@@ -33,5 +33,7 @@ def test_gpsdifftime():
     tow_tol = 1e-10
     a, b, dt, time = c['a'], c['b'], c['dt'], c['time']
     assert t.GpsTime(tow=a[0], wn=a[1]).gps2time() == time
-    print t.GpsTime(tow=a[0], wn=a[1]).normalize_gps_time()
+    normalized = t.GpsTime(tow=a[0], wn=a[1])
+    normalized.normalize_gps_time()
+    print normalized
     assert t.GpsTime(tow=a[0], wn=a[1]).gpsdifftime(t.GpsTime(tow=b[0], wn=b[1])) - dt < tow_tol

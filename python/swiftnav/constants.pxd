@@ -15,7 +15,6 @@ cdef extern from "libswiftnav/constants.h":
   enum:
     MAX_CHANNELS
     MAX_SATS
-    DAY_SECS
 
   float R2D
   float D2R

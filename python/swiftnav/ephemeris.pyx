@@ -50,11 +50,11 @@ cdef class Ephemeris:
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = np.array([0,0,0], dtype=np.double)
     cdef double clock_err, clock_rate_err
-    calc_sat_state(&self._thisptr, time._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
+    calc_sat_state(&self._thisptr, &time._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
     return (pos, vel, clock_err, clock_rate_err)
 
   def good(self, GpsTime time):
-    return ephemeris_good(&self._thisptr, time._thisptr)
+    return ephemeris_good(&self._thisptr, &time._thisptr)
 
   def __rich_cmp__(self, eph2, op):
     if op != Py_EQ:

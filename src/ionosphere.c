@@ -35,7 +35,7 @@
  *
  * \return  Ionospheric delay distance for GPS L1 frequency [m]
  */
-double calc_ionosphere(gps_time_t t_gps,
+double calc_ionosphere(const gps_time_t *t_gps,
                        double lat_u, double lon_u,
                        double a, double e,
                        const ionosphere_t *i)
@@ -66,13 +66,13 @@ double calc_ionosphere(gps_time_t t_gps,
   double lat_m = lat_i + 0.064 * cos((lon_i - 1.617) * M_PI);
 
   /* Find the local time at the IPP */
-  double t = 43200.0 * lon_i + t_gps.tow;
-  t = fmod(t, 86400.0);
-  if (t > 86400.0) {
-    t -= 86400.0;
+  double t = 43200.0 * lon_i + t_gps->tow;
+  t = fmod(t, DAY_SECS);
+  if (t > DAY_SECS) {
+    t -= DAY_SECS;
   }
   if (t < 0.0) {
-    t += 86400.0;
+    t += DAY_SECS;
   }
 
   /* Compute the amplitude of ionospheric delay */

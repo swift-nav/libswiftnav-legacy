@@ -23,14 +23,13 @@ cdef class GpsTime:
     return "<GpsTime wn %d, tow %d>" % (self._thisptr.wn, self._thisptr.tow)
 
   def normalize_gps_time(self):
-    x = normalize_gps_time(self._thisptr)
-    return GpsTime(wn=x.wn, tow=x.tow)
+    normalize_gps_time(&self._thisptr)
 
   def gps2time(self):
-    return gps2time(self._thisptr)
+    return gps2time(&self._thisptr)
 
   def gpsdifftime(self, GpsTime beginning):
-    return gpsdifftime(self._thisptr, beginning._thisptr)
+    return gpsdifftime(&self._thisptr, &beginning._thisptr)
 
   def gps_time_match_weeks(self, ref):
     cdef gps_time_t t
