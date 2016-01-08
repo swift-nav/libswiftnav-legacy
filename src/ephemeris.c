@@ -37,7 +37,7 @@
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-static s8 calc_sat_state_xyz(const ephemeris_t *e, gps_time_t t,
+static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
                              double pos[3], double vel[3],
                              double *clock_err, double *clock_rate_err)
 {
@@ -51,8 +51,8 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, gps_time_t t,
     return -1;
 
   const ephemeris_xyz_t *ex = &e->xyz;
-  u8 ndays = t.tow / DAY_SECS;
-  double tod = t.tow - DAY_SECS * ndays;
+  u8 ndays = t->tow / DAY_SECS;
+  double tod = t->tow - DAY_SECS * ndays;
   double dt = tod - ex->toa;
 
   if (dt > DAY_SECS/2)
@@ -95,7 +95,7 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, gps_time_t t,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
 static s8 calc_sat_state_kepler(const ephemeris_t *e,
-                                gps_time_t t,
+                                const gps_time_t *t,
                                 double pos[3], double vel[3],
                                 double *clock_err, double *clock_rate_err)
 {
@@ -104,12 +104,12 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
   /* Calculate satellite clock terms */
 
   /* Seconds from clock data reference time (toc) */
-  double dt = gpsdifftime(t, k->toc);
+  double dt = gpsdifftime(t, &k->toc);
   *clock_err = k->af0 + dt * (k->af1 + dt * k->af2) - k->tgd;
   *clock_rate_err = k->af1 + 2.0 * dt * k->af2;
 
   /* Seconds from the time from ephemeris reference epoch (toe) */
-  dt = gpsdifftime(t, e->toe);
+  dt = gpsdifftime(t, &e->toe);
 
   /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
   if (fabs(dt) > ((u32)e->fit_interval)*60*60) {
@@ -219,7 +219,7 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
  * \return  0 on success,
  *         -1 if ephemeris is older (or newer) than 4 hours
  */
-s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
+s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err)
 {
@@ -251,10 +251,10 @@ s8 calc_sat_state(const ephemeris_t *e, gps_time_t t,
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_good(const ephemeris_t *eph, gps_time_t t)
+u8 ephemeris_good(const ephemeris_t *eph, const gps_time_t *t)
 {
   /* Seconds from the time from ephemeris reference epoch (toe) */
-  double dt = gpsdifftime(t, eph->toe);
+  double dt = gpsdifftime(t, &eph->toe);
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */

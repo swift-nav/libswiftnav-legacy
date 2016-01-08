@@ -24,7 +24,7 @@ START_TEST(test_gpsdifftime)
   const double tow_tol = 1e-10;
   for (size_t i = 0;
        i < sizeof(testcases) / sizeof(struct gpsdifftime_testcase); i++) {
-    double dt = gpsdifftime(testcases[i].a, testcases[i].b);
+    double dt = gpsdifftime(&testcases[i].a, &testcases[i].b);
     fail_unless(fabs(dt - testcases[i].dt) < tow_tol,
                 "gpsdifftime test case %d failed, dt = %.12f", i, dt);
   }
@@ -43,8 +43,8 @@ START_TEST(test_normalize_gps_time)
   for (size_t i = 0;
        i < sizeof(testcases) / sizeof(gps_time_t); i++) {
     double t_original = testcases[i].wn * WEEK_SECS + testcases[i].tow;
-    gps_time_t normalized = normalize_gps_time(testcases[i]);
-    double t_normalized = normalized.wn * WEEK_SECS + normalized.tow;
+    normalize_gps_time(&testcases[i]);
+    double t_normalized = testcases[i].wn * WEEK_SECS + testcases[i].tow;
     fail_unless(fabs(t_original - t_normalized) < tow_tol,
                 "normalize_gps_time test case %d failed, t_original = %.12f, "
                 "t_normalized = %.12f", i, t_original, t_normalized);

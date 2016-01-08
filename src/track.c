@@ -773,7 +773,7 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
     /* calc sat clock error */
-    calc_sat_state(e[i], nav_meas[i]->tot,
+    calc_sat_state(e[i], &nav_meas[i]->tot,
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
 
@@ -794,7 +794,7 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
 
     nav_meas[i]->tot.tow -= clock_err[i];
-    nav_meas[i]->tot = normalize_gps_time(nav_meas[i]->tot);
+    normalize_gps_time(&nav_meas[i]->tot);
   }
 }
 
@@ -843,7 +843,7 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* TODO: check that using difference of TOTs here is a valid
        * approximation. */
       m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
-                                    / gpsdifftime(m_new[i].tot, m_old[j].tot);
+                                    / gpsdifftime(&m_new[i].tot, &m_old[j].tot);
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
       n++;
