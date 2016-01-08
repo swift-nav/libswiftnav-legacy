@@ -34,11 +34,11 @@ def dgnss_set_settings_(phase_var_test, code_var_test,
                      amb_drift_var, amb_init_var,new_int_var)
 
 def make_measurements_(sdiffs):
-  num_sdiffs = len(sdiffs)
+  num_ddiffs = len(sdiffs) - 1
   cdef sdiff_t sdiffs_[32]
   mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
-  cdef np.ndarray[np.double_t, ndim=1, mode="c"] raw_measurements = np.empty(num_sdiffs, dtype=np.double)
-  make_measurements(num_sdiffs, &sdiffs_[0], &raw_measurements[0])
+  cdef np.ndarray[np.double_t, ndim=1, mode="c"] raw_measurements = np.empty(2 * num_ddiffs, dtype=np.double)
+  make_measurements(num_ddiffs, &sdiffs_[0], &raw_measurements[0])
   return raw_measurements
 
 def dgnss_init_(sdiffs, reciever_ecef):
