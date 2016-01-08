@@ -3,11 +3,11 @@
 
 #include <check.h>
 
-#include "linear_algebra.h"
-#include "printing_utils.h"
-#include "check_utils.h"
-#include "plover/qr.h"
+#include <libswiftnav/linear_algebra.h>
+#include <libswiftnav/printing_utils.h>
+#include <libswiftnav/plover/qr.h>
 
+#include "check_utils.h"
 
 START_TEST(test_ok)
 {

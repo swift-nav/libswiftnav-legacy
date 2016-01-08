@@ -24,7 +24,7 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/pvt.h>
 
-#include "plover/pvt.h"
+#include <libswiftnav/plover/pvt.h>
 
 static void compute_dops(const double H[4][4],
                          const double pos_ecef[3],

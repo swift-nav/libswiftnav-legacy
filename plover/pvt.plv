@@ -1,7 +1,7 @@
 import prelude;
 
-__C__ "#include \"constants.h\"";
-__C__ "#include \"track.h\"";
+__C__ "#include <libswiftnav/constants.h>";
+__C__ "#include <libswiftnav/track.h>";
 
 extern struct navigation_measurement_t (
   pseudorange :: double;

@@ -65,7 +65,7 @@ Will run if plover subproject is modified and after make clean or clean-generate
         COMMAND ${CMAKE_PLOVER}
           -I "${PLOVER_DIR}"
           --cdir "${PLOVER_GENERATED_C_DIR}" --hdir "${PLOVER_GENERATED_H_DIR}"
-          --libprefix "plover"
+          --libprefix "libswiftnav/plover"
           "${PLOVER_DIR}/${unit}.plv"
         WORKING_DIRECTORY ${PLOVER_DIR}
         DEPENDS "${PLOVER_DIR}/${unit}.plv")
