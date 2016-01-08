@@ -14,7 +14,8 @@ void rot_small (const double x, double * result)
     result[3 * 2 + 1] = 0.0;
     result[3 * 2 + 2] = 1.0;
 }
-double pvt (double * rx_state, const u8 n_used, const navigation_measurement_t * * nav_meas, double * omp, double * H)
+double calc_pvt (double * rx_state, const u8 n_used, const navigation_measurement_t * * nav_meas, double * omp,
+                 double * H)
 {
     double los [n_used * 3];
     
