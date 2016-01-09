@@ -695,6 +695,101 @@ START_TEST(test_submatrix) {
 }
 END_TEST
 
+START_TEST(test_vector_distance) {
+  const double A1[1 * 4] = {
+    0,
+    1,
+    2,
+    3
+  };
+
+  const double B1[1 * 4] = {
+    0,
+    2,
+    1,
+    -3
+  };
+
+  const double C1[1 * 4] = {
+    0,
+    1,
+    1,
+    6
+  };
+
+  for (u8 i = 0; i < 4; i++) {
+    double dist;
+    dist = vector_distance(1, &A1[i], &B1[i]);
+    fail_unless(fabs(dist - C1[i]) < LINALG_TOL,
+                "Distance differs from expected %lf: %lf",
+                C1[i], dist);
+  }
+
+  const double A2[2 * 5] = {
+    0, 0,
+    1, 1,
+    2, 1,
+    0, 0,
+    0, 0
+  };
+
+  const double B2[2 * 5] = {
+    0, 0,
+    1, 1,
+    1, 1,
+    1, 1,
+    -1, -1
+  };
+
+  const double C2[1 * 5] = {
+    0,
+    0,
+    1,
+    M_SQRT2,
+    M_SQRT2
+  };
+
+  for (u8 i = 0; i < 5; i++) {
+    double dist;
+    dist = vector_distance(2, &A2[i * 2], &B2[i * 2]);
+    fail_unless(fabs(dist - C2[i]) < LINALG_TOL,
+                "Distance differs from expected %lf: %lf",
+                C2[i], dist);
+  }
+
+  const double A3[3 * 5] = {
+    0, 0, 0,
+    1, 1, 1,
+    2, 1, 0,
+    0, 0, 0,
+    0, 0, 0
+  };
+
+  const double B3[3 * 5] = {
+    0, 0, 0,
+    1, 1, 1,
+    1, 1, 0,
+    1, 1, 1,
+    -1, -1, 1
+  };
+
+  const double C3[3 * 5] = {
+    0,
+    0,
+    1,
+    1.73205080756887729352744634150587236694280525381038062805580,
+    1.73205080756887729352744634150587236694280525381038062805580
+  };
+
+  for (u8 i = 0; i < 5; i++) {
+    double dist;
+    dist = vector_distance(3, &A3[i * 3], &B3[i * 3]);
+    fail_unless(fabs(dist - C3[i]) < LINALG_TOL,
+                "Distance differs from expected %lf: %lf",
+                C3[i], dist);
+  }
+}
+END_TEST
 
 Suite* linear_algebra_suite(void) {
   Suite *s = suite_create("Linear algebra");
@@ -726,6 +821,7 @@ Suite* linear_algebra_suite(void) {
   tcase_add_test(tc_core, test_vector_three);
   /*tcase_add_test(tc_core, test_qrsolve_consistency);*/
   /*tcase_add_test(tc_core, test_qrsolve_rect);*/
+  tcase_add_test(tc_core, test_vector_distance);
 
   tcase_add_test(tc_core, test_submatrix);
   suite_add_tcase(s, tc_core);

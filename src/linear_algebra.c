@@ -983,7 +983,7 @@ void vector_cross(const double a[3], const double b[3],
 double vector_distance(u32 n, const double *a, const double *b) {
   double c[n];
   vector_subtract(n, a, b, c);
-  return sqrt(vector_norm(3, c));
+  return vector_norm(n, c);
 }
 
 /* \} */
