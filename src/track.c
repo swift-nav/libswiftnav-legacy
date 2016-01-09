@@ -520,13 +520,28 @@ void comp_tl_update(comp_tl_state_t *s, correlation_t cs[3])
  * \param a         The alias lock detect struct.
  * \param acc_len   The number of points to accumulate before calculating error.
  * \param time_diff Time difference between calls to alias_detect_first and
- *                  alias_detect_full.
+ *                  alias_detect_second.
  */
 void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff)
 {
   memset(a, 0, sizeof(*a));
   a->acc_len = acc_len;
   a->dt = time_diff;
+}
+
+/** Update alias lock detection structure.
+ *
+ * \param a         The alias lock detect struct.
+ * \param acc_len   The number of points to accumulate before calculating error.
+ * \param time_diff Time difference between calls to alias_detect_first and
+ *                  alias_detect_second.
+ */
+void alias_detect_reinit(alias_detect_t *a, u32 acc_len, float time_diff)
+{
+  /* Just reset averaging. To preserve state it would be necessary to rescale
+   * the dot and cross terms based on the new and old time_diff values.
+   */
+  alias_detect_init(a, acc_len, time_diff);
 }
 
 /** Load first I/Q sample into alias lock detect structure.
