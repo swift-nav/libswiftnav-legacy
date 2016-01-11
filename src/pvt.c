@@ -164,7 +164,7 @@ static s8 pvt_iter(double rx_state[],
   u8 iters;
   /* Newton-Raphson iteration. */
   for (iters=0; iters<PVT_MAX_ITERATIONS; iters++) {
-    if (calc_pvt(rx_state, n_used, (const navigation_measurement_t * *)nav_meas, omp, (double *)H) > 0) {
+    if (pvt_solve(rx_state, n_used, (const navigation_measurement_t * *)nav_meas, omp, (double *)H) > 0) {
       break;
     }
   }

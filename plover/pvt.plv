@@ -19,7 +19,7 @@ static rot_small (x :: double) :: double[3,3]
          -x, 1.0, 0.0;
         0.0, 0.0, 1.0);
 
-calc_pvt (inout rx_state :: double[8])
+pvt_solve (inout rx_state :: double[8])
     {n_used :: u8}
     (nav_meas :: (*navigation_measurement_t)[n_used])
 
