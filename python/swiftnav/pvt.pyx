@@ -65,7 +65,7 @@ def calc_PVT_(nav_meas, disable_raim=False):
     nav_meas_[n] = (<NavigationMeasurement?>nav_meas[n])._thisptr
   dops_ = DOPS()
   soln = GNSSSolution()
-  cdef u8 ret = calc_PVT(n_used, nav_meas_, disable_raim, &soln._thisptr, &dops_._thisptr)
+  cdef s8 ret = calc_PVT(n_used, nav_meas_, disable_raim, &soln._thisptr, &dops_._thisptr)
   if not ret == 0:
     warnings.warn(_calc_pvt_codes[ret])
   free(nav_meas_)
