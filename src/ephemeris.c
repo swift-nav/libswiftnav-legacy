@@ -228,6 +228,7 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_err != NULL);
   assert(clock_rate_err != NULL);
   assert(e != NULL);
+  assert(ephemeris_valid(e, t));
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:

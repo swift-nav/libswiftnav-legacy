@@ -188,7 +188,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       j--;
     else if (sid_compare(m_local[i].sid, m_remote[j].sid) > 0)
       i--;
-    else if (ephemeris_valid(e[i], t)) { // TODO why do we check here? we already stop tracking bad ephem?
+    else {
       double clock_err;
       double clock_rate_err;
       double local_sat_pos[3];
