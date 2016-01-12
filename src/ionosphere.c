@@ -33,7 +33,7 @@
  * \param e Elevation of the satellite [rad]
  * \param i Ionosphere parameters struct from GPS NAV data
  *
- * \return  Ionospheric delay distance for GPS L1 frequency [m]
+ * \return Ionospheric delay distance for GPS L1 frequency [m]
  */
 double calc_ionosphere(const gps_time_t *t_gps,
                        double lat_u, double lon_u,

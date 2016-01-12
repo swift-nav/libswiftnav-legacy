@@ -13,6 +13,8 @@
 #ifndef LIBSWIFTNAV_TROPOSPHERE_H
 #define LIBSWIFTNAV_TROPOSPHERE_H
 
-double calc_troposphere(double lat, double h, double doy, double el);
+double calc_troposphere(double doy, double lat, double h, double el,
+                        double *t_out, double *p_out, double *e_out,
+                        double *t_m_out);
 
 #endif /* LIBSWIFTNAV_TROPOSPHERE_H */
