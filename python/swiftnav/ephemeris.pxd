@@ -45,7 +45,8 @@ cdef extern from "libswiftnav/ephemeris.h":
   s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                     double pos[3], double vel[3],
                     double *clock_err, double *clock_rate_err)
-  u8 ephemeris_good(const ephemeris_t *eph, const gps_time_t *t)
+  u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
+  u8 satellite_healthy(const ephemeris_t *eph)
   void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   u8 ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
 

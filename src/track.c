@@ -792,10 +792,6 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
                    nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
                    &clock_err[i], &clock_rate_err[i]);
 
-    /* copy the alert and health flags */
-    nav_meas[i]->healthy = e[i]->healthy;
-    nav_meas[i]->alert = meas[i]->alert;
-
     /* remove clock error to put all tots within the same time window */
     if ((TOTs[i] + clock_err[i]) > min_TOF)
       min_TOF = TOTs[i];

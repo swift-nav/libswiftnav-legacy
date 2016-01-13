@@ -228,6 +228,7 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_err != NULL);
   assert(clock_rate_err != NULL);
   assert(e != NULL);
+  assert(ephemeris_valid(e, t));
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
@@ -242,16 +243,12 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
 
 /** Is this ephemeris usable?
  *
- * \todo This should actually be more than just the "valid" flag.
- *       When we write an is_usable() function, lets use that instead
- *       of just es[prn].valid.
- *
  * \param eph Ephemeris struct
- * \param t
+ * \param t   The current GPS time. This is used to determine the ephemeris age.
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_good(const ephemeris_t *eph, const gps_time_t *t)
+u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
 {
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double dt = gpsdifftime(t, &eph->toe);
@@ -259,6 +256,22 @@ u8 ephemeris_good(const ephemeris_t *eph, const gps_time_t *t)
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
   return (eph->valid && fabs(dt) < ((u32)eph->fit_interval)*60*60);
+}
+
+/** Is this satellite healthy? Note this function only checks flags in the
+ * ephemeris. You also should check the alert flag in the nav_msg_t.
+ *
+ * \todo In the future we should check for health at the signal level. E.g.
+ * if only the L2(P) signal is bad, but L1 C/A and L2C are fine, we can still
+ * use the satellite.
+ *
+ * \param eph Ephemeris struct
+ * \return 1 if the satellite is healthy.
+ *         0 otherwise.
+ */
+u8 satellite_healthy(const ephemeris_t *eph)
+{
+  return eph->healthy;
 }
 
 /** Convert a GPS URA index into a value.
@@ -359,7 +372,6 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
     u32 u32;
   } fourbyte;
 
-
   /* Subframe 1: WN, URA, SV health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0 */
 
   /* GPS week number (mod 1024): Word 3, bits 1-10 */
@@ -374,7 +386,6 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   log_debug("URA for %s = index %d, value %.1f", buf, ura_index, e->ura);
 
   /* NAV data and signal health bits: Word 3, bits 17-22 */
-  // TODO: Check only L1 C/A health
   u8 health_bits = frame_words[0][3-3] >> (30-22) & 0x3F;
   log_debug("Health bits for %s = 0x%02x", buf, health_bits);
   e->healthy = (health_bits == 0x00) && (ura_index < 15);

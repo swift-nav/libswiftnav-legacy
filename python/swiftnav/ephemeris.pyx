@@ -53,8 +53,11 @@ cdef class Ephemeris:
     calc_sat_state(&self._thisptr, &time._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
     return (pos, vel, clock_err, clock_rate_err)
 
-  def good(self, GpsTime time):
-    return ephemeris_good(&self._thisptr, &time._thisptr)
+  def is_valid(self, GpsTime time):
+    return ephemeris_valid(&self._thisptr, &time._thisptr)
+
+  def is_healthy(self):
+    return satellite_healthy(&self._thisptr)
 
   def __rich_cmp__(self, eph2, op):
     if op != Py_EQ:
