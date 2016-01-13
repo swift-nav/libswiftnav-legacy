@@ -15,6 +15,19 @@
 
 #include <libswiftnav/common.h>
 
+/** \defgroup numerical_params Numerical Parameters
+ * Parameters that define singularity, convergence, and similar
+ * numerical properties.
+ * \{ */
+
+/** Tolerance for matrix inverses.
+ * If the determinant is smaller than this value, we consider it
+ * singular and error out.
+ */
+#define MATRIX_EPSILON (1e-60)
+
+/* \} */
+
  #define VEC_PRINTF(v, _n) {                                         \
     printf("%s:%u <|%s| %lf",                                        \
            __FILE__, __LINE__, #v, (v)[0]);                          \

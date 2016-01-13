@@ -31,6 +31,8 @@ int main(void)
   srunner_add_suite(sr, ionosphere_suite());
   srunner_add_suite(sr, signal_test_suite());
 
+  srunner_add_suite(sr, qr_test_suite());
+
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);
   number_failed = srunner_ntests_failed(sr);

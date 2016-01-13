@@ -11,8 +11,8 @@ include_directories("${PROJECT_SOURCE_DIR}/clapack-3.2.1-CMAKE/INCLUDE")
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
-set_source_files_properties(${plover_SRCS} PROPERTIES GENERATED TRUE)
-set_source_files_properties(${plover_HDRS} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${PLOVER_CFILES} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${PLOVER_HFILES} PROPERTIES GENERATED TRUE)
 
 set(libswiftnav_SRCS
   logging.c
@@ -44,8 +44,7 @@ set(libswiftnav_SRCS
   signal.c
   ionosphere.c
   bit_sync.c
-  ${plover_SRCS}
-
+  ${PLOVER_CFILES}
   CACHE INTERNAL ""
 )
 

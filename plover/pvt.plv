@@ -1,0 +1,63 @@
+import prelude;
+
+__C__ "#include <libswiftnav/constants.h>";
+__C__ "#include <libswiftnav/track.h>";
+
+extern struct navigation_measurement_t (
+  pseudorange :: double;
+  sat_pos :: double[3];
+  sat_vel :: double[3];
+  doppler :: double;
+);
+
+extern GPS_L1_HZ :: double;
+extern GPS_OMEGAE_DOT :: double;
+extern GPS_C :: double;
+
+static rot_small (x :: double) :: double[3,3]
+ := mat(1.0,   x, 0.0;
+         -x, 1.0, 0.0;
+        0.0, 0.0, 1.0);
+
+pvt_solve (inout rx_state :: double[8])
+    {n_used :: u8}
+    (nav_meas :: (*navigation_measurement_t)[n_used])
+
+    (out omp :: double[n_used])
+    (out H :: double[4,4])
+    :: double
+
+  := (
+    los := vec j in 0:n_used -> (
+             tau := norm (rx_state[0:3] - nav_meas[j].sat_pos) / GPS_C;
+             xk_new := rot_small (GPS_OMEGAE_DOT * tau) * nav_meas[j].sat_pos;
+             xk_new - rx_state[0:3];
+           );
+
+    G := vec j in 0:n_used -> normalize (-los[j]) # vec(1);
+    omp <- vec i in 0:n_used -> nav_meas[i].pseudorange - norm los[i];
+    H <- (G^T * G)^(-1);
+    X := H * G^T;
+    correction := X * omp;
+    correction_norm := norm correction[0:3];
+
+    -- Update state.
+    rx_state[3] <- 0;
+    rx_state[0:4] <- correction + rx_state[0:4];
+
+    -- Not converged,
+    -- return
+    if correction_norm > 0.001 then return -correction_norm;
+
+    -- vel_solve
+    tempvX := vec j in 0:n_used -> (
+      -- dot product
+      pdot_pred := -G[j][0:3] * nav_meas[j].sat_vel;
+      -nav_meas[j].doppler * GPS_C / GPS_L1_HZ - pdot_pred;
+    );
+
+    -- Update velocity components of solution
+    rx_state[4:8] <- X * tempvX;
+
+    return correction_norm;
+);
