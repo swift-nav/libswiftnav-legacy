@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from version import get_git_version
 
 setup_args = dict(
