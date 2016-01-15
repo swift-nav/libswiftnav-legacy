@@ -15,7 +15,7 @@ script:
   # Test libswiftnav
   - mkdir build
   - cd build/
-  - cmake ../
+  - cmake -DCMAKE_BUILD_TYPE=Coverage ../
   - make
   - sudo make install
   # Test libswiftnav-python
