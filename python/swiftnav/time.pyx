@@ -16,9 +16,12 @@ cdef class GpsTime:
 
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(gps_time_t))
-    if kwargs:
-      self._thisptr = kwargs
+    self._thisptr.tow = kwargs.pop('tow')
+    self._thisptr.wn = kwargs.pop('wn')
 
+  def __getattr__(self, k):
+    return self._thisptr.get(k)
+  
   def __repr__(self):
     return "<GpsTime wn %d, tow %d>" % (self._thisptr.wn, self._thisptr.tow)
 
@@ -97,4 +100,4 @@ def datetime2gpst(timestamp):
   wn = dt.days / 7
   tow = (dt - datetime.timedelta(weeks=wn)).total_seconds()
   #wn % 1024 would be standard, but we want a bijective tranformation.
-  return GpsTime(wn, tow)
+  return GpsTime(wn=wn, tow=tow)
