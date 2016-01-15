@@ -8,7 +8,8 @@ sudo: required
 before_install:
   - sudo add-apt-repository --yes ppa:kalakris/cmake
   - travis_retry sudo apt-get update -qq
-  - sudo apt-get install cmake check
+  - sudo apt-get install cmake check lcov
+  - gem install coveralls-lcov
   - export LD_LIBRARY_PATH=/usr/local/lib
 
 script:
@@ -22,3 +23,10 @@ script:
   - cd ../python
   - sudo pip install tox
   - tox
+
+after_success:
+  - cd $TRAVIS_BUILD_DIR
+  - lcov --compat-libtool --directory . --capture --output-file coverage.info
+  # Remove coverage info for tests (always 100%) and stdlib
+  - lcov --remove coverage.info 'tests/*' '/usr/*' --output-file coverage.info
+  - coveralls-lcov coverage.info
