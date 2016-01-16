@@ -25,6 +25,8 @@ install:
   - pip install --user tox
   # Hack so python bindings can find locally installed library file
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/build/install/usr/local/lib
+  # Install ARM GCC toolchain
+  # TODO: Replace with PPA once whitelisted, see https://github.com/travis-ci/apt-source-whitelist/pull/219
   - wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
   - tar -xf gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
   - export PATH=$PATH:$PWD/gcc-arm-none-eabi-4_9-2015q2/bin
