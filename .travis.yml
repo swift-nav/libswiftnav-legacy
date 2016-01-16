@@ -15,12 +15,19 @@ addons:
     - cmake
     - check
     - lcov
+    # Required for gcc-arm-embedded
+    - lib32bz2-1.0
+    - lib32ncurses5
+    - lib32z1
 
-before_install:
+install:
   - gem install coveralls-lcov
   - pip install --user tox
   # Hack so python bindings can find locally installed library file
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/build/install/usr/local/lib
+  - wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
+  - tar -xf gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
+  - export PATH=$PATH:$PWD/gcc-arm-none-eabi-4_9-2015q2/bin
 
 script:
   # Test libswiftnav
@@ -30,7 +37,12 @@ script:
   - make
   # Install locally to avoid sudo
   - make DESTDIR="./install" install
-  - ls $LD_LIBRARY_PATH
+  # Test ARM cross-compile
+  - cd $TRAVIS_BUILD_DIR
+  - mkdir build_arm
+  - cd build_arm/
+  - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake ../
+  - make
   # Test libswiftnav-python
   - cd ../python
   - tox
