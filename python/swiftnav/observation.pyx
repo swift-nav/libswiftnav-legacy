@@ -43,6 +43,9 @@ cdef class SingleDiff:
   def from_dict(self, d):
     self._thisptr = d
 
+  def __rich_cmp__(self, SingleDiff sd, op):
+    return cmp_sdiff(<void *>&self._thisptr, <void *>&sd._thisptr)
+
 def single_diff_(m_a, m_b):
   """Calculate single differences from two sets of observations.
   Undifferenced input observations are assumed to be both taken at the
@@ -214,10 +217,10 @@ cdef mk_sdiff_array(py_sdiffs, u8 n_c_sdiffs, sdiff_t *c_sdiffs):
 cdef read_sdiff_array(u8 n_c_sdiffs, sdiff_t *c_sdiffs):
   """Given an array of c sdiff_t's, returns an array of SingleDiffs.
 
+  Not efficient, but works for now.
+
   """
-  cdef sdiff_t sd_
-  py_sdiffs = [SingleDiff()]*n_c_sdiffs
-  for (i, sdiff) in enumerate(py_sdiffs):
-    sd_ = (<SingleDiff> sdiff)._thisptr
-    memcpy(&sd_, &c_sdiffs[i], sizeof(sdiff_t))
+  py_sdiffs = []
+  for n in range(n_c_sdiffs):
+    py_sdiffs.append(SingleDiff(**c_sdiffs[n]))
   return py_sdiffs
