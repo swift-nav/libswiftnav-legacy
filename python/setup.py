@@ -25,12 +25,18 @@ if __name__ == "__main__":
   os.environ['ARCHFLAGS'] = ""
   def make_extension(ext_name):
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
+    library_dirs = []
+    # If LD_LIBRARY_PATH has been manually specified, add it to the
+    # library search path
+    if 'LD_LIBRARY_PATH' in os.environ:
+      library_dirs.append(os.environ['LD_LIBRARY_PATH'])
     return Extension(
       ext_name, [ext_path],
       include_dirs = [np.get_include(), '.', '../include/'],
       extra_compile_args = ['-O0', '-g'],
       extra_link_args = ['-g'],
       libraries = ['m', 'swiftnav'],
+      library_dirs = library_dirs,
     )
   ext_names = [
     'swiftnav.edc',
