@@ -16,8 +16,8 @@ cdef class GpsTime:
 
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(gps_time_t))
-    self._thisptr.tow = kwargs.pop('tow')
-    self._thisptr.wn = kwargs.pop('wn')
+    if kwargs:
+      self._thisptr = kwargs
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
