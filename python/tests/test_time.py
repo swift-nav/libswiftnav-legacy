@@ -10,6 +10,7 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 import swiftnav.time as t
+import datetime as dt
 
 # TODO (Buro): Add back case with WN_UNKNOWN?
 def test_gpsdifftime():
@@ -37,3 +38,18 @@ def test_gpsdifftime():
     normalized.normalize_gps_time()
     print normalized
     assert t.GpsTime(tow=a[0], wn=a[1]).gpsdifftime(t.GpsTime(tow=b[0], wn=b[1])) - dt < tow_tol
+
+def test_comp_2_datetime():
+  test_dt = t.gpst_components2datetime(1, 100)
+  time_dif = test_dt - dt.datetime.strptime('1980-01-13 00:01:41', '%Y-%m-%d %H:%M:%S')
+  assert abs(time_dif) == dt.timedelta(0, 1 , 0)
+
+def test_gpst2datetime():
+  gpst = t.GpsTime(wn=800, tow=30000)
+  test_dt = t.gpst2datetime(gpst)
+  assert test_dt == dt.datetime.strptime('1995-05-07 08:20:00', '%Y-%m-%d %H:%M:%S')
+
+def test_datetime2gpst():
+  test_dt = dt.datetime.strptime('1995-05-07 08:20:00', '%Y-%m-%d %H:%M:%S')
+  gpst = t.datetime2gpst(test_dt)
+  assert str(gpst) == str(t.GpsTime(wn=800, tow=30000))
