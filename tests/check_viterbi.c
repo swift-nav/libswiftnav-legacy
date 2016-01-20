@@ -34,7 +34,9 @@ START_TEST(test_viterbi27)
   #define DECODE_LENGTH_BITS 32
 
   FILE *waas_symbols = fopen("v27_sym_waas.bin", "r");
+  fail_if(NULL == waas_symbols, "Could not load WAAS data file");
   FILE *waas_bits = fopen("v27_bits_waas.bin", "r");
+  fail_if(NULL == waas_bits, "Could not load WAAS data file");
   const char *tmp_file = "tmp.bin";
 
   /* Read in viterbi symbols from file */
