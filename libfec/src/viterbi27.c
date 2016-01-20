@@ -21,7 +21,7 @@ static inline int parity(int x)
  * \param poly Structure to initialize.
  * \param polynomial Byte array representing the desired polynomials.
  */
-void v27_poly_init(v27_poly_t *poly, signed char polynomial[2])
+void v27_poly_init(v27_poly_t *poly, const signed char polynomial[2])
 {
   int state;
 
