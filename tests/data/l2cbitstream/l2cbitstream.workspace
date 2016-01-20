@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="l2cbitstream" Database="">
+  <Project Name="libl2cbitstream" Path="libl2cbitstream/libl2cbitstream.project" Active="Yes"/>
+  <Project Name="l2cbitstream_test" Path="l2cbitstream_test/l2cbitstream_test.project"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Project Name="libl2cbitstream" ConfigName="Debug"/>
+      <Project Name="l2cbitstream_test" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Project Name="libl2cbitstream" ConfigName="Release"/>
+      <Project Name="l2cbitstream_test" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>
