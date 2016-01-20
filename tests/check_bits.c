@@ -3,6 +3,8 @@
 
 #include <libswiftnav/bits.h>
 
+#include <stdio.h>
+
 START_TEST(test_parity)
 {
   fail_unless(parity(0x00000000) == 0);
@@ -122,6 +124,58 @@ START_TEST(test_setbits)
 }
 END_TEST
 
+START_TEST(test_bitshl)
+{
+  u8 src0[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res0[] = { 0xBE, 0xEF, 0x00, 0x00 };
+
+  u8 src1[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res1[] = { 0xEA, 0xDB, 0xEE, 0xF0 };
+
+  u8 src2[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res2[] = { 0xDB, 0xEE, 0xF0, 0x00 };
+
+  u8 src3[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res3[] = { 0xB6, 0xFB, 0xBC, 0x00 };
+
+  bitshl(src0, sizeof(src0), 16);
+  fail_unless(0 == memcmp(src0, res0, 4), "Byte shift test");
+
+  bitshl(src1, sizeof(src1), 4);
+  fail_unless(0 == memcmp(src1, res1, 4), "4-bit shift");
+
+  bitshl(src2, sizeof(src2), 12);
+  fail_unless(0 == memcmp(src2, res2, 4), "12-bit shift");
+
+  bitshl(src3, sizeof(src3), 10);
+  fail_unless(0 == memcmp(src3, res3, 4), "10-bit shift");
+}
+END_TEST
+
+START_TEST(test_bitcopy)
+{
+  u8 src0[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res0[] = { 0xBE, 0xEF, 0xBE, 0xEF };
+
+  u8 src1[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res1[] = { 0xEA, 0xDB, 0xEE, 0xFF };
+
+  u8 src2[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD};
+  // u8 dst2[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD};
+  u8 res2[] = { 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xAD};
+
+  bitcopy(src0, 0, src0, 16, 16);
+  fail_unless(0 == memcmp(src0, res0, 4), "16-bit copy");
+
+  bitcopy(src1, 0, src1, 4, 28);
+  fail_unless(0 == memcmp(src1, res1, 4), "28-bit copy");
+
+  bitcopy(src2, 0, src2, 8, 72);
+  fail_unless(0 == memcmp(src2, res2, 4), "72-bit copy");
+}
+END_TEST
+
+
 Suite* bits_suite(void)
 {
   Suite *s = suite_create("Bit Utils");
@@ -132,6 +186,8 @@ Suite* bits_suite(void)
   tcase_add_test(tc_core, test_getbits);
   tcase_add_test(tc_core, test_setbitu);
   tcase_add_test(tc_core, test_setbits);
+  tcase_add_test(tc_core, test_bitshl);
+  tcase_add_test(tc_core, test_bitcopy);
   suite_add_tcase(s, tc_core);
 
   return s;

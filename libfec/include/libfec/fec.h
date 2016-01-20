@@ -35,7 +35,7 @@ typedef struct {
   unsigned int decisions_count;   /* Number of decisions in history */
 } v27_t;
 
-void v27_poly_init(v27_poly_t *poly, signed char polynomial[2]);
+void v27_poly_init(v27_poly_t *poly, const signed char polynomial[2]);
 
 void v27_init(v27_t *v, v27_decision_t *decisions, unsigned int decisions_count,
               const v27_poly_t *poly, unsigned char initial_state);

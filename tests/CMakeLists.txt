@@ -46,6 +46,7 @@ else (CMAKE_CROSSCOMPILING)
       check_ionosphere.c
       check_signal.c
       check_track.c
+      check_cnav.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})
