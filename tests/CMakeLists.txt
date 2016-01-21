@@ -86,3 +86,5 @@ else (CMAKE_CROSSCOMPILING)
 
   endif (NOT CHECK_FOUND)
 endif (CMAKE_CROSSCOMPILING)
+
+add_subdirectory(data/l2cbitstream/libl2cbitstream)
