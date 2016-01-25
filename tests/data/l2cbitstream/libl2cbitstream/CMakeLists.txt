@@ -4,7 +4,8 @@ endif (NOT DEFINED BUILD_SHARED_LIBS)
 
 set(CMAKE_C_FLAGS "-Wmissing-prototypes ${CMAKE_C_FLAGS}")
 
-file(GLOB libswiftnav_HEADERS "${PROJECT_SOURCE_DIR}/include/libswiftnav/*.h")
+file(GLOB libl2cbitstream_HEADERS
+"${PROJECT_SOURCE_DIR}/tests/data/l2cbitstream/libl2cbitstream/l2cbitstream.h")
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 include_directories(".")
@@ -28,6 +29,8 @@ if(BUILD_SHARED_LIBS)
 else(BUILD_SHARED_LIBS)
   message(STATUS "Not building shared libraries")
 endif(BUILD_SHARED_LIBS)
+
+install(FILES ${libl2cbitstream_HEADERS} DESTINATION include/libl2cbitstream)
 
 MESSAGE("${PROJECT_SOURCE_DIR}")
 
