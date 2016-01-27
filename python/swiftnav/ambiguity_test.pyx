@@ -137,7 +137,9 @@ cdef class AmbiguityTest:
                             is_bad_measurement):
     num_sdiffs = len(sdiffs)
     cdef sdiff_t sdiffs_[32]
+    print "here"
     mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
+    print sdiffs_
     return ambiguity_update_sats(&self._thisptr,
                                  num_sdiffs,
                                  &sdiffs_[0],

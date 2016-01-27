@@ -18,7 +18,6 @@ from common cimport *
 from ephemeris cimport ephemeris_t
 from ephemeris cimport Ephemeris
 from ephemeris import Ephemeris
-from fmt_utils import fmt_repr
 from time cimport *
 from time import GpsTime
 from libc.stdlib cimport malloc, free
@@ -453,12 +452,6 @@ cdef class NavigationMeasurement:
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
-
-  def to_dict(self):
-    return self._thisptr
-
-  def __repr__(self):
-    return fmt_repr(self)
 
   def __rich_cmp__(self, nav_msg, op):
     cdef navigation_measurement_t nav_msg_ = nav_msg._thisptr

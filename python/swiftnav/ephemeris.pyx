@@ -82,4 +82,4 @@ cdef mk_ephemeris_array(py_ephemerides, u8 n_c_ephemerides,
 
   """
   for (i, ephemeris) in enumerate(py_ephemerides):
-    c_ephemerides[i] = &((<Ephemeris ?>ephemeris)._thisptr)
+    c_ephemerides[i] = &((<Ephemeris ?>ephemeris[i])._thisptr)
