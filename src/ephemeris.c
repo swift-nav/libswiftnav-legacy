@@ -228,7 +228,7 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_err != NULL);
   assert(clock_rate_err != NULL);
   assert(e != NULL);
-  assert(ephemeris_valid(e, t));
+  assert(ephemeris_not_stale(e, t));
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
@@ -241,21 +241,33 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   }
 }
 
-/** Is this ephemeris usable?
+
+/** Is this ephemeris usable at any time?
+ *
+ * \param eph Ephemeris struct
+ * \return 1 if the ephemeris is valid.
+ *         0 otherwise.
+ */
+u8 ephemeris_valid(const ephemeris_t *eph)
+{
+  return eph->valid;
+}
+
+/** Is this ephemeris usable at the given time?
  *
  * \param eph Ephemeris struct
  * \param t   The current GPS time. This is used to determine the ephemeris age.
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
+u8 ephemeris_not_stale(const ephemeris_t *eph, const gps_time_t *t)
 {
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double dt = gpsdifftime(t, &eph->toe);
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  return (eph->valid && fabs(dt) < ((u32)eph->fit_interval)*60*60);
+  return (ephemeris_valid(eph) && fabs(dt) < ((u32)eph->fit_interval)*60*60);
 }
 
 /** Is this satellite healthy? Note this function only checks flags in the
