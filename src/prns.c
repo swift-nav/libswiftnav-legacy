@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2016 Swift Navigation Inc.
  * Contact: Colin Beighley <colinbeighley@gmail.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -35,9 +36,9 @@ static const u8 sbas_ca_codes[][128];
  */
 const u8* ca_code(gnss_signal_t sid)
 {
-  assert(sid.band == BAND_L1);
+  assert(sid.code == CODE_GPS_L1CA || sid.code == CODE_SBAS_L1CA);
 
-  switch(sid.constellation) {
+  switch(sid_to_constellation(sid)) {
     case CONSTELLATION_GPS:
       assert(sid.sat - GPS_FIRST_PRN < NUM_SATS_GPS);
       return gps_ca_codes[sid.sat - GPS_FIRST_PRN];

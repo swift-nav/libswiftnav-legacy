@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2016 Swift Navigation Inc.
 # Contact: Bhaskar Mookerji <mookerji@swiftnav.com>
 #
 # This source is subject to the license found in the file 'LICENSE' which must
@@ -16,7 +16,7 @@ import swiftnav.time as t
 tol = 1e-10
 
 def test_sat_state():
-  eph = e.Ephemeris(**{'sid': {'sat': 17, 'band': 0, 'constellation': 0},
+  eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                        'toe': { 'wn': 1867, 'tow': 518400.0,},
                        'ura': 2.0,
                        'fit_interval': 4,
@@ -59,7 +59,7 @@ def test_sat_state():
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1868, 'tow': 518400.0,}))
   assert len(eph.to_dict()) == 8
   assert repr(eph)
-  eph = e.Ephemeris(**{'sid': {'sat': 17, 'band': 0, 'constellation': 0},
+  eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                      'toe': { 'wn': 1867, 'tow': 518400.0,},
                      'ura': 2.0,
                      'fit_interval': 4,
@@ -90,7 +90,7 @@ def test_sat_state():
                                 'af2': 0.0}})
   assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,}))
   assert not eph.is_healthy()
-  eph = e.Ephemeris(**{'sid': {'sat': 17, 'band': 0, 'constellation': 0},
+  eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                      'toe': { 'wn': 1867, 'tow': 518400.0,},
                      'ura': 2.0,
                      'fit_interval': 4,
@@ -121,7 +121,7 @@ def test_sat_state():
                                 'af2': 0.0}})
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,}))
   assert not eph.is_healthy()
-  eph = e.Ephemeris(**{'sid': {'sat': 17, 'band': 0, 'constellation': 0},
+  eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                          'toe': { 'wn': 1867, 'tow': 518400.0,},
                          'ura': 2.0,
                          'fit_interval': 6,

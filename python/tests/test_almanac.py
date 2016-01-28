@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2016 Swift Navigation Inc.
 # Contact: Bhaskar Mookerji <mookerji@swiftnav.com>
 #
 # This source is subject to the license found in the file 'LICENSE' which must
@@ -29,8 +29,7 @@ def test_init():
     },
     'healthy': 1,
     'sid': {
-        'band': 0,
-        'constellation': 0,
+        'code': 0,
         'sat': 1
     },
     'valid': 1,
@@ -58,8 +57,7 @@ def test_almanac_functions():
     },
     'valid': 1,
     'sid': {
-        'band': 0,
-        'constellation': 0,
+        'code': 0,
         'sat': 1
     }
   }
