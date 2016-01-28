@@ -221,13 +221,13 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
     return -1;
   }
 
-  switch (e->sid.constellation) {
+  switch (sid_to_constellation(e->sid)) {
   case CONSTELLATION_GPS:
     return calc_sat_state_kepler(e, t, pos, vel, clock_err, clock_rate_err);
   case CONSTELLATION_SBAS:
     return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
   default:
-    assert("Unsupported constellation");
+    assert(!"Unsupported constellation");
     return -1;
   }
 }
@@ -363,7 +363,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
-  assert(e->sid.constellation == CONSTELLATION_GPS);
+  assert(sid_to_constellation(e->sid) == CONSTELLATION_GPS);
   ephemeris_kepler_t *k = &e->kepler;
 
   char buf[SID_STR_LEN_MAX];
@@ -585,13 +585,13 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
       (a->toe.tow != b->toe.tow))
     return false;
 
-  switch (a->sid.constellation) {
+  switch (sid_to_constellation(a->sid)) {
   case CONSTELLATION_GPS:
     return ephemeris_kepler_equal(&a->kepler, &b->kepler);
   case CONSTELLATION_SBAS:
     return ephemeris_xyz_equal(&a->xyz, &b->xyz);
   default:
-    assert("unsupported constellation");
+    assert(!"Unsupported constellation");
     return false;
   }
 }

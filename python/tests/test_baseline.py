@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2016 Swift Navigation Inc.
 # Contact: Bhaskar Mookerji <mookerji@swiftnav.com>
 #
 # This source is subject to the license found in the file 'LICENSE' which must
@@ -127,35 +127,35 @@ def test_lesq_solution5():
 def baseline_setup():
   # Initialize sdiffs used in baseline() tests
   ref_ecef = np.array([0,0,0])
-  sdiffs = [SingleDiff(sid={'sat': 1, 'band': 0, 'constellation': 0},
+  sdiffs = [SingleDiff(sid={'sat': 1, 'code': 0},
                        pseudorange=0,
                        sat_pos=np.array([0, 0, 0]),
                        sat_vel=np.array([0, 0, 0]),
                        doppler=0,
                        carrier_phase=1,
                        snr=0.0),
-            SingleDiff(sid={'sat':2, 'band': 0, 'constellation': 0},
+            SingleDiff(sid={'sat':2, 'code': 0},
                        pseudorange=0,
                        sat_pos=np.array([1, 0, 0]),
                        sat_vel=np.array([0, 0, 0]),
                        doppler=0,
                        carrier_phase=2,
                        snr=0.0),
-            SingleDiff(sid={'sat': 3, 'band': 0, 'constellation': 0},
+            SingleDiff(sid={'sat': 3, 'code': 0},
                        pseudorange=0,
                        sat_pos=np.array([0, 1, 0]),
                        sat_vel=np.array([0, 0, 0]),
                        doppler=0,
                        carrier_phase=3,
                        snr=0.0),
-            SingleDiff(sid={'sat': 4, 'band': 0, 'constellation': 0},
+            SingleDiff(sid={'sat': 4, 'code': 0},
                        pseudorange=0,
                        sat_pos=np.array([0, 1, 1]),
                        sat_vel=np.array([0, 0, 0]),
                        doppler=0,
                        carrier_phase=4,
                        snr=0.0),
-            SingleDiff(sid={'sat': 5, 'band': 0, 'constellation': 0},
+            SingleDiff(sid={'sat': 5, 'code': 0},
                        pseudorange=0,
                        sat_pos=np.array([0, 0, 1]),
                        sat_vel=np.array([0, 0, 0]),
@@ -169,18 +169,18 @@ def test_baseline_ref_first():
   # Check that it works with the first sdiff as the reference
   # sat. This should verify that the loop can start correctly.
   ambs = bl.Ambiguities(n=4,
-                        sids=[{'sat': 1, 'band': 0, 'constellation': 0},
-                              {'sat': 2, 'band': 0, 'constellation': 0},
-                              {'sat': 3, 'band': 0, 'constellation': 0},
-                              {'sat': 4, 'band': 0, 'constellation': 0},
-                              {'sat': 5, 'band': 0, 'constellation': 0},
+                        sids=[{'sat': 1, 'code': 0},
+                              {'sat': 2, 'code': 0},
+                              {'sat': 3, 'code': 0},
+                              {'sat': 4, 'code': 0},
+                              {'sat': 5, 'code': 0},
                               # Remaining
-                              {'sat': 6, 'band': 0, 'constellation': 0},
-                              {'sat': 7, 'band': 0, 'constellation': 0},
-                              {'sat': 8, 'band': 0, 'constellation': 0},
-                              {'sat': 9, 'band': 0, 'constellation': 0},
-                              {'sat': 10, 'band': 0, 'constellation': 0},
-                              {'sat': 11, 'band': 0, 'constellation': 0}],
+                              {'sat': 6, 'code': 0},
+                              {'sat': 7, 'code': 0},
+                              {'sat': 8, 'code': 0},
+                              {'sat': 9, 'code': 0},
+                              {'sat': 10, 'code': 0},
+                              {'sat': 11, 'code': 0}],
                         ambs=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
   sdiffs, ref_ecef = baseline_setup()
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
@@ -194,21 +194,21 @@ def test_baseline_ref_middle():
   # should verify that the induction works.
   sdiffs, ref_ecef = baseline_setup()
   ambs = bl.Ambiguities(n=4,
-                        sids=[{'sat': 1, 'band': 0, 'constellation': 0},
-                              {'sat': 2, 'band': 0, 'constellation': 0},
-                              {'sat': 3, 'band': 0, 'constellation': 0},
-                              {'sat': 4, 'band': 0, 'constellation': 0},
-                              {'sat': 5, 'band': 0, 'constellation': 0},
+                        sids=[{'sat': 1, 'code': 0},
+                              {'sat': 2, 'code': 0},
+                              {'sat': 3, 'code': 0},
+                              {'sat': 4, 'code': 0},
+                              {'sat': 5, 'code': 0},
                               # Remaining
-                              {'sat': 6, 'band': 0, 'constellation': 0},
-                              {'sat': 7, 'band': 0, 'constellation': 0},
-                              {'sat': 8, 'band': 0, 'constellation': 0},
-                              {'sat': 9, 'band': 0, 'constellation': 0},
-                              {'sat': 10, 'band': 0, 'constellation': 0},
-                              {'sat': 11, 'band': 0, 'constellation': 0}],
+                              {'sat': 6, 'code': 0},
+                              {'sat': 7, 'code': 0},
+                              {'sat': 8, 'code': 0},
+                              {'sat': 9, 'code': 0},
+                              {'sat': 10, 'code': 0},
+                              {'sat': 11, 'code': 0}],
                         ambs=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
   old_snr_2 = sdiffs[1].snr
-  sdiffs[1] = SingleDiff(sid={'sat':2, 'band': 0, 'constellation': 0},
+  sdiffs[1] = SingleDiff(sid={'sat':2, 'code': 0},
                          pseudorange=0,
                          sat_pos=np.array([1, 0, 0]),
                          sat_vel=np.array([0, 0, 0]),
@@ -226,18 +226,18 @@ def test_baseline_ref_end():
   # should verify that the loop can terminate correctly
   sdiffs, ref_ecef = baseline_setup()
   ambs = bl.Ambiguities(n=4,
-                        sids=[{'sat': 5, 'band': 0, 'constellation': 0},
-                              {'sat': 1, 'band': 0, 'constellation': 0},
-                              {'sat': 2, 'band': 0, 'constellation': 0},
-                              {'sat': 3, 'band': 0, 'constellation': 0},
-                              {'sat': 4, 'band': 0, 'constellation': 0},
+                        sids=[{'sat': 5, 'code': 0},
+                              {'sat': 1, 'code': 0},
+                              {'sat': 2, 'code': 0},
+                              {'sat': 3, 'code': 0},
+                              {'sat': 4, 'code': 0},
                               # Remaining
-                              {'sat': 6, 'band': 0, 'constellation': 0},
-                              {'sat': 7, 'band': 0, 'constellation': 0},
-                              {'sat': 8, 'band': 0, 'constellation': 0},
-                              {'sat': 9, 'band': 0, 'constellation': 0},
-                              {'sat': 10, 'band': 0, 'constellation': 0},
-                              {'sat': 11, 'band': 0, 'constellation': 0}],
+                              {'sat': 6, 'code': 0},
+                              {'sat': 7, 'code': 0},
+                              {'sat': 8, 'code': 0},
+                              {'sat': 9, 'code': 0},
+                              {'sat': 10, 'code': 0},
+                              {'sat': 11, 'code': 0}],
                         ambs=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
   index = ambs.n
   old_snr_2 = sdiffs[index].snr
@@ -271,18 +271,18 @@ def test_baseline_ref_end():
 def test_baseline_few_sats():
   sdiffs, ref_ecef = baseline_setup()
   ambs = bl.Ambiguities(n=0,
-                        sids=[{'sat': 5, 'band': 0, 'constellation': 0},
-                              {'sat': 1, 'band': 0, 'constellation': 0},
-                              {'sat': 2, 'band': 0, 'constellation': 0},
-                              {'sat': 3, 'band': 0, 'constellation': 0},
-                              {'sat': 4, 'band': 0, 'constellation': 0},
+                        sids=[{'sat': 5, 'code': 0},
+                              {'sat': 1, 'code': 0},
+                              {'sat': 2, 'code': 0},
+                              {'sat': 3, 'code': 0},
+                              {'sat': 4, 'code': 0},
                               # Remaining
-                              {'sat': 6, 'band': 0, 'constellation': 0},
-                              {'sat': 7, 'band': 0, 'constellation': 0},
-                              {'sat': 8, 'band': 0, 'constellation': 0},
-                              {'sat': 9, 'band': 0, 'constellation': 0},
-                              {'sat': 10, 'band': 0, 'constellation': 0},
-                              {'sat': 11, 'band': 0, 'constellation': 0}],
+                              {'sat': 6, 'code': 0},
+                              {'sat': 7, 'code': 0},
+                              {'sat': 8, 'code': 0},
+                              {'sat': 9, 'code': 0},
+                              {'sat': 10, 'code': 0},
+                              {'sat': 11, 'code': 0}],
                         ambs=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
   assert num_used == 0

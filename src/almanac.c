@@ -175,7 +175,7 @@ static void gps_calc_sat_state_almanac(const almanac_t* alm_, double t, s16 week
 void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
                             double pos[3], double vel[3])
 {
-  switch(alm->sid.constellation) {
+  switch(sid_to_constellation(alm->sid)) {
   case CONSTELLATION_GPS:
     gps_calc_sat_state_almanac(alm, t, week, pos, vel);
     break;
@@ -183,7 +183,7 @@ void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
     sbas_calc_sat_state_almanac(alm, t, pos, vel);
     break;
   default:
-    assert("unsupported constellation");
+    assert(!"Unsupported constellation");
   }
 }
 
