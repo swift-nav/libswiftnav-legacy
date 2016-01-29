@@ -54,7 +54,7 @@ cdef class Ephemeris:
     return (pos, vel, clock_err, clock_rate_err)
 
   def is_valid(self, GpsTime time):
-    return ephemeris_valid(&self._thisptr, &time._thisptr)
+    return ephemeris_valid_at_time(&self._thisptr, &time._thisptr)
 
   def is_healthy(self):
     return satellite_healthy(&self._thisptr)
