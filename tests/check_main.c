@@ -11,6 +11,7 @@ int main(void)
 
   SRunner *sr = srunner_create(s);
   srunner_set_xml(sr, "test_results.xml");
+
   srunner_add_suite(sr, dgnss_management_test_suite());
   srunner_add_suite(sr, baseline_test_suite());
   srunner_add_suite(sr, amb_kf_test_suite());
@@ -31,6 +32,7 @@ int main(void)
   srunner_add_suite(sr, ionosphere_suite());
   srunner_add_suite(sr, signal_test_suite());
   srunner_add_suite(sr, track_test_suite());
+  srunner_add_suite(sr, cnav_test_suite());
 
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);

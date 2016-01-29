@@ -77,6 +77,46 @@ u32 crc24q(const u8 *buf, u32 len, u32 crc)
   return crc;
 }
 
+/**
+ * Computes CRC-24Q for left-aligned bit message.
+ * This function is used for left-aligned bit messages, for example SBAS and
+ * GPS CNAV.
+ * GPS message is 300 bits total, but 276 bits without CRC. It takes 34.5
+ * 8-bit bytes, and when computing CRC the message has to be padded with zero
+ * bits.
+ *
+ * \param[in] crc    Initial CRC value
+ * \param[in] buf    Pointer to MSB-aligned data.
+ * \param[in] n_bits Number of bits in the data buffer.
+ * \param[in] invert Flag to compute inverted CRC.
+ *
+ * \return CRC-24Q value
+ */
+u32 crc24q_bits(u32 crc, const u8 *buf, u32 n_bits, bool invert)
+{
+  u16 acc   = 0;
+  u8  b     = 0;
+  u32 shift = 8 - n_bits % 8;
+
+  for (u32 i = 0; i < n_bits / 8; ++i) {
+    acc  = (acc << 8) | *buf++;
+    if (invert) {
+      acc ^= 0xFFu;
+    }
+    b    = (acc >> shift) & 0xFFu;
+    crc  = ((crc << 8) & 0xFFFFFFu) ^ crc24qtab[((crc >> 16) ^ b) & 0xFFu];
+  }
+  acc  = (acc << 8) | *buf;
+  if (invert) {
+    acc ^= 0xFFu;
+  }
+  b    = (acc >> shift) & 0xFFu;
+  crc  = ((crc << 8) & 0xFFFFFFu) ^ crc24qtab[((crc >> 16) ^ b) & 0xFFu];
+
+  return crc;
+}
+
+
 /** \} */
 
 /** \} */

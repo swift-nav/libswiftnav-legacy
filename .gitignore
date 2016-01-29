@@ -5,3 +5,7 @@ plover/dist/
 *.pyc
 sbp_generate/sbp_out.*
 clapack-3.2.1-CMAKE/F2CLIBS/libf2c/arith*
+.project
+.cproject
+.pydevproject
+.settings/
