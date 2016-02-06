@@ -26,6 +26,10 @@ Suite* track_test_suite(void);
 Suite* l2c_capability_test_suite(void);
 Suite* cnav_test_suite(void);
 Suite* glo_decoder_test_suite(void);
+<<<<<<< HEAD
 Suite* troposphere_suite(void);
+=======
+Suite* correlator_suite(void);
+>>>>>>> Add L2C correlator for Peregrine
 
 #endif /* CHECK_SUITES_H */
