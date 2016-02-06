@@ -37,6 +37,7 @@ int main(void)
   srunner_add_suite(sr, cnav_test_suite());
   srunner_add_suite(sr, glo_decoder_test_suite());
   srunner_add_suite(sr, troposphere_suite());
+  srunner_add_suite(sr, correlator_suite());
 
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);
