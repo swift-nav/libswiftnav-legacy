@@ -32,6 +32,7 @@ else (CMAKE_CROSSCOMPILING)
       check_pvt.c
       check_edc.c
       check_bits.c
+      check_correlator.c
       check_memory_pool.c
       check_rtcm3.c
       check_coord_system.c
