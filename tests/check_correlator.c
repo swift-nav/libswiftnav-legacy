@@ -12,7 +12,7 @@ enum signal_type {
   L2C_SIGNAL
 };
 
-//#define DUMP_RESULTS
+#define DUMP_RESULTS
 
 #ifdef DUMP_RESULTS
 #include <time.h>
