@@ -15,6 +15,10 @@
 #include <stdlib.h>
 
 #ifdef __SSSE3__
+#undef __SSSE3__
+#endif
+
+#ifdef __SSSE3__
 #include <tmmintrin.h>
 #endif
 
