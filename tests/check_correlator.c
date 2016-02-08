@@ -270,6 +270,8 @@ struct signal generate_signal(enum signal_type signal_type,
       samples[i] = 1;
     } else if (ip < 0) {
       samples[i] = -1;
+    } else {
+      samples[i] = 0;
     }
 
     carr_phase += carr_phasestep;
