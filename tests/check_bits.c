@@ -152,6 +152,16 @@ START_TEST(test_bitshl)
 }
 END_TEST
 
+START_TEST(test_bitshl2)
+{
+  u8 src0[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  u8 res0[] = { 0x00, 0x00, 0x00, 0x00 };
+
+  bitshl(src0, sizeof(src0), 64);
+  fail_unless(0 == memcmp(src0, res0, 4), "Byte shift test");
+}
+END_TEST
+
 START_TEST(test_bitcopy)
 {
   u8 src0[] = { 0xDE, 0xAD, 0xBE, 0xEF };
@@ -187,6 +197,7 @@ Suite* bits_suite(void)
   tcase_add_test(tc_core, test_setbitu);
   tcase_add_test(tc_core, test_setbits);
   tcase_add_test(tc_core, test_bitshl);
+  tcase_add_test(tc_core, test_bitshl2);
   tcase_add_test(tc_core, test_bitcopy);
   suite_add_tcase(s, tc_core);
 

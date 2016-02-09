@@ -133,7 +133,7 @@ void bitshl(void *buf, u32 size, u32 shift)
 {
   if (shift > size * CHAR_BIT) {
     /* Quick check: if the shift is larger, than the buffer, zero the data */
-    memset(buf, size, 0);
+    memset(buf, 0, size);
     return;
   }
 
