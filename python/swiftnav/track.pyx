@@ -306,14 +306,8 @@ cdef class AidedTrackingLoop:
     aided_tl_update(&self._thisptr, cs_)
     return (self._thisptr.code_freq, self._thisptr.carr_freq)
 
-  def get_fields(self):
-    return {'carr_freq': self._thisptr.carr_freq,
-            'carr_filt': self._thisptr.carr_filt,
-            'code_freq': self._thisptr.code_freq,
-            'code_filt': self._thisptr.code_filt,
-            'prev_I': self._thisptr.prev_I,
-            'prev_Q': self._thisptr.prev_Q,
-            'carr_to_code': self._thisptr.carr_to_code}
+  def to_dict(self):
+    return self._thisptr
 
 cdef class CompTrackingLoop:
   """
