@@ -31,6 +31,9 @@ cdef class NavMsg:
   def from_dict(self, d):
     self._thisptr = d
 
+  def __reduce__(self):
+    return (rebuild_NavMsg, tuple(self.to_dict().items()))
+
   def update(self, bit_val):
     return nav_msg_update(&self._thisptr, bit_val)
 
@@ -40,3 +43,23 @@ cdef class NavMsg:
   def process_subframe(self, e):
     cdef ephemeris_t tmp = e._thisptr
     return process_subframe(&self._thisptr, &tmp)
+
+def rebuild_NavMsg(reduced):
+  """
+  Rebuild NavMsg for unpickling.
+
+  Parameters
+  ----------
+  reduced: tuple
+    Tuple of dict of NavMsg nav_msg_t struct fields
+
+  Returns
+  -------
+  out: :class:`NavMsg` instance
+    Rebuilt :class:`NavMsg` instance
+  """
+  nm = NavMsg()
+  nm.from_dict(dict(reduced))
+  return nm
+
+  
