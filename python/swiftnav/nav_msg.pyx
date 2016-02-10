@@ -32,7 +32,7 @@ cdef class NavMsg:
     self._thisptr = d
 
   def __reduce__(self):
-    return (rebuild_NavMsg, tuple(self.to_dict().items()))
+    return (rebuild_NavMsg, tuple[tuple(self.to_dict().items())])
 
   def update(self, bit_val):
     return nav_msg_update(&self._thisptr, bit_val)
