@@ -25,6 +25,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memset, memcpy
 from signal cimport GNSSSignal
 from signal import GNSSSignal
+from numpy import real, imag
 
 # Discriminators
 
@@ -236,19 +237,18 @@ cdef class AidedTrackingLoop:
   """
 
   def __cinit__(self, **kwargs):
-    self._thisptr = kwargs
     aided_tl_init(&self._thisptr,
-                  self._thisptr.loop_freq,
-                  self._thisptr.code_freq,
-                  self._thisptr.code_bw,
-                  self._thisptr.code_zeta,
-                  self._thisptr.code_k,
-                  self._thisptr.carr_to_code,
-                  self._thisptr.carr_freq,
-                  self._thisptr.carr_bw,
-                  self._thisptr.carr_zeta,
-                  self._thisptr.carr_k,
-                  self._thisptr.carr_freq_b1)
+                  kwargs['loop_freq'],
+                  kwargs['code_freq'],
+                  kwargs['code_bw'],
+                  kwargs['code_zeta'],
+                  kwargs['code_k'],
+                  kwargs['carr_to_code'],
+                  kwargs['carr_freq'],
+                  kwargs['carr_bw'],
+                  kwargs['carr_zeta'],
+                  kwargs['carr_k'],
+                  kwargs['carr_freq_b1'])
 
 
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
@@ -277,16 +277,18 @@ cdef class AidedTrackingLoop:
                             self.carr_bw, self.carr_zeta, self.carr_k,
                             self.carr_freq_igain)
 
-  def update(self, cs):
+  def update(self, E, P, L):
     """
     Wraps the function :libswiftnav:`aided_tl_update`.
 
     Parameters
     ----------
-    cs : [complex], :math:`I_E + Q_E j`
-      The early correlation. The real component contains the in-phase
-      correlation and the imaginary component contains the quadrature
-      correlation. The prompt correlation. The late correlation.
+    E : [complex], :math:`I_E + Q_E j`
+      Complex Early Correlation
+    P : [complex], :math:`I_P + Q_P j`
+      Complex Prompt Correlation
+    L : [complex], :math:`I_L + Q_L j`
+      Complex Late Correlation
 
     Returns
     -------
@@ -295,11 +297,23 @@ cdef class AidedTrackingLoop:
 
     """
     cdef correlation_t cs_[3]
-    cs_[0] = cs[0]._thisptr
-    cs_[1] = cs[1]._thisptr
-    cs_[2] = cs[2]._thisptr
+    cs_[0].I = real(E)
+    cs_[0].Q = imag(E)
+    cs_[1].I = real(P)
+    cs_[1].Q = imag(P)
+    cs_[2].I = real(L)
+    cs_[2].Q = imag(L)
     aided_tl_update(&self._thisptr, cs_)
-    return (self.code_freq, self.carr_freq)
+    return (self._thisptr.code_freq, self._thisptr.carr_freq)
+
+  def get_fields(self):
+    return {'carr_freq': self._thisptr.carr_freq,
+            'carr_filt': self._thisptr.carr_filt,
+            'code_freq': self._thisptr.code_freq,
+            'code_filt': self._thisptr.code_filt,
+            'prev_I': self._thisptr.prev_I,
+            'prev_Q': self._thisptr.prev_Q,
+            'carr_to_code': self._thisptr.carr_to_code}
 
 cdef class CompTrackingLoop:
   """
@@ -396,10 +410,10 @@ cdef class CN0Estimator:
 
   def __cinit__(self, **kwargs):
     cn0_est_init(&self._thisptr,
-                 self._thisptr.bw,
-                 self._thisptr.cn0_0,
-                 self._thisptr.cutoff_freq,
-                 self._thisptr.loop_freq)
+                 kwargs['bw'],
+                 kwargs['cn0_0'],
+                 kwargs['cutoff_freq'],
+                 kwargs['loop_freq'])
 
   def update(self, I, Q):
     """
