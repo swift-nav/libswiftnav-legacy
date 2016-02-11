@@ -44,6 +44,41 @@ cdef class NavMsg:
     cdef ephemeris_t tmp = e._thisptr
     return process_subframe(&self._thisptr, &tmp)
 
+  def __richcmp__(self, other, op):
+    """
+    Weird Cython comparison method. See 
+    http://docs.cython.org/src/userguide/special_methods.html.
+    """
+    if op != 2:
+      # 2 is the code for equality test
+      raise NotImplementedError
+    return self._equal(other)
+
+  def _equal(self, other):
+    """
+    Compare equality between self and another :class:`NavMsg` object.
+
+    Parameters
+    ----------
+    other : :class:`NavMsg` object
+      The :class:`NavMsg` to test equality against.
+
+    Return
+    ------
+    out : bool
+      True if the passed :class:`NavMsg` object is identical.
+
+    """
+    if self.to_dict().keys() != other.to_dict().keys():
+      return False
+    
+    for k in self.to_dict().keys():
+      if self.to_dict()[k] != other.to_dict()[k]:
+        return False
+
+    return True
+      
+
 def rebuild_NavMsg(reduced):
   """
   Rebuild NavMsg for unpickling.
