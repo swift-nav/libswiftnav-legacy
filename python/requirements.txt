@@ -1,4 +1,4 @@
-cython>=0.17
+cython>=0.22
 numpy>=1.9
 flake8==2.3.0
 pep8==1.5.7
