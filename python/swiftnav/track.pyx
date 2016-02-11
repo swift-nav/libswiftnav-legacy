@@ -250,7 +250,6 @@ cdef class AidedTrackingLoop:
                   kwargs['carr_k'],
                   kwargs['carr_freq_b1'])
 
-
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     """
     Retune the tracking loop.
