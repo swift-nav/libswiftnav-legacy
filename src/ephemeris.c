@@ -214,13 +214,19 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_rate_err != NULL);
   assert(e != NULL);
 
+  /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
+  double dt = gpsdifftime(t, &e->toe);
+  if (fabs(dt) > ((u32)e->fit_interval) * 60 * 60) {
+    log_error("Using ephemeris outside validity period, dt = %+.0f", dt);
+    return -1;
+  }
+
   if (!ephemeris_valid(e, t)) {
     char buf[SID_STR_LEN_MAX];
     sid_to_string(buf, sizeof(buf), e->sid);
     log_error("Using invalid ephemeris in calc_sat_state for %s", buf);
     return -1;
   }
-
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
@@ -242,6 +248,10 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
  */
 u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
 {
+  assert(eph != NULL);
+  assert(t != NULL);
+  assert(eph->fit_interval > 0);
+
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double dt = gpsdifftime(t, &eph->toe);
 
@@ -256,7 +266,6 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
    * better. */
   /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
   if (fabs(dt) > ((u32)eph->fit_interval) * 60 * 60) {
-    log_error("Using ephemeris outside validity period, dt = %+.0f", dt);
     return 0;
   }
 
