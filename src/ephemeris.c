@@ -41,15 +41,6 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
                              double pos[3], double vel[3],
                              double *clock_err, double *clock_rate_err)
 {
-  /*
-   *Ephemeris did not get time-stammped when it was received.
-   */
-  if (e->toe.wn == 0)
-    return -1;
-
-  if (!e->valid || !e->healthy)
-    return -1;
-
   const ephemeris_xyz_t *ex = &e->xyz;
   u8 ndays = t->tow / DAY_SECS;
   double tod = t->tow - DAY_SECS * ndays;
@@ -110,12 +101,6 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
 
   /* Seconds from the time from ephemeris reference epoch (toe) */
   dt = gpsdifftime(t, &e->toe);
-
-  /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
-  if (fabs(dt) > ((u32)e->fit_interval)*60*60) {
-    log_error("Using ephemeris outside validity period, dt = %+.0f", dt);
-    return -1;
-  }
 
   /* Calculate position per IS-GPS-200D p 97 Table 20-IV */
 
@@ -217,7 +202,7 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
  *                       clock error [s/s]
  *
  * \return  0 on success,
- *         -1 if ephemeris is older (or newer) than 4 hours
+ *         -1 if ephemeris is invalid
  */
 s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double pos[3], double vel[3],
@@ -228,7 +213,14 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_err != NULL);
   assert(clock_rate_err != NULL);
   assert(e != NULL);
-  assert(ephemeris_valid(e, t));
+
+  if (!ephemeris_valid(e, t)) {
+    char buf[SID_STR_LEN_MAX];
+    sid_to_string(buf, sizeof(buf), e->sid);
+    log_error("Using invalid ephemeris in calc_sat_state for %s", buf);
+    return -1;
+  }
+
 
   switch (e->sid.constellation) {
   case CONSTELLATION_GPS:
@@ -236,7 +228,7 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   case CONSTELLATION_SBAS:
     return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
   default:
-    assert("unsupported constellation");
+    assert("Unsupported constellation");
     return -1;
   }
 }
@@ -253,9 +245,22 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
   /* Seconds from the time from ephemeris reference epoch (toe) */
   double dt = gpsdifftime(t, &eph->toe);
 
+  /*
+   *Ephemeris did not get time-stammped when it was received.
+   */
+  if (eph->toe.wn == 0) {
+    return 0;
+  }
+
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  return (eph->valid && fabs(dt) < ((u32)eph->fit_interval)*60*60);
+  /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)eph->fit_interval) * 60 * 60) {
+    log_error("Using ephemeris outside validity period, dt = %+.0f", dt);
+    return 0;
+  }
+
+  return eph->valid;
 }
 
 /** Is this satellite healthy? Note this function only checks flags in the
