@@ -244,13 +244,14 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
   assert(eph != NULL);
   assert(t != NULL);
 
+  if (!eph->valid) {
+    return 0;
+  }
+
   if (eph->fit_interval <= 0) {
     log_warn("ephemeris_valid used with 0 eph->fit_interval");
     return 0;
   }
-
-  /* Seconds from the time from ephemeris reference epoch (toe) */
-  double dt = gpsdifftime(t, &eph->toe);
 
   /*
    *Ephemeris did not get time-stammped when it was received.
@@ -259,6 +260,9 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
     return 0;
   }
 
+  /* Seconds from the time from ephemeris reference epoch (toe) */
+  double dt = gpsdifftime(t, &eph->toe);
+
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
   /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
@@ -266,7 +270,7 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
     return 0;
   }
 
-  return eph->valid;
+  return 1;
 }
 
 /** Is this satellite healthy? Note this function only checks flags in the
