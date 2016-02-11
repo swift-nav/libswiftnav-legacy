@@ -265,8 +265,8 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  /* If dt is greater than fit_interval hours our ephemeris isn't valid. */
-  if (fabs(dt) > ((u32)eph->fit_interval) * 60 * 60) {
+  /* If dt is greater than fit_interval / 2 hours our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)eph->fit_interval / 2) * 60 * 60) {
     return 0;
   }
 
