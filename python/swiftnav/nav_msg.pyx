@@ -49,10 +49,12 @@ cdef class NavMsg:
     Weird Cython comparison method. See 
     http://docs.cython.org/src/userguide/special_methods.html.
     """
-    if op != 2:
-      # 2 is the code for equality test
+    if op == 2:
+      return self._equal(other)
+    elif op == 3:
+      return not self._equal(other)
+    else:
       raise NotImplementedError
-    return self._equal(other)
 
   def _equal(self, other):
     """
