@@ -23,14 +23,18 @@
 #define NUM_CODES_GPS 2
 #define NUM_CODES_SBAS 1
 
-#define NUM_SIGNALS_GPS (NUM_SATS_GPS * NUM_CODES_GPS)
-#define NUM_SIGNALS_SBAS (NUM_SATS_SBAS * NUM_CODES_SBAS)
+#define NUM_SIGNALS_GPS_L1CA NUM_SATS_GPS
+#define NUM_SIGNALS_GPS_L2CM NUM_SATS_GPS
+#define NUM_SIGNALS_SBAS_L1CA NUM_SATS_SBAS
+
+#define NUM_SIGNALS_GPS (NUM_SIGNALS_GPS_L1CA + NUM_SIGNALS_GPS_L2CM)
+#define NUM_SIGNALS_SBAS (NUM_SIGNALS_SBAS_L1CA)
 #define NUM_SIGNALS (NUM_SIGNALS_GPS + NUM_SIGNALS_SBAS)
 
 #define GPS_FIRST_PRN 1
 #define SBAS_FIRST_PRN 120
 
-#define INVALID_SID_INDEX -1
+#define SID_STR_LEN_MAX 16
 
 enum constellation {
   CONSTELLATION_INVALID = -1,
@@ -46,21 +50,6 @@ enum code {
   CODE_SBAS_L1CA,
   CODE_COUNT,
 };
-
-enum indexing_type {
-  INDEX_GLOBAL, /* [0, NUM_SIGNALS) index of the signal inside the full virtual
-                 * list of all satellites  and codes */
-  INDEX_CONSTELLATION , /* [0, NUM_SIGNALS_CONSTELLATION) index of the signal
-                         * inside the constellation*/
-  INDEX_SAT_IN_CONS, /* [0, NUM_SATS_CONSTELLATION) index of the satellite
-                      * transmitting this sid inside the constellation it
-                      * belongs to*/
-};
-
-#define GPS_FIRST_PRN 1
-#define SBAS_FIRST_PRN 120
-
-#define SID_STR_LEN_MAX 16
 
 typedef struct {
   u16 sat;
@@ -94,21 +83,26 @@ gnss_signal_t construct_sid(enum code code, u16 sat);
  */
 int sid_to_string(char *s, int n, gnss_signal_t sid);
 
-/** Returns true if sid corresponds to a known constellation, band, and
+/** Returns true if sid corresponds to a known constellation, code, and
  *  satellite identifier.
  */
 bool sid_valid(gnss_signal_t sid);
 
-/** Converts the global index i in [0, NUM_SIGNALS) to the corresponding sid
+/** Converts a code-specific index in [0, NUM_SIGNALS_<code>) to
+ *  the corresponding sid.
  */
-gnss_signal_t sid_from_index(u16 i);
+gnss_signal_t sid_from_code_index(enum code code, u16 code_index);
 
-/** Converts sid to a index according to given indexing type.
+/** Returns the code index in [0, NUM_SIGNALS_<code>) corresponding to the sid.
  */
-u16 sid_to_index(gnss_signal_t sid, enum indexing_type it);
+u16 sid_to_code_index(gnss_signal_t sid);
 
-/** Returns the constellation in which the sid belongs to.
+/** Returns the constellation which the sid belongs to.
  */
 enum constellation sid_to_constellation(gnss_signal_t sid);
+
+/** Returns the constellation which the code belongs to.
+ */
+enum constellation code_to_constellation(enum code code);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
