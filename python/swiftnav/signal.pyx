@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2016 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -39,8 +39,8 @@ cdef class GNSSSignal:
   def is_valid(self):
     return sid_valid(self._thisptr)
 
-  def to_index(self):
-    return sid_to_index(self._thisptr)
+  def to_index(self, idx_type):
+    return sid_to_index(self._thisptr, idx_type)
 
   def to_string(self):
     cdef u8 n = 255
@@ -77,3 +77,4 @@ cdef read_signal_array(u8 n_c_signals, gnss_signal_t *c_signals):
     sd_ = (<GNSSSignal> signal)._thisptr
     memcpy(&sd_, &c_signals[i], sizeof(gnss_signal_t))
   return py_signals
+

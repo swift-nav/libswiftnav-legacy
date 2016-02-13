@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2015 Swift Navigation Inc.
+ * Copyright (c) 2016 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -41,16 +42,16 @@ void bit_sync_init(bit_sync_t *b, gnss_signal_t sid)
   memset(b, 0, sizeof(bit_sync_t));
   b->bit_phase_ref = BITSYNC_UNSYNCED;
 
-  assert(sid.band == BAND_L1);
-  switch (sid.constellation) {
-  case CONSTELLATION_GPS:
+  assert(sid.code == CODE_GPS_L1CA || sid.code == CODE_SBAS_L1CA);
+  switch (sid.code) {
+  case CODE_GPS_L1CA:
     b->bit_length = BIT_LENGTH_GPS_L1;
     break;
-  case CONSTELLATION_SBAS:
+  case CODE_SBAS_L1CA:
     b->bit_length = BIT_LENGTH_SBAS_L1;
     break;
   default:
-    assert("unsupported constellation");
+    assert("unsupported code");
   }
 }
 
