@@ -124,7 +124,7 @@ void setbits(u8 *buff, u32 pos, u32 len, s32 data)
  * The method performs in-place shift operation.
  *
  * \param[in,out] buf   Pointer to buffer head.
- * \param[in]     bits  Number of bytes in the buffer.
+ * \param[in]     size  Number of bytes in the buffer.
  * \param[in]     shift Number of bits for left shift operation.
  *
  * \return None
@@ -133,7 +133,7 @@ void bitshl(void *buf, u32 size, u32 shift)
 {
   if (shift > size * CHAR_BIT) {
     /* Quick check: if the shift is larger, than the buffer, zero the data */
-    memset(buf, size, 0);
+    memset(buf, 0, size);
     return;
   }
 

@@ -17,7 +17,7 @@ For Doxygen documentation, see [docs.swift-nav.com.](http://docs.swift-nav.com/l
 
 For installation, see [docs/install.dox.](http://docs.swift-nav.com/libswiftnav/install.html)
 
-For development help, see [DEVELOPMENT.rst](https://github.com/swift-nav/libswiftnav/blob/master/DEVELOPMENT.rst)
+For development help, see [DEVELOPMENT.md](https://github.com/swift-nav/libswiftnav/blob/master/DEVELOPMENT.md)
 
 [1]: https://travis-ci.org/swift-nav/libswiftnav.svg?branch=master
 [2]: https://travis-ci.org/swift-nav/libswiftnav

@@ -54,8 +54,10 @@ def test_sat_state():
   assert clock_err - 0.00336435649383 < tol
   assert clock_rate_err - 3.63797880709e-12 < tol
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1866, 'tow': 518400.0,}))
-  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*4}))
-  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*2}))
+  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*2 + 1}))
+  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 - 3600.*2 - 1}))
+  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*1}))
+  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 - 3600.*1}))
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1868, 'tow': 518400.0,}))
   assert len(eph.to_dict()) == 8
   assert repr(eph)
@@ -150,6 +152,6 @@ def test_sat_state():
                                     'af0': 0.0004458986222743988,
                                     'af1': 3.637978807091713e-12,
                                     'af2': 0.0}})
-  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*4}))
-  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*6}))
+  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*2}))
+  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*3 + 1}))
   assert eph.is_healthy()
