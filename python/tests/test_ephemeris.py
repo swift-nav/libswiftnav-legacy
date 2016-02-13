@@ -152,6 +152,6 @@ def test_sat_state():
                                     'af0': 0.0004458986222743988,
                                     'af1': 3.637978807091713e-12,
                                     'af2': 0.0}})
-  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*4}))
-  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*6}))
+  assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*2}))
+  assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*3 + 1}))
   assert eph.is_healthy()
