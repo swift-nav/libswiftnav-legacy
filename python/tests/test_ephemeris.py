@@ -122,7 +122,7 @@ def test_sat_state():
                                 'af1': 3.637978807091713e-12,
                                 'af2': 0.0}})
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,}))
-  assert not eph.is_healthy()
+  assert eph.is_healthy()
   eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                          'toe': { 'wn': 1867, 'tow': 518400.0,},
                          'ura': 2.0,

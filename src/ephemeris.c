@@ -286,7 +286,13 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
  */
 u8 satellite_healthy(const ephemeris_t *eph)
 {
-  return eph->healthy;
+  if (eph->valid) {
+    return eph->healthy;
+  } else {
+    /* If we don't yet have an ephemeris, assume satellite is healthy */
+    /* Otherwise we will stop tracking the sat and never find out */
+    return 1;
+  }
 }
 
 /** Convert a GPS URA index into a value.
