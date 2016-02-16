@@ -226,13 +226,15 @@ void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
  *                   length `3 * num_dds`
  * \param b          The output baseline in meters.
  * \param resid      The output least squares residuals in cycles.
- * \return            0 on success,
- *                   -1 if there were insufficient observations to calculate the
+ * \return           BASELINE_SUCCESS on success,
+ *                   BASELINE_NOT_ENOUGH_SATS_FLOAT if there were insufficient
+                        observations to calculate the
  *                      baseline (the solution was under-constrained),
- *                   -2 if an error occurred
+ *                   BASELINE_DGELSY_FAIL if dgelsy_() failed
  */
-s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
-                       const double *DE, double b[3], double *resid)
+s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs,
+                                   const double *N, const double *DE,
+                                   double b[3], double *resid)
 {
   assert(dd_obs != NULL);
   assert(N != NULL);
@@ -240,9 +242,8 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
   assert(b != NULL);
 
   if (num_dds_u8 < 3) {
-    return -1;
+    return BASELINE_NOT_ENOUGH_SATS_FLOAT;
   }
-
 
   assert(num_dds_u8 < MAX_CHANNELS);
 
@@ -301,7 +302,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
 
   if (info != 0) {
     log_error("dgelsy returned error %"PRId32"", info);
-    return -2;
+    return BASELINE_DGELSY_FAIL;
   }
 
   assert(num_dds == num_dds_u8);
@@ -328,7 +329,7 @@ s8 lesq_solution_float(u8 num_dds_u8, const double *dd_obs, const double *N,
     );
   }
 
-  return 0;
+  return BASELINE_SUCCESS;
 }
 
 static void drop_i(u32 index, u32 len, u32 size, const double *from, double *to)
@@ -398,19 +399,26 @@ static bool chi_test(double threshold, u8 num_dds,
  * \param ret_residuals if not null, returns residual vector
  * \param removed_obs if not null and repair performed,
  *                    returns removed obs index
- * \return positive value on success, negative error code on failure
- *    -`2`: solution ok, but raim check was not available
- *          (exactly 3 dds, or explicitly disabled)
+ * \return
+ *    BASELINE_SUCCESS_NO_RAIM: solution ok, but raim check was not available
+ *                              (exactly 3 dds, or explicitly disabled)
  *
- *    -`1`: repaired solution, using one fewer observation
- *          returns index of removed observation if removed_obs ptr is passed
+ *    BASELINE_SUCCESS_RAIM_REPAIR: repaired solution,
+ *                                  using one fewer observation
+ *                                  returns index of removed observation if
+ *                                  removed_obs ptr is passed
  *
- *    -`0`: solution with all dd's ok
+ *    BASELINE_SUCCESS: solution with all dd's ok
  *
- *   -`-1`: < 3 dds
- *   -`-2`: dgelsy  error (see lesq_solution_float)
- *   -`-3`: raim check failed, repair failed
- *   -`-4`: raim check failed, not enough sats for repair
+ *    BASELINE_RAIM_REPAIR_FAIL: raim check failed, repair failed
+ *
+ *    BASELINE_RAIM_FAIL_NOT_ENOUGH_SATS: raim check failed,
+ *                                        not enough sats for repair
+ *
+ *    BASELINE_RAIM_REPAIR_MULTI_SOLNS: raim check failed,
+ *                                      more then one solution
+ *
+ *    or one of the returns from lesq_solution_float()
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs.
@@ -428,11 +436,11 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
   assert(num_dds < MAX_CHANNELS);
   assert(num_dds_u8 < MAX_CHANNELS);
 
-  s8 okay = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
+  s8 res = lesq_solution_float(num_dds_u8, dd_obs, N, DE, b, residuals);
 
-  if (okay != 0) {
+  if (res != BASELINE_SUCCESS) {
     /* Not enough sats or other error returned by initial lesq solution. */
-    return okay;
+    return res;
   }
 
   if (disable_raim || chi_test(raim_threshold, num_dds, residuals, &residual)) {
@@ -444,9 +452,9 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
       *n_used = num_dds;
     }
     if (disable_raim || num_dds == 3) {
-      return 2;
+      return BASELINE_SUCCESS_NO_RAIM;
     }
-    return 0;
+    return BASELINE_SUCCESS;
   }
 
   if (num_dds < 5) {
@@ -458,7 +466,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     if (n_used) {
       *n_used = 0;
     }
-    return -4;
+    return BASELINE_NOT_ENOUGH_SATS_RAIM;
   }
 
   u8 num_passing = 0;
@@ -483,25 +491,25 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
       *removed_obs = bad_sat;
     }
     if (ret_residuals) {
-      memcpy(ret_residuals, residuals, (num_dds-1) * sizeof(double));
+      memcpy(ret_residuals, residuals, (num_dds - 1) * sizeof(double));
     }
     if (n_used) {
-      *n_used = num_dds-1;
+      *n_used = num_dds - 1;
     }
-    return 1;
+    return BASELINE_SUCCESS_RAIM_REPAIR;
   } else if (num_passing == 0) {
     /* Ref sat is bad? */
     if (n_used) {
       *n_used = 0;
     }
-    return -3;
+    return BASELINE_RAIM_REPAIR_FAIL;
   } else {
     /* Had more than one acceptable solution.
      * TODO(dsk) should we return the best one? */
     if (n_used) {
       *n_used = 0;
     }
-    return -5;
+    return BASELINE_RAIM_REPAIR_MULTI_SOLNS;
   }
 }
 
@@ -581,10 +589,7 @@ int cmp_amb_sid(const void *a_, const void *b_)
  * \param b           The output baseline in meters
  * \param disable_raim   True disables raim check/repair
  * \param raim_threshold Threshold for raim checks.
- * \return            0 on success,
- *                   -1 if there were insufficient observations to calculate the
- *                      baseline (the solution was under-constrained),
- *                   -2 if an error occurred
+ * \return            See baseline()
  */
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const ambiguity_t *single_ambs,
@@ -593,7 +598,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 {
   if (num_sdiffs < 4 || num_ambs < 4) {
     /* For a position solution, we need at least 4 sats. */
-    return -1;
+    return BASELINE_NOT_ENOUGH_SATS_ROVER;
   }
 
   assert(sdiffs != NULL);
@@ -618,7 +623,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
 
   if (intersection_size < 4) {
     /* For a position solution, we need at least 4 sats. */
-    return -1;
+    return BASELINE_NOT_ENOUGH_SATS_COMMON;
   }
   u8 num_dds = intersection_size - 1;
 
@@ -686,10 +691,12 @@ void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
  * \param disable_raim True disables raim check/repair
  * \param raim_threshold Threshold for raim checks.
  *                       Value 5.5 has been extensively tested.
- * \return            0 on success,
- *                   -1 if there were insufficient observations to calculate the
- *                      baseline (the solution was under-constrained),
- *                   -2 if an error occurred
+ * \return           BASELINE_SUCCESS on success,
+ *                   BASELINE_NOT_ENOUGH_SATS_ROVER or
+ *                   BASELINE_NOT_ENOUGH_SATS_COMMON
+ *                     if there were insufficient observations to calculate the
+ *                     baseline (the solution was under-constrained),
+ *                   or one of the returns from lesq_solve_raim().
  */
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
             const ambiguities_t *ambs, u8 *num_used, double b[3],

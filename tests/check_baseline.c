@@ -98,7 +98,7 @@ START_TEST(test_lesq_solution)
   double resid[num_dds];
   s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
 
-  fail_unless(ret == 0, "solution returned error %d", ret);
+  fail_unless(ret == BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_true[i]),
@@ -109,7 +109,7 @@ START_TEST(test_lesq_solution)
   /* Try with resid = NULL */
   ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, 0);
 
-  fail_unless(ret == 0, "solution returned error %d", ret);
+  fail_unless(ret == BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_true[i]),
@@ -137,7 +137,7 @@ START_TEST(test_lesq_solution2)
   double resid[num_dds];
   s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
 
-  fail_unless(ret == 0, "solution returned error %d", ret);
+  fail_unless(ret == BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_true[i]),
@@ -158,8 +158,9 @@ START_TEST(test_lesq_solution3)
 
   for (u8 num_dds = 0; num_dds < 3; num_dds++) {
     s8 ret = lesq_solution_float(num_dds, dd_obs, N, DE, b, resid);
-    fail_unless(ret == -1, "solution under-constrained, "
-                "should have returned error -1, got %d, dds = %d",
+    fail_unless(ret == BASELINE_NOT_ENOUGH_SATS_FLOAT,
+                "solution under-constrained, should have returned error "
+                "BASELINE_NOT_ENOUGH_SATS_FLOAT, got %d, dds = %d",
                 ret, num_dds);
   }
 }
@@ -190,7 +191,7 @@ START_TEST(test_lesq_solution4)
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b,
     false, DEFAULT_RAIM_THRESHOLD, 0, resid, 0);
 
-  fail_unless(ret >= 0, "solution returned error %d", ret);
+  fail_unless(ret >= BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_true[i]),
@@ -202,7 +203,7 @@ START_TEST(test_lesq_solution4)
   ret = lesq_solve_raim(num_dds, dd_obs, N_int, DE, b,
     false, DEFAULT_RAIM_THRESHOLD, 0, 0, 0);
 
-  fail_unless(ret >= 0, "solution returned error %d", ret);
+  fail_unless(ret >= BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_true[i]),
@@ -232,7 +233,7 @@ START_TEST(test_lesq_solution5)
   double b_expected[3] = {0.5*GPS_L1_LAMBDA_NO_VAC, 0, 0};
   double resid_expected[] = {-0.5, 0, 0, 0.5};
 
-  fail_unless(ret == 0, "solution returned error %d", ret);
+  fail_unless(ret == BASELINE_SUCCESS, "solution returned error %d", ret);
 
   for (u8 i=0; i<3; i++) {
     fail_unless(within_epsilon(b[i], b_expected[i]),
@@ -311,7 +312,7 @@ START_TEST(test_baseline_ref_first)
   s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
 
-  fail_unless(valid == 0);
+  fail_unless(valid == BASELINE_SUCCESS);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
@@ -338,7 +339,7 @@ START_TEST(test_baseline_ref_middle)
   s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
 
-  fail_unless(valid == 0);
+  fail_unless(valid == BASELINE_SUCCESS);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.622609));
   fail_unless(within_epsilon(b[1], -0.432371));
@@ -368,7 +369,7 @@ START_TEST(test_baseline_ref_end)
   s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
 
-  fail_unless(valid == 0);
+  fail_unless(valid == BASELINE_SUCCESS);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
@@ -406,7 +407,7 @@ START_TEST(test_baseline_fixed_point)
   s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
 
-  fail_unless(valid == 0);
+  fail_unless(valid == BASELINE_SUCCESS);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], b_orig[0]));
   fail_unless(within_epsilon(b[1], b_orig[1]));
@@ -428,7 +429,7 @@ START_TEST(test_baseline_few_sats)
   s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
 
-  fail_unless(valid == -1);
+  fail_unless(valid == BASELINE_NOT_ENOUGH_SATS_COMMON);
 }
 END_TEST
 
@@ -454,8 +455,9 @@ START_TEST(test_lesq_repair8)
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b,
     false, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
-  fail_unless(ret == 1,
-    "Expecting 1 for repaired solution, got: %i.\n", ret);
+  fail_unless(ret == BASELINE_SUCCESS_RAIM_REPAIR,
+    "Expecting BASELINE_SUCCESS_RAIM_REPAIR for repaired solution, got: %i.\n",
+    ret);
   fail_unless(bad_index == 7,
     "Expecting repaired solution (dropping index 4 of DE), got: %i.\n",
     bad_index);
@@ -481,8 +483,9 @@ START_TEST(test_lesq_repair1)
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b,
     false, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
-  fail_unless(ret == 1,
-    "Expecting 1 for repaired solution, got: %i.\n", ret);
+  fail_unless(ret == BASELINE_SUCCESS_RAIM_REPAIR,
+    "Expecting BASELINE_SUCCESS_RAIM_REPAIR for repaired solution, got: %i.\n",
+    ret);
   fail_unless(bad_index == 4,
     "Expecting repaired solution (dropping index 4 of DE), got: %i.\n", bad_index);
 }
@@ -508,8 +511,9 @@ START_TEST(test_lesq_repair_disabled)
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b,
     true, DEFAULT_RAIM_THRESHOLD, 0, 0, &bad_index);
 
-  fail_unless(ret == 2,
-    "Expecting 1 for repaired solution, got: %i.\n", ret);
+  fail_unless(ret == BASELINE_SUCCESS_NO_RAIM,
+    "Expecting BASELINE_SUCCESS_NO_RAIM for repaired solution, got: %i.\n",
+    ret);
 }
 END_TEST
 
@@ -529,10 +533,13 @@ START_TEST(test_lesq_repair2)
   s8 ret = lesq_solve_raim(num_dds, dd_obs, N, DE, b,
     false, DEFAULT_RAIM_THRESHOLD, 0, 0, 0);
 
-  fail_unless(ret == -4,
-    "Expecting -4 for not enough dds to repair, got: %i.\n", ret);
+  fail_unless(ret == BASELINE_NOT_ENOUGH_SATS_RAIM,
+    "Expecting BASELINE_NOT_ENOUGH_SATS_RAIM for not enough dds to repair, "
+    "got: %i.\n", ret);
 }
 END_TEST
+
+/* TODO add test for BASELINE_RAIM_REPAIR_MULTI_SOLNS */
 
 Suite* baseline_test_suite(void)
 {

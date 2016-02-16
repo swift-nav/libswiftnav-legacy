@@ -61,7 +61,7 @@ def test_lesq_solution():
   b_true = np.array([1.234, 1.456, 1.789])
   dd_obs = bl.predict_carrier_obs_(N, DE, b_true)
   code, b, resid = bl.lesq_solution_float_(dd_obs, N, DE)
-  assert code == 0
+  assert code == BASELINE_SUCCESS
   assert np.allclose(b, b_true)
 
 def test_lesq_solution2():
@@ -73,7 +73,7 @@ def test_lesq_solution2():
   b_true = np.array([1.234, 1.456, 1.789])
   dd_obs = bl.predict_carrier_obs_(N, DE, b_true)
   code, b, resid = bl.lesq_solution_float_(dd_obs, N, DE)
-  assert code == 0
+  assert code == BASELINE_SUCCESS
   assert np.allclose(b, b_true)
 
 # TODO (Buro): Add back
@@ -85,7 +85,7 @@ def test_lesq_solution2():
 #   resid[2]
 #   dd_obs[2]
 #   code, b, resid = bl.lesq_solution_float_(dd_obs, N, DE)
-#   assert code == -1
+#   assert code == BASELINE_NOT_ENOUGH_SATS_FLOAT
 
 def test_lesq_solution4():
   # Over constrained, integer valued ambiguity
@@ -99,6 +99,7 @@ def test_lesq_solution4():
   N_int = N
   code, num_used, residuals, removed_obs, b \
     = bl.lesq_solve_raim_(dd_obs, N_int, DE, False, bl.DEFAULT_RAIM_THRESHOLD_)
+  assert code >= BASELINE_SUCCESS
   assert num_used == 4
   assert np.allclose(residuals,
                      np.array([  1.77635684e-15,  -3.55271368e-15,
@@ -120,7 +121,7 @@ def test_lesq_solution5():
   code, b, resid = bl.lesq_solution_float_(dd_obs, N, DE)
   b_expected = np.array([0.5*c.GPS_L1_LAMBDA_NO_VAC_, 0, 0])
   resid_expected = np.array([-0.5, 0, 0, 0.5])
-  assert code == 0, "solution returned error %d" % code
+  assert code == BASELINE_SUCCESS, "solution returned error %d" % code
   np.allclose(b, b_true)
   np.allclose(resid, resid_expected)
 
@@ -184,7 +185,7 @@ def test_baseline_ref_first():
                         ambs=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
   sdiffs, ref_ecef = baseline_setup()
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
-  assert valid == 0
+  assert valid == BASELINE_SUCCESS
   assert num_used == 5
   assert np.allclose(b, np.array([-0.742242, -0.492905, -0.0533294]))
 
@@ -216,7 +217,7 @@ def test_baseline_ref_middle():
                          carrier_phase=2,
                          snr=22.0)
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
-  assert code == 0
+  assert code == BASELINE_SUCCESS
   assert num_used == 5
   assert np.allclose(b, np.array([-0.622609, -0.432371, -0.00461595]))
 
@@ -245,7 +246,7 @@ def test_baseline_ref_end():
   s.update({'snr': 22})
   sdiffs[index] = SingleDiff(**s)
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
-  assert code == 0
+  assert code == BASELINE_SUCCESS
   assert num_used == 5
   assert np.allclose(b, np.array([-0.589178, -0.35166, 0.0288157]))
 
@@ -287,7 +288,7 @@ def test_baseline_few_sats():
   code, num_used, b = bl._baseline(sdiffs, ref_ecef, ambs, False, bl.DEFAULT_RAIM_THRESHOLD_)
   assert num_used == 0
   assert np.allclose(b, np.array([0, 0, 0]))
-  assert code == -1
+  assert code == BASELINE_NOT_ENOUGH_SATS_ROVER
 
 def test_lesq_repair8():
   # Test raim repair: Over constrained with bad DE row.
@@ -307,7 +308,8 @@ def test_lesq_repair8():
   assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 7
   assert np.allclose(b, np.array([ 0.19023801,  0.19023801,  0.19023801]))
-  assert code == 1, "Expecting 1 for repaired solution, got: %i." % code
+  assert code == BASELINE_SUCCESS_RAIM_REPAIR,
+    "Expecting BASELINE_SUCCESS_RAIM_REPAIR for repaired solution, got: %i." % code
   assert removed_obs == 7, \
     "Expecting repaired solution (dropping index 4 of DE), got: %i." % removed_obs
 
@@ -326,7 +328,8 @@ def test_lesq_repair1():
   assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 4
   assert np.allclose(b, np.array([ 0.19023801,  0.19023801,  0.19023801]))
-  assert code == 1, "Expecting 1 for repaired solution, got: %i." % code
+  assert code == BASELINE_SUCCESS_RAIM_REPAIR,
+    "Expecting BASELINE_SUCCESS_RAIM_REPAIR for repaired solution, got: %i." % code
   assert removed_obs == 4, \
     "Expecting repaired solution (dropping index 4 of DE), got: %i." % removed_obs
 
@@ -347,7 +350,8 @@ def test_lesq_repair_disabled():
   assert np.allclose(residuals,
                      np.array([-0.9816482, 1.09591413,  1.09591413,  1.21018006, -0.01038781]))
   assert removed_obs == 0
-  assert code == 2, "Expecting 1 for repaired solution, got: %i." % code
+  assert code == BASELINE_SUCCESS_NO_RAIM,
+    "Expecting BASELINE_SUCCESS_NO_RAIM for repaired solution, got: %i." % code
 
 def test_lesq_repair2():
   # Bad DE row, not enough rows to repair.
@@ -363,4 +367,5 @@ def test_lesq_repair2():
   assert num_used == 0
   assert np.allclose(residuals, np.zeros(num_used))
   assert removed_obs == 0
-  assert code == -4, "Expecting -4 for not enough dds to repair, got: %i." % code
+  assert code == BASELINE_NOT_ENOUGH_SATS_RAIM,
+    "Expecting BASELINE_NOT_ENOUGH_SATS_RAIM for not enough dds to repair, got: %i." % code

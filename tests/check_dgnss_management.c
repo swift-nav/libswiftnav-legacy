@@ -27,7 +27,6 @@ START_TEST(test_dgnss_update_ambiguity_state_1)
   nkf.state_mean[2] = 3;
   nkf.state_mean[3] = 4;
 
-
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
   ambiguity_test.amb_check.matching_ndxs[0] = 0;
@@ -82,7 +81,6 @@ START_TEST(test_dgnss_update_ambiguity_state_2)
   nkf.state_mean[1] = 2;
   nkf.state_mean[2] = 3;
   nkf.state_mean[3] = 4;
-
 
   ambiguity_test.amb_check.initialized = 1;
   ambiguity_test.amb_check.num_matching_ndxs = 4;
@@ -213,7 +211,7 @@ START_TEST(test_dgnss_baseline_1)
   s.fixed_ambs.n = 0;
   s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
-  fail_unless(valid == 2);
+  fail_unless(valid == BASELINE_FLOAT);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
@@ -223,7 +221,7 @@ START_TEST(test_dgnss_baseline_1)
   s.fixed_ambs.n = 4;
   valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
-  fail_unless(valid == 1);
+  fail_unless(valid == BASELINE_FIXED);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.417486));
   fail_unless(within_epsilon(b[1], -0.358386));
@@ -234,7 +232,7 @@ START_TEST(test_dgnss_baseline_1)
   s.float_ambs.n = 0;
   valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
     false, DEFAULT_RAIM_THRESHOLD);
-  fail_unless(valid == -1);
+  fail_unless(valid == BASELINE_NOT_ENOUGH_SATS_ROVER);
   fail_unless(num_used == 5);
   fail_unless(within_epsilon(b[0], -0.417486));
   fail_unless(within_epsilon(b[1], -0.358386));
