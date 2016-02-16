@@ -19,9 +19,6 @@
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
 
-/** Macro used to assert that the specified code is valid. */
-#define ASSERT_CODE_VALID(code) assert(((code) >= 0) && ((code) < CODE_COUNT))
-
 /** Element in the code data table. */
 typedef struct {
   enum constellation constellation;
@@ -85,7 +82,7 @@ int sid_to_string(char *s, int n, gnss_signal_t sid)
  */
 bool sid_valid(gnss_signal_t sid)
 {
-  if ((sid.code < 0) || (sid.code >= CODE_COUNT))
+  if (!code_valid(sid.code))
     return false;
 
   const code_table_element_t *e = &code_table[sid.code];
@@ -93,6 +90,28 @@ bool sid_valid(gnss_signal_t sid)
     return false;
 
   return true;
+}
+
+/** Determine if a code is valid.
+ *
+ * \param code    Code to use.
+ *
+ * \return true if code is valid, false otherwise
+ */
+bool code_valid(enum code code)
+{
+  return ((code >= 0) && (code < CODE_COUNT));
+}
+
+/** Determine if a constellation is valid.
+ *
+ * \param constellation   Constellation to use.
+ *
+ * \return true if constellation is valid, false otherwise
+ */
+bool constellation_valid(enum constellation constellation)
+{
+  return ((constellation >= 0) && (constellation < CONSTELLATION_COUNT));
 }
 
 /** Convert a code-specific signal index to a gnss_signal_t.
@@ -105,7 +124,7 @@ bool sid_valid(gnss_signal_t sid)
  */
 gnss_signal_t sid_from_code_index(enum code code, u16 code_index)
 {
-  assert((code >= 0) && (code < CODE_COUNT));
+  assert(code_valid(code));
   assert(code_index < code_table[code].sat_count);
   return construct_sid(code, code_table[code].sat_start + code_index);
 }
@@ -141,7 +160,7 @@ enum constellation sid_to_constellation(gnss_signal_t sid)
  */
 enum constellation code_to_constellation(enum code code)
 {
-  assert((code >= 0) && (code < CODE_COUNT));
+  assert(code_valid(code));
   return code_table[code].constellation;
 }
 

@@ -92,6 +92,8 @@ static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 gnss_signal_t construct_sid(enum code code, u16 sat);
 int sid_to_string(char *s, int n, gnss_signal_t sid);
 bool sid_valid(gnss_signal_t sid);
+bool code_valid(enum code code);
+bool constellation_valid(enum constellation constellation);
 gnss_signal_t sid_from_code_index(enum code code, u16 code_index);
 u16 sid_to_code_index(gnss_signal_t sid);
 enum constellation sid_to_constellation(gnss_signal_t sid);
