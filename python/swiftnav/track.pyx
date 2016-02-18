@@ -366,12 +366,11 @@ cdef class LockDetector:
   """
 
   def __cinit__(self, **kwargs):
-    self._thisptr = kwargs
     lock_detect_init(&self._thisptr,
-                     self._thisptr.k1,
-                     self._thisptr.k2,
-                     self._thisptr.thislp,
-                     self._thisptr.lo)
+                     kwargs['k1'],
+                     kwargs['k2'],
+                     kwargs['lp'],
+                     kwargs['lo'])
 
   def reinit(self, k1, k2, lp, lo):
     lock_detect_reinit(&self._thisptr, k1, k2, lp, lo)
