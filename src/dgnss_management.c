@@ -251,11 +251,23 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
 {
   DEBUG_ENTRY();
   if (DEBUG) {
-    printf("sdiff[*].prn = {");
+    printf("dgnss_update\n");
+    printf("============\n");
+    printf("n: %u\n", num_sats);
+    printf("ecef: %f\t%f\t%f\n", receiver_ecef[0], receiver_ecef[1], receiver_ecef[2]);
+    printf("sdiff[*] \n");
     for (u8 i=0; i < num_sats; i++) {
-      printf("%u, ", sdiffs[i].sid.sat);
+      printf("sid: %u \n", sdiffs[i].sid.sat);
+      printf("  pr: %f \n", sdiffs[i].pseudorange);
+      printf("  cp: %f \n", sdiffs[i].carrier_phase);
+      printf("  do: %f \n", sdiffs[i].doppler);
+      printf("  sn: %f \n", sdiffs[i].snr);
+      printf("  pos/vel\n");
+      for (u8 j=0; j < 3; j++) {
+        printf("    %f \t %f\n", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
+      }
     }
-    printf("}\n");
+    printf("\n");
   }
 
   if (num_sats <= 1) {
@@ -368,6 +380,20 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
  */
 void dgnss_update_ambiguity_state(ambiguity_state_t *s)
 {
+  if (DEBUG) {
+    printf("dgnss_update_ambiguity_state\n");
+    printf("============================\n");
+    printf("==BEFORE==\n");
+    printf("fixed:\n");
+    for (u8 i=0; i < s->fixed_ambs.n; i++){
+      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+    }
+    printf("float:\n");
+    for (u8 i=0; i < s->float_ambs.n; i++){
+      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
+    }
+  }
+
   /* Float filter */
   /* NOTE: if sats_management.num_sats <= 1 the filter is not updated and
    * nkf.state_dim may not match. */
@@ -393,6 +419,19 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
     }
   } else {
     s->fixed_ambs.n = 0;
+  }
+
+  if (DEBUG) {
+    printf("==AFTER==\n");
+    printf("fixed:\n");
+    for (u8 i=0; i < s->fixed_ambs.n; i++){
+      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+    }
+    printf("float:\n");
+    for (u8 i=0; i < s->float_ambs.n; i++){
+      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
+    }
+    printf("\n");
   }
 }
 
@@ -420,12 +459,46 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   u8 *num_used, double b[3],
                   bool disable_raim, double raim_threshold)
 {
+  if (DEBUG) {
+    printf("dgnss_baseline\n");
+    printf("==============\n");
+    printf("n: %u\n", num_sdiffs);
+    printf("ecef: %f\t%f\t%f\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
+    printf("sdiff[*] \n");
+    for (u8 i=0; i < num_sdiffs; i++) {
+      printf("sid: %u \n", sdiffs[i].sid.sat);
+      printf("  pr: %f \n", sdiffs[i].pseudorange);
+      printf("  cp: %f \n", sdiffs[i].carrier_phase);
+      printf("  do: %f \n", sdiffs[i].doppler);
+      printf("  sn: %f \n", sdiffs[i].snr);
+      printf("  pos/vel\n");
+      for (u8 j=0; j < 3; j++) {
+        printf("    %f \t %f\n", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
+      }
+    }
+    printf("amb[*] \n");
+    printf("fixed:\n");
+    for (u8 i=0; i < s->fixed_ambs.n; i++){
+      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+    }
+    printf("float:\n");
+    for (u8 i=0; i < s->float_ambs.n; i++){
+      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
+    }
+    printf("\n");
+  }
+
   s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
                     disable_raim, raim_threshold);
   if (ret >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
       log_warn("dgnss_baseline: Fixed baseline RAIM repair");
     log_debug("fixed solution");
+    if (DEBUG) {
+      printf("ret: %i\n", ret);
+      printf("fixed baseline: %f\t%f\t%f\n", b[0], b[1], b[2]);
+      printf("\n");
+    }
     DEBUG_EXIT();
     return 1;
   }
@@ -437,6 +510,11 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     if (ret == 1) /* TODO: Export this rather than just printing */
       log_warn("dgnss_baseline: Float baseline RAIM repair");
     log_debug("float solution");
+    if (DEBUG) {
+      printf("ret: %i\n", ret);
+      printf("float baseline: %f\t%f\t%f\n", b[0], b[1], b[2]);
+      printf("\n");
+    }
     DEBUG_EXIT();
     return 2;
   }
