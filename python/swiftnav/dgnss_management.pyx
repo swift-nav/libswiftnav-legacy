@@ -52,10 +52,7 @@ def dgnss_update_(sdiffs, reciever_ecef, disable_raim=False):
   num_sdiffs = len(sdiffs)
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ecef_ = np.array(reciever_ecef, dtype=np.double)
   cdef sdiff_t sdiffs_[32]
-  cdef sdiff_t s_
-  for (i,sdiff) in enumerate(sdiffs):
-    s_ = (<SingleDiff ?> sdiff)._thisptr
-    memcpy(&sdiffs_[i], &s_, sizeof(sdiff_t))
+  mk_sdiff_array(sdiffs, 32, &sdiffs_[0])
   dgnss_update(num_sdiffs, &sdiffs_[0], &ref_ecef_[0], disable_raim, DEFAULT_RAIM_THRESHOLD)
 
 # def dgnss_rebase_ref_(sdiffs, reciever_ecef, old_prns):
