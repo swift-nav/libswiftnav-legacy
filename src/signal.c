@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2015 Swift Navigation Inc.
+ * Copyright (c) 2016 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -15,113 +16,152 @@
 
 #include <libswiftnav/signal.h>
 
+/** \defgroup signal GNSS signal identifiers (SID)
+ * \{ */
+
+/** Element in the code data table. */
 typedef struct {
-  u8 constellation;
-  u8 band;
+  enum constellation constellation;
   u16 sat_count;
-  u16 (*sat_get)(u32 local_index);
-  u32 (*local_index_get)(u16 sat);
-} sat_group_t;
+  u16 sat_start;
+  const char *str;
+} code_table_element_t;
 
-static const char * constellation_strs[CONSTELLATION_COUNT] = {
-  [CONSTELLATION_GPS] = "GPS",
-  [CONSTELLATION_SBAS] = "SBAS"
+/** Table of useful data for each code. */
+static const code_table_element_t code_table[CODE_COUNT] = {
+  [CODE_GPS_L1CA] =
+    {CONSTELLATION_GPS, NUM_SIGNALS_GPS_L1CA, GPS_FIRST_PRN, "GPS L1CA"},
+  [CODE_GPS_L2CM] =
+    {CONSTELLATION_GPS, NUM_SIGNALS_GPS_L2CM, GPS_FIRST_PRN, "GPS L2CM"},
+  [CODE_SBAS_L1CA] =
+    {CONSTELLATION_SBAS, NUM_SIGNALS_SBAS_L1CA, SBAS_FIRST_PRN, "SBAS L1CA"},
 };
 
-static const char * band_strs[BAND_COUNT] = {
-  [BAND_L1] = "L1"
-};
-
+/** String representation used for unknown code values. */
 static const char * unknown_str = "?";
 
-static u16 sat_get_gps(u32 local_index);
-static u16 sat_get_sbas(u32 local_index);
-static u32 local_index_get_gps(u16 sat);
-static u32 local_index_get_sbas(u16 sat);
-
-static const sat_group_t sat_groups[CONSTELLATION_COUNT] = {
-  [CONSTELLATION_GPS] = {
-    CONSTELLATION_GPS, BAND_L1, NUM_SATS_GPS,
-     sat_get_gps, local_index_get_gps
-  },
-  [CONSTELLATION_SBAS] = {
-    CONSTELLATION_SBAS, BAND_L1, NUM_SATS_SBAS,
-    sat_get_sbas, local_index_get_sbas
-  }
-};
-
-static u16 sat_get_gps(u32 local_index)
+/** Construct a gnss_signal_t.
+ *
+ * \note This function does not check the validity of the resulting signal.
+ *
+ * \param code  Code to use.
+ * \param sat   Satellite identifier to use.
+ *
+ * \return gnss_signal_t corresponding to the specified arguments.
+ */
+gnss_signal_t construct_sid(enum code code, u16 sat)
 {
-  return local_index + GPS_FIRST_PRN;
+  gnss_signal_t sid = {.code = code, .sat = sat};
+  return sid;
 }
 
-static u16 sat_get_sbas(u32 local_index)
-{
-  return local_index + SBAS_FIRST_PRN;
-}
-
-static u32 local_index_get_gps(u16 sat)
-{
-  return sat - GPS_FIRST_PRN;
-}
-
-static u32 local_index_get_sbas(u16 sat)
-{
-  return sat - SBAS_FIRST_PRN;
-}
-
+/** Print a string representation of a gnss_signal_t.
+ *
+ * \param s     Buffer of capacity n to which the string will be written.
+ * \param n     Capacity of buffer s.
+ * \param sid   gnss_signal_t to use.
+ *
+ * \return Number of characters written to s, excluding the terminating null.
+ */
 int sid_to_string(char *s, int n, gnss_signal_t sid)
 {
-  const char *constellation_str = (sid.constellation < CONSTELLATION_COUNT) ?
-      constellation_strs[sid.constellation] : unknown_str;
-  const char *band_str = (sid.band < BAND_COUNT) ?
-      band_strs[sid.band] : unknown_str;
+  const char *code_str = ((sid.code < 0) || (sid.code >= CODE_COUNT)) ?
+      unknown_str : code_table[sid.code].str;
 
-  int nchars = snprintf(s, n, "%s %s %u", constellation_str, band_str, sid.sat);
+  int nchars = snprintf(s, n, "%s %u", code_str, sid.sat);
   s[n-1] = 0;
   return nchars;
 }
 
+/** Determine if a gnss_signal_t corresponds to a known code and
+ * satellite identifier.
+ *
+ * \param sid   gnss_signal_t to use.
+ *
+ * \return true if sid exists, false otherwise.
+ */
 bool sid_valid(gnss_signal_t sid)
 {
-  if (sid.constellation >= CONSTELLATION_COUNT)
+  if (!code_valid(sid.code))
     return false;
-  if (sid.band >= BAND_COUNT)
+
+  const code_table_element_t *e = &code_table[sid.code];
+  if ((sid.sat < e->sat_start) || (sid.sat >= e->sat_start + e->sat_count))
     return false;
-  if (sat_groups[sid.constellation].local_index_get(sid.sat)
-        >= sat_groups[sid.constellation].sat_count)
-    return false;
+
   return true;
 }
 
-gnss_signal_t sid_from_index(u32 i)
+/** Determine if a code is valid.
+ *
+ * \param code    Code to use.
+ *
+ * \return true if code is valid, false otherwise
+ */
+bool code_valid(enum code code)
 {
-  assert(i < NUM_SATS);
-  gnss_signal_t sid = {0, 0, 0};
-  u32 offset = i;
-  u32 group_index = 0;
-  while (group_index < sizeof(sat_groups) / sizeof(sat_groups[0])) {
-    if (offset >= sat_groups[group_index].sat_count) {
-      offset -= sat_groups[group_index].sat_count;
-      group_index++;
-    } else {
-      sid = (gnss_signal_t) {
-        .constellation = sat_groups[group_index].constellation,
-        .band = sat_groups[group_index].band,
-        .sat = sat_groups[group_index].sat_get(offset)
-      };
-      return sid;
-    }
-  }
-  assert("sid_from_index() failed");
-  return sid;
+  return ((code >= 0) && (code < CODE_COUNT));
 }
 
-u32 sid_to_index(gnss_signal_t sid)
+/** Determine if a constellation is valid.
+ *
+ * \param constellation   Constellation to use.
+ *
+ * \return true if constellation is valid, false otherwise
+ */
+bool constellation_valid(enum constellation constellation)
+{
+  return ((constellation >= 0) && (constellation < CONSTELLATION_COUNT));
+}
+
+/** Convert a code-specific signal index to a gnss_signal_t.
+ *
+ * \param code          Code to use.
+ * \param code_index    Code-specific signal index in
+ *                      [0, SIGNAL_COUNT_\<code\>).
+ *
+ * \return gnss_signal_t corresponding to code and code_index.
+ */
+gnss_signal_t sid_from_code_index(enum code code, u16 code_index)
+{
+  assert(code_valid(code));
+  assert(code_index < code_table[code].sat_count);
+  return construct_sid(code, code_table[code].sat_start + code_index);
+}
+
+/** Return the code-specific signal index for a gnss_signal_t.
+ *
+ * \param sid   gnss_signal_t to use.
+ *
+ * \return Code-specific signal index in [0, SIGNAL_COUNT_\<code\>).
+ */
+u16 sid_to_code_index(gnss_signal_t sid)
 {
   assert(sid_valid(sid));
-  u32 offset = 0;
-  for (u32 i=0; i<sid.constellation; i++)
-    offset += sat_groups[i].sat_count;
-  return offset + sat_groups[sid.constellation].local_index_get(sid.sat);
+  return sid.sat - code_table[sid.code].sat_start;
 }
+
+/** Get the constellation to which a gnss_signal_t belongs.
+ *
+ * \param sid   gnss_signal_t to use.
+ *
+ * \return Constellation to which sid belongs.
+ */
+enum constellation sid_to_constellation(gnss_signal_t sid)
+{
+  return code_to_constellation(sid.code);
+}
+
+/** Get the constellation to which a code belongs.
+ *
+ * \param code  Code to use.
+ *
+ * \return Constellation to which code belongs.
+ */
+enum constellation code_to_constellation(enum code code)
+{
+  assert(code_valid(code));
+  return code_table[code].constellation;
+}
+
+/* \} */

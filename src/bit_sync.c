@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2015 Swift Navigation Inc.
+ * Copyright (c) 2016 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -21,8 +22,15 @@
 #define BITSYNC_THRES 22
 
 /* Bit lengths for different constellations. Bounded by BIT_LENGTH_MAX */
-#define BIT_LENGTH_GPS_L1 20
-#define BIT_LENGTH_SBAS_L1 2
+#define BIT_LENGTH_GPS_L1CA 20
+#define BIT_LENGTH_SBAS_L1CA 2
+
+/* Table of bit lengths for each code type */
+static const u8 bit_length_table[CODE_COUNT] = {
+  [CODE_GPS_L1CA] = BIT_LENGTH_GPS_L1CA,
+  [CODE_GPS_L2CM] = 0,
+  [CODE_SBAS_L1CA] = BIT_LENGTH_SBAS_L1CA
+};
 
 static void histogram_update(bit_sync_t *b, s32 corr_prompt_real);
 
@@ -38,20 +46,16 @@ static void histogram_update(bit_sync_t *b, s32 corr_prompt_real);
  */
 void bit_sync_init(bit_sync_t *b, gnss_signal_t sid)
 {
+  assert(sid_valid(sid));
   memset(b, 0, sizeof(bit_sync_t));
   b->bit_phase_ref = BITSYNC_UNSYNCED;
 
-  assert(sid.band == BAND_L1);
-  switch (sid.constellation) {
-  case CONSTELLATION_GPS:
-    b->bit_length = BIT_LENGTH_GPS_L1;
-    break;
-  case CONSTELLATION_SBAS:
-    b->bit_length = BIT_LENGTH_SBAS_L1;
-    break;
-  default:
-    assert("unsupported constellation");
+  u8 bit_length = bit_length_table[sid.code];
+  if (bit_length == 0) {
+    assert(!"Unsupported code type");
+    bit_length = 1;
   }
+  b->bit_length = bit_length;
 }
 
 /** Update bit sync and get bit integration output

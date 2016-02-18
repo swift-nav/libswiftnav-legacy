@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2016 Swift Navigation Inc.
  * Contact: Colin Beighley <colinbeighley@gmail.com>
+ *          Pasi Miettinen <pasi.miettinen@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -14,8 +15,18 @@
 
 #include <libswiftnav/prns.h>
 
-static const u8 gps_ca_codes[][128];
-static const u8 sbas_ca_codes[][128];
+#define PRN_CODE_LENGTH_BYTES 128
+
+static const u8 gps_l1ca_codes[][PRN_CODE_LENGTH_BYTES];
+static const u8 sbas_l1ca_codes[][PRN_CODE_LENGTH_BYTES];
+
+/* Table of arrays of PRN codes indexed by code type */
+typedef const u8 (*prn_array_t)[PRN_CODE_LENGTH_BYTES];
+static const prn_array_t prn_array_table[CODE_COUNT] = {
+  [CODE_GPS_L1CA] = gps_l1ca_codes,
+  [CODE_GPS_L2CM] = NULL,
+  [CODE_SBAS_L1CA] = sbas_l1ca_codes
+};
 
 /** \defgroup prns Spreading Codes
  *
@@ -35,19 +46,13 @@ static const u8 sbas_ca_codes[][128];
  */
 const u8* ca_code(gnss_signal_t sid)
 {
-  assert(sid.band == BAND_L1);
-
-  switch(sid.constellation) {
-    case CONSTELLATION_GPS:
-      assert(sid.sat - GPS_FIRST_PRN < NUM_SATS_GPS);
-      return gps_ca_codes[sid.sat - GPS_FIRST_PRN];
-    case CONSTELLATION_SBAS:
-      assert(sid.sat - SBAS_FIRST_PRN < NUM_SATS_SBAS);
-      return sbas_ca_codes[sid.sat - SBAS_FIRST_PRN];
-    default:
-      assert("unsupported constellation");
+  assert(sid_valid(sid));
+  const prn_array_t prn_array = prn_array_table[sid.code];
+  if (prn_array == NULL) {
+    assert(!"Unsupported code type");
+    return NULL;
   }
-  return NULL;
+  return prn_array[sid_to_code_index(sid)];
 }
 
 inline s8 get_chip(u8* code, u32 chip_num)
@@ -67,7 +72,7 @@ inline s8 get_chip(u8* code, u32 chip_num)
  * }
  * Where 1024'th index is 0 for all.
  */
-static const u8 gps_ca_codes[NUM_SATS_GPS][128] = {
+static const u8 gps_l1ca_codes[NUM_SIGNALS_GPS_L1CA][PRN_CODE_LENGTH_BYTES] = {
   {0xC8,0x39,0x49,0xE5,0x13,0xEA,0xD1,0x15,0x59,0x1E,0x9F,0xB7,0x37,0xCA,0xA1,0x00,
    0xEA,0x44,0xDE,0x0F,0x5C,0xCF,0x60,0x2F,0x3E,0xA6,0x2D,0xC6,0xF5,0x15,0x82,0x01,
    0x03,0x1D,0x81,0xC6,0xFF,0xA7,0x4B,0x61,0x56,0x27,0x2D,0xD8,0xEE,0xF0,0xD8,0x64,
@@ -357,7 +362,7 @@ static const u8 gps_ca_codes[NUM_SATS_GPS][128] = {
    0xEF,0xFC,0xAB,0x81,0x7A,0x8A,0x13,0xE6,0x4F,0x7F,0xE7,0x4B,0x2C,0x25,0xCC,0x64}
 };
 
-static const u8 sbas_ca_codes[NUM_SATS_SBAS][128] = {
+static const u8 sbas_l1ca_codes[NUM_SIGNALS_SBAS_L1CA][PRN_CODE_LENGTH_BYTES] = {
   {0x6E,0x61,0xF0,0xB5,0xD5,0x02,0x6D,0x98,0x6E,0x06,0xA4,0xC1,0x87,0x74,0xC2,0xCF,
    0x0A,0x3C,0x55,0x7C,0x31,0x80,0xF3,0x67,0x25,0x59,0x00,0xED,0x21,0x0A,0xD7,0xA1,
    0xA4,0x6F,0x9B,0xF5,0x10,0xCE,0xAE,0x7F,0x92,0x9A,0xD7,0x93,0x8A,0xEA,0x50,0x35,
