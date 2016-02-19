@@ -9,7 +9,6 @@
 
 # cython: embedsignature=True
 
-from ephemeris cimport ephemeris_t
 from fmt_utils import fmt_repr
 from time cimport gps_time_t
 from signal cimport gnss_signal_t
@@ -42,7 +41,8 @@ cdef class NavMsg:
 
   def process_subframe(self, sid, d):
     cdef gps_l1ca_decoded_data_t tmp_d = d._thisptr
-    return process_subframe(&self._thisptr, sid, &tmp_d)
+    cdef gnss_signal_t tmp_sid = sid._thisptr
+    return process_subframe(&self._thisptr, tmp_sid, &tmp_d)
 
   def __richcmp__(self, other, op):
     """
