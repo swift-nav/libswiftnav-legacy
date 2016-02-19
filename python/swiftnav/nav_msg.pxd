@@ -37,3 +37,4 @@ cdef extern from "libswiftnav/nav_msg.h":
 
 cdef class NavMsg:
   cdef nav_msg_t _thisptr
+
