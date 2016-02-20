@@ -40,7 +40,6 @@ cdef extern from "libswiftnav/observation.h":
   u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                             u8 n_remote, navigation_measurement_t *m_remote,
                             double *remote_dists, double remote_pos_ecef[3],
-                            const ephemeris_t *e[], const gps_time_t *t,
                             sdiff_t *sds)
 
   s8 make_dd_measurements_and_sdiffs(gnss_signal_t ref_sid, const gnss_signal_t *non_ref_sids,
