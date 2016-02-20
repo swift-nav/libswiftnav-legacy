@@ -442,11 +442,12 @@ cdef class ChannelMeasurement:
 cdef class NavigationMeasurement:
 
   def __init__(self,
-               raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
-               doppler, sat_pos, sat_vel, snr, lock_time,
+               raw_pseudorange, pseudorange, raw_carrier_phase, carrier_phase,
+               raw_doppler, doppler, sat_pos, sat_vel, snr, lock_time,
                GpsTime tot, GNSSSignal sid, lock_counter):
     self._thisptr.raw_pseudorange = raw_pseudorange
     self._thisptr.pseudorange = pseudorange
+    self._thisptr.raw_carrier_phase = raw_carrier_phase
     self._thisptr.carrier_phase = carrier_phase
     self._thisptr.raw_doppler = raw_doppler
     self._thisptr.doppler = doppler
