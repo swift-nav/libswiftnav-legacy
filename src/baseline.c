@@ -501,7 +501,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     if (n_used) {
       *n_used = 0;
     }
-    return -3;
+    return -5;
   }
 }
 

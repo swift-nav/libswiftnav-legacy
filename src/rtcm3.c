@@ -255,7 +255,7 @@ static void gen_obs_gps(navigation_measurement_t *nm,
   double prc = *pr * 0.02 + *amb * PRUNIT_GPS;
 
   /* L1 phaserange - L1 pseudorange */
-  double cp_pr = nm->carrier_phase - prc / (CLIGHT / FREQ1);
+  double cp_pr = nm->raw_carrier_phase - prc / (CLIGHT / FREQ1);
 
   /* If the phaserange and pseudorange have diverged close to the limits of the
    * data field (20 bits) then we modify the carrier phase by an integer amount
@@ -265,7 +265,7 @@ static void gen_obs_gps(navigation_measurement_t *nm,
    * +/- 1379 cycles. Limit to just 1000 as that should still be plenty. */
   if (fabs(cp_pr) > 1000) {
     nm->lock_time = 0;
-    nm->carrier_phase -= (s32)cp_pr;
+    nm->raw_carrier_phase -= (s32)cp_pr;
     cp_pr -= (s32)cp_pr;
   }
 
@@ -372,7 +372,7 @@ s8 rtcm3_decode_1002(u8 *buff, u16 *id, double *tow, u8 *n_sat,
     u8 cnr = getbitu(buff, bit, 8); bit += 8;
 
     nm[i].raw_pseudorange = 0.02*pr + PRUNIT_GPS*amb;
-    nm[i].carrier_phase = (nm[i].raw_pseudorange + 0.0005*ppr) / (CLIGHT / FREQ1);
+    nm[i].raw_carrier_phase = (nm[i].raw_pseudorange + 0.0005*ppr) / (CLIGHT / FREQ1);
     nm[i].lock_time = from_lock_ind(lock);
     nm[i].snr = pow(10.0, ((cnr / 4.0) - 40.0) / 10.0);
   }

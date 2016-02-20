@@ -135,7 +135,7 @@ START_TEST(test_rtcm3_encode_decode)
   for (u8 i=0; i<22; i++) {
     nm[i].sid.sat = i;
     nm[i].raw_pseudorange = frand(19e6, 21e6);
-    nm[i].carrier_phase = frand(-5e5, 5e5);
+    nm[i].raw_carrier_phase = frand(-5e5, 5e5);
     nm[i].lock_time = frand(0, 1000);
     nm[i].snr = frand(0, 20);
   }
@@ -174,9 +174,9 @@ START_TEST(test_rtcm3_encode_decode)
     fail_unless(fabs(pr_err) < 0.02, "[%d] pseudorange error > 0.04m - "
         "decoded %f, expected %f, error %f", i, nm_out[i].raw_pseudorange, nm[i].raw_pseudorange, pr_err);
 
-    double carr_err = nm[i].carrier_phase - nm_out[i].carrier_phase;
+    double carr_err = nm[i].raw_carrier_phase - nm_out[i].raw_carrier_phase;
     fail_unless(fabs(carr_err) < 0.003, "carrier phase error (fractional part) > 0.003 cycles - "
-        "[%d] decoded %f, expected %f, error %f", i, nm_out[i].carrier_phase, nm[i].carrier_phase, carr_err);
+        "[%d] decoded %f, expected %f, error %f", i, nm_out[i].raw_carrier_phase, nm[i].raw_carrier_phase, carr_err);
 
     double snr_err = nm[i].snr - nm_out[i].snr;
     /* Calculate error bound on SNR given logarithmic error bound on CNR. */
@@ -188,10 +188,10 @@ START_TEST(test_rtcm3_encode_decode)
         "lock time should be zero when adjusting int. amb. - [%d] decoded %f",
         i, nm_out[i].lock_time, nm[i].lock_time);
 
-    double cp_adj = nm[i].carrier_phase - nm_orig[i].carrier_phase;
+    double cp_adj = nm[i].raw_carrier_phase - nm_orig[i].raw_carrier_phase;
     fail_unless(fmod(cp_adj, 1.0) == 0,
         "carrier phase adjusted by non integer amount %f -> %f (%f)",
-        nm_orig[i].carrier_phase, nm[i].carrier_phase, cp_adj);
+        nm_orig[i].raw_carrier_phase, nm[i].raw_carrier_phase, cp_adj);
   }
 
   /* Re-encode after adjustment, now there should be no further adjustment and
@@ -204,9 +204,9 @@ START_TEST(test_rtcm3_encode_decode)
   rtcm3_decode_1002(buff, &id, &tow_out, &n_sat, nm_out, &sync);
 
   for (u8 i=0; i<22; i++) {
-    double cp_adj = nm_out[i].carrier_phase - nm[i].carrier_phase;
+    double cp_adj = nm_out[i].raw_carrier_phase - nm[i].raw_carrier_phase;
     fail_unless(cp_adj < 0.003, "carrier phase re-adjusted %f -> %f (%f)",
-        nm[i].carrier_phase, nm_out[i].carrier_phase, cp_adj);
+        nm[i].raw_carrier_phase, nm_out[i].raw_carrier_phase, cp_adj);
 
     fail_unless(nm_out[i].lock_time <= nm[i].lock_time,
         "lock time error, should always be less than input lock time - [%d] decoded %f, expected %f",

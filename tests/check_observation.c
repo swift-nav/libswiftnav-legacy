@@ -6,7 +6,7 @@
 navigation_measurement_t nm1 = {
   .sid = {.sat = 1},
   .raw_pseudorange = 11,
-  .carrier_phase = 12,
+  .raw_carrier_phase = 12,
   .raw_doppler = 13,
   .snr = 14,
   .sat_pos = {1, 2, 3},
@@ -15,7 +15,7 @@ navigation_measurement_t nm1 = {
 navigation_measurement_t nm1_2 = {
   .sid = {.sat = 1},
   .raw_pseudorange = 111,
-  .carrier_phase = 112,
+  .raw_carrier_phase = 112,
   .raw_doppler = 113,
   .snr = 114,
   .sat_pos = {7, 8, 9},
@@ -24,7 +24,7 @@ navigation_measurement_t nm1_2 = {
 navigation_measurement_t nm2 = {
   .sid = {.sat = 2},
   .raw_pseudorange = 21,
-  .carrier_phase = 22,
+  .raw_carrier_phase = 22,
   .raw_doppler = 23,
   .snr = 224,
   .sat_pos = {1, 2, 3},
@@ -33,7 +33,7 @@ navigation_measurement_t nm2 = {
 navigation_measurement_t nm2_2 = {
   .sid = {.sat = 2},
   .raw_pseudorange = 221,
-  .carrier_phase = 222,
+  .raw_carrier_phase = 222,
   .raw_doppler = 223,
   .snr = 24,
   .sat_pos = {13, 14, 15},
@@ -42,7 +42,7 @@ navigation_measurement_t nm2_2 = {
 navigation_measurement_t nm3 = {
   .sid = {.sat = 3},
   .raw_pseudorange = 31,
-  .carrier_phase = 32,
+  .raw_carrier_phase = 32,
   .raw_doppler = 33,
   .snr = 34,
   .sat_pos = {1, 2, 3},
@@ -51,7 +51,7 @@ navigation_measurement_t nm3 = {
 navigation_measurement_t nm4 = {
   .sid = {.sat = 4},
   .raw_pseudorange = 41,
-  .carrier_phase = 42,
+  .raw_carrier_phase = 42,
   .raw_doppler = 43,
   .snr = 44,
   .sat_pos = {1, 2, 3},
