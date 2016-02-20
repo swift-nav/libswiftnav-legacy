@@ -497,7 +497,7 @@ const char *pvt_err_msg[] = {
  * \param nav_meas array of measurements
  * \param disable_raim passing True will omit raim check/repair functionality
  * \param soln output solution struct
- * \param dops output doppler information
+ * \param dops output dilution of precision information
  * \return Non-negative values indicate a valid solution.
  *   -  `2`: Solution converged but RAIM unavailable or disabled
  *   -  `1`: Solution converged, failed RAIM but was successfully repaired
@@ -576,8 +576,8 @@ s8 calc_PVT(const u8 n_used,
   soln->clock_offset = rx_state[3] / GPS_C;
   soln->clock_bias = rx_state[7] / GPS_C;
 
-  /* Time at receiver is TOT plus time of flight. Time of flight is eqaul to
-   * the pseudorange minus the clock bias. */
+  /* Time at receiver is TOT plus time of flight. Time of flight is equal to
+   * the pseudorange minus the clock offset. */
   soln->time = nav_meas[0].tot;
   soln->time.tow += nav_meas[0].pseudorange / GPS_C;
   /* Subtract clock offset. */
