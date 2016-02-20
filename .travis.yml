@@ -15,6 +15,10 @@ addons:
     - cmake
     - check
     - lcov
+    - doxygen
+    - texlive
+    - texlive-pictures
+    - pgf
     # Required for gcc-arm-embedded
     - lib32bz2-1.0
     - lib32ncurses5
@@ -37,6 +41,7 @@ script:
   - cd build/
   - cmake -DCMAKE_BUILD_TYPE=Coverage ../
   - make
+  - make check-style
   # Install locally to avoid sudo
   - make DESTDIR="./install" install
   # Test ARM cross-compile
