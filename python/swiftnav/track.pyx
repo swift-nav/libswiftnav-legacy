@@ -442,11 +442,12 @@ cdef class ChannelMeasurement:
 cdef class NavigationMeasurement:
 
   def __init__(self,
-               raw_pseudorange, pseudorange, carrier_phase, raw_doppler,
-               doppler, sat_pos, sat_vel, snr, lock_time,
+               raw_pseudorange, pseudorange, raw_carrier_phase, carrier_phase,
+               raw_doppler, doppler, sat_pos, sat_vel, snr, lock_time,
                GpsTime tot, GNSSSignal sid, lock_counter):
     self._thisptr.raw_pseudorange = raw_pseudorange
     self._thisptr.pseudorange = pseudorange
+    self._thisptr.raw_carrier_phase = raw_carrier_phase
     self._thisptr.carrier_phase = carrier_phase
     self._thisptr.raw_doppler = raw_doppler
     self._thisptr.doppler = doppler
@@ -492,7 +493,7 @@ cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c
     memcpy(&c_nav_meas[i], &sd_, sizeof(navigation_measurement_t))
 
 # TODO (Buro): Remove mallocs, etc. here. Do all this in-place
-def _calc_navigation_measurement(chan_meas, nav_meas, nav_time_tc, GpsTime nav_time, ephemerides):
+def _calc_navigation_measurement(chan_meas, nav_meas, nav_time_rx, GpsTime nav_time, ephemerides):
   """
   """
   n_channels = len(chan_meas)
@@ -504,7 +505,7 @@ def _calc_navigation_measurement(chan_meas, nav_meas, nav_time_tc, GpsTime nav_t
     chan_meas_[n] = &((<ChannelMeasurement ?>chan_meas[n])._thisptr)
     nav_meas_[n] = &((<NavigationMeasurement ?>nav_meas[n])._thisptr)
     ephs[n] = &((<Ephemeris ?>ephemerides[n])._thisptr)
-  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, nav_time_tc, &nav_time._thisptr, ephs)
+  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, nav_time_rx, &nav_time._thisptr, ephs)
   free(chan_meas_)
   free(nav_meas_)
   free(ephs)

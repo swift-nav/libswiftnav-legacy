@@ -170,6 +170,7 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct navigation_measurement_t:
     double raw_pseudorange
     double pseudorange
+    double raw_carrier_phase
     double carrier_phase
     double raw_doppler
     double doppler
