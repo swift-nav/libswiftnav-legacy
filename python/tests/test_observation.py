@@ -137,16 +137,16 @@ def test_single_diff():
 
 def test_prop_single_diff():
   rover_nm = [t.NavigationMeasurement(sat_pos=[-19277207.52067729, -8215764.2479763795, 16367744.770246204],
-                                      pseudorange=21123480.27105955, doppler=0, raw_doppler=0, raw_carrier_phase=-110993309.26669005,
+                                      pseudorange=21123480.27105955, doppler=0, raw_doppler=0, carrier_phase=-110993309.26669005,
                                       sat_vel=[-1025.0370403901404, -1821.9217799467374, -2091.6303199092254],
                                       lock_time=0, tot=ti.GpsTime(wn=1876, tow=167131.92954684512),
-                                      raw_pseudorange=21121324.476403236,
+                                      raw_pseudorange=21121324.476403236, raw_carrier_phase=-110993309.26669005,
                                       snr=30.0, sid=s.GNSSSignal(code=0, sat=0), lock_counter=0),
               t.NavigationMeasurement(sat_pos=[-16580310.849158794, 918714.1939749047, 20731444.258332774],
-                                      pseudorange=22432049.84763688, doppler=0, raw_doppler=0, raw_carrier_phase=-117882743.21601027,
+                                      pseudorange=22432049.84763688, doppler=0, raw_doppler=0, carrier_phase=-117882743.21601027,
                                       sat_vel=[1060.9864205977192, -2411.43509917502, 953.6270954519971],
                                       lock_time=0, tot=ti.GpsTime(wn=1876, tow=167131.9251737675),
-                                      raw_pseudorange=22432340.166121125,
+                                      raw_pseudorange=22432340.166121125, raw_carrier_phase=-117882743.21601027,
                                       snr=30.0, sid=s.GNSSSignal(code=0, sat=2), lock_counter=0)]
   remote_dists = np.array([ 21121393.87562408,  22432814.46819838])
   base_pos = np.array( [-2704375, -4263211,  3884637])
