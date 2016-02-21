@@ -184,7 +184,7 @@ cdef extern from "libswiftnav/track.h":
 
   void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                    navigation_measurement_t *nav_meas[],
-                                   double nav_time_tc, gps_time_t *nav_time,
+                                   double rec_time_tc, gps_time_t *gps_time,
                                    const ephemeris_t* e[])
   int nav_meas_cmp(const void *a, const void *b)
   u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
