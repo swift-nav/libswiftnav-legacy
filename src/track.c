@@ -795,7 +795,7 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
 
     /* Compute the carrier phase measurement. */
-    nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
+    nav_meas[i]->raw_carrier_phase = -meas[i]->carrier_phase;
     nav_meas[i]->raw_carrier_phase += (rec_time_tc - meas[i]->receiver_time)
                                       * meas[i]->carrier_freq;
 

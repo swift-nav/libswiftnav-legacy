@@ -119,7 +119,7 @@ static void make_propagated_sdiff_(void *context, u32 n,
   double dr = new_dist - old_dist;
 
   ctxt->sds[n].pseudorange += dr;
-  ctxt->sds[n].carrier_phase -= dr / GPS_L1_LAMBDA_NO_VAC;
+  ctxt->sds[n].carrier_phase += dr / GPS_L1_LAMBDA_NO_VAC;
 }
 
 /** New more efficient version of make_propagated_sdiffs(), NOT WORKING!!!
@@ -207,7 +207,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                             + dist_diff);
       sds[n].carrier_phase = m_local[i].raw_carrier_phase
                            - (m_remote[j].raw_carrier_phase
-                              - dist_diff / GPS_L1_LAMBDA);
+                              + dist_diff / GPS_L1_LAMBDA);
 
       /* Doppler is not propagated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
