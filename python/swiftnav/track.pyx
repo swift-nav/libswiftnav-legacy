@@ -493,8 +493,8 @@ cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c
     memcpy(&c_nav_meas[i], &sd_, sizeof(navigation_measurement_t))
 
 # TODO (Buro): Remove mallocs, etc. here. Do all this in-place
-def _calc_navigation_measurement(chan_meas, nav_meas, nav_time_rx,
-                                 GpsTime nav_time, ephemerides):
+def _calc_navigation_measurement(chan_meas, nav_meas, rec_time_tc,
+                                 GpsTime gps_time, ephemerides):
   """
   """
   n_channels = len(chan_meas)
@@ -506,8 +506,8 @@ def _calc_navigation_measurement(chan_meas, nav_meas, nav_time_rx,
     chan_meas_[n] = &((<ChannelMeasurement ?>chan_meas[n])._thisptr)
     nav_meas_[n] = &((<NavigationMeasurement ?>nav_meas[n])._thisptr)
     ephs[n] = &((<Ephemeris ?>ephemerides[n])._thisptr)
-  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, nav_time_rx,
-                               &nav_time._thisptr, ephs)
+  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, rec_time_tc,
+                               &gps_time._thisptr, ephs)
   free(chan_meas_)
   free(nav_meas_)
   free(ephs)
