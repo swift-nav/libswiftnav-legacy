@@ -762,9 +762,6 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
 /** Calculate observations from tracking channel measurements.
  *
- * This function takes an array of pointers, for a version taking a flat array
- * see calc_navigation_measurement().
- *
  * \param n_channels Number of tracking channel measurements
  * \param meas Array of pointers to tracking channel measurements, length
  *             `n_channels`
