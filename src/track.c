@@ -814,9 +814,9 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
   }
 
   /* To calculate the pseudorange from the time of transmit we need the local
-   * time of reception. */
+   * time of reception. Also check that the time error is less than 100 ms. */
   gps_time_t tor;
-  if (gps_time) {
+  if (gps_time && (gpsdifftime(gps_time, &nav_meas[0]->tot) < 0.1)) {
     /* If we were given a time, use that. */
     tor = *gps_time;
   } else {
