@@ -250,24 +250,21 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
                   bool disable_raim, double raim_threshold)
 {
   DEBUG_ENTRY();
-  if (DEBUG) {
-    printf("dgnss_update\n");
-    printf("============\n");
-    printf("n: %u\n", num_sats);
-    printf("ecef: %f\t%f\t%f\n", receiver_ecef[0], receiver_ecef[1], receiver_ecef[2]);
-    printf("sdiff[*] \n");
-    for (u8 i=0; i < num_sats; i++) {
-      printf("sid: %u \n", sdiffs[i].sid.sat);
-      printf("  pr: %f \n", sdiffs[i].pseudorange);
-      printf("  cp: %f \n", sdiffs[i].carrier_phase);
-      printf("  do: %f \n", sdiffs[i].doppler);
-      printf("  sn: %f \n", sdiffs[i].snr);
-      printf("  pos/vel\n");
-      for (u8 j=0; j < 3; j++) {
-        printf("    %f \t %f\n", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
-      }
+  log_debug("dgnss_update");
+  log_debug("============");
+  log_debug("n: %u", num_sats);
+  log_debug("ecef: %f %f %f", receiver_ecef[0], receiver_ecef[1], receiver_ecef[2]);
+  log_debug("sdiff[*]");
+  for (u8 i=0; i < num_sats; i++) {
+    log_debug("sid: %u", sdiffs[i].sid.sat);
+    log_debug("  pr: %f", sdiffs[i].pseudorange);
+    log_debug("  cp: %f", sdiffs[i].carrier_phase);
+    log_debug("  do: %f", sdiffs[i].doppler);
+    log_debug("  sn: %f", sdiffs[i].snr);
+    log_debug("  pos/vel");
+    for (u8 j=0; j < 3; j++) {
+      log_debug("    %f %f", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
     }
-    printf("\n");
   }
 
   if (num_sats <= 1) {
@@ -380,18 +377,16 @@ s8 dgnss_iar_get_single_hyp(double *dhyp)
  */
 void dgnss_update_ambiguity_state(ambiguity_state_t *s)
 {
-  if (DEBUG) {
-    printf("dgnss_update_ambiguity_state\n");
-    printf("============================\n");
-    printf("==BEFORE==\n");
-    printf("fixed:\n");
-    for (u8 i=0; i < s->fixed_ambs.n; i++){
-      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
-    }
-    printf("float:\n");
-    for (u8 i=0; i < s->float_ambs.n; i++){
-      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
-    }
+  log_debug("dgnss_update_ambiguity_state");
+  log_debug("============================");
+  log_debug("==BEFORE==");
+  log_debug("fixed:");
+  for (u8 i=0; i < s->fixed_ambs.n; i++){
+    log_debug("  %u: %f", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+  }
+  log_debug("float:");
+  for (u8 i=0; i < s->float_ambs.n; i++){
+    log_debug("  %u: %f", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
   }
 
   /* Float filter */
@@ -421,17 +416,14 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
     s->fixed_ambs.n = 0;
   }
 
-  if (DEBUG) {
-    printf("==AFTER==\n");
-    printf("fixed:\n");
-    for (u8 i=0; i < s->fixed_ambs.n; i++){
-      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
-    }
-    printf("float:\n");
-    for (u8 i=0; i < s->float_ambs.n; i++){
-      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
-    }
-    printf("\n");
+  log_debug("==AFTER==");
+  log_debug("fixed:");
+  for (u8 i=0; i < s->fixed_ambs.n; i++){
+    log_debug("  %u: %f", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+  }
+  log_debug("float:");
+  for (u8 i=0; i < s->float_ambs.n; i++){
+    log_debug("  %u: %f", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
   }
 }
 
@@ -459,46 +451,43 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   u8 *num_used, double b[3],
                   bool disable_raim, double raim_threshold)
 {
-  if (DEBUG) {
-    printf("dgnss_baseline\n");
-    printf("==============\n");
-    printf("n: %u\n", num_sdiffs);
-    printf("ecef: %f\t%f\t%f\n", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
-    printf("sdiff[*] \n");
-    for (u8 i=0; i < num_sdiffs; i++) {
-      printf("sid: %u \n", sdiffs[i].sid.sat);
-      printf("  pr: %f \n", sdiffs[i].pseudorange);
-      printf("  cp: %f \n", sdiffs[i].carrier_phase);
-      printf("  do: %f \n", sdiffs[i].doppler);
-      printf("  sn: %f \n", sdiffs[i].snr);
-      printf("  pos/vel\n");
-      for (u8 j=0; j < 3; j++) {
-        printf("    %f \t %f\n", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
-      }
+
+  log_debug("dgnss_baseline");
+  log_debug("============");
+  log_debug("n: %u", num_sdiffs);
+  log_debug("ecef: %f %f %f", ref_ecef[0], ref_ecef[1], ref_ecef[2]);
+  log_debug("sdiff[*]");
+  for (u8 i=0; i < num_sdiffs; i++) {
+    log_debug("sid: %u", sdiffs[i].sid.sat);
+    log_debug("  pr: %f", sdiffs[i].pseudorange);
+    log_debug("  cp: %f", sdiffs[i].carrier_phase);
+    log_debug("  do: %f", sdiffs[i].doppler);
+    log_debug("  sn: %f", sdiffs[i].snr);
+    log_debug("  pos/vel");
+    for (u8 j=0; j < 3; j++) {
+      log_debug("    %f %f", sdiffs[i].sat_pos[j], sdiffs[i].sat_vel[j]);
     }
-    printf("amb[*] \n");
-    printf("fixed:\n");
-    for (u8 i=0; i < s->fixed_ambs.n; i++){
-      printf("  %u: %f\n", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
-    }
-    printf("float:\n");
-    for (u8 i=0; i < s->float_ambs.n; i++){
-      printf("  %u: %f\n", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
-    }
-    printf("\n");
+  }
+  log_debug("amb[*]");
+  log_debug("fixed:");
+  for (u8 i=0; i < s->fixed_ambs.n; i++){
+    log_debug("  %u: %f", s->fixed_ambs.sids[i].sat, s->fixed_ambs.ambs[i]);
+  }
+  log_debug("float:");
+  for (u8 i=0; i < s->float_ambs.n; i++){
+    log_debug("  %u: %f", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
   }
 
   s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
                     disable_raim, raim_threshold);
   if (ret >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
+    {
       log_warn("dgnss_baseline: Fixed baseline RAIM repair");
-    log_debug("fixed solution");
-    if (DEBUG) {
-      printf("ret: %i\n", ret);
-      printf("fixed baseline: %f\t%f\t%f\n", b[0], b[1], b[2]);
-      printf("\n");
     }
+    log_debug("fixed solution");
+    log_debug("ret: %i ", ret);
+    log_debug("fixed baseline: %f %f %f", b[0], b[1], b[2]);
     DEBUG_EXIT();
     return 1;
   }
@@ -508,13 +497,12 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                       disable_raim, raim_threshold))
         >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
+    {
       log_warn("dgnss_baseline: Float baseline RAIM repair");
-    log_debug("float solution");
-    if (DEBUG) {
-      printf("ret: %i\n", ret);
-      printf("float baseline: %f\t%f\t%f\n", b[0], b[1], b[2]);
-      printf("\n");
     }
+    log_debug("float solution");
+    log_debug("ret: %i", ret);
+    log_debug("float baseline: %f %f %f", b[0], b[1], b[2]);
     DEBUG_EXIT();
     return 2;
   }
