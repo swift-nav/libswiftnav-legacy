@@ -762,25 +762,21 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
 /** Calculate observations from tracking channel measurements.
  *
- * This function takes an array of pointers, for a version taking a flat array
- * see calc_navigation_measurement().
- *
  * \param n_channels Number of tracking channel measurements
  * \param meas Array of pointers to tracking channel measurements, length
  *             `n_channels`
  * \param nav_meas Array of pointers of where to store the output observations,
  *                 length `n_channels`
- * \param nav_time_tc Receiver time at which to calculate the position solution
- *                    in seconds
- * \param nav_time Pointer to GPS time at which to calculate the position
- *                 solution. Can be `NULL` in which case one of the
- *                 pseudoranges is chosen as a reference and set to a nominal
- *                 range, implying a certain receiver clock error
+ * \param rec_tc   Receiver tick count at which to align all the measurements to.
+ * \param rec_time Pointer to an estimate of the current GPS time. Can be `NULL`
+                   in which case one of the pseudoranges is chosen as a
+                   reference and set to a nominal range, implying a certain
+                   receiver clock error.
  * \param e Array of pointers to ephemerides
  */
 void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                  navigation_measurement_t *nav_meas[],
-                                 double nav_time_tc, gps_time_t *nav_time,
+                                 double rec_tc, gps_time_t *rec_time,
                                  const ephemeris_t* e[])
 {
   double clock_err[n_channels], clock_rate_err[n_channels];
@@ -792,15 +788,18 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
      * tracking loop parameters. This will be used to compute the pseudorange. */
     nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
     nav_meas[i]->tot.tow += meas[i]->code_phase_chips / 1.023e6;
-    nav_meas[i]->tot.tow += (nav_time_tc - meas[i]->receiver_time)
+    nav_meas[i]->tot.tow += (rec_tc - meas[i]->receiver_time)
                             * meas[i]->code_phase_rate / 1.023e6;
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
+    // TODO there might be a bug where ephmeris tow is set to 0 near end of week? without tow being rolled over?
+    // causes this functions assimption to break
     gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
+    //gps_time_match_weeks(&nav_meas[i]->tot, rec_time); // TODO seems to cause a crash?
 
     /* Compute the carrier phase measurement. */
     nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
-    nav_meas[i]->raw_carrier_phase += (nav_time_tc - meas[i]->receiver_time)
+    nav_meas[i]->raw_carrier_phase += (rec_tc - meas[i]->receiver_time)
                                       * meas[i]->carrier_freq;
 
     /* For raw Doppler we use the instantaneous carrier frequency from the
@@ -820,9 +819,9 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
   /* To calculate the pseudorange from the time of transmit we need the local
    * time of reception. */
   gps_time_t tor;
-  if (nav_time) {
+  if (rec_time) {
     /* If we were given a time, use that. */
-    tor = *nav_time;
+    tor = *rec_time;
   } else {
     /* If we were not given a recieve time then we can just set one of the
      * pseudoranges aribtrarily to a nominal value and reference all the other
@@ -843,7 +842,7 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange
                                + clock_err[i] * GPS_C;
     nav_meas[i]->carrier_phase = nav_meas[i]->raw_carrier_phase
-                                 + clock_err[i] * GPS_L1_HZ;
+                                 - clock_err[i] * GPS_L1_HZ;
     nav_meas[i]->doppler = nav_meas[i]->raw_doppler
                            + clock_rate_err[i] * GPS_L1_HZ;
 
