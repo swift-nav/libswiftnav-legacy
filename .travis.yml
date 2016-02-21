@@ -15,6 +15,7 @@ addons:
     - cmake
     - check
     - lcov
+    # Required for doxygen check
     - doxygen
     - texlive
     - texlive-pictures
@@ -34,6 +35,9 @@ install:
   - wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
   - tar -xf gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
   - export PATH=$PATH:$PWD/gcc-arm-none-eabi-4_9-2015q2/bin
+  # Install doxygen 1.8
+  # TODO: Replace with PPA once whitelisted, see https://github.com/travis-ci/apt-source-whitelist/issues/40
+
 
 script:
   # Test libswiftnav
@@ -41,6 +45,7 @@ script:
   - cd build/
   - cmake -DCMAKE_BUILD_TYPE=Coverage ../
   - make
+  # Check the doxygen
   - make check-style
   # Install locally to avoid sudo
   - make DESTDIR="./install" install

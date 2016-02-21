@@ -21,7 +21,7 @@
 
 /** Element in the code data table. */
 typedef struct {
-  enum constellation constellation;
+  constellation_t constellation;
   u16 sat_count;
   u16 sat_start;
   const char *str;
@@ -49,7 +49,7 @@ static const char * unknown_str = "?";
  *
  * \return gnss_signal_t corresponding to the specified arguments.
  */
-gnss_signal_t construct_sid(enum code code, u16 sat)
+gnss_signal_t construct_sid(code_t code, u16 sat)
 {
   gnss_signal_t sid = {.code = code, .sat = sat};
   return sid;
@@ -98,7 +98,7 @@ bool sid_valid(gnss_signal_t sid)
  *
  * \return true if code is valid, false otherwise
  */
-bool code_valid(enum code code)
+bool code_valid(code_t code)
 {
   return ((code >= 0) && (code < CODE_COUNT));
 }
@@ -109,7 +109,7 @@ bool code_valid(enum code code)
  *
  * \return true if constellation is valid, false otherwise
  */
-bool constellation_valid(enum constellation constellation)
+bool constellation_valid(constellation_t constellation)
 {
   return ((constellation >= 0) && (constellation < CONSTELLATION_COUNT));
 }
@@ -122,7 +122,7 @@ bool constellation_valid(enum constellation constellation)
  *
  * \return gnss_signal_t corresponding to code and code_index.
  */
-gnss_signal_t sid_from_code_index(enum code code, u16 code_index)
+gnss_signal_t sid_from_code_index(code_t code, u16 code_index)
 {
   assert(code_valid(code));
   assert(code_index < code_table[code].sat_count);
@@ -147,7 +147,7 @@ u16 sid_to_code_index(gnss_signal_t sid)
  *
  * \return Constellation to which sid belongs.
  */
-enum constellation sid_to_constellation(gnss_signal_t sid)
+constellation_t sid_to_constellation(gnss_signal_t sid)
 {
   return code_to_constellation(sid.code);
 }
@@ -158,7 +158,7 @@ enum constellation sid_to_constellation(gnss_signal_t sid)
  *
  * \return Constellation to which code belongs.
  */
-enum constellation code_to_constellation(enum code code)
+constellation_t code_to_constellation(code_t code)
 {
   assert(code_valid(code));
   return code_table[code].constellation;
