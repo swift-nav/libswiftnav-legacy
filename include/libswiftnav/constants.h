@@ -37,6 +37,9 @@
 /** The GPS L1 center frequency in Hz. */
 #define GPS_L1_HZ 1.57542e9
 
+/** The GPS L2 center frequency in Hz. */
+#define GPS_L2_HZ 1.2276e9
+
 /** Earth's rotation rate as defined in the ICD in rad / s
  * \note This is actually not identical to the usual WGS84 definition. */
 #define GPS_OMEGAE_DOT 7.2921151467e-5

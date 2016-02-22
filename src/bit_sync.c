@@ -28,7 +28,8 @@
 /* Table of bit lengths for each code type */
 static const u8 bit_length_table[CODE_COUNT] = {
   [CODE_GPS_L1CA] = BIT_LENGTH_GPS_L1CA,
-  [CODE_GPS_L2CM] = 0,
+  [CODE_GPS_L2CM] = BIT_LENGTH_GPS_L1CA, /*same like in L1CA, because 
+                                          we use 2 symbols per bit*/
   [CODE_SBAS_L1CA] = BIT_LENGTH_SBAS_L1CA
 };
 
