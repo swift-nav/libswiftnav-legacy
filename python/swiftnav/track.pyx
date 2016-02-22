@@ -377,7 +377,9 @@ cdef class LockDetector:
 
   def update(self, I, Q, DT):
     lock_detect_update(&self._thisptr, I, Q, DT)
-    return (self._thisptr.outo, self._thisptr.outp)
+    return (self._thisptr.outo, self._thisptr.outp, \
+            self._thisptr.pcount1, self._thisptr.pcount2,\
+            self._thisptr.lpfi.y, self._thisptr.lpfq.y)
 
 
 cdef class AliasDetector:
@@ -390,6 +392,9 @@ cdef class AliasDetector:
 
   def second(self, I, Q):
     return alias_detect_second(&self._thisptr, I, Q)
+
+  def reinit(self, acc_len, time_diff):
+    return alias_detect_reinit(&self._thisptr, acc_len, time_diff)
 
 cdef class CN0Estimator:
   """
