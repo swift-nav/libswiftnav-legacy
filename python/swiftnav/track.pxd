@@ -124,6 +124,7 @@ cdef extern from "libswiftnav/track.h":
   void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff)
   void alias_detect_first(alias_detect_t *a, float I, float Q)
   float alias_detect_second(alias_detect_t *a, float I, float Q)
+  void alias_detect_reinit(alias_detect_t *a, u32 acc_len, float time_diff)
 
   # Tracking loop: Lock detect
   struct loop_detect_lpf:
