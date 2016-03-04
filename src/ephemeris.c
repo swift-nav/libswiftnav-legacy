@@ -291,8 +291,8 @@ u8 satellite_healthy(const ephemeris_t *eph)
 
 /** Convert a GPS URA index into a value.
 *
-* |param index URA index.
-* |return the URA in meters.
+* \param index URA index.
+* \return the URA in meters.
 */
 float decode_ura_index(const u8 index) {
   static float values[16] = {
@@ -319,9 +319,9 @@ float decode_ura_index(const u8 index) {
 
 /** Calculate the GPS ephemeris curve fit interval.
 *
-* |param fit_interval_flag The curve fit interval flag. 0 is 4 hours, 1 is >4 hours.
-* |param iodc The IODC value.
-* |return the curve fit interval in hours.
+* \param fit_interval_flag The curve fit interval flag. 0 is 4 hours, 1 is >4 hours.
+* \param iodc The IODC value.
+* \return the curve fit interval in hours.
 */
 u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
   u8 fit_interval = 4;
