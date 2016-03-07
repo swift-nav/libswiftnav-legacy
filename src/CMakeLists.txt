@@ -29,7 +29,6 @@ set(libswiftnav_SRCS
   almanac.c
   time.c
   edc.c
-  rtcm3.c
   bits.c
   lambda.c
   amb_kf.c

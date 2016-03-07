@@ -60,7 +60,7 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
 
   sds[n].sid = m_a->sid;
   sds[n].pseudorange = m_a->raw_pseudorange - m_b->raw_pseudorange;
-  sds[n].carrier_phase = m_a->carrier_phase - m_b->carrier_phase;
+  sds[n].carrier_phase = m_a->raw_carrier_phase - m_b->raw_carrier_phase;
   sds[n].doppler = m_a->raw_doppler - m_b->raw_doppler;
   sds[n].snr = MIN(m_a->snr, m_b->snr);
   sds[n].lock_counter = m_a->lock_counter + m_b->lock_counter;
@@ -119,7 +119,7 @@ static void make_propagated_sdiff_(void *context, u32 n,
   double dr = new_dist - old_dist;
 
   ctxt->sds[n].pseudorange += dr;
-  ctxt->sds[n].carrier_phase -= dr / GPS_L1_LAMBDA_NO_VAC;
+  ctxt->sds[n].carrier_phase += dr / GPS_L1_LAMBDA_NO_VAC;
 }
 
 /** New more efficient version of make_propagated_sdiffs(), NOT WORKING!!!
@@ -168,16 +168,12 @@ int cmp_sid_sdiff(const void *a, const void *b)
  *                           correspond to the i-th element of m_remote).
  * \param remote_pos_ecef   The position of the remote receiver (presumed
  *                           constant in ecef).
- * \param e                 Array of pointers to ephemerides corresponding
- *                          to the signals in m_local
- * \param t
  * \param sds               The single differenced propagated measurements.
  * \return The number of sats common in both local and remote sdiffs.
  */
 u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                           u8 n_remote, navigation_measurement_t *m_remote,
                           double *remote_dists, double remote_pos_ecef[3],
-                          const ephemeris_t *e[], const gps_time_t *t,
                           sdiff_t *sds)
 {
   u8 i, j, n = 0;
@@ -189,17 +185,10 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
     else if (sid_compare(m_local[i].sid, m_remote[j].sid) > 0)
       i--;
     else {
-      double clock_err;
-      double clock_rate_err;
-      double local_sat_pos[3];
-      double local_sat_vel[3];
-      calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
-                     &clock_err, &clock_rate_err);
       sds[n].sid = m_local[i].sid;
-      double dx = local_sat_pos[0] - remote_pos_ecef[0];
-      double dy = local_sat_pos[1] - remote_pos_ecef[1];
-      double dz = local_sat_pos[2] - remote_pos_ecef[2];
-      double new_dist = sqrt( dx * dx + dy * dy + dz * dz);
+      double d[3];
+      vector_subtract(3, m_local[i].sat_pos, remote_pos_ecef, d);
+      double new_dist = vector_norm(3, d);
       double dist_diff = new_dist - remote_dists[j];
       /* Explanation:
        * pseudorange = dist + c
@@ -216,15 +205,15 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       sds[n].pseudorange = m_local[i].raw_pseudorange
                          - (m_remote[j].raw_pseudorange
                             + dist_diff);
-      sds[n].carrier_phase = m_local[i].carrier_phase
-                           - (m_remote[j].carrier_phase
-                              - dist_diff / GPS_L1_LAMBDA);
+      sds[n].carrier_phase = m_local[i].raw_carrier_phase
+                           - (m_remote[j].raw_carrier_phase
+                              + dist_diff / GPS_L1_LAMBDA);
 
       /* Doppler is not propagated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */
       sds[n].snr = MIN(m_local[i].snr, m_remote[j].snr);
-      memcpy(&(sds[n].sat_pos), &(local_sat_pos[0]), 3*sizeof(double));
-      memcpy(&(sds[n].sat_vel), &(local_sat_vel[0]), 3*sizeof(double));
+      memcpy(sds[n].sat_pos, m_local[i].sat_pos, sizeof(m_local[i].sat_pos));
+      memcpy(sds[n].sat_vel, m_local[i].sat_vel, sizeof(m_local[i].sat_vel));
 
       n++;
     }
