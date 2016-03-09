@@ -512,7 +512,7 @@ def _calc_navigation_measurement(chan_meas, nav_meas, rec_time_tc, GpsTime gps_t
   return nav_meas
 
 # TODO (Buro): Remove mallocs, etc. here. Also, wow, this is awful
-def _tdcp_doppler(m_new, m_old):
+def _tdcp_doppler(m_new, m_old, dt):
   n_new = len(m_new)
   n_old = len(m_old)
   n_corrected = min(n_new, n_old)
@@ -526,7 +526,7 @@ def _tdcp_doppler(m_new, m_old):
     m_old_[n] = &((<NavigationMeasurement?>m_old[n])._thisptr)
   for n in range(n_corrected):
     m_corrected_[n] = (<NavigationMeasurement?>m_corrected[n])._thisptr
-  n_written = tdcp_doppler(n_new, m_new_[0], n_old, m_old_[0], m_corrected_)
+  n_written = tdcp_doppler(n_new, m_new_[0], n_old, m_old_[0], m_corrected_, dt)
   free(m_new_)
   free(m_old_)
   free(m_corrected_)

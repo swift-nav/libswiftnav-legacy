@@ -241,6 +241,6 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
 int nav_meas_cmp(const void *a, const void *b);
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
                 u8 n_old, navigation_measurement_t *m_old,
-                navigation_measurement_t *m_corrected);
+                navigation_measurement_t *m_corrected, double dt);
 
 #endif /* LIBSWIFTNAV_TRACK_H */
