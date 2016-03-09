@@ -868,11 +868,12 @@ int nav_meas_cmp(const void *a, const void *b)
  * \param n_old Number of measurements in `m_old`
  * \param m_old Array of old navigation measurements, sorted by PRN
  * \param m_corrected Array in which to store the output measurements
+ * \oaram dt The difference in receiver time betweeb the two measurements
  * \return The number of measurements written to `m_tdcp`
  */
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
                 u8 n_old, navigation_measurement_t *m_old,
-                navigation_measurement_t *m_corrected)
+                navigation_measurement_t *m_corrected, double dt)
 {
   /* Sort m_new, m_old should already be sorted. */
   qsort(m_new, n_new, sizeof(navigation_measurement_t), nav_meas_cmp);
@@ -891,10 +892,8 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Calculate the Doppler correction between raw and corrected. */
       double dopp_corr = m_corrected[n].doppler - m_corrected[n].raw_doppler;
       /* Calculate raw Doppler from time difference of carrier phase. */
-      /* TODO: check that using difference of TOTs here is a valid
-       * approximation. */
       m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
-                                    / gpsdifftime(&m_new[i].tot, &m_old[j].tot);
+                                    / dt;
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
       n++;
