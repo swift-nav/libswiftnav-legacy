@@ -892,10 +892,11 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Calculate the Doppler correction between raw and corrected. */
       double dopp_corr = m_corrected[n].doppler - m_corrected[n].raw_doppler;
       /* Calculate raw Doppler from time difference of carrier phase. */
-      m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
+      m_corrected[n].raw_doppler = (m_new[i].raw_carrier_phase - m_old[j].raw_carrier_phase)
                                     / dt;
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
-      m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
+      m_corrected[n].doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
+                                    / dt + dopp_corr;
       n++;
     }
   }
