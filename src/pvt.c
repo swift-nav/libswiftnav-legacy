@@ -497,7 +497,7 @@ const char *pvt_err_msg[] = {
  * \param nav_meas array of measurements
  * \param disable_raim passing True will omit raim check/repair functionality
  * \param soln output solution struct
- * \param dops output doppler information
+ * \param dops output dilution of precision information
  * \return Non-negative values indicate a valid solution.
  *   -  `2`: Solution converged but RAIM unavailable or disabled
  *   -  `1`: Solution converged, failed RAIM but was successfully repaired
