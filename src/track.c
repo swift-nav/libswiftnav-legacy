@@ -836,12 +836,12 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
 
     /* The corrected pseudorange, carrier_phase, Doppler applies the clock error
      * and clock rate error correction from the ephemeris respectively. */
-     nav_meas[i]->doppler = nav_meas[i]->raw_doppler
-                            + clock_rate_err[i] * GPS_L1_HZ;
-     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange
-                                + clock_err[i] * GPS_C;
-     nav_meas[i]->carrier_phase = nav_meas[i]->raw_carrier_phase
-                                  + clock_err[i] * nav_meas[i]->doppler;
+    nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange
+                               + clock_err[i] * GPS_C;
+    nav_meas[i]->carrier_phase = nav_meas[i]->raw_carrier_phase
+                                 - clock_err[i] * GPS_L1_HZ;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler
+                           + clock_rate_err[i] * GPS_L1_HZ;
 
     /* We also apply the clock correction to the time of transmit. */
     nav_meas[i]->tot.tow -= clock_err[i];
