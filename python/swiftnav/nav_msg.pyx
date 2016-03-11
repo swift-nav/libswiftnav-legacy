@@ -32,7 +32,7 @@ cdef class NavMsg:
     self._thisptr = d
 
   def __reduce__(self):
-    return (rebuild_NavMsg, tuple([tuple(self.to_dict().items())]))
+    return (rebuild_NavMsg, tuple(self.to_dict().items()))
 
   def update(self, bit_val):
     return nav_msg_update(&self._thisptr, bit_val)
@@ -46,7 +46,7 @@ cdef class NavMsg:
 
   def __richcmp__(self, other, op):
     """
-    Weird Cython comparison method. See 
+    Weird Cython comparison method. See
     http://docs.cython.org/src/userguide/special_methods.html.
     """
     if op == 2:
@@ -73,13 +73,13 @@ cdef class NavMsg:
     """
     if self.to_dict().keys() != other.to_dict().keys():
       return False
-    
+
     for k in self.to_dict().keys():
       if self.to_dict()[k] != other.to_dict()[k]:
         return False
 
     return True
-      
+
 
 def rebuild_NavMsg(reduced):
   """

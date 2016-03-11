@@ -16,3 +16,45 @@ def test_imports():
 
   """
   assert True
+
+def build_nav_msg():
+  """ Instantiate NavMsg with known attribute values. """
+  nm = swiftnav.nav_msg.NavMsg()
+  nm.from_dict(
+    {
+      'bit_polarity': -1,
+      'frame_words': [[0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0]],
+      'next_subframe_id': 1,
+      'overrun': False,
+      'subframe_bit_index': 0,
+      'subframe_bits': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      'subframe_start_index': 0
+    }
+  )
+  return nm
+
+def test_instantiate():
+  nm = swiftnav.nav_msg.NavMsg()
+
+def test_richcmp():
+  nm_a = build_nav_msg()
+  nm_b = build_nav_msg()
+
+  # Change nm_b's fields slightly.
+  nm_b_dict = nm_b.to_dict()
+  nm_b_dict['bit_polarity'] = 1
+  nm_b.from_dict(nm_b_dict)
+
+  assert nm_a == nm_a
+  assert not(nm_a != nm_a)
+  assert nm_a != nm_b
+  assert not(nm_a == nm_b)
+
+def test_rebuild():
+  nm = build_nav_msg()
+
+  rebuild, args = nm.__reduce__()
+
+  assert rebuild(args) == nm
