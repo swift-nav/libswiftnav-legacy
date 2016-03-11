@@ -38,6 +38,9 @@ def build_nav_msg():
 def test_instantiate():
   nm = swiftnav.nav_msg.NavMsg()
 
+def test_build_nav_msg():
+  build_nav_msg()
+
 def test_richcmp():
   nm_a = build_nav_msg()
   nm_b = build_nav_msg()
