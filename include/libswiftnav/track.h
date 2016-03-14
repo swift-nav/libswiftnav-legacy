@@ -120,12 +120,19 @@ typedef struct {
  */
 typedef struct {
   float log_bw;     /**< Noise bandwidth in dBHz. */
-  float b;          /**< IIR filter coeff. */
-  float a;          /**< IIR filter coeff. */
-  float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
-  float Q_prev_abs; /**< Abs. value of the previous quadrature correlation. */
+  float b1;          /**< IIR filter coeff. */
+  float b2;          /**< IIR filter coeff. */
+  float b3;          /**< IIR filter coeff. */
+  float a2;          /**< IIR filter coeff. */
+  float a3;          /**< IIR filter coeff. */
+  float I_prev_abs1; /**< Abs. value of the previous in-phase correlation. */
+  float I_prev_abs2; /**< Abs. value of the previous in-phase correlation. */
+  float Q_prev_abs1; /**< Abs. value of the previous quadrature correlation. */
+  float Q_prev_abs2; /**< Abs. value of the previous quadrature correlation. */
   float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
+  float nnsr;        /**< Noise-to-signal ratio (1 / SNR). */
   float xn;         /**< Last pre-filter sample. */
+  float xnn;         /**< Last pre-filter sample. */
 } cn0_est_state_t;
 
 /** \} */
