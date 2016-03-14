@@ -792,7 +792,10 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
                             * meas[i]->code_phase_rate / 1.023e6;
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
+    // TODO there might be a bug where ephmeris tow is set to 0 near end of week? without tow being rolled over?
+    // causes this functions assimption to break
     gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
+    //gps_time_match_weeks(&nav_meas[i]->tot, rec_time); // TODO seems to cause a crash?
 
     /* Compute the carrier phase measurement. */
     nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
@@ -868,7 +871,7 @@ int nav_meas_cmp(const void *a, const void *b)
  * \param n_old Number of measurements in `m_old`
  * \param m_old Array of old navigation measurements, sorted by PRN
  * \param m_corrected Array in which to store the output measurements
- * \oaram dt The difference in receiver time betweeb the two measurements
+ * \param dt The difference in receiver time betweeb the two measurements
  * \return The number of measurements written to `m_tdcp`
  */
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
