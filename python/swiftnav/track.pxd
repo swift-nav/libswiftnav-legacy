@@ -200,7 +200,7 @@ cdef class SimpleTrackingLoop:
   cdef simple_tl_state_t _thisptr
 
 cdef class AidedLoopFilter:
-   cdef aided_lf_state_t _thisptr
+  cdef aided_lf_state_t _thisptr
 
 cdef class AidedTrackingLoop:
   cdef aided_tl_state_t _thisptr
@@ -224,6 +224,6 @@ cdef class ChannelMeasurement:
   cdef channel_measurement_t _thisptr
 
 cdef class NavigationMeasurement:
- cdef navigation_measurement_t _thisptr
+  cdef navigation_measurement_t _thisptr
 
 cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c_nav_meas)
