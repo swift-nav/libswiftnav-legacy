@@ -266,15 +266,13 @@ cdef class AidedTrackingLoop:
       FLL aiding gain
 
     """
-    self.loop_freq = loop_freq
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
-    self.carr_freq_igain = carr_freq_igain
-    aided_tl_retune(&self._thisptr, self.loop_freq,
-                            self.code_bw, self.code_zeta, self.code_k,
-                            self.carr_to_code,
-                            self.carr_bw, self.carr_zeta, self.carr_k,
-                            self.carr_freq_igain)
+    code_bw, code_zeta, code_k = code_params
+    carr_bw, carr_zeta, carr_k = carr_params
+    aided_tl_retune(&self._thisptr, loop_freq,
+                    code_bw, code_zeta, code_k,
+                    carr_to_code,
+                    carr_bw, carr_zeta, carr_k,
+                    carr_freq_igain)
 
   def update(self, E, P, L):
     """
