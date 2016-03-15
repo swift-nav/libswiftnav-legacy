@@ -1,5 +1,5 @@
-cython>=0.17
-numpy>=1.9
+cython==0.23.4
+numpy==1.10.4
 flake8==2.3.0
 pep8==1.5.7
 pytest==2.6.4
