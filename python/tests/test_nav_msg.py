@@ -41,6 +41,20 @@ def test_instantiate():
 def test_build_nav_msg():
   build_nav_msg()
 
+def test_equal():
+  nm_a = build_nav_msg()
+  nm_b = build_nav_msg()
+
+  # Change nm_b's fields slightly.
+  nm_b_dict = nm_b.to_dict()
+  nm_b_dict['bit_polarity'] = 1
+  nm_b.from_dict(nm_b_dict)
+
+  assert nm_a._equal(nm_a)
+  assert nm_b._equal(nm_b)
+  assert not nm_a._equal(nm_b)
+  assert not nm_b._equal(nm_a)
+
 def test_richcmp():
   nm_a = build_nav_msg()
   nm_b = build_nav_msg()
