@@ -44,26 +44,26 @@
 #define SID_STR_LEN_MAX 16
 
 /** Constellation identifier. */
-enum constellation {
+typedef enum constellation {
   CONSTELLATION_INVALID = -1,
   CONSTELLATION_GPS,
   CONSTELLATION_SBAS,
   CONSTELLATION_COUNT,
-};
+} constellation_t;
 
 /** Code identifier. */
-enum code {
+typedef enum code {
   CODE_INVALID = -1,
   CODE_GPS_L1CA,
   CODE_GPS_L2CM,
   CODE_SBAS_L1CA,
   CODE_COUNT,
-};
+} code_t;
 
 /** GNSS signal identifier. */
 typedef struct {
   u16 sat;
-  enum code code;
+  code_t code;
 } gnss_signal_t;
 
 /** Signal comparison function. */
@@ -89,14 +89,14 @@ static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 
 /* \} */
 
-gnss_signal_t construct_sid(enum code code, u16 sat);
+gnss_signal_t construct_sid(code_t code, u16 sat);
 int sid_to_string(char *s, int n, gnss_signal_t sid);
 bool sid_valid(gnss_signal_t sid);
-bool code_valid(enum code code);
-bool constellation_valid(enum constellation constellation);
-gnss_signal_t sid_from_code_index(enum code code, u16 code_index);
+bool code_valid(code_t code);
+bool constellation_valid(constellation_t constellation);
+gnss_signal_t sid_from_code_index(code_t code, u16 code_index);
 u16 sid_to_code_index(gnss_signal_t sid);
 enum constellation sid_to_constellation(gnss_signal_t sid);
-enum constellation code_to_constellation(enum code code);
+enum constellation code_to_constellation(code_t code);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */

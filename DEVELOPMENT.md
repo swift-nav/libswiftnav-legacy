@@ -7,7 +7,8 @@ Tools needed:
  - doxygen
  - convert from ImageMagick
  - pip install gcovr diff-cover
- - pdflatex from TeX Live
+ - texlive and texlive-pictures
+ - pgf (for missing TeX dependency)
  - libcheck (otherwise `make` will not run unit tests)
 
 To get started, run::
