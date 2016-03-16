@@ -74,4 +74,4 @@ def test_rebuild():
 
   rebuild, args = nm.__reduce__()
 
-  assert rebuild(args) == nm
+  assert rebuild(*args) == nm
