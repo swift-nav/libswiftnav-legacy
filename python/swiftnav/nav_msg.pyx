@@ -81,7 +81,7 @@ cdef class NavMsg:
     return True
 
 
-def rebuild_NavMsg(reduced):
+def rebuild_NavMsg(*reduced):
   """
   Rebuild NavMsg for unpickling.
 
