@@ -235,7 +235,7 @@ float cn0_est(cn0_est_state_t *s, float I, float Q);
 
 void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                  navigation_measurement_t *nav_meas[],
-                                 double rec_time_tc, gps_time_t *gps_time,
+                                 double rec_tc, gps_time_t *rec_time,
                                  const ephemeris_t* e[]);
 
 int nav_meas_cmp(const void *a, const void *b);

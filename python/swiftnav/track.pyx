@@ -493,8 +493,8 @@ cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c
     memcpy(&c_nav_meas[i], &sd_, sizeof(navigation_measurement_t))
 
 # TODO (Buro): Remove mallocs, etc. here. Do all this in-place
-def _calc_navigation_measurement(chan_meas, nav_meas, rec_time_tc,
-                                 GpsTime gps_time, ephemerides):
+def _calc_navigation_measurement(chan_meas, nav_meas, rec_tc,
+                                 GpsTime rec_time, ephemerides):
   """
   """
   n_channels = len(chan_meas)
@@ -506,15 +506,15 @@ def _calc_navigation_measurement(chan_meas, nav_meas, rec_time_tc,
     chan_meas_[n] = &((<ChannelMeasurement ?>chan_meas[n])._thisptr)
     nav_meas_[n] = &((<NavigationMeasurement ?>nav_meas[n])._thisptr)
     ephs[n] = &((<Ephemeris ?>ephemerides[n])._thisptr)
-  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, rec_time_tc,
-                               &gps_time._thisptr, ephs)
+  calc_navigation_measurement(n_channels, chan_meas_, nav_meas_, rec_tc,
+                               &rec_time._thisptr, ephs)
   free(chan_meas_)
   free(nav_meas_)
   free(ephs)
   return nav_meas
 
 # TODO (Buro): Remove mallocs, etc. here. Also, wow, this is awful
-def _tdcp_doppler(m_new, m_old):
+def _tdcp_doppler(m_new, m_old, dt):
   n_new = len(m_new)
   n_old = len(m_old)
   n_corrected = min(n_new, n_old)
@@ -528,7 +528,7 @@ def _tdcp_doppler(m_new, m_old):
     m_old_[n] = &((<NavigationMeasurement?>m_old[n])._thisptr)
   for n in range(n_corrected):
     m_corrected_[n] = (<NavigationMeasurement?>m_corrected[n])._thisptr
-  n_written = tdcp_doppler(n_new, m_new_[0], n_old, m_old_[0], m_corrected_)
+  n_written = tdcp_doppler(n_new, m_new_[0], n_old, m_old_[0], m_corrected_, dt)
   free(m_new_)
   free(m_old_)
   free(m_corrected_)

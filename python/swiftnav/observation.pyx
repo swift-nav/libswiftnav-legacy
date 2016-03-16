@@ -71,8 +71,7 @@ def single_diff_(m_a, m_b):
 # TODO (Buro): special note that there are a bunch of statically
 # declared things in the .c file for observation.c
 
-def make_propagated_sdiffs_(m_local, m_remote, remote_dists, remote_pos_ecef,
-                            es, GpsTime t):
+def make_propagated_sdiffs_(m_local, m_remote, remote_dists, remote_pos_ecef):
   """Propagates remote measurements to a local time and makes
   sdiffs. When we get two sets of observations that aren't time
   matched to each other (but are internally time matched within each
@@ -93,8 +92,6 @@ def make_propagated_sdiffs_(m_local, m_remote, remote_dists, remote_pos_ecef,
   cdef navigation_measurement_t m_local_[32], m_remote_[32]
   mk_nav_meas_array(m_local, n_local, &m_local_[0])
   mk_nav_meas_array(m_remote, n_remote, &m_remote_[0])
-  cdef ephemeris_t** es_ = <ephemeris_t **>malloc(len(es)*sizeof(ephemeris_t *))
-  mk_ephemeris_array(es, len(es), es_)
   # TODO (Buro): These can be moved up into type hints.
   cdef np.ndarray[np.double_t, ndim=1, mode="c"] remote_dists_ \
     = np.array(remote_dists, dtype=np.double)
@@ -106,8 +103,6 @@ def make_propagated_sdiffs_(m_local, m_remote, remote_dists, remote_pos_ecef,
                                            n_remote, &m_remote_[0],
                                            &remote_dists_[0],
                                            &remote_pos_ecef_[0],
-                                           es_,
-                                           &t._thisptr,
                                            &sdiffs_[0])
   free(es_)
   return read_sdiff_array(n_sats, &sdiffs_[0])
