@@ -155,3 +155,34 @@ def test_sat_state():
   assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*2}))
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*3 + 1}))
   assert eph.is_healthy()
+
+def test_parameters():
+  toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  valid = 1
+  fit_interval = 4
+  assert e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
+
+  toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  valid = 0
+  fit_interval = 4
+  assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
+
+  toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  valid = 1
+  fit_interval = 0
+  assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
+
+  toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.0 * 2,})
+  valid = 1
+  fit_interval = 4
+  assert e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
+
+  toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
+  time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.0 * 3 ,})
+  valid = 1
+  fit_interval = 4
+  assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
