@@ -40,9 +40,9 @@ cdef class NavMsg:
   def subframe_ready(self):
     return subframe_ready(&self._thisptr)
 
-  def process_subframe(self, e):
-    cdef ephemeris_t tmp = e._thisptr
-    return process_subframe(&self._thisptr, &tmp)
+  def process_subframe(self, sid, d):
+    cdef gps_l1ca_decoded_data_t tmp_d = d._thisptr
+    return process_subframe(&self._thisptr, sid, &tmp_d)
 
   def __richcmp__(self, other, op):
     """
