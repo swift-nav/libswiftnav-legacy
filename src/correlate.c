@@ -47,11 +47,11 @@ static void track_correlate(enum correlator_type correlator_type,
  * \param samples          Samples array. One byte per sample.
  * \param samples_len      Samples array size.
  * \param code             L1C/A PRN code. One byte per chip: 1023 bytes long.
- * \param[in/out] init_code_phase  Initial code phase [chips].
+ * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the
  *                         the last unprocessed code phase here.
  * \param code_step        Code phase increment step [chips].
- * \param[in/out] init_carr_phase  Initial carrier phase [radians].
+ * \param[in,out] init_carr_phase  Initial carrier phase [radians].
  *                         The function returns the the last unprocessed carrier
  *                         phase here.
  * \param carr_step        Carrier phase increment step [radians].
@@ -96,11 +96,11 @@ void l1_ca_track_correlate(const s8* restrict samples, size_t samples_len,
  * \param samples          Samples array. One byte per sample.
  * \param samples_len      Samples array size.
  * \param code             L2C CM PRN code. One byte per chip: 10230 bytes long.
- * \param[in/out] init_code_phase  Initial code phase [chips].
+ * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the
  *                         the last unprocessed code phase here.
  * \param code_step        Code phase increment step [chips].
- * \param[in/out] init_carr_phase  Initial carrier phase [radians].
+ * \param[in,out] init_carr_phase  Initial carrier phase [radians].
  *                         The function returns the the last unprocessed carrier
  *                         phase here.
  * \param carr_step        Carrier phase increment step [radians].
@@ -216,11 +216,11 @@ static inline double l2c_cm_get_code_phase(double code_phase, double code_step)
  * \param correlator_type  Correlator type. L1 C/A or L2C CM are supported.
  * \param samples          Samples array. One byte per sample.
  * \param code             PRN code. One byte per chip.
- * \param[in/out] init_code_phase  Initial code phase [chips].
+ * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the last unprocessed code
  *                         phase here.
  * \param code_step        Code phase increment step [chips].
- * \param[in/out] init_carr_phase  Initial carrier phase [radians].
+ * \param[in,out] init_carr_phase  Initial carrier phase [radians].
  *                         The function returns the the last unprocessed carrier
  *                         phase here.
  * \param carr_step        Carrier phase increment step [radians].
