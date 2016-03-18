@@ -91,11 +91,11 @@ void report_mismatch(const struct mismatch_data *mismatch)
     printf("data_offset,data,expected_counter,actual_counter,offset_diff\n");
   }
   for (i = 0; i < mismatch->counter; i++) {
-    printf("%ld,", mismatch->data[i].offset);
+    printf("%zu,", mismatch->data[i].offset);
     printf("0x%02X,", mismatch->data[i].data);
     printf("%d,", mismatch->data[i].expected_counter);
     printf("%d,", mismatch->data[i].actual_counter);
-    printf("%ld\n", mismatch->data[i].offset - offset_prev);
+    printf("%zu\n", mismatch->data[i].offset - offset_prev);
     offset_prev = mismatch->data[i].offset;
   }
 }
