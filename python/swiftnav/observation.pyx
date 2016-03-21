@@ -104,7 +104,6 @@ def make_propagated_sdiffs_(m_local, m_remote, remote_dists, remote_pos_ecef):
                                            &remote_dists_[0],
                                            &remote_pos_ecef_[0],
                                            &sdiffs_[0])
-  free(es_)
   return read_sdiff_array(n_sats, &sdiffs_[0])
 
 def make_dd_measurements_and_sdiffs_(GNSSSignal ref_sid, non_ref_sids, sdiffs_in):
