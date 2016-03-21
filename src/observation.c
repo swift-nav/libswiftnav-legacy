@@ -186,9 +186,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       i--;
     else {
       sds[n].sid = m_local[i].sid;
-      double d[3];
-      vector_subtract(3, m_local[i].sat_pos, remote_pos_ecef, d);
-      double new_dist = vector_norm(3, d);
+      double new_dist = vector_distance(3, m_local[i].sat_pos, remote_pos_ecef);
       double dist_diff = new_dist - remote_dists[j];
       /* Explanation:
        * pseudorange = dist + c
