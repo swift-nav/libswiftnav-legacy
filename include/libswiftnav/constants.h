@@ -59,13 +59,13 @@
  * \note This is GPS_C / mu where mu is 1.0002926 */
 #define GPS_C_NO_VAC (GPS_C / 1.0002926)
 
-/** The wavelength of L1 in a vacuum.
- * \note This is GPS_C / GPS_L1_HZ. */
-#define GPS_L1_LAMBDA (GPS_C / GPS_L1_HZ)
-
 /** The wavelength of L1 in air at standard temperature and pressure.
  * \note This is GPS_C_NO_VAC / GPS_L1_HZ. */
 #define GPS_L1_LAMBDA_NO_VAC (GPS_C_NO_VAC / GPS_L1_HZ)
+
+/** The wavelength of L2 in air at standard temperature and pressure.
+ * \note This is GPS_C_NO_VAC / GPS_L2_HZ. */
+#define GPS_L2_LAMBDA_NO_VAC (GPS_C_NO_VAC / GPS_L2_HZ)
 
 /** Approximate average distance to the GPS satellites in m. */
 #define GPS_NOMINAL_RANGE 22.980e6

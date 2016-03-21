@@ -15,6 +15,7 @@
 #include <assert.h>
 
 #include <libswiftnav/signal.h>
+#include <libswiftnav/constants.h>
 
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
@@ -162,6 +163,30 @@ constellation_t code_to_constellation(code_t code)
 {
   assert(code_valid(code));
   return code_table[code].constellation;
+}
+
+/** Return the center carrier frequency for a gnss_signal_t.
+ *
+ * \param sid  gnss_signal_t to use.
+ *
+ * \return center carrier frequency
+ */
+double sid_to_carr_freq(gnss_signal_t code)
+{
+  double f;
+  assert(sid_valid(code));
+  switch (code.code) {
+    case CODE_GPS_L1CA:
+    case CODE_SBAS_L1CA:
+      f = GPS_L1_HZ;
+      break;
+    case CODE_GPS_L2CM:
+      f = GPS_L2_HZ;
+      break;
+    default:
+      f = 0.0;
+  }
+  return f;
 }
 
 /* \} */

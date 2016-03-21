@@ -98,5 +98,6 @@ gnss_signal_t sid_from_code_index(code_t code, u16 code_index);
 u16 sid_to_code_index(gnss_signal_t sid);
 enum constellation sid_to_constellation(gnss_signal_t sid);
 enum constellation code_to_constellation(code_t code);
+double sid_to_carr_freq(gnss_signal_t code);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */
