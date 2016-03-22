@@ -238,7 +238,7 @@ double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
                            vector_norm(3, vec_ref_sat);
 
   /* Return the Doppler shift. */
-  return sid_to_carr_freq(alm->sid) * radial_velocity / GPS_C;
+  return code_to_carr_freq(alm->sid.code) * radial_velocity / GPS_C;
 }
 
 /** \} */

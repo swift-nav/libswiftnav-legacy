@@ -171,11 +171,11 @@ constellation_t code_to_constellation(code_t code)
  *
  * \return center carrier frequency
  */
-double sid_to_carr_freq(gnss_signal_t code)
+double code_to_carr_freq(code_t code)
 {
   double f;
-  assert(sid_valid(code));
-  switch (code.code) {
+  assert(code_valid(code));
+  switch (code) {
     case CODE_GPS_L1CA:
     case CODE_SBAS_L1CA:
       f = GPS_L1_HZ;

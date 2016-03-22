@@ -50,7 +50,7 @@ static double vel_solve(double rx_vel[],
 
     /* The residual is due to the user's motion. */
     tempvX[j] = -nav_meas[j]->doppler * GPS_C /
-                  sid_to_carr_freq(nav_meas[j]->sid)- pdot_pred;
+                  code_to_carr_freq(nav_meas[j]->sid.code)- pdot_pred;
   }
 
   /* Use X to map our pseudorange rate residuals onto the Jacobian update.
