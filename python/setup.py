@@ -43,8 +43,10 @@ if __name__ == "__main__":
   include_dirs.append(np.get_include())
   include_dirs.append(os.path.expanduser('~/.local/include'))
   include_dirs.append('.')
+  # three more includes for travis builds as it does not install libraries
   include_dirs.append('../include/')
   include_dirs.append('../libfec/include/')
+  include_dirs.append('../tests/data/l2cbitstream/')
   def make_extension(ext_name):
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
     return Extension(
