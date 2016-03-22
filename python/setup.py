@@ -44,6 +44,7 @@ if __name__ == "__main__":
   include_dirs.append(os.path.expanduser('~/.local/include'))
   include_dirs.append('.')
   include_dirs.append('../include/')
+  include_dirs.append('../libfec/include/')
   def make_extension(ext_name):
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
     return Extension(
