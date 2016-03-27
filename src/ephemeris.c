@@ -247,8 +247,8 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
  * \return  0 on success,
  *         -1 if almanac is not valid or too old
  */
-s8 calc_sat_az_el(const ephemeris_t* e, const gps_time_t *t,
-                  const double ref[3], double* az, double* el)
+s8 calc_sat_az_el(const ephemeris_t *e, const gps_time_t *t,
+                  const double ref[3], double *az, double *el)
 {
   double sat_pos[3];
   double sat_vel[3];
@@ -342,7 +342,7 @@ u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,
   }
 
   /*
-   *Ephemeris did not get time-stamped when it was received.
+   * Ephemeris did not get time-stammped when it was received.
    */
   if (toe->wn == 0) {
     return 0;

@@ -20,6 +20,7 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/almanac.h>
 #include <libswiftnav/ephemeris.h>
+#include <libswiftnav/logging.h>
 
 /** \defgroup almanac Almanac
  * Functions and calculations related to the GPS almanac.
@@ -39,7 +40,7 @@
  * \param clock_rate_err Pointer to where to store the calculated satellite
  *                       clock error [s/s]
  */
-static s8 calc_sat_state_xyz_almanac(const almanac_t* a, const gps_time_t *t,
+static s8 calc_sat_state_xyz_almanac(const almanac_t *a, const gps_time_t *t,
                                      double pos[3], double vel[3],
                                      double *clock_err, double *clock_rate_err)
 {
@@ -75,7 +76,7 @@ static s8 calc_sat_state_xyz_almanac(const almanac_t* a, const gps_time_t *t,
  * \return  0 on success,
  *         -1 if almanac is not valid or too old
  */
-static s8 calc_sat_state_kepler_almanac(const almanac_t* a, const gps_time_t *t,
+static s8 calc_sat_state_kepler_almanac(const almanac_t *a, const gps_time_t *t,
                                           double pos[3], double vel[3],
                                           double *clock_err, double *clock_rate_err)
 {
@@ -117,7 +118,7 @@ static s8 calc_sat_state_kepler_almanac(const almanac_t* a, const gps_time_t *t,
  * \return  0 on success,
  *         -1 if almanac is not valid or too old
  */
-s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
+s8 calc_sat_state_almanac(const almanac_t *a, const gps_time_t *t,
                             double pos[3], double vel[3],
                             double *clock_err, double *clock_rate_err)
 {
@@ -146,7 +147,7 @@ s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
  * \return  0 on success,
  *         -1 if almanac is not valid or too old
  */
-s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
+s8 calc_sat_az_el_almanac(const almanac_t *a, const gps_time_t *t,
                           const double ref[3], double* az, double* el)
 {
   double sat_pos[3];
@@ -173,7 +174,7 @@ s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
  * \return  0 on success,
  *         -1 if almanac is not valid or too old
  */
-s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
+s8 calc_sat_doppler_almanac(const almanac_t *a, const gps_time_t *t,
                             const double ref[3], double *doppler)
 {
   double sat_pos[3];
@@ -202,23 +203,59 @@ s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
 
 /** Is this almanac usable?
  *
- * \todo This should actually be more than just the "valid" flag.
- *       When we write an is_usable() function, lets use that instead
- *       of just es[prn].valid.
- *
  * \param a Almanac struct
- * \param t Current time
+ * \param t The current GPS time. This is used to determine the ephemeris age.
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 almanac_good(const almanac_t *a, gps_time_t *t)
+u8 almanac_valid(const almanac_t *a, const gps_time_t *t)
 {
+  assert(a != NULL);
+  assert(t != NULL);
+
+  if (!a->valid) {
+    return 0;
+  }
+
+  if (a->fit_interval <= 0) {
+    log_warn("almanac_valid used with 0 a->fit_interval");
+    return 0;
+  }
+
+  /*
+   * Almanac did not get time-stammped when it was received.
+   */
+  if (a->toa.wn == 0) {
+    return 0;
+  }
+
   /* Seconds from the time from almanac reference epoch (toe) */
   double dt = gpsdifftime(t, &a->toa);
 
   /* TODO: this doesn't exclude almanacs older than a week so could be made
    * better. */
-  return (a->valid && fabs(dt) < ((u32)a->fit_interval)*60*60);
+  /* If dt is greater than fit_interval / 2 hours our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)a->fit_interval / 2) * 60 * 60) {
+    return 0;
+  }
+
+  return 1;
+}
+
+/** Is this satellite healthy? Note this function only checks flags in the
+ * almanac.
+ *
+ * \todo In the future we should check for health at the signal level. E.g.
+ * if only the L2(P) signal is bad, but L1 C/A and L2C are fine, we can still
+ * use the satellite.
+ *
+ * \param a Almanac struct
+ * \return 1 if the satellite is healthy.
+ *         0 otherwise.
+ */
+u8 satellite_healthy_almanac(const almanac_t *a)
+{
+  return a->healthy;
 }
 
 static bool almanac_xyz_equal(const almanac_xyz_t *a,

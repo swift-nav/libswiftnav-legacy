@@ -58,14 +58,17 @@ typedef struct {
 
 /** \} */
 
-s8 calc_sat_state_almanac(const almanac_t* a, const gps_time_t *t,
+s8 calc_sat_state_almanac(const almanac_t *a, const gps_time_t *t,
                             double pos[3], double vel[3],
                             double *clock_err, double *clock_rate_err);
-s8 calc_sat_az_el_almanac(const almanac_t* a, const gps_time_t *t,
-                          const double ref[3], double* az, double* el);
-s8 calc_sat_doppler_almanac(const almanac_t* a, const gps_time_t *t,
+s8 calc_sat_az_el_almanac(const almanac_t *a, const gps_time_t *t,
+                          const double ref[3], double *az, double *el);
+s8 calc_sat_doppler_almanac(const almanac_t *a, const gps_time_t *t,
                             const double ref[3], double *doppler);
-u8 almanac_good(const almanac_t *a, gps_time_t *t);
+
+u8 almanac_valid(const almanac_t *a, const gps_time_t *t);
+u8 satellite_healthy_almanac(const almanac_t *a);
+
 bool almanac_equal(const almanac_t *a, const almanac_t *b);
 
 #endif /* LIBSWIFTNAV_ALMANAC_H */
