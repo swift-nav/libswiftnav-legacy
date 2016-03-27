@@ -12,7 +12,7 @@
 
 #include <math.h>
 #include <assert.h>
-#include <memory.h>
+#include <string.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
