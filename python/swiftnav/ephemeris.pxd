@@ -24,10 +24,8 @@ cdef extern from "libswiftnav/ephemeris.h":
 
   ctypedef struct ephemeris_xyz_t:
     double pos[3]
-    double rate[3]
+    double vel[3]
     double acc[3]
-    u8 iod
-    u16 toa
     double a_gf0
     double a_gf1
 
@@ -45,8 +43,12 @@ cdef extern from "libswiftnav/ephemeris.h":
   s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                     double pos[3], double vel[3],
                     double *clock_err, double *clock_rate_err)
-  u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
-  u8 satellite_healthy(const ephemeris_t *eph)
+  s8 calc_sat_az_el(const ephemeris_t *e, const gps_time_t *t,
+                    double ref[3], double *az, double *el)
+  s8 calc_sat_doppler(const ephemeris_t *e, const gps_time_t *t,
+                    double ref[3], double *doppler)
+  u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t)
+  u8 satellite_healthy(const ephemeris_t *e)
   void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   u8 ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
   u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,

@@ -17,6 +17,8 @@ Note: All positions are referenced to the WGS84 coordinate system.
 """
 
 from common cimport *
+from time cimport *
+from time import GpsTime
 from fmt_utils import fmt_repr
 from libc.string cimport memset
 cimport numpy as np
@@ -27,12 +29,15 @@ cdef class Almanac:
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(almanac_t))
     self._thisptr.sid = kwargs.pop('sid')
-    self._thisptr.healthy = kwargs.pop('healthy')
+    self._thisptr.toa = kwargs.pop('toa')
+    self._thisptr.ura = kwargs.pop('ura')
+    self._thisptr.fit_interval = kwargs.pop('fit_interval')
     self._thisptr.valid = kwargs.pop('valid')
-    if 'gps' in kwargs:
-      self._thisptr.gps = kwargs.pop('gps')
-    elif 'sbas' in kwargs:
-      self._thisptr.sbas = kwargs.pop('sbas')
+    self._thisptr.healthy = kwargs.pop('healthy')
+    if 'kepler' in kwargs:
+      self._thisptr.kepler = kwargs.pop('kepler')
+    elif 'xyz' in kwargs:
+      self._thisptr.xyz = kwargs.pop('xyz')
 
   def __getattr__(self, k):
     return self._thisptr.get(k)
@@ -46,17 +51,14 @@ cdef class Almanac:
   def from_dict(self, d):
     self._thisptr = d
 
-  def calc_state(self, t, week=-1):
+  def calc_state(self, GpsTime t):
     """
     Wraps the function :libswiftnav:`calc_sat_state_almanac`.
 
     Parameters
     ----------
-    t : float
+    t : GpsTime
       The GPS time at which to calculate the azimuth and elevation.
-    week : int, optional
-      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
-      within one half week of the almanac time of applicability.
 
     Returns
     -------
@@ -65,24 +67,22 @@ cdef class Almanac:
       coordinate system.
 
     """
-    cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.empty(3, dtype=np.double)
-    cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = np.empty(3, dtype=np.double)
-    calc_sat_state_almanac(&self._thisptr, t, week, &pos[0], &vel[0])
-    return (pos, vel)
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = np.array([0,0,0], dtype=np.double)
+    cdef double clock_err, clock_rate_err
+    calc_sat_state_almanac(&self._thisptr, &t._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
+    return (pos, vel, clock_err, clock_rate_err)
 
-  def calc_az_el(self, t, ref, week=None):
+  def calc_az_el(self, GpsTime t, ref):
     """
     Wraps the function :libswiftnav:`calc_sat_az_el_almanac`.
 
     Parameters
     ----------
-    t : float
+    t : GpsTime
       The GPS time at which to calculate the azimuth and elevation.
     ref : (float, float, float)
       The tuple of coordinates of the reference position, `(x, y, z)`
-    week : int, optional
-      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
-      within one half week of the almanac time of applicability.
 
     Returns
     -------
@@ -93,22 +93,19 @@ cdef class Almanac:
     assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
     cdef double az, el
-    calc_sat_az_el_almanac(&self._thisptr, t, week, &ref_[0], &az, &el)
+    calc_sat_az_el_almanac(&self._thisptr, &t._thisptr, &ref_[0], &az, &el)
     return (az, el)
 
-  def calc_doppler(self, t, ref, week=-1):
+  def calc_doppler(self, GpsTime t, ref):
     """
     Wraps the function :libswiftnav:`calc_sat_doppler_almanac`.
 
     Parameters
     ----------
-    t : float
+    t : GpsTime
       The GPS time at which to calculate the Doppler shift.
     ref : (float, float, float)
       The tuple of coordinates of the reference position, `(x, y, z)`
-    week : int, optional
-      The GPS week number modulo 1024. If `None` then it is assumed that `t` is
-      within one half week of the almanac time of applicability.
 
     Returns
     -------
@@ -118,4 +115,6 @@ cdef class Almanac:
     """
     assert len(ref) == 3, "ECEF coordinates must have dimension 3."
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
-    return calc_sat_doppler_almanac(&self._thisptr, t, week, &ref_[0])
+    cdef double doppler
+    calc_sat_doppler_almanac(&self._thisptr, &t._thisptr, &ref_[0], &doppler)
+    return doppler

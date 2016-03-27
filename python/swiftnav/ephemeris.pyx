@@ -47,15 +47,76 @@ cdef class Ephemeris:
   def from_dict(self, d):
     self._thisptr = d
 
-  def calc_sat_state(self, GpsTime time):
+  def calc_sat_state(self, GpsTime t):
+    """
+    Wraps the function :libswiftnav:`calc_sat_state`.
+
+    Parameters
+    ----------
+    t : GpsTime
+      The GPS time at which to calculate the satellite position.
+
+    Returns
+    -------
+    out : (:class:`numpy.ndarray`, :class:`numpy.ndarray`)
+      The tuple (position, velocity) in meters and meters/sec in the ECEF
+      coordinate system.
+
+    """
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] vel = np.array([0,0,0], dtype=np.double)
     cdef double clock_err, clock_rate_err
-    calc_sat_state(&self._thisptr, &time._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
+    calc_sat_state(&self._thisptr, &t._thisptr, &pos[0], &vel[0], &clock_err, &clock_rate_err)
     return (pos, vel, clock_err, clock_rate_err)
 
-  def is_valid(self, GpsTime time):
-    return ephemeris_valid(&self._thisptr, &time._thisptr)
+  def calc_az_el(self, GpsTime t, ref):
+    """
+    Wraps the function :libswiftnav:`calc_sat_az_el`.
+
+    Parameters
+    ----------
+    t : GpsTime
+      The GPS time at which to calculate the azimuth and elevation.
+    ref : (float, float, float)
+      The tuple of coordinates of the reference position, `(x, y, z)`
+
+    Returns
+    -------
+    out : (float, float)
+      The tuple (azimuth, elevation) in radians.
+
+    """
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
+    cdef double az, el
+    calc_sat_az_el(&self._thisptr, &t._thisptr, &ref_[0], &az, &el)
+    return (az, el)
+
+  def calc_doppler(self, GpsTime t, ref):
+    """
+    Wraps the function :libswiftnav:`calc_sat_doppler`.
+
+    Parameters
+    ----------
+    t : GpsTime
+      The GPS time at which to calculate the Doppler shift.
+    ref : (float, float, float)
+      The tuple of coordinates of the reference position, `(x, y, z)`
+
+    Returns
+    -------
+    out : float
+      The Doppler shift in Hz.
+
+    """
+    assert len(ref) == 3, "ECEF coordinates must have dimension 3."
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] ref_ = np.array(ref, dtype=np.double)
+    cdef double doppler
+    calc_sat_doppler(&self._thisptr, &t._thisptr, &ref_[0], &doppler)
+    return doppler
+
+  def is_valid(self, GpsTime t):
+    return ephemeris_valid(&self._thisptr, &t._thisptr)
 
   @staticmethod
   def is_params_valid(u8 v, u8 fit_interval, GpsTime toe, GpsTime t):

@@ -8,43 +8,40 @@
 # WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
 from common cimport *
-from signal cimport *
+from time cimport gps_time_t
+from signal cimport gnss_signal_t
 
 cdef extern from "libswiftnav/almanac.h":
-  ctypedef struct almanac_gps_t:
-    double ecc
-    double toa
-    double inc
-    double rora
-    double a
-    double raaw
-    double argp
-    double ma
-    double af0
-    double af1
-    u16 week
+  ctypedef struct almanac_kepler_t:
+    double m0, ecc, sqrta, omega0, omegadot, w, inc
+    double af0, af1
 
-  ctypedef struct almanac_sbas_t:
-    u8 data_id
-    u16 x
-    u16 y
-    u16 z
-    u8 x_rate
-    u8 y_rate
-    u8 z_rate
-    u16 t0
+  ctypedef struct almanac_xyz_t:
+    double pos[3]
+    double vel[3]
+    double acc[3]
 
   ctypedef struct almanac_t:
     gnss_signal_t sid
-    u8 healthy
+    gps_time_t toa
+    float ura
+    u8 fit_interval
     u8 valid
+    u8 healthy
     # HACK: Actually an anonymous union in libswiftnat!
-    almanac_gps_t gps
-    almanac_sbas_t sbas
+    almanac_kepler_t kepler
+    almanac_xyz_t xyz
 
-  void calc_sat_state_almanac(almanac_t* alm, double t, s16 week, double pos[3], double vel[3])
-  void calc_sat_az_el_almanac(almanac_t* alm, double t, s16 week, double ref[3], double* az, double* el)
-  double calc_sat_doppler_almanac(almanac_t* alm, double t, s16 week, double ref[3])
+  void calc_sat_state_almanac(const almanac_t *a, const gps_time_t *t,
+                              double pos[3], double vel[3],
+                              double *clock_err, double *clock_rate_err)
+  void calc_sat_az_el_almanac(const almanac_t *a, const gps_time_t *t,
+                              double ref[3], double *az, double *el)
+  double calc_sat_doppler_almanac(const almanac_t *a, const gps_time_t *t,
+                                  double ref[3], double *doppler)
+  u8 almanac_valid(const almanac_t *a, const gps_time_t *t)
+  u8 satellite_healthy_almanac(const almanac_t *a)
+  u8 almanac_equal(const almanac_t *a, const almanac_t *b)
 
 cdef class Almanac:
   cdef almanac_t _thisptr
