@@ -21,6 +21,8 @@
 #include <libswiftnav/bits.h>
 #include <libswiftnav/nav_msg.h>
 
+static u8 nav_parity(u32 *word);
+
 void nav_msg_init(nav_msg_t *n)
 {
   /* Initialize the necessary parts of the nav message state structure. */
@@ -129,36 +131,44 @@ s32 nav_msg_update(nav_msg_t *n, bool bit_val)
      * subframe_bits buffer. */
     u8 preamble_candidate = extract_word(n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET, 8, 0);
 
-    if (preamble_candidate == 0x8B) {
-       n->subframe_start_index = n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
-    }
-    else if (preamble_candidate == 0x74) {
-       n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
+    /* Check the parity */
+    u32 sf_word1 = extract_word(n, n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET - 2, 32, 0);
+    if (!nav_parity(&sf_word1)) {
+      if (preamble_candidate == 0x8B) {
+         n->subframe_start_index = n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1;
+      }
+      else if (preamble_candidate == 0x74) {
+         n->subframe_start_index = -(n->subframe_bit_index + SUBFRAME_START_BUFFER_OFFSET + 1);
+      }
     }
 
     if (n->subframe_start_index) {
       // Looks like we found a preamble, but let's confirm.
       if (extract_word(n, 300, 8, 0) == 0x8B) {
         // There's another preamble in the following subframe.  Looks good so far.
-        // Extract the TOW:
-        unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0));
-        /* (bit 29 is D30* for the second word, where the TOW resides) */
-        if (TOW_trunc < 7*24*60*10) {
-          /* TOW in valid range */
-          TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
-          if (TOW_trunc == 7*24*60*10)  // Handle end of week rollover
-            TOW_trunc = 0;
 
-          if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
-            // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
-            /* TODO: should still check parity? */
-            // The TOW in the message is for the start of the NEXT subframe.
-            // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
-            if (TOW_trunc == 0)
-              /* end-of-week special case */
-              TOW_ms = 7*24*60*60*1000 - (300-60)*20;
-            else
-              TOW_ms = TOW_trunc * 6000 - (300-60)*20;
+        /* Check the parity */
+        u32 sf_word2 = extract_word(n, 28, 32, 0);
+        if (!nav_parity(&sf_word2)) {
+          // Extract the TOW:
+          unsigned int TOW_trunc = extract_word(n,30,17,extract_word(n,29,1,0));
+          /* (bit 29 is D30* for the second word, where the TOW resides) */
+          if (TOW_trunc < 7*24*60*10) {
+            /* TOW in valid range */
+            TOW_trunc++;  // Increment it, to see what we expect at the start of the next subframe
+            if (TOW_trunc == 7*24*60*10)  // Handle end of week rollover
+              TOW_trunc = 0;
+
+            if (TOW_trunc == extract_word(n,330,17,extract_word(n,329,1,0))) {
+              // We got two appropriately spaced preambles, and two matching TOW counts.  Pretty certain now.
+              // The TOW in the message is for the start of the NEXT subframe.
+              // That is, 240 nav bits' time from now, since we are 60 nav bits into the second subframe that we recorded.
+              if (TOW_trunc == 0)
+                /* end-of-week special case */
+                TOW_ms = 7*24*60*60*1000 - (300-60)*20;
+              else
+                TOW_ms = TOW_trunc * 6000 - (300-60)*20;
+            }
           }
         }
       }
@@ -262,24 +272,51 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     return -2;
   }
 
+  u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it? bits 20-22
+
+  /* Check for valid subframe ID range */
+  if ((sf_id < 1) || (sf_id > 5)) {
+    char buf[SID_STR_LEN_MAX];
+    sid_to_string(buf, sizeof(buf), e->sid);
+    log_warn("%s invalid subframe ID value, ", buf);
+    n->subframe_start_index = 0;  // Mark the subframe as processed
+    n->next_subframe_id = 1;      // Make sure we start again next time
+    return -4;
+  }
+
   n->alert = sf_word2 >> 12 & 0x01; // Alert flag, bit 18
   if (n->alert) {
     log_warn_sid(e->sid, "alert flag set! Ignoring satellite.");
   }
 
-  u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it? bits 20-22
+  n->as = sf_word2 >> 12 & 0x01; // Antispoof flag, bit 19
+  if (n->as) {
+    n->alert = 0x1;
+    char buf[SID_STR_LEN_MAX];
+    sid_to_string(buf, sizeof(buf), e->sid);
+    log_warn("%s anti-spoof flag set! Ignoring satellite.", buf);
+  }
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
 
+    n->parity_failures = 0;
     for (int w = 0; w < 8; w++) {   // For words 3..10
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
+        n->parity_failures++;
         log_info_sid(e->sid, "subframe parity mismatch (word %d)", w+3);
-        n->next_subframe_id = 1;      // Make sure we start again next time
-        n->subframe_start_index = 0;  // Mark the subframe as processed
-        return -3;
       }
+    }
+    /* If all the words failed the parity check then satellite has failed */
+    if (n->parity_failures >= 7) {
+      log_warn("%s subframe parity mismatch for all words! Ignoring satellite.", buf);
+    }
+    /* If a few parity failures skip the subframe */
+    if (n->parity_failures > 0) {
+      n->next_subframe_id = 1;      // Make sure we start again next time
+      n->subframe_start_index = 0;  // Mark the subframe as processed
+      return -3;
     }
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id++;
@@ -300,5 +337,4 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   }
 
   return 0;
-
 }
