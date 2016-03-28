@@ -1,1 +1,3 @@
 requires installation of https://github.com/swift-nav/plover for code generation
+
+new plover files should be added to the local CMakeLists.txt file. see `PLOVER_UNITS`
