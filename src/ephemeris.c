@@ -244,29 +244,48 @@ u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t)
   assert(eph != NULL);
   assert(t != NULL);
 
-  if (!eph->valid) {
+  return ephemeris_params_valid(eph->valid, eph->fit_interval, &(eph->toe), t);
+}
+
+/** Lean version of ephemeris_valid
+ * The function allows to avoid passing whole ephemeris
+ *
+ * \param v ephemeris Valid flag after decoding
+ * \param fit_interval Curve fit interval in hours
+ * \param toe Time from ephemeris reference epoch
+ * \param t The current GPS time. This is used to determine the ephemeris age
+ * \return 1 if the ephemeris is valid and not too old.
+ *         0 otherwise.
+ */
+u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
+                      const gps_time_t* toe, const gps_time_t *t)
+{
+  assert(t != NULL);
+  assert(toe != NULL);
+
+  if (!v) {
     return 0;
   }
 
-  if (eph->fit_interval <= 0) {
+  if (fit_interval <= 0) {
     log_warn("ephemeris_valid used with 0 eph->fit_interval");
     return 0;
   }
 
   /*
-   *Ephemeris did not get time-stammped when it was received.
+   *Ephemeris did not get time-stamped when it was received.
    */
-  if (eph->toe.wn == 0) {
+  if (toe->wn == 0) {
     return 0;
   }
 
   /* Seconds from the time from ephemeris reference epoch (toe) */
-  double dt = gpsdifftime(t, &eph->toe);
+  double dt = gpsdifftime(t, toe);
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
   /* If dt is greater than fit_interval / 2 hours our ephemeris isn't valid. */
-  if (fabs(dt) > ((u32)eph->fit_interval / 2) * 60 * 60) {
+  if (fabs(dt) > ((u32)fit_interval / 2) * 60 * 60) {
     return 0;
   }
 

@@ -56,6 +56,8 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double *clock_err, double *clock_rate_err);
 
 u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t);
+u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
+                      const gps_time_t* toe, const gps_time_t *t);
 u8 satellite_healthy(const ephemeris_t *eph);
 
 float decode_ura_index(const u8 index);
