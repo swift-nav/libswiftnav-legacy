@@ -215,9 +215,8 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
   assert(e != NULL);
 
   if (!ephemeris_valid(e, t)) {
-    char buf[SID_STR_LEN_MAX];
-    sid_to_string(buf, sizeof(buf), e->sid);
-    log_error("Using invalid or too old ephemeris in calc_sat_state for %s", buf);
+    log_error_sid(e->sid,
+                  "Using invalid or too old ephemeris in calc_sat_state");
     return -1;
   }
 
@@ -372,9 +371,6 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   assert(sid_to_constellation(e->sid) == CONSTELLATION_GPS);
   ephemeris_kepler_t *k = &e->kepler;
 
-  char buf[SID_STR_LEN_MAX];
-  sid_to_string(buf, sizeof(buf), e->sid);
-
   /* These unions facilitate signed/unsigned conversion and sign extension. */
   union {
     s8 s8;
@@ -404,14 +400,14 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   /* Value of 15 is unhealthy */
   u8 ura_index = frame_words[0][3-3] >> (30-16) & 0xF;
   e->ura = decode_ura_index(ura_index);
-  log_debug("URA for %s = index %d, value %.1f", buf, ura_index, e->ura);
+  log_debug_sid(e->sid, "URA = index %d, value %.1f", ura_index, e->ura);
 
   /* NAV data and signal health bits: Word 3, bits 17-22 */
   u8 health_bits = frame_words[0][3-3] >> (30-22) & 0x3F;
-  log_debug("Health bits for %s = 0x%02x", buf, health_bits);
+  log_debug_sid(e->sid, "Health bits = 0x%02x", health_bits);
   e->healthy = (health_bits == 0x00) && (ura_index < 15);
   if (!e->healthy) {
-    log_warn("Latest ephemeris for %s is unhealthy. Ignoring satellite.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris is unhealthy. Ignoring satellite.");
   }
 
   /* t_gd: Word 7, bits 17-24 */
@@ -483,7 +479,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   /* fit_interval_flag: Word 10, bit 17 */
   u8 fit_interval_flag = frame_words[1][10-3] >> (30-17) & 0x1;
   e->fit_interval = decode_fit_interval(fit_interval_flag, k->iodc);
-  log_debug("Fit interval for %s = %d", buf, e->fit_interval);
+  log_debug_sid(e->sid, "Fit interval = %d", e->fit_interval);
 
   /* Subframe 3: cic, omega0, cis, inc, crc, w, omegadot, IODE, inc_dot */
 
@@ -533,10 +529,10 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   k->inc_dot = twobyte.s16 * pow(2,-43) * GPS_PI;
 
   /* Both IODEs and IODC (8 LSBs) must match */
-  log_debug("Check ephemeris with %s. IODC = 0x%03x IODE = 0x%02x and 0x%02x.", buf, k->iodc, iode_sf2, k->iode);
+  log_debug_sid(e->sid, "Check ephemeris. IODC = 0x%03x IODE = 0x%02x and 0x%02x.", k->iodc, iode_sf2, k->iode);
   e->valid = (iode_sf2 == k->iode) && (k->iode == (k->iodc & 0xFF));
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had IODC/IODE mismatch. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had IODC/IODE mismatch. Ignoring ephemeris.");
   }
 }
 

@@ -224,9 +224,6 @@ bool subframe_ready(nav_msg_t *n) {
 }
 
 s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
-  char buf[SID_STR_LEN_MAX];
-  sid_to_string(buf, sizeof(buf), e->sid);
-
   // Check parity and parse out the ephemeris from the most recently received subframe
 
   if (!e) {
@@ -245,21 +242,21 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     BIT_POLARITY_INVERTED;
   if ((prev_bit_polarity != BIT_POLARITY_UNKNOWN)
       && (prev_bit_polarity != n->bit_polarity)) {
-    log_error("%s Nav phase flip - half cycle slip detected, "
-              "but not corrected", buf);
+    log_error_sid(e->sid, "Nav phase flip - half cycle slip detected, "
+                  "but not corrected");
     /* TODO: declare phase ambiguity to IAR */
   }
 
   /* Complain if buffer overrun */
   if (n->overrun) {
-    log_error("%s nav_msg subframe buffer overrun!", buf);
+    log_error_sid(e->sid, "nav_msg subframe buffer overrun!");
     n->overrun = false;
   }
 
   /* Extract word 2, and the last two parity bits of word 1 */
   u32 sf_word2 = extract_word(n, 28, 32, 0);
   if (nav_parity(&sf_word2)) {
-    log_info("%s subframe parity mismatch (word 2)", buf);
+    log_info_sid(e->sid, "subframe parity mismatch (word 2)");
     n->subframe_start_index = 0;  // Mark the subframe as processed
     n->next_subframe_id = 1;      // Make sure we start again next time
     return -2;
@@ -267,9 +264,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
 
   n->alert = sf_word2 >> 12 & 0x01; // Alert flag, bit 18
   if (n->alert) {
-    char buf[SID_STR_LEN_MAX];
-    sid_to_string(buf, sizeof(buf), e->sid);
-    log_warn("%s alert flag set! Ignoring satellite.", buf);
+    log_warn_sid(e->sid, "alert flag set! Ignoring satellite.");
   }
 
   u8 sf_id = sf_word2 >> 8 & 0x07;    // Which of 5 possible subframes is it? bits 20-22
@@ -280,7 +275,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
       n->frame_words[sf_id-1][w] = extract_word(n, 30*(w+2) - 2, 32, 0);    // Get the bits
       // MSBs are D29* and D30*.  LSBs are D1...D30
       if (nav_parity(&n->frame_words[sf_id-1][w])) {  // Check parity and invert bits if D30*
-        log_info("%s subframe parity mismatch (word %d)", buf, w+3);
+        log_info_sid(e->sid, "subframe parity mismatch (word %d)", w+3);
         n->next_subframe_id = 1;      // Make sure we start again next time
         n->subframe_start_index = 0;  // Mark the subframe as processed
         return -3;
