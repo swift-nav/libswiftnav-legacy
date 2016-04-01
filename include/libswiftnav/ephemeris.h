@@ -21,7 +21,7 @@
 /** \addtogroup ephemeris
  * \{ */
 
-/** Structure containing the SBAS ephemeris for one satellite. */
+/** Structure containing the GPS ephemeris for one satellite. */
 typedef struct {
   double tgd;      /**< Group delay between L1 and L2 [s] */
   double crc;      /**< Amplitude of the cosine harmonic correction term

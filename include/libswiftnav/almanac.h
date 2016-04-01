@@ -20,7 +20,7 @@
 /** \addtogroup almanac
  * \{ */
 
-/** Structure containing the SBAS almanac for one satellite. */
+/** Structure containing the GPS almanac for one satellite. */
 typedef struct {
   double m0;       /**< Mean anomaly at reference time [semi-circles] */
   double ecc;      /**< Eccentricity. */
