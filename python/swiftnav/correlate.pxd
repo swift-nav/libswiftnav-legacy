@@ -26,3 +26,12 @@ cdef extern from "libswiftnav/correlate.h":
                        double* I_P, double* Q_P,
                        double* I_L, double* Q_L,
                        u32* num_samples)
+
+  void glo_ca_track_correlate(s8* samples, size_t samples_len, s8* code,
+                       double* init_code_phase, double code_step,
+                       double* init_carr_phase, double carr_step,
+                       double* I_E, double* Q_E,
+                       double* I_P, double* Q_P,
+                       double* I_L, double* Q_L,
+                       u32* num_samples);
+
