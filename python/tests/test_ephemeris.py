@@ -167,29 +167,29 @@ def test_parameters():
   toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   valid = 1
-  fit_interval = 4
+  fit_interval = 4 * 60 * 60
   assert e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
 
   toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   valid = 0
-  fit_interval = 4
+  fit_interval = 4 * 60 * 60
   assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
 
   toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   valid = 1
-  fit_interval = 0
+  fit_interval = 0 * 60 * 60
   assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
 
   toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.0 * 2,})
   valid = 1
-  fit_interval = 4
+  fit_interval = 4 * 60 * 60
   assert e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
 
   toe = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0,})
   time = t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.0 * 3 ,})
   valid = 1
-  fit_interval = 4
+  fit_interval = 4 * 60 * 60
   assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)

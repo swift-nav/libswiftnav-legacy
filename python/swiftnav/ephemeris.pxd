@@ -33,7 +33,7 @@ cdef extern from "libswiftnav/ephemeris.h":
     gnss_signal_t sid
     gps_time_t toe
     float ura
-    u8 fit_interval
+    u32 fit_interval
     u8 valid
     u8 healthy
     # HACK: Actually an anonymous union in libswiftnat!
@@ -51,7 +51,7 @@ cdef extern from "libswiftnav/ephemeris.h":
   u8 satellite_healthy(const ephemeris_t *e)
   void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   u8 ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
-  u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
+  u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t)
 
 

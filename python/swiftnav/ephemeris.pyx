@@ -119,8 +119,8 @@ cdef class Ephemeris:
     return ephemeris_valid(&self._thisptr, &t._thisptr)
 
   @staticmethod
-  def is_params_valid(u8 v, u8 fit_interval, GpsTime toe, GpsTime t):
-    return ephemeris_params_valid(v, fit_interval, &toe._thisptr, &t._thisptr)
+  def is_params_valid(u8 valid, u32 fit_interval, GpsTime toe, GpsTime t):
+    return ephemeris_params_valid(valid, fit_interval, &toe._thisptr, &t._thisptr)
 
   def is_healthy(self):
     return satellite_healthy(&self._thisptr)

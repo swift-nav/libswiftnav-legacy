@@ -25,7 +25,7 @@ cdef extern from "libswiftnav/almanac.h":
     gnss_signal_t sid
     gps_time_t toa
     float ura
-    u8 fit_interval
+    u32 fit_interval
     u8 valid
     u8 healthy
     # HACK: Actually an anonymous union in libswiftnat!
