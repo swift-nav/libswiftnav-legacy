@@ -69,7 +69,7 @@ typedef struct {
   gnss_signal_t sid; /**< Signal ID. */
   gps_time_t toe;    /**< Reference time of ephemeris. */
   float ura;         /**< User range accuracy [m] */
-  u8 fit_interval;   /**< Curve fit interval. */
+  u8 fit_interval;   /**< Curve fit interval [hours] */
   u8 valid;          /**< Ephemeris is valid. */
   u8 healthy;        /**< Satellite health status. */
   union {
