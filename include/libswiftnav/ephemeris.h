@@ -64,6 +64,19 @@ typedef struct {
   double a_gf1;  /**< Drift of the GEO clock w.r.t. SNT [s/s] */
 } ephemeris_xyz_t;
 
+/** Structure containing the GLONASS ephemeris for one satellite. */
+typedef struct {
+  double gamma;     /**< Relative deviation of predicted carrier frequency
+                         from nominal value, dimensionless */
+  double tau;       /**< Correction to the SV time, seconds*/
+  double pos[3];    /**< Position of the SV at tb in PZ-90.02 coordinates
+                         system, meters */
+  double vel[3];    /**< Velocity vector of the SV at tb in PZ-90.02
+                         coordinates system, m/s */
+  double acc[3];    /**< Acceleration vector of the SV at tb in PZ-90.02
+                         coordinates system, m/s^2 */
+} ephemeris_glo_t;
+
 /** Structure containing the ephemeris for one satellite. */
 typedef struct {
   gnss_signal_t sid; /**< Signal ID. */
@@ -75,6 +88,7 @@ typedef struct {
   union {
     ephemeris_kepler_t kepler; /**< Parameters specific to GPS. */
     ephemeris_xyz_t xyz;       /**< Parameters specific to SBAS. */
+    ephemeris_glo_t glo;       /**< Parameters specific to GLONASS. */
   };
 } ephemeris_t;
 
