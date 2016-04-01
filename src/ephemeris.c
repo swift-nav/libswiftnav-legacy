@@ -319,7 +319,7 @@ u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t)
 /** Lean version of ephemeris_valid
  * The function allows to avoid passing whole ephemeris
  *
- * \param v ephemeris Valid flag after decoding
+ * \param valid ephemeris Valid flag after decoding
  * \param fit_interval Curve fit interval in hours
  * \param toe Time from ephemeris reference epoch
  * \param t The current GPS time. This is used to determine the ephemeris age
