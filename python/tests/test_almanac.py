@@ -43,7 +43,7 @@ def test_almanac_functions():
     'sid': {'sat': 1, 'code': 0},
     'toa': {'tow': 233472.0, 'wn': 814,},
     'ura': 900.0,
-    'fit_interval': 144,
+    'fit_interval': 144 * 60 * 60,
     'valid': 1,
     'healthy': 1,
     'kepler': {

@@ -69,7 +69,7 @@ typedef struct {
   gnss_signal_t sid; /**< Signal ID. */
   gps_time_t toe;    /**< Reference time of ephemeris. */
   float ura;         /**< User range accuracy [m] */
-  u8 fit_interval;   /**< Curve fit interval [hours] */
+  u32 fit_interval;  /**< Curve fit interval [s] */
   u8 valid;          /**< Ephemeris is valid. */
   u8 healthy;        /**< Satellite health status. */
   union {
@@ -89,12 +89,10 @@ s8 calc_sat_doppler(const ephemeris_t *e, const gps_time_t *t,
                     const double ref[3], double *doppler);
 
 u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t);
-u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,
+u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t);
 u8 satellite_healthy(const ephemeris_t *e);
 
-float decode_ura_index(const u8 index);
-u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
 void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b);
 

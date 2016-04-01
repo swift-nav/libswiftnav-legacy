@@ -47,7 +47,7 @@ typedef struct {
   gnss_signal_t sid; /**< Signal ID. */
   gps_time_t toa;    /**< Reference time of almanac. */
   float ura;         /**< User range accuracy [m] */
-  u8 fit_interval;   /**< Curve fit interval [hours] */
+  u32 fit_interval;  /**< Curve fit interval [s] */
   u8 valid;          /**< Almanac is valid. */
   u8 healthy;        /**< Satellite health status. */
   union {

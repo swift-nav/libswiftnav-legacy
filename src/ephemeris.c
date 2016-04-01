@@ -22,6 +22,9 @@
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/coord_system.h>
 
+float decode_ura_index(const u8 index);
+u32 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
+
 /** \defgroup ephemeris Ephemeris
  * Functions and calculations related to the GPS ephemeris.
  * \{ */
@@ -320,13 +323,13 @@ u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t)
  * The function allows to avoid passing whole ephemeris
  *
  * \param valid ephemeris Valid flag after decoding
- * \param fit_interval Curve fit interval in hours
+ * \param fit_interval Curve fit interval in seconds
  * \param toe Time from ephemeris reference epoch
  * \param t The current GPS time. This is used to determine the ephemeris age
  * \return 1 if the ephemeris is valid and not too old.
  *         0 otherwise.
  */
-u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,
+u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t)
 {
   assert(t != NULL);
@@ -353,8 +356,8 @@ u8 ephemeris_params_valid(const u8 valid, const u8 fit_interval,
 
   /* TODO: this doesn't exclude ephemerides older than a week so could be made
    * better. */
-  /* If dt is greater than fit_interval / 2 hours our ephemeris isn't valid. */
-  if (fabs(dt) > ((u32)fit_interval / 2) * 60 * 60) {
+  /* If dt is greater than fit_interval / 2 seconds our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)fit_interval / 2)) {
     return 0;
   }
 
@@ -415,10 +418,10 @@ float decode_ura_index(const u8 index) {
 *
 * \param fit_interval_flag The curve fit interval flag. 0 is 4 hours, 1 is >4 hours.
 * \param iodc The IODC value.
-* \return the curve fit interval in hours.
+* \return the curve fit interval in seconds.
 */
-u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
-  u8 fit_interval = 4;
+u32 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
+  u8 fit_interval = 4; /* This is in hours */
 
   if (fit_interval_flag) {
     fit_interval = 6;
@@ -438,7 +441,7 @@ u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
     }
   }
 
-  return fit_interval;
+  return fit_interval * 60 * 60;
 }
 
 /** Decode ephemeris from L1 C/A GPS navigation message frames.

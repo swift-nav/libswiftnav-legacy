@@ -234,8 +234,8 @@ u8 almanac_valid(const almanac_t *a, const gps_time_t *t)
 
   /* TODO: this doesn't exclude almanacs older than a week so could be made
    * better. */
-  /* If dt is greater than fit_interval / 2 hours our ephemeris isn't valid. */
-  if (fabs(dt) > ((u32)a->fit_interval / 2) * 60 * 60) {
+  /* If dt is greater than fit_interval / 2 seconds our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)a->fit_interval / 2)) {
     return 0;
   }
 
