@@ -108,7 +108,6 @@ void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
 
   *b0 = (2*tau_2 + T) / (2*tau_1);
   *b1 = (T - 2*tau_2) / (2*tau_1);
-  *b0 = T;
 }
 
 /** Phase discriminator for a Costas loop.
@@ -166,13 +165,9 @@ float costas_discriminator(float I, float Q)
  */
 float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
 {
-  float dot = (I * prev_I) + (Q * prev_Q);
-  float cross = prev_I * Q - I * prev_Q;
-  float discr =  atan2f(cross, dot) / ((float) 2*M_PI*0.001);
-
-  if (discr < (-0.6*(0.5/0.001))) discr += (0.5/0.001);
-  if (discr > (0.6*(0.5/0.001))) discr -= (0.5/0.001);
-  return discr;
+	  float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
+	  float cross = prev_I * Q - I * prev_Q;
+	  return atan2f(cross, dot) / ((float) M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -223,8 +218,8 @@ void aided_lf_init(aided_lf_state_t *s, float y0,
                    float b0, float b1,
                    float aiding_igain)
 {
-  s->y = 0;
-  s->prev_error = y0;
+  s->y = y0;
+  s->prev_error = 0.f;
   s->b0 = b0;
   s->b1 = b1;
   s->aiding_igain = aiding_igain;
@@ -241,24 +236,10 @@ void aided_lf_init(aided_lf_state_t *s, float y0,
  */
 float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
 {
-//  s->y += (s->b0 * p_i_error) + (s->b1 * s->prev_error) +
-//          s->aiding_igain * aiding_error;
-//  s->prev_error = p_i_error;
-	float bw = 20.0;
-	float bwf = 5.0;
-	float om = bw/0.53;
-	float A = om*om;
-	float B = 1.414*om;
-	float C = 4.0*bwf;
-	float T  = s->b0;
+  s->y += (s->b0 * p_i_error) + (s->b1 * s->prev_error) +
+          s->aiding_igain * aiding_error;
+  s->prev_error = p_i_error;
 
-//	float aiding_errorx = aiding_error;
-//	aiding_errorx = 0.0;
-
-//	s->y = (p_i_error * B) + 0.5 * (p_i_error * A * T + 2.0*s->prev_error) + 0.0*aiding_error;
-//	s->prev_error = s->prev_error + p_i_error * A * T;
-	s->y = (p_i_error * B) + 0.5 * (p_i_error * A * T + aiding_error * C * T + 2.0*s->prev_error);
-	s->prev_error = s->prev_error + p_i_error * A * T + aiding_error * C * T;
   return s->y;
 }
 
@@ -273,8 +254,8 @@ float aided_lf_update(aided_lf_state_t *s, float p_i_error, float aiding_error)
 void simple_lf_init(simple_lf_state_t *s, float y0,
                     float b0, float b1)
 {
-  s->y = 0;
-  s->prev_error = y0;
+  s->y = y0;
+  s->prev_error = 0.f;
   s->b0 = b0;
   s->b1 = b1;
 }
@@ -297,16 +278,8 @@ void simple_lf_init(simple_lf_state_t *s, float y0,
  */
 float simple_lf_update(simple_lf_state_t *s, float error)
 {
-//  s->y += (s->b0 * error) + (s->b1 * s->prev_error);
-//  s->prev_error = error;
-	float bw = 1.0;
-	float om = bw/0.53;
-	float A = om*om;
-	float B = 1.414*om;
-	float T  = s->b0;
-
-	s->y = (error * B) + 0.5 * (error * A * T + 2*s->prev_error);
-	s->prev_error = error * A * T + s->prev_error;
+  s->y += (s->b0 * error) + (s->b1 * s->prev_error);
+  s->prev_error = error;
 
   return s->y;
 }
@@ -397,7 +370,7 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
 
   /* Code loop */
   float code_error = dll_discriminator(cs);
-  s->code_freq = simple_lf_update(&(s->code_filt), code_error);
+  s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
   if (s->carr_to_code) /* Optional carrier aiding of code loop */
     s->code_freq += s->carr_freq / s->carr_to_code;
 }
@@ -699,31 +672,34 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq)
 {
-  float Tw0 = tanf((2*M_PI*cutoff_freq) / (2*bw));
-  s->b1 = loop_freq;
+  float Tw0 = tanf((M_PI*cutoff_freq) / loop_freq);
+  float tmp = 1.0+sqrtf(2)*Tw0+Tw0*Tw0;
 
-//  s->b1 = 2.46193004641406e-6;
-//  s->b2 = 4.92386009282183e-6;
-//  s->b3 = 2.46193004641406e-6;
-//  s->a2 = -1.99555712434579;
-//  s->a3 = 995.566972065975e-3;
-
-  s->b1 = Tw0*Tw0/(1.0+sqrtf(2)*Tw0+Tw0*Tw0);
-  s->b2 = 2.0*Tw0*Tw0/(1.0+sqrtf(2)*Tw0+Tw0*Tw0);
-  s->b3 = s->b1;
-  s->a2 = (-2.0+2.0*Tw0*Tw0)/(1.0+sqrtf(2)*Tw0+Tw0*Tw0);
-  s->a3 = (1.0-sqrtf(2)*Tw0+Tw0*Tw0)/(1.0+sqrtf(2)*Tw0+Tw0*Tw0);
+  s->b = Tw0*Tw0/tmp;
+  s->a2 = (-2.0+2.0*Tw0*Tw0)/tmp;
+  s->a3 = (1.0-sqrtf(2)*Tw0+Tw0*Tw0)/tmp;
 
   s->log_bw = 10.f*log10f(bw);
-  s->I_prev_abs1 = -1.f;
-  s->I_prev_abs2 = -1.f;
-  s->Q_prev_abs1 = -1.f;
-  s->Q_prev_abs2 = -1.f;
+  s->I_prev_abs = -1.f;
+  s->Q_prev_abs = -1.f;
   s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
-  s->nnsr = s->nsr;
+  s->nsr_prev = s->nsr;
   s->xn = s->nsr;
-  s->xnn = s->nsr;
+  s->xn_prev = s->nsr;
 }
+
+//void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
+//                  float cutoff_freq, float loop_freq)
+//{
+//  float Tw0 = (2*M_PI*cutoff_freq) / loop_freq;
+//  s->b = Tw0 / (Tw0 + 2);
+//  s->a = (Tw0 - 2) / (Tw0 + 2);
+//
+//  s->log_bw = 10.f*log10f(bw);
+//  s->I_prev_abs = -1.f;
+//  s->Q_prev_abs = -1.f;
+//  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
+//}
 
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
  *
@@ -736,8 +712,8 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * \f$\hat P_{N, k}\f$ and \f$\hat P_{S, k}\f$, are calculated as follows:
  *
  * \f[
- *    \hat P_{N, k} = \left( \left| Q_k \right| -
- *                    \left| Q_{k-1} \right| \right)^2
+ *    \hat P_{N, k} = \left( \left| I_k \right| -
+ *                    \left| I_{k-1} \right| \right)^2
  * \f]
  * \f[
  *    \hat P_{S, k} = \frac{1}{2} \left( I_k^2 + I_{k-1}^2 \right)
@@ -746,18 +722,20 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * Where \f$I_k\f$ is the in-phase output of the prompt correlator for the
  * \f$k\f$-th integration period.
  *
- * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a first
+ * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a second
  * order low-pass IIR filter with transfer function:
  *
  * \f[
- *    F(s) = \frac{\omega_0}{s + \omega_0}
+ *    F(s) = \frac{\omega_0^2}{s^2 + s\sqrt{2}\omega_0 + \omega_0^2}
  * \f]
  * The bilinear transform is applied to obtain a digital equivalent
  * \f[
- *    F(z) = \frac{b + bz^{-1}}{1 + az^{-1}}
+ *    F(z) = \frac{b + 2bz^{-1} + bz^{-2}}{1 + a_2z^{-1} + a_3z^{-2}}
  * \f]
- * where \f$ b = \frac{T\omega_0}{T\omega_0 + 2} \f$
- * and \f$ a = \frac{T\omega_0 - 2}{T\omega_0 + 2} \f$.
+ * where \f$ \omega_c = \frac{2}{T}\tan (2\pi f_{cut}\frac{T}{2})  \f$
+ * and \f$ b = \frac{\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
+ * and \f$ a_2 = \frac{-2 + 2\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
+ * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$.
  *
  * The filtered NSR value is converted to a \f$ C / N_0 \f$ value and returned.
  *
@@ -782,32 +760,56 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 {
   float P_n, P_s;
 
-  if (s->I_prev_abs2 < 0.f) {
+  if (s->I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
-    s->I_prev_abs1 = fabsf(I);
-    s->I_prev_abs2 = s->I_prev_abs1;
-    s->Q_prev_abs1 = fabsf(Q);
-    s->Q_prev_abs2 = s->Q_prev_abs1;
+    s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
   } else {
-    P_n = fabsf(Q) - s->Q_prev_abs1;
+    P_n = fabsf(I) - s->I_prev_abs;
     P_n = P_n*P_n;
 
-    P_s = 0.5f*(I*I + s->I_prev_abs1*s->I_prev_abs1);
+    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
 
-    s->I_prev_abs1 = fabsf(I);
-    s->Q_prev_abs1 = fabsf(Q);
+    s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
 
     float tmp = P_n / P_s;
     float tmp2 = s->nsr;
-    s->nsr = tmp * s->b1 + s->xn * s->b2 + s->xnn * s->b3 - s->a2 * s->nsr - s->a3 * s->nnsr;
-    s->nnsr = tmp2;
-    s->xnn = s->xn;
+    s->nsr = tmp * s->b + s->xn * 2*s->b + s->xn_prev * s->b \
+                        - s->a2 * s->nsr - s->a3 * s->nsr_prev;
+    s->nsr_prev = tmp2;
+    s->xn_prev = s->xn;
     s->xn = tmp;
 
   }
 
   return s->log_bw - 10.f*log10f(s->nsr);
 }
+
+//float cn0_est(cn0_est_state_t *s, float I, float Q)
+//{
+//  float P_n, P_s;
+//
+//  if (s->I_prev_abs < 0.f) {
+//    /* This is the first iteration, just update the prev state. */
+//    s->I_prev_abs = fabsf(I);
+//    s->Q_prev_abs = fabsf(Q);
+//  } else {
+//    P_n = fabsf(I) - s->I_prev_abs;
+//    P_n = P_n*P_n;
+//
+//    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
+//
+//    s->I_prev_abs = fabsf(I);
+//    s->Q_prev_abs = fabsf(Q);
+//
+//    float tmp = s->b * P_n / P_s;
+//    s->nsr = tmp + s->xn - s->a * s->nsr;
+//    s->xn = tmp;
+//  }
+//
+//  return s->log_bw - 10.f*log10f(s->nsr);
+//}
 
 void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                  navigation_measurement_t *nav_meas[],

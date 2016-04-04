@@ -267,15 +267,15 @@ static void track_correlate(enum correlator_type correlator_type,
        impose much execution overhead */
     switch (correlator_type) {
     case L1CA_CORRELATOR:
-      code_E         = l1_ca_get_chip(code, code_phase + 0.5);
+      code_E         = l1_ca_get_chip(code, code_phase - 0.5);
       code_P         = l1_ca_get_chip(code, code_phase);
-      code_L         = l1_ca_get_chip(code, code_phase - 0.5);
+      code_L         = l1_ca_get_chip(code, code_phase + 0.5);
       code_phase_new = l1_ca_get_code_phase(code_phase, code_step);
       break;
     case L2C_CORRELATOR:
-      code_E         = l2c_cm_get_chip(code, code_phase + 0.5);
+      code_E         = l2c_cm_get_chip(code, code_phase - 0.5);
       code_P         = l2c_cm_get_chip(code, code_phase);
-      code_L         = l2c_cm_get_chip(code, code_phase - 0.5);
+      code_L         = l2c_cm_get_chip(code, code_phase + 0.5);
       code_phase_new = l2c_cm_get_code_phase(code_phase, code_step);
       break;
     default:
