@@ -11,7 +11,6 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
 #include <assert.h>
 
 #include <libswiftnav/signal.h>
@@ -65,11 +64,32 @@ gnss_signal_t construct_sid(code_t code, u16 sat)
  */
 int sid_to_string(char *s, int n, gnss_signal_t sid)
 {
+  assert(n >= SID_STR_LEN_MAX);
   const char *code_str = ((sid.code < 0) || (sid.code >= CODE_COUNT)) ?
       unknown_str : code_table[sid.code].str;
+  int nchars = 0;
 
-  int nchars = snprintf(s, n, "%s %u", code_str, sid.sat);
-  s[n-1] = 0;
+  /* Copy code string */
+  for (u32 i=0; code_str[i] != 0; i++) {
+    s[nchars++] = code_str[i];
+  }
+
+  s[nchars++] = ' ';
+
+  /* Print sat value */
+  bool started = false;
+  u16 div = 10000;
+  while (div > 0) {
+    u8 digit = (sid.sat / div) % 10;
+    div /= 10;
+    if (started || (digit != 0)) {
+      s[nchars++] = '0' + digit;
+      started = true;
+    }
+  }
+
+  s[nchars] = 0;
+  assert(nchars < SID_STR_LEN_MAX);
   return nchars;
 }
 

@@ -15,6 +15,7 @@
 #define LIBSWIFTNAV_SIGNAL_H
 
 #include <libswiftnav/common.h>
+#include <libswiftnav/logging.h>
 
 /** \addtogroup signal
  * \{ */
@@ -86,6 +87,25 @@ static inline bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 {
   return sid_compare(a, b) == 0;
 }
+
+/* Logging macros */
+#define _LOG_SID(func, sid, format, ...) { \
+  char sid_str[SID_STR_LEN_MAX]; \
+  sid_to_string(sid_str, sizeof(sid_str), sid); \
+  func("%s " format, sid_str, ##__VA_ARGS__); \
+}
+
+#define log_error_sid(sid, format, ...) \
+  _LOG_SID(log_error, sid, format, ##__VA_ARGS__)
+
+#define log_warn_sid(sid, format, ...) \
+  _LOG_SID(log_warn, sid, format, ##__VA_ARGS__)
+
+#define log_info_sid(sid, format, ...) \
+  _LOG_SID(log_info, sid, format, ##__VA_ARGS__)
+
+#define log_debug_sid(sid, format, ...) \
+  _LOG_SID(log_debug, sid, format, ##__VA_ARGS__)
 
 /* \} */
 
