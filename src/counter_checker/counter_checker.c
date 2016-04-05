@@ -159,7 +159,7 @@ void counter_checker_init(void)
 
 /** Runs sample checker
  *
- * \param csb Callbacks for data reading and counter extraction
+ * \param cbs Callbacks for data reading and counter extraction
  * \param stream Stream itself.
  * \param data_size Total data size [bytes]
  * \return Mismatch data pointer. Non NULL even if no mismatch found.
@@ -188,8 +188,6 @@ const struct mismatch_data *counter_checker_run(struct callbacks *cbs,
      in chunks of size SAMPLE_CHUNK_SIZE */
   chunk_num = data_size / sizeof(chunk);
 
-  /* printf("chunk_num = %ld\n", chunk_num); */
-
   for (i = 0; i < chunk_num; i++) {
     chunk_size = cbs->read(chunk, sizeof(chunk), stream);
 
@@ -207,8 +205,6 @@ const struct mismatch_data *counter_checker_run(struct callbacks *cbs,
 
   chunk_size = data_size % sizeof(chunk);
   chunk_size = cbs->read(chunk, chunk_size, stream);
-
-  /* printf("chunk_size = %ld\n", chunk_size); */
 
   /* process the last chunk byte by byte */
   for (j = 0; j < chunk_size; j++) {
