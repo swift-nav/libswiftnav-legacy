@@ -25,6 +25,24 @@ cdef extern from "libswiftnav/baseline.h":
     gnss_signal_t sids[MAX_CHANNELS]
     u8 n
 
+  enum:
+    BASELINE_SUCCESS
+    BASELINE_SUCCESS_RAIM_REPAIR
+    BASELINE_SUCCESS_NO_RAIM
+    BASELINE_FLOAT
+    BASELINE_FLOAT_RAIM_REPAIR
+    BASELINE_FLOAT_NO_RAIM
+    BASELINE_FIXED
+    BASELINE_FIXED_RAIM_REPAIR
+    BASELINE_FIXED_NO_RAIM
+    BASELINE_NOT_ENOUGH_SATS_ROVER
+    BASELINE_NOT_ENOUGH_SATS_COMMON
+    BASELINE_NOT_ENOUGH_SATS_RAIM
+    BASELINE_RAIM_REPAIR_FAIL
+    BASELINE_RAIM_REPAIR_MULTI_SOLNS
+    BASELINE_NOT_ENOUGH_SATS_FLOAT
+    BASELINE_DGELSY_FAIL
+
   void predict_carrier_obs(u8 num_dds, const double *N, const double *DE,
                          const double b[3], double *dd_obs)
   void amb_from_baseline(u8 num_dds, const double *DE, const double *dd_obs,
@@ -40,7 +58,8 @@ cdef extern from "libswiftnav/baseline.h":
                                          double b[3],
                                          bool disable_raim,
                                          double raim_threshold)
-  void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set, double *dd_ambs)
+  void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs,
+                 const ambiguity_t *amb_set, double *dd_ambs)
 
   s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
                u8 num_ambs, const ambiguity_t *single_ambs,

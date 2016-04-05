@@ -442,9 +442,11 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  * \param b           Output baseline.
  * \param disable_raim Flag to turn off raim checks/repair.
  * \param raim_threshold raim check threshold
- * \return  1 if we are using an IAR resolved baseline.
- *          2 if we are using a float baseline.
- *         -1 if we can't give a baseline.
+ * \return BASELINE_FIXED, BASELINE_FIXED_RAIM_REPAIR, BASELINE_FIXED_NO_RAIM
+            if we are using an IAR resolved baseline.
+ *         BASELINE_FLOAT, BASELINE_FLOAT_RAIM_REPAIR, BASELINE_FLOAT_NO_RAIM
+            if we are using a float baseline.
+ *         Or an error return from baseline()
  */
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
@@ -480,33 +482,43 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
 
   s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
                     disable_raim, raim_threshold);
-  if (ret >= 0) {
-    if (ret == 1) /* TODO: Export this rather than just printing */
-    {
+  if (ret >= BASELINE_SUCCESS) {
+    s8 fixed_ret = BASELINE_FIXED;
+    if (ret == BASELINE_SUCCESS_RAIM_REPAIR) {
       log_warn("dgnss_baseline: Fixed baseline RAIM repair");
+      fixed_ret = BASELINE_FIXED_RAIM_REPAIR;
+    } else if (ret == BASELINE_SUCCESS_NO_RAIM) {
+      log_warn("dgnss_baseline: Fixed baseline no RAIM available");
+      fixed_ret = BASELINE_FIXED_NO_RAIM;
     }
-    log_debug("fixed solution");
+    log_debug("dgnss_baseline: Fixed solution");
     log_debug("ret: %i ", ret);
     log_debug("fixed baseline: %f %f %f", b[0], b[1], b[2]);
     DEBUG_EXIT();
-    return 1;
+    return fixed_ret;
   }
+
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if ((ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
-                      disable_raim, raim_threshold))
-        >= 0) {
-    if (ret == 1) /* TODO: Export this rather than just printing */
-    {
+  ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
+                 disable_raim, raim_threshold);
+  if (ret >= BASELINE_SUCCESS) {
+    s8 float_ret = BASELINE_FIXED;
+    if (ret == BASELINE_SUCCESS_RAIM_REPAIR) {
       log_warn("dgnss_baseline: Float baseline RAIM repair");
+      float_ret = BASELINE_FLOAT_RAIM_REPAIR;
+    } else if (ret == BASELINE_SUCCESS_NO_RAIM) {
+      log_warn("dgnss_baseline: Float baseline no RAIM available");
+      float_ret = BASELINE_FLOAT_NO_RAIM;
     }
-    log_debug("float solution");
+    log_debug("dgnss_baseline: Float solution");
     log_debug("ret: %i", ret);
     log_debug("float baseline: %f %f %f", b[0], b[1], b[2]);
     DEBUG_EXIT();
-    return 2;
+    return float_ret;
   }
-  log_debug("no baseline solution");
+
+  log_debug("dgnss_baseline: No baseline solution");
   DEBUG_EXIT();
   return ret;
 }
