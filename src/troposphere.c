@@ -140,6 +140,96 @@ static const double rh_amp_lut[5] =
   2.5
 };
 
+/** Average hydrostatic mapping function A coeffcient lookup table */
+static const double mhf_a_avg_lut[5] =
+{
+  1.2769934e-3,
+  1.2683230e-3,
+  1.2465397e-3,
+  1.2196049e-3,
+  1.2045996e-3
+};
+
+/** Average hydrostatic mapping function B coeffcient lookup table */
+static const double mhf_b_avg_lut[5] =
+{
+  2.9153695e-3,
+  2.9152299e-3,
+  2.9288445e-3,
+  2.9022565e-3,
+  2.9024912e-3
+};
+
+/** Average hydrostatic mapping function C coeffcient lookup table */
+static const double mhf_c_avg_lut[5] =
+{
+  62.610505e-3,
+  62.837393e-3,
+  63.721774e-3,
+  63.824265e-3,
+  64.258455e-3
+};
+
+/** Amplitude hydrostatic mapping function A coeffcient lookup table */
+static const double mhf_a_amp_lut[5] =
+{
+  0.0,
+  1.2709626e-5,
+  2.6523662e-5,
+  3.4000452e-5,
+  4.1202191e-5
+};
+
+/** Amplitude hydrostatic mapping function B coeffcient lookup table */
+static const double mhf_b_amp_lut[5] =
+{
+  0.0,
+  2.1414979e-5,
+  3.0160779e-5,
+  7.2562722e-5,
+  11.723375e-5
+};
+
+/** Amplitude hydrostatic mapping function C coeffcient lookup table */
+static const double mhf_c_amp_lut[5] =
+{
+  0.0,
+  9.0128400e-5,
+  4.3497037e-5,
+  84.795348e-5,
+  170.37206e-5
+};
+
+/** Wet mapping function A coeffcient lookup table */
+static const double mwf_a_lut[5] =
+{
+  5.8021897e-4,
+  5.6794847e-4,
+  5.8118019e-4,
+  5.9727542e-4,
+  6.1641693e-4
+};
+
+/** Wet mapping function B coeffcient lookup table */
+static const double mwf_b_lut[5] =
+{
+  1.4275268e-3,
+  1.5138625e-3,
+  1.4572752e-3,
+  1.5007428e-3,
+  1.7599082e-3
+};
+
+/** Wet mapping function C coeffcient lookup table */
+static const double mwf_c_lut[5] =
+{
+  4.3472961e-2,
+  4.6729510e-2,
+  4.3908931e-2,
+  4.4626982e-2,
+  5.4736038e-2
+};
+
 /** Compute tropo values by interpolation from look up table */
 static double lookup_param(double lat, const double *lut)
 {
@@ -263,8 +353,39 @@ double calc_troposphere(double doy, double lat, double h, double el,
   /* Compute zenith wet delay */
   double zwd = 10e-6 * (k_2_prim + k_3 / t_m) * r_d * e / den;
 
-  double mhf = 1.0 + el; // TODO
-  double mwf = 1.0;
+  /* Compute hydrostatic Neil mapping function coeffcient values */
+  double mhf_a = calc_param(lat, doy, mhf_a_avg_lut, mhf_a_amp_lut);
+  double mhf_b = calc_param(lat, doy, mhf_b_avg_lut, mhf_b_amp_lut);
+  double mhf_c = calc_param(lat, doy, mhf_c_avg_lut, mhf_c_amp_lut);
+
+  /* Compute hydrostatic Neil mapping function value */
+  double sin_el = sin(el * D2R);
+  double mhf_alpha = mhf_b / (sin_el + mhf_c);
+  double mhf_gamma = mhf_a / (sin_el + mhf_alpha);
+  double mhf_topcon = 1.0 + mhf_a / (1.0 + mhf_b / (1.0 + mhf_c));
+  double mhf = mhf_topcon / (sin_el + mhf_gamma);
+
+  /* Compute height correction */
+  const double mhf_a_ht = 2.53e-5;
+  const double mhf_b_ht = 5.49e-3;
+  const double mhf_c_ht = 1.14e-3;
+  double mhf_alpha_ht = mhf_b_ht / (sin_el + mhf_c_ht);
+  double mhf_gamma_ht = mhf_a_ht / (sin_el + mhf_alpha_ht);
+  double mhf_topcon_ht = 1.0 + mhf_a_ht / (1.0 + mhf_b_ht / (1.0 + mhf_c_ht));
+  double mhf_ht_coef = 1.0 / sin_el - mhf_topcon_ht / (sin_el + mhf_gamma_ht);
+  double mhf_ht = mhf_ht_coef * h / 1000.0;
+  mhf += mhf_ht;
+
+  /* Compute wet Neil mapping function coeffcient values */
+  double mwf_a = lookup_param(lat, mwf_a_lut);
+  double mwf_b = lookup_param(lat, mwf_b_lut);
+  double mwf_c = lookup_param(lat, mwf_c_lut);
+
+  /* Compute wet Neil mapping function value */
+  double mwf_alpha = mwf_b / (sin_el + mwf_c);
+  double mwf_gamma = mwf_a / (sin_el + mwf_alpha);
+  double mwf_topcon = 1.0 + mwf_a / (1.0 + mwf_b / (1.0 + mwf_c));
+  double mwf = mwf_topcon / (sin_el + mwf_gamma);
 
   /* Compute total tropospheric delay */
   double td = mhf * zhd + mwf * zwd;
