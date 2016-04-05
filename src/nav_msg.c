@@ -293,8 +293,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
   if (n->as) {
     n->alert = 0x1;
     char buf[SID_STR_LEN_MAX];
-    sid_to_string(buf, sizeof(buf), e->sid);
-    log_warn("%s anti-spoof flag set! Ignoring satellite.", buf);
+    log_warn_sid(e->sid, "anti-spoof flag set! Ignoring satellite.", buf);
   }
 
   if (sf_id <= 3 && sf_id == n->next_subframe_id) {  // Is it the one that we want next?
@@ -310,7 +309,7 @@ s8 process_subframe(nav_msg_t *n, ephemeris_t *e) {
     }
     /* If all the words failed the parity check then satellite has failed */
     if (n->parity_failures >= 7) {
-      log_warn("%s subframe parity mismatch for all words! Ignoring satellite.", buf);
+      log_warn_sid(e->sid, "subframe parity mismatch for all words! Ignoring satellite.");
     }
     /* If a few parity failures skip the subframe */
     if (n->parity_failures > 0) {

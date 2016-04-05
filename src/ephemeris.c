@@ -562,37 +562,37 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   }
   e->valid &= k->toc.tow == e->toe.tow;
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had t_oc/t_oe mismatch. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had t_oc/t_oe mismatch. Ignoring ephemeris.");
   }
 
   /* Validate the other parameters */
   e->valid &= (l2_code == 0x1) || (l2_code == 0x2);
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid L2 code value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid L2 code value. Ignoring ephemeris.");
   }
   e->valid &= k->toc.tow <= 604784.0;
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid t_oc value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid t_oc value. Ignoring ephemeris.");
   }
   e->valid &= e->toe.tow <= 604784.0;
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid t_oe value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid t_oe value. Ignoring ephemeris.");
   }
   e->valid &= k->ecc <= 0.03;
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid ecc value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid ecc value. Ignoring ephemeris.");
   }
   e->valid &= (k->sqrta >= 4906.0) && (k->sqrta <= 5390.0);
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid ecc value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid ecc value. Ignoring ephemeris.");
   }
   e->valid &= (k->inc >= 0.237) && (k->inc <= 0.363);
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid inc value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid inc value. Ignoring ephemeris.");
   }
   e->valid &= (k->omegadot >= -5.20e-9) && (k->omegadot <= 0.0);
   if (!e->valid) {
-    log_warn("Latest ephemeris for %s had invalid omegadot value. Ignoring ephemeris.", buf);
+    log_warn_sid(e->sid, "Latest ephemeris had invalid omegadot value. Ignoring ephemeris.");
   }
 }
 
