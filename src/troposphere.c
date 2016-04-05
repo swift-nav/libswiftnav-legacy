@@ -258,40 +258,42 @@ static double calc_param(double lat, double doy, const double *avg_lut, const do
   /* Compute variation of average surface tropo values */
   double amp = lookup_param(lat, amp_lut);
 
-// TODO check rad deg
-// TODO check frac vs int doy
-// TODO fortran has southern hemi adjustment here?
-
   /* Deal with southern hemisphere and yearly variation */
+  const double year_len = 365.25;
   if (lat < 0) {
-    doy += 182.625;
+    doy += year_len / 2.0;
   }
 
-  const double doy_2_rad = 2.0 * M_PI / 365.25;
-  return avg - amp * cos((doy - 28.0) * doy_2_rad);
+  const double doy_0 = 28.0;
+  const double doy_2_rad = 2.0 * M_PI / year_len;
+  return avg - amp * cos((doy - doy_0) * doy_2_rad);
 }
 
-/** Calculate tropospheric delay using Klobuchar model.
+/** Calculate tropospheric delay using UNM3m model.
  *
  * References:
- *   -#
+ *   -# UNB Neutral Atmosphere Models: Development and Performance. R Leandro,
+ *      M Santos, and R B Langley
  *
  * \param doy Day of the year at which to calculate tropospheric delay [day]
  * \param lat Latitude of the receiver [rad]
- * \param lat Height of the receiver [m]
+ * \param h Orthometric height of the receiver [m]
  * \param el Elevation of the satellite [rad]
+ * \param t_out TODO
+ * \param p_out TODO
+ * \param e_out TODO
+ * \param t_m_out TODO
  *
  * \return Tropospheric delay distance [m]
  */
 double calc_troposphere(double doy, double lat, double h, double el,
                         double *t_out, double *p_out, double *e_out,
                         double *t_m_out)
-{// TODO is height in MSL or WGS84 (seems orthometric height = MSL)
-  // TODO lat to deg
+{
   lat *= R2D;
   el *= R2D;
   // TODO calc day of year -> need UTC / date conversions
-  // h = orthometric height in m
+  // TODO calc orthometric height -> need geoid
 
   // TODO take gps time struct and get day of year
 
@@ -360,19 +362,17 @@ double calc_troposphere(double doy, double lat, double h, double el,
 
   /* Compute hydrostatic Neil mapping function value */
   double sin_el = sin(el * D2R);
-  double mhf_alpha = mhf_b / (sin_el + mhf_c);
-  double mhf_gamma = mhf_a / (sin_el + mhf_alpha);
-  double mhf_topcon = 1.0 + mhf_a / (1.0 + mhf_b / (1.0 + mhf_c));
-  double mhf = mhf_topcon / (sin_el + mhf_gamma);
+  double mhf_top = 1.0 + mhf_a / (1.0 + mhf_b / (1.0 + mhf_c));
+  double mhf_bot = sin_el + mhf_a / (sin_el + mhf_b / (sin_el + mhf_c));
+  double mhf = mhf_top / mhf_bot;
 
   /* Compute height correction */
   const double mhf_a_ht = 2.53e-5;
   const double mhf_b_ht = 5.49e-3;
   const double mhf_c_ht = 1.14e-3;
-  double mhf_alpha_ht = mhf_b_ht / (sin_el + mhf_c_ht);
-  double mhf_gamma_ht = mhf_a_ht / (sin_el + mhf_alpha_ht);
-  double mhf_topcon_ht = 1.0 + mhf_a_ht / (1.0 + mhf_b_ht / (1.0 + mhf_c_ht));
-  double mhf_ht_coef = 1.0 / sin_el - mhf_topcon_ht / (sin_el + mhf_gamma_ht);
+  double mhf_top_ht = 1.0 + mhf_a_ht / (1.0 + mhf_b_ht / (1.0 + mhf_c_ht));
+  double mhf_bot_ht = sin_el + mhf_a_ht / (sin_el + mhf_b_ht / (sin_el + mhf_c_ht));
+  double mhf_ht_coef = 1.0 / sin_el - mhf_top_ht / mhf_bot_ht;
   double mhf_ht = mhf_ht_coef * h / 1000.0;
   mhf += mhf_ht;
 
@@ -382,10 +382,9 @@ double calc_troposphere(double doy, double lat, double h, double el,
   double mwf_c = lookup_param(lat, mwf_c_lut);
 
   /* Compute wet Neil mapping function value */
-  double mwf_alpha = mwf_b / (sin_el + mwf_c);
-  double mwf_gamma = mwf_a / (sin_el + mwf_alpha);
-  double mwf_topcon = 1.0 + mwf_a / (1.0 + mwf_b / (1.0 + mwf_c));
-  double mwf = mwf_topcon / (sin_el + mwf_gamma);
+  double mwf_top = 1.0 + mwf_a / (1.0 + mwf_b / (1.0 + mwf_c));
+  double mwf_bot = sin_el + mwf_a / (sin_el + mwf_b / (sin_el + mwf_c));
+  double mwf = mwf_top / mwf_bot;
 
   /* Compute total tropospheric delay */
   double td = mhf * zhd + mwf * zwd;
