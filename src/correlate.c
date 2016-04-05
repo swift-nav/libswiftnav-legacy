@@ -75,7 +75,7 @@ void l1_ca_track_correlate(const s8* restrict samples, size_t samples_len,
                  code_step);
 
   if (0 == *num_samples) {
-    *num_samples = (int)ceil(2 * L1_CA_CHIPS_PER_PRN_CODE / code_step);
+    *num_samples = (int)ceil(L1_CA_CHIPS_PER_PRN_CODE / code_step);
   }
 
   if (*num_samples > samples_len) {
