@@ -66,7 +66,7 @@ def test_sat_state():
   assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 + 3600.*1}))
   assert eph.is_valid(t.GpsTime(**{ 'wn': 1867, 'tow': 518400.0 - 3600.*1}))
   assert not eph.is_valid(t.GpsTime(**{ 'wn': 1868, 'tow': 518400.0,}))
-  assert len(eph.to_dict()) == 8
+  assert len(eph.to_dict()) == 9
   assert repr(eph)
   eph = e.Ephemeris(**{'sid': {'sat': 17, 'code': 0},
                      'toe': { 'wn': 1867, 'tow': 518400.0,},
@@ -193,3 +193,71 @@ def test_parameters():
   valid = 1
   fit_interval = 4 * 60 * 60
   assert not e.Ephemeris.is_params_valid(valid, fit_interval, toe, time)
+
+def test_glo_sat_state():
+  eph1 = e.Ephemeris(**{'sid': {'sat': 3, 'code': 3,},
+                     'toe': {'wn': 1892, 'tow': 303900.0,}, #from GPS
+                     'ura': 2.0,
+                     'fit_interval': 4 * 60 * 60,
+                     'valid': 1,
+                     'healthy': 1,
+                     'glo': {  #data at 2016-04-13T12:25:00
+                              'gamma' : 9.09494701772928238e-13,
+                              'tau' : -6.72144815325737000e-05,
+                              'pos' : [-1.4379786621093750e+07,-7.6587543945312500e+06,1.9676794921875000e+07],
+                              'vel' : [2.6736078262329102e+03,-2.4776077270507813e+02,1.8579368591308594e+03],
+                              'acc' : [0.0,0.0,-2.79396772384643555e-06],
+                            }})
+  eph2 = e.Ephemeris(**{'sid': {'sat': 3, 'code': 3,},
+                     'toe': {'wn': 1892, 'tow': 305700.0,}, #from GPS
+                     'ura': 2.0,
+                     'fit_interval': 4 * 60 * 60,
+                     'valid': 1,
+                     'healthy': 1,
+                     'glo': {  #data at 2016-04-13T12:55:00
+                              'gamma' : 9.09494701772928238e-13,
+                              'tau' : -6.72172755002975464e-05,
+                              'pos' : [-9.2793393554687500e+06,-8.5263706054687500e+06,2.2220868652343750e+07],
+                              'vel' : [2.9441843032836914e+03,-7.2328472137451172e+02,9.5054054260253906e+02],
+                              'acc' : [0.0,0.0,-2.79396772384643555e-06],
+                            }})
+  #check that both ephemeris are valid at 2016-04-13T12:40:00
+  assert eph1.is_valid(t.GpsTime(**{ 'wn': 1892, 'tow': 304800.0,}))
+  assert eph2.is_valid(t.GpsTime(**{ 'wn': 1892, 'tow': 304800.0,}))
+  assert eph1.is_healthy()
+  assert eph2.is_healthy()
+  #set time in between 2 ephemeris
+  time = t.GpsTime(**{ 'wn': 1892, 'tow': 304800.0,})
+  #calculate SV orbits at the time
+  pos1, vel1, clock_err1, clock_rate_err1 =  eph1.calc_sat_state(time)
+  pos2, vel2, clock_err2, clock_rate_err2 =  eph2.calc_sat_state(time)
+  #check if position difference of the SV in 2.5 m range
+  assert np.allclose(pos1, pos2, 0, 2.5)
+  #check if velocity difference of the SV in 0.005 m/s range
+  assert np.allclose(vel1, vel2, 0, 0.005)
+  assert abs(clock_err1 - clock_err2) < 1.0e-8
+  assert abs(clock_rate_err1 - clock_rate_err2) < 1.0e-8
+  # Now check GLO orbit computation (pos and vel) at particular time
+  # set reference ephemeris at 2007-15-11T06.15.00
+  eph = e.Ephemeris(**{'sid': {'sat': 3, 'code': 3,},
+                    'toe': {'wn': 1453, 'tow': 368100.0,}, #from GPS
+                    'ura': 2.0,
+                    'fit_interval': 4 * 60 * 60,
+                    'valid': 1,
+                    'healthy': 1,
+                    'glo': {  #input data from GLO ICD, pg. 55
+                             'gamma' : 0, #not necessary for the test
+                             'tau' : 0, #not necessary for the test
+                             'pos' : [-14081752.701,18358958.252,10861302.124],
+                             'vel' : [-1025.76358,1086.72147,-3157.32343],
+                             'acc' : [1.7156e-6-9.2581e-7,1.0278e-6-1.0343e-6,-1.0368e-6-1.1260e-6],
+                          }})
+  #set time to 6:30
+  time = t.GpsTime(**{ 'wn': 1453, 'tow': 369000.0,})
+  #calculate SV orbits at the time
+  pos, vel, clock_err, clock_rate_err =  eph.calc_sat_state(time)
+  #check calculated vel and pos data at 2007-15-11T06:30:00
+  #reference values from GLO ICD, pg 55. Note: it seems there is an typo in
+  # result Vz in ICD example
+  assert np.allclose(pos, [-14836563.872,19249935.476,7924017.196], 0, 2.5)
+  assert np.allclose(vel, [-653.97782,882.62958,-3359.44444], 0, 0.005)

@@ -41,7 +41,7 @@
  * \note This is actually not identical to the usual WGS84 definition. */
 #define GPS_OMEGAE_DOT 7.2921151467e-5
 
-/** Earth’s Gravitational Constant as defined in the ICD in m^3 / s^2
+/** Earth's Gravitational Constant as defined in the ICD in m^3 / s^2
  * \note This is actually not identical to the usual WGS84 definition. */
 #define GPS_GM 3.986005e14
 
@@ -69,6 +69,22 @@
 
 /** GPS C/A code chipping rate in Hz. */
 #define GPS_CA_CHIPPING_RATE 1.023e6
+
+/** GLO semi-major axis of Earth
+  * NOTE: there is define WGS84_A which is 6378137, differ than defined
+  * in GLO ICD, refer A.3.1.2. */
+#define GLO_A_E 6378136.0
+
+/** Second zonal harmonic of the geopotential */
+#define GLO_J02 1.0826257e-3
+
+/** Earth's Gravitational Constant as defined in the GLO ICD in m^3 / s^2
+ * \note This is actually not identical to the usual WGS84 definition. */
+#define GLO_GM 3.9860044e14
+
+/** Earth's rotation rate as defined in the GLO ICD in rad / s
+ * \note This is actually not identical to the usual WGS84 definition. */
+#define GLO_OMEGAE_DOT 7.292115e-5
 
 /* \} */
 
