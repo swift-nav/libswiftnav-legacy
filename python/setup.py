@@ -24,19 +24,37 @@ if __name__ == "__main__":
     print "You don't seem to have Cython installed."
     sys.exit(1)
   os.environ['ARCHFLAGS'] = ""
+
+  # Additional library search directories:
+  # - LD_LIBRARY_PATH (if present)
+  # - User local enviroment
+  library_dirs = []
+  # If LD_LIBRARY_PATH has been manually specified, add it to the
+  # library search path
+  if 'LD_LIBRARY_PATH' in os.environ:
+    library_dirs.append(os.environ['LD_LIBRARY_PATH'])
+  library_dirs.append(os.path.expanduser('~/.local/lib'))
+
+  # Additional include directories:
+  # - Numpy includes
+  # - User local enviroment
+  # - Current directory
+  include_dirs = []
+  include_dirs.append(np.get_include())
+  include_dirs.append(os.path.expanduser('~/.local/include'))
+  include_dirs.append('.')
+  # three more includes for travis builds as it does not install libraries
+  include_dirs.append('../include/')
+  include_dirs.append('../libfec/include/')
+  include_dirs.append('../tests/data/l2cbitstream/')
   def make_extension(ext_name):
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
-    library_dirs = []
-    # If LD_LIBRARY_PATH has been manually specified, add it to the
-    # library search path
-    if 'LD_LIBRARY_PATH' in os.environ:
-      library_dirs.append(os.environ['LD_LIBRARY_PATH'])
     return Extension(
       ext_name, [ext_path],
-      include_dirs = [np.get_include(), '.', '../include/'],
+      include_dirs = include_dirs,
       extra_compile_args = ['-O0', '-g'],
       extra_link_args = ['-g'],
-      libraries = ['m', 'swiftnav'],
+      libraries = ['m', 'swiftnav', 'l2cbitstream'],
       library_dirs = library_dirs,
     )
   ext_names = [
@@ -44,6 +62,7 @@ if __name__ == "__main__":
     'swiftnav.signal',
     'swiftnav.coord_system',
     'swiftnav.constants',
+    'swiftnav.cnav_msg',
     'swiftnav.nav_msg',
     'swiftnav.pvt',
     'swiftnav.correlate',
