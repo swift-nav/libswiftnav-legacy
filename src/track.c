@@ -165,9 +165,9 @@ float costas_discriminator(float I, float Q)
  */
 float frequency_discriminator(float I, float Q, float prev_I, float prev_Q)
 {
-	  float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
-	  float cross = prev_I * Q - I * prev_Q;
-	  return atan2f(cross, dot) / ((float) M_PI);
+  float dot = fabsf(I * prev_I) + fabsf(Q * prev_Q);
+  float cross = prev_I * Q - I * prev_Q;
+  return atan2f(cross, dot) / ((float) M_PI);
 }
 
 /** Normalised non-coherent early-minus-late envelope discriminator.
@@ -688,19 +688,6 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
   s->xn_prev = s->nsr;
 }
 
-//void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
-//                  float cutoff_freq, float loop_freq)
-//{
-//  float Tw0 = (2*M_PI*cutoff_freq) / loop_freq;
-//  s->b = Tw0 / (Tw0 + 2);
-//  s->a = (Tw0 - 2) / (Tw0 + 2);
-//
-//  s->log_bw = 10.f*log10f(bw);
-//  s->I_prev_abs = -1.f;
-//  s->Q_prev_abs = -1.f;
-//  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
-//}
-
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
  *
  * Implements a modification of the estimator presented in [1]. In [1] the
@@ -785,31 +772,6 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
   return s->log_bw - 10.f*log10f(s->nsr);
 }
-
-//float cn0_est(cn0_est_state_t *s, float I, float Q)
-//{
-//  float P_n, P_s;
-//
-//  if (s->I_prev_abs < 0.f) {
-//    /* This is the first iteration, just update the prev state. */
-//    s->I_prev_abs = fabsf(I);
-//    s->Q_prev_abs = fabsf(Q);
-//  } else {
-//    P_n = fabsf(I) - s->I_prev_abs;
-//    P_n = P_n*P_n;
-//
-//    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
-//
-//    s->I_prev_abs = fabsf(I);
-//    s->Q_prev_abs = fabsf(Q);
-//
-//    float tmp = s->b * P_n / P_s;
-//    s->nsr = tmp + s->xn - s->a * s->nsr;
-//    s->xn = tmp;
-//  }
-//
-//  return s->log_bw - 10.f*log10f(s->nsr);
-//}
 
 void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                  navigation_measurement_t *nav_meas[],
