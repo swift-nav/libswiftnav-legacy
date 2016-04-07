@@ -18,6 +18,7 @@
 
 void l1_ca_track_correlate(const s8* samples, size_t samples_len,
                            const s8* code,
+                           u32 chips_to_correlate,
                            double* init_code_phase, double code_step,
                            double* init_carr_phase, double carr_step,
                            double* I_E, double* Q_E,
@@ -26,6 +27,7 @@ void l1_ca_track_correlate(const s8* samples, size_t samples_len,
 
 void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
                             const s8* code,
+                            u32 chips_to_correlate,
                             double* init_code_phase, double code_step,
                             double* init_carr_phase, double carr_step,
                             double* I_E, double* Q_E,

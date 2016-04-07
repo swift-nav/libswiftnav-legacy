@@ -47,6 +47,7 @@ static void track_correlate(enum correlator_type correlator_type,
  * \param samples          Samples array. One byte per sample.
  * \param samples_len      Samples array size.
  * \param code             L1C/A PRN code. One byte per chip: 1023 bytes long.
+ * \param chips_to_correlate Number of chips to correlate [chips].
  * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the
  *                         the last unprocessed code phase here.
@@ -63,19 +64,20 @@ static void track_correlate(enum correlator_type correlator_type,
  * \param[out] Q_L         Late replica quadrature correlation component.
  * \param[out] num_samples The number of processed samples from \e samples array.
  */
-void l1_ca_track_correlate(const s8* restrict samples, size_t samples_len,
-                           const s8* restrict code,
+void l1_ca_track_correlate(const s8* samples, size_t samples_len,
+                           const s8* code,
+                           u32 chips_to_correlate,
                            double* init_code_phase, double code_step,
                            double* init_carr_phase, double carr_step,
                            double* I_E, double* Q_E,
                            double* I_P, double* Q_P,
                            double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((L1_CA_CHIPS_PER_PRN_CODE - *init_code_phase) /
+  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
                  code_step);
 
   if (0 == *num_samples) {
-    *num_samples = (int)ceil(L1_CA_CHIPS_PER_PRN_CODE / code_step);
+    *num_samples = (int)ceil(chips_to_correlate / code_step);
   }
 
   if (*num_samples > samples_len) {
@@ -96,6 +98,7 @@ void l1_ca_track_correlate(const s8* restrict samples, size_t samples_len,
  * \param samples          Samples array. One byte per sample.
  * \param samples_len      Samples array size.
  * \param code             L2C CM PRN code. One byte per chip: 10230 bytes long.
+ * \param chips_to_correlate Number of chips to correlate [chips].
  * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the
  *                         the last unprocessed code phase here.
@@ -114,17 +117,18 @@ void l1_ca_track_correlate(const s8* restrict samples, size_t samples_len,
  */
 void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
                             const s8* code,
+                            u32 chips_to_correlate,
                             double* init_code_phase, double code_step,
                             double* init_carr_phase, double carr_step,
                             double* I_E, double* Q_E,
                             double* I_P, double* Q_P,
                             double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((2 * L2C_CM_CHIPS_PER_PRN_CODE - *init_code_phase) /
+  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
                  code_step);
 
   if (0 == *num_samples) {
-    *num_samples = (int)ceil(2 * L2C_CM_CHIPS_PER_PRN_CODE / code_step);
+    *num_samples = (int)ceil(chips_to_correlate / code_step);
   }
 
   if (*num_samples > samples_len) {
