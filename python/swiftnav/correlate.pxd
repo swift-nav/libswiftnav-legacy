@@ -12,6 +12,7 @@ from common cimport *
 
 cdef extern from "libswiftnav/correlate.h":
   void l1_ca_track_correlate(s8* samples, size_t samples_len, s8* code,
+                       u32 chips_to_correlate,
                        double* init_code_phase, double code_step,
                        double* init_carr_phase, double carr_step,
                        double* I_E, double* Q_E,
@@ -20,6 +21,7 @@ cdef extern from "libswiftnav/correlate.h":
                        u32* num_samples)
 
   void l2c_cm_track_correlate(s8* samples, size_t samples_len, s8* code,
+                       u32 chips_to_correlate,
                        double* init_code_phase, double code_step,
                        double* init_carr_phase, double carr_step,
                        double* I_E, double* Q_E,

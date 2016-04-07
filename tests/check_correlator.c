@@ -362,6 +362,7 @@ START_TEST(test_l1ca_correlator)
 
   l1_ca_track_correlate(signal.samples, signal.size,
     code,
+    L1CA_CHIPS_PER_PRN_CODE,
     &init_code_phase,
     L1CA_CHIPPING_RATE_HZ / SAMPLING_FREQ_HZ,
     &init_carr_phase,
@@ -423,6 +424,7 @@ START_TEST(test_l2c_cm_correlator)
 
   l2c_cm_track_correlate(signal.samples, signal.size,
     code,
+    2 * L2C_CM_CHIPS_PER_PRN_CODE,
     &init_code_phase,
     L2C_CM_CHIPPING_RATE_HZ / SAMPLING_FREQ_HZ,
     &init_carr_phase,
