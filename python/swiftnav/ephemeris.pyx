@@ -19,6 +19,11 @@ from time import GpsTime
 from libc.string cimport memcpy, memset
 import numpy as np
 
+def rebuild_Ephemeris(*reduced):
+  nm = Ephemeris()
+  nm.from_dict(dict(reduced))
+  return nm
+
 cdef class Ephemeris:
 
   def __init__(self, **kwargs):
@@ -52,6 +57,9 @@ cdef class Ephemeris:
 
   def from_dict(self, d):
     self._thisptr = d
+
+  def __reduce__(self):
+    return (rebuild_Ephemeris, tuple(self.to_dict().items()))
 
   def calc_sat_state(self, GpsTime time):
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)
