@@ -19,16 +19,28 @@ from time import GpsTime
 from libc.string cimport memcpy, memset
 import numpy as np
 
+def rebuild_Ephemeris(*reduced):
+  nm = Ephemeris()
+  nm.from_dict(dict(reduced))
+  return nm
+
 cdef class Ephemeris:
 
   def __init__(self, **kwargs):
     memset(&self._thisptr, 0, sizeof(ephemeris_t))
-    self._thisptr.sid = kwargs.pop('sid')
-    self._thisptr.toe = kwargs.pop('toe')
-    self._thisptr.ura = kwargs.pop('ura')
-    self._thisptr.fit_interval = kwargs.pop('fit_interval')
-    self._thisptr.valid = kwargs.pop('valid')
-    self._thisptr.healthy = kwargs.pop('healthy')
+
+    if 'sid' in kwargs:
+      self._thisptr.sid = kwargs.pop('sid')
+    if 'toe' in kwargs:
+      self._thisptr.toe = kwargs.pop('toe')
+    if 'ura' in kwargs:
+      self._thisptr.ura = kwargs.pop('ura')
+    if 'fit_interval' in kwargs:
+      self._thisptr.fit_interval = kwargs.pop('fit_interval')
+    if 'valid' in kwargs:
+      self._thisptr.valid = kwargs.pop('valid')
+    if 'healthy' in kwargs:
+      self._thisptr.healthy = kwargs.pop('healthy')
     if 'kepler' in kwargs:
       self._thisptr.kepler = kwargs.pop('kepler')
     elif 'xyz' in kwargs:
@@ -45,6 +57,9 @@ cdef class Ephemeris:
 
   def from_dict(self, d):
     self._thisptr = d
+
+  def __reduce__(self):
+    return (rebuild_Ephemeris, tuple(self.to_dict().items()))
 
   def calc_sat_state(self, GpsTime time):
     cdef np.ndarray[np.double_t, ndim=1, mode="c"] pos = np.array([0,0,0], dtype=np.double)

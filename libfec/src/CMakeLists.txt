@@ -11,4 +11,4 @@ add_library(fec viterbi27.c)
 
 install(TARGETS fec DESTINATION lib${LIB_SUFFIX})
 
-install(FILES ${libfec_HEADERS} DESTINATION include/)
+install(FILES ${libfec_HEADERS} DESTINATION include/libfec/)
