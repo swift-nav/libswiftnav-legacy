@@ -221,6 +221,11 @@ cdef class SimpleTrackingLoop:
     simple_tl_update(&self._thisptr, cs_)
     return (self.code_freq, self.carr_freq)
 
+def rebuild_AidedTrackingLoop(kwargs, state):
+  p = AidedTrackingLoop(**kwargs)
+  p._thisptr = state
+  return p
+
 cdef class AidedTrackingLoop:
   """
   Wraps the `libswiftnav` simple second-order tracking loop implementation
@@ -237,6 +242,7 @@ cdef class AidedTrackingLoop:
   """
 
   def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
     aided_tl_init(&self._thisptr,
                   kwargs['loop_freq'],
                   kwargs['code_freq'],
@@ -249,6 +255,9 @@ cdef class AidedTrackingLoop:
                   kwargs['carr_zeta'],
                   kwargs['carr_k'],
                   kwargs['carr_freq_b1'])
+
+  def __reduce__(self):
+    return (rebuild_AidedTrackingLoop, (self.kwargs, self._thisptr))
 
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     """
@@ -354,6 +363,11 @@ cdef class CompTrackingLoop:
     comp_tl_update(&self._thisptr, cs_)
     return (self._thisptr.code_freq, self._thisptr.carr_freq)
 
+def rebuild_LockDetector(kwargs, state):
+    p = LockDetector(**kwargs)
+    p._thisptr = state
+    return p
+
 cdef class LockDetector:
   """
   Wraps the `libswiftnav` PLL lock detector implementation.
@@ -364,11 +378,15 @@ cdef class LockDetector:
   """
 
   def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
     lock_detect_init(&self._thisptr,
                      kwargs['k1'],
                      kwargs['k2'],
                      kwargs['lp'],
                      kwargs['lo'])
+
+  def __reduce__(self):
+    return (rebuild_LockDetector, (self.kwargs, self._thisptr))
 
   def reinit(self, k1, k2, lp, lo):
     lock_detect_reinit(&self._thisptr, k1, k2, lp, lo)
@@ -379,11 +397,19 @@ cdef class LockDetector:
             self._thisptr.pcount1, self._thisptr.pcount2,\
             self._thisptr.lpfi.y, self._thisptr.lpfq.y)
 
+def rebuild_AliasDetector(kwargs, state):
+    p = AliasDetector(**kwargs)
+    p._thisptr = state
+    return p
 
 cdef class AliasDetector:
 
-  def __cinit__(self, acc_len, time_diff):
-    alias_detect_init(&self._thisptr, acc_len, time_diff)
+  def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
+    alias_detect_init(&self._thisptr, kwargs['acc_len'], kwargs['time_diff'])
+
+  def __reduce__(self):
+    return (rebuild_AliasDetector, (self.kwargs, self._thisptr))
 
   def first(self, I, Q):
     alias_detect_first(&self._thisptr, I, Q)
@@ -393,6 +419,11 @@ cdef class AliasDetector:
 
   def reinit(self, acc_len, time_diff):
     return alias_detect_reinit(&self._thisptr, acc_len, time_diff)
+
+def rebuild_CN0Estimator(kwargs, state):
+    p = CN0Estimator(**kwargs)
+    p._thisptr = state
+    return p
 
 cdef class CN0Estimator:
   """
@@ -404,11 +435,15 @@ cdef class CN0Estimator:
   """
 
   def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
     cn0_est_init(&self._thisptr,
                  kwargs['bw'],
                  kwargs['cn0_0'],
                  kwargs['cutoff_freq'],
                  kwargs['loop_freq'])
+
+  def __reduce__(self):
+    return (rebuild_CN0Estimator, (self.kwargs, self._thisptr))
 
   def update(self, I, Q):
     """

@@ -204,21 +204,25 @@ cdef class AidedLoopFilter:
   cdef aided_lf_state_t _thisptr
 
 cdef class AidedTrackingLoop:
+  cdef dict kwargs
   cdef aided_tl_state_t _thisptr
 
 cdef class CompTrackingLoop:
   cdef comp_tl_state_t _thisptr
 
 cdef class AliasDetector:
+  cdef dict kwargs
   cdef alias_detect_t _thisptr
 
 cdef class LockDetectLoopFilter:
   cdef loop_detect_lpf _thisptr
 
 cdef class LockDetector:
+  cdef dict kwargs
   cdef lock_detect_t _thisptr
 
 cdef class CN0Estimator:
+  cdef dict kwargs
   cdef cn0_est_state_t _thisptr
 
 cdef class ChannelMeasurement:
