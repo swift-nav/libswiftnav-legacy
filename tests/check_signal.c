@@ -15,6 +15,8 @@ static const struct code_data_element {
   {CODE_GPS_L1CA, NUM_SIGNALS_GPS_L1CA},
   {CODE_GPS_L2CM, NUM_SIGNALS_GPS_L2CM},
   {CODE_SBAS_L1CA, NUM_SIGNALS_SBAS_L1CA},
+  {CODE_GLO_L1CA, NUM_SIGNALS_GLO_L1CA},
+  {CODE_GLO_L2CA, NUM_SIGNALS_GLO_L2CA},
 };
 
 static const struct constellation_data_element {
@@ -24,6 +26,7 @@ static const struct constellation_data_element {
 } constellation_data[] = {
   {CONSTELLATION_GPS, NUM_SIGNALS_GPS, NUM_CODES_GPS},
   {CONSTELLATION_SBAS, NUM_SIGNALS_SBAS, NUM_CODES_SBAS},
+  {CONSTELLATION_GLO, NUM_SIGNALS_GLO, NUM_CODES_GLO},
 };
 
 START_TEST(test_signal_aggregates)
@@ -173,6 +176,58 @@ START_TEST(test_signal_properties)
         },
         .valid = false
       },
+      {
+        .sid = {
+          .code = CODE_GLO_L1CA, .sat = 0
+        },
+        .valid = false,
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L1CA, .sat = 1
+        },
+        .valid = true,
+        .str = "GLO L1CA 1"
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L1CA, .sat = 24
+        },
+        .valid = true,
+        .str = "GLO L1CA 24"
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L1CA, .sat = 25
+        },
+        .valid = false
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L2CA, .sat = 0
+        },
+        .valid = false,
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L2CA, .sat = 1
+        },
+        .valid = true,
+        .str = "GLO L2CA 1"
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L2CA, .sat = 24
+        },
+        .valid = true,
+        .str = "GLO L2CA 24"
+      },
+      {
+        .sid = {
+          .code = CODE_GLO_L2CA, .sat = 25
+        },
+        .valid = false
+      },
   };
 
   for (u32 i=0; i<sizeof(test_cases) / sizeof(test_cases[0]); i++) {
@@ -188,7 +243,12 @@ START_TEST(test_signal_properties)
       u32 ret = sid_to_string(str, sizeof(str), sid);
       fail_unless((strcmp(str, t->str) == 0) && (ret == strlen(t->str)),
                   "signal to string \"%s\" failed", t->str);
+      fail_unless(constellation_valid(code_to_constellation(sid.code)),
+                  "constellation_valid failed for code %d", sid.code);
     }
+    fail_unless(!constellation_valid(CONSTELLATION_COUNT),
+                  "constellation_valid failed for constellation %d",
+                   CONSTELLATION_COUNT);
   }
 }
 END_TEST
