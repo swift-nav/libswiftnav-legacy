@@ -147,11 +147,14 @@ cdef extern from "libswiftnav/track.h":
   ctypedef struct cn0_est_state_t:
     float log_bw
     float b
-    float a
+    float a2
+    float a3
     float I_prev_abs
     float Q_prev_abs
     float nsr
+    float nsr_prev
     float xn
+    float xn_prev
 
   void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0, float cutoff_freq, float loop_freq)
   float cn0_est(cn0_est_state_t *s, float I, float Q)
