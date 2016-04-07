@@ -31,6 +31,7 @@ cdef extern from "complexobject.h":
     cdef Py_complex cval
 
 def track_correlate(np.ndarray[char, ndim=1, mode="c"] samples,
+                    chips_to_correlate,
                     code_freq, code_phase, carr_freq, carr_phase,
                     np.ndarray[char, ndim=1, mode="c"] code,
                     sampling_freq, signal):
@@ -40,11 +41,13 @@ def track_correlate(np.ndarray[char, ndim=1, mode="c"] samples,
   cdef unsigned int blksize
   if signal == "l1ca":
     l1_ca_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
+                  chips_to_correlate,
                   &init_code_phase, code_freq / sampling_freq,
                   &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
                   &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
   else:
     l2c_cm_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
+                  chips_to_correlate,
                   &init_code_phase, code_freq / sampling_freq,
                   &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
                   &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
