@@ -19,7 +19,6 @@ int main(void)
   srunner_add_suite(sr, pvt_test_suite());
   srunner_add_suite(sr, sats_management_test_suite());
   srunner_add_suite(sr, ambiguity_test_suite());
-  srunner_add_suite(sr, rtcm3_suite());
   srunner_add_suite(sr, bits_suite());
   srunner_add_suite(sr, memory_pool_suite());
   srunner_add_suite(sr, coord_system_suite());

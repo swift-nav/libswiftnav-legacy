@@ -33,7 +33,6 @@ else (CMAKE_CROSSCOMPILING)
       check_edc.c
       check_bits.c
       check_memory_pool.c
-      check_rtcm3.c
       check_coord_system.c
       check_linear_algebra.c
       check_sats_management.c
