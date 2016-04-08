@@ -15,7 +15,6 @@ include(CMakeForceCompiler)
 
 # Targeting an embedded system, no OS.
 set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR cortex-m4)
 
 CMAKE_FORCE_C_COMPILER(arm-none-eabi-gcc GNU)
 CMAKE_FORCE_CXX_COMPILER(arm-none-eabi-g++ GNU)
@@ -47,10 +46,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-set(CMAKE_C_FLAGS
-  "${CMAKE_C_FLAGS}"
-  "-fno-common -ffunction-sections -fdata-sections"
-)
+set(CMAKE_C_FLAGS "-fno-common -ffunction-sections -fdata-sections")
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
 
@@ -66,6 +62,14 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
     "${CMAKE_C_FLAGS}"
     "-mcpu=cortex-m3 -march=armv7-m -mthumb"
     "-msoft-float"
+  )
+
+elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-a9")
+
+  set(CMAKE_C_FLAGS
+    "${CMAKE_C_FLAGS}"
+    "-mcpu=cortex-a9 -march=armv7-a -mthumb"
+    "-mfloat-abi=hard -mfpu=neon"
   )
 
 else ()
