@@ -15,6 +15,7 @@ cdef extern from "libswiftnav/signal.h":
     CONSTELLATION_INVALID = -1
     CONSTELLATION_GPS
     CONSTELLATION_SBAS
+    CONSTELLATION_GLO
     CONSTELLATION_COUNT
 
   cdef enum code:
@@ -22,22 +23,30 @@ cdef extern from "libswiftnav/signal.h":
     CODE_GPS_L1CA
     CODE_GPS_L2CM
     CODE_SBAS_L1CA
+    CODE_GLO_L1CA
+    CODE_GLO_L2CA
     CODE_COUNT
 
   enum:
     NUM_SATS_GPS
     NUM_SATS_SBAS
+    NUM_SATS_GLO
     NUM_SATS
     NUM_CODES_GPS
     NUM_CODES_SBAS
+    NUM_CODES_GLO
     NUM_SIGNALS_GPS_L1CA
     NUM_SIGNALS_GPS_L2CM
     NUM_SIGNALS_SBAS_L1CA
+    NUM_SIGNALS_GLO_L1CA
+    NUM_SIGNALS_GLO_L2CA
     NUM_SIGNALS_GPS
     NUM_SIGNALS_SBAS
+    NUM_SIGNALS_GLO
     NUM_SIGNALS
     GPS_FIRST_PRN
     SBAS_FIRST_PRN
+    GLO_FIRST_PRN
     SID_STR_LEN_MAX
 
   ctypedef struct gnss_signal_t:

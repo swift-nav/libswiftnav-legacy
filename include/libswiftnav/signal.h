@@ -21,26 +21,34 @@
  * \{ */
 
 /* Number of satellites in each constellation. */
-#define NUM_SATS_GPS 32
-#define NUM_SATS_SBAS 19
-#define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS)
+#define NUM_SATS_GPS    32
+#define NUM_SATS_SBAS   19
+#define NUM_SATS_GLO    24
+#define NUM_SATS (NUM_SATS_GPS + NUM_SATS_SBAS + NUM_SATS_GLO)
 
 /* Number of codes in each constellation. */
-#define NUM_CODES_GPS 2
-#define NUM_CODES_SBAS 1
+#define NUM_CODES_GPS   2
+#define NUM_CODES_SBAS  1
+#define NUM_CODES_GLO   2
 
 /* Number of signals in each code. */
-#define NUM_SIGNALS_GPS_L1CA NUM_SATS_GPS
-#define NUM_SIGNALS_GPS_L2CM NUM_SATS_GPS
-#define NUM_SIGNALS_SBAS_L1CA NUM_SATS_SBAS
+#define NUM_SIGNALS_GPS_L1CA    NUM_SATS_GPS
+#define NUM_SIGNALS_GPS_L2CM    NUM_SATS_GPS
+#define NUM_SIGNALS_SBAS_L1CA   NUM_SATS_SBAS
+#define NUM_SIGNALS_GLO_L1CA    NUM_SATS_GLO
+#define NUM_SIGNALS_GLO_L2CA    NUM_SATS_GLO
 
 /* Number of signals in each constellation. */
-#define NUM_SIGNALS_GPS (NUM_SIGNALS_GPS_L1CA + NUM_SIGNALS_GPS_L2CM)
-#define NUM_SIGNALS_SBAS (NUM_SIGNALS_SBAS_L1CA)
-#define NUM_SIGNALS (NUM_SIGNALS_GPS + NUM_SIGNALS_SBAS)
+#define NUM_SIGNALS_GPS   (NUM_SIGNALS_GPS_L1CA + NUM_SIGNALS_GPS_L2CM)
+#define NUM_SIGNALS_SBAS  (NUM_SIGNALS_SBAS_L1CA)
+#define NUM_SIGNALS_GLO   (NUM_SIGNALS_GLO_L1CA + NUM_SIGNALS_GLO_L2CA)
+#define NUM_SIGNALS       (NUM_SIGNALS_GPS + NUM_SIGNALS_SBAS +\
+                           NUM_SIGNALS_GLO)
 
-#define GPS_FIRST_PRN 1
-#define SBAS_FIRST_PRN 120
+
+#define GPS_FIRST_PRN   1
+#define SBAS_FIRST_PRN  120
+#define GLO_FIRST_PRN   1
 
 #define SID_STR_LEN_MAX 16
 
@@ -49,6 +57,7 @@ typedef enum constellation {
   CONSTELLATION_INVALID = -1,
   CONSTELLATION_GPS,
   CONSTELLATION_SBAS,
+  CONSTELLATION_GLO,
   CONSTELLATION_COUNT,
 } constellation_t;
 
@@ -58,6 +67,8 @@ typedef enum code {
   CODE_GPS_L1CA,
   CODE_GPS_L2CM,
   CODE_SBAS_L1CA,
+  CODE_GLO_L1CA,
+  CODE_GLO_L2CA,
   CODE_COUNT,
 } code_t;
 
