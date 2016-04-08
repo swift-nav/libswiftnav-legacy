@@ -49,11 +49,11 @@ script:
   - make check-style
   # Install locally to avoid sudo
   - make DESTDIR="./install" install
-  # Test ARM cross-compile
+  # Test cortex-m4 cross-compile
   - cd $TRAVIS_BUILD_DIR
   - mkdir build_arm
   - cd build_arm/
-  - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake ../
+  - cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-gcc-arm-embedded.cmake -DCMAKE_SYSTEM_PROCESSOR=cortex-m4 ../
   - make
   # Test libswiftnav-python
   - cd ../python
