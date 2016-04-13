@@ -100,6 +100,6 @@ static inline bool is_leap_year(s32 year)
   return ((year%4==0) && (year%100!=0)) || (year%400==0);
 }
 
-gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s);
+gps_time_t glo_time2gps_time(u16 nt, u8 n4, u8 h, u8 m, u8 s);
 
 #endif /* LIBSWIFTNAV_TIME_H */
