@@ -105,6 +105,116 @@ START_TEST(test_gps_adjust_week_cycle)
 }
 END_TEST
 
+START_TEST(test_is_leap_year)
+{
+  struct is_leap_year_testcase {
+    u16 year;
+    bool ret;
+  } testcases[] = {
+    {.year = 1900, .ret = false},
+    {.year = 1901, .ret = false},
+    {.year = 1904, .ret = true},
+    {.year = 1980, .ret = true},
+    {.year = 1981, .ret = false},
+    {.year = 1982, .ret = false},
+    {.year = 1983, .ret = false},
+    {.year = 1984, .ret = true},
+    {.year = 1985, .ret = false},
+    {.year = 1986, .ret = false},
+    {.year = 1987, .ret = false},
+    {.year = 1988, .ret = true},
+    {.year = 1989, .ret = false},
+    {.year = 1990, .ret = false},
+    {.year = 1991, .ret = false},
+    {.year = 1992, .ret = true},
+    {.year = 1993, .ret = false},
+    {.year = 1994, .ret = false},
+    {.year = 1995, .ret = false},
+    {.year = 1996, .ret = true},
+    {.year = 1997, .ret = false},
+    {.year = 1998, .ret = false},
+    {.year = 1999, .ret = false},
+    {.year = 2000, .ret = true},
+    {.year = 2001, .ret = false},
+    {.year = 2002, .ret = false},
+    {.year = 2003, .ret = false},
+    {.year = 2004, .ret = true},
+    {.year = 2005, .ret = false},
+    {.year = 2006, .ret = false},
+    {.year = 2007, .ret = false},
+    {.year = 2008, .ret = true},
+    {.year = 2009, .ret = false},
+    {.year = 2010, .ret = false},
+    {.year = 2011, .ret = false},
+    {.year = 2012, .ret = true},
+    {.year = 2013, .ret = false},
+    {.year = 2014, .ret = false},
+    {.year = 2015, .ret = false},
+    {.year = 2016, .ret = true},
+    {.year = 2017, .ret = false},
+    {.year = 2018, .ret = false},
+    {.year = 2019, .ret = false},
+    {.year = 2020, .ret = true},
+  };
+
+  for (size_t i = 0;
+       i < sizeof(testcases) / sizeof(struct is_leap_year_testcase);
+       i++) {
+    fail_unless(is_leap_year(testcases[i].year) == testcases[i].ret,
+                "is_leap_year test case %d failed, year = %d",
+                testcases[i].year);
+  }
+}
+END_TEST
+
+START_TEST(test_glo_time2gps_time)
+{
+  struct glo_time2gps_time_testcase {
+    u16 nt;
+    u8 n4;
+    s8 h;
+    s8 m;
+    s8 s;
+    gps_time_t ret;
+  } testcases[] = {
+    /* GLO time 29th Dec 2000 01:00:00 */
+    {.nt = 364, .n4 = 2, .h = 1, .m = 0, .s = 0,
+      .ret = {.wn = 1094, .tow = 424817}},
+    /* GLO time 30th Dec 2000 01:00:00 */
+    {.nt = 365, .n4 = 2, .h = 1, .m = 0, .s = 0,
+      .ret = {.wn = 1094, .tow = 511217}},
+    /* GLO time 31st Dec 2000 02:00:00 */
+    {.nt = 366, .n4 = 2, .h = 2, .m = 0, .s = 0,
+      .ret = {.wn = 1094, .tow = 601217}},
+    /* GLO time 1st Jan  2001 02:00:00 */
+    {.nt = 367, .n4 = 2, .h = 2, .m = 0, .s = 0,
+      .ret = {.wn = 1095, .tow = 82817}},
+    /* GLO time 2nd Jan  2001 02:00:00 */
+    {.nt = 368, .n4 = 2, .h = 2, .m = 0, .s = 0,
+      .ret = {.wn = 1095, .tow = 169217}},
+    /* GLO time 31st Dec 2009 12:12:12 */
+    {.nt = 731, .n4 = 4, .h = 12, .m = 12, .s = 12,
+      .ret = {.wn = 1564, .tow = 378749}},
+    /* GLO time 31st Dec 2010 12:12:12 */
+    {.nt = 1096, .n4 = 4, .h = 12, .m = 12, .s = 12,
+      .ret = {.wn = 1616, .tow = 465149}},
+    /* GLO time 31st Dec 2011 12:12:12 */
+    {.nt = 1461, .n4 = 4, .h = 12, .m = 12, .s = 12,
+      .ret = {.wn = 1668, .tow = 551549}},
+  };
+  for (size_t i = 0;
+       i < sizeof(testcases) / sizeof(struct glo_time2gps_time_testcase);
+       i++) {
+    gps_time_t ret = glo_time2gps_time(testcases[i].nt, testcases[i].n4,
+                                       testcases[i].h, testcases[i].m,
+                                       testcases[i].s);
+    fail_unless(ret.wn == testcases[i].ret.wn &&
+                ret.tow == testcases[i].ret.tow,
+                "glo_time2gps_time test case %d failed, %d, %f", i, ret.wn, ret.tow);
+  }
+}
+END_TEST
+
 Suite* time_test_suite(void)
 {
   Suite *s = suite_create("Time handling");
@@ -114,6 +224,8 @@ Suite* time_test_suite(void)
   tcase_add_test(tc_core, test_normalize_gps_time);
   tcase_add_test(tc_core, test_gps_time_match_weeks);
   tcase_add_test(tc_core, test_gps_adjust_week_cycle);
+  tcase_add_test(tc_core, test_is_leap_year);
+  tcase_add_test(tc_core, test_glo_time2gps_time);
   suite_add_tcase(s, tc_core);
 
   return s;

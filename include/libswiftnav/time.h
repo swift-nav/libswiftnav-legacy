@@ -17,11 +17,42 @@
 
 #include <libswiftnav/common.h>
 
-/** Number of seconds in a week. */
-#define WEEK_SECS (7*24*60*60)
+/** Number of days in a year. */
+#define YEAR_DAYS           365
+#define LEAP_YEAR_DAYS      (YEAR_DAYS + 1)
+
+/** Number of days in a week. */
+#define WEEK_DAYS           7
+
+/** Number of months in a year. */
+#define YEAR_MONTHS         12
+
+/** Days in (leap) year 1980 since GPS epoch Jan 6th */
+#define YEAR_1980_GPS_DAYS  361
+
+/** Year of GPS epoch */
+#define GPS_EPOCH_YEAR      1980
+
+/** UTC (SU) offset */
+#define UTC_SU_OFFSET       3
+
+/** Number of seconds in a minute. */
+#define MINUTE_SECS         60
+
+/** Number of minutes in an hour. */
+#define HOUR_MINUTES        60
+
+/** Number of seconds in an hour. */
+#define HOUR_SECS           (MINUTE_SECS * HOUR_MINUTES)
+
+/** Number of hours in a day. */
+#define DAY_HOURS           24
 
 /** Number of seconds in a day. */
-#define DAY_SECS (24*60*60)
+#define DAY_SECS            (DAY_HOURS * HOUR_MINUTES * MINUTE_SECS)
+
+/** Number of seconds in a week. */
+#define WEEK_SECS           (WEEK_DAYS * DAY_SECS)
 
 /** Number of rollovers in the 10-bit broadcast GPS week number.
  * Update on next rollover on April 7, 2019.
@@ -60,5 +91,12 @@ time_t gps2time(const gps_time_t *t);
 double gpsdifftime(const gps_time_t *end, const gps_time_t *beginning);
 void gps_time_match_weeks(gps_time_t *t, const gps_time_t *ref);
 u16 gps_adjust_week_cycle(u16 wn_raw, u16 wn_ref);
+
+static inline bool is_leap_year(s32 year)
+{
+  return ((year%4==0) && (year%100!=0)) || (year%400==0);
+}
+
+gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s);
 
 #endif /* LIBSWIFTNAV_TIME_H */
