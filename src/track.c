@@ -802,7 +802,8 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
 
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange \
                                + clock_err[i]*GPS_C;
-    nav_meas[i]->doppler = nav_meas[i]->raw_doppler + clock_rate_err[i]*GPS_L1_HZ;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler +
+                clock_rate_err[i]*code_to_carr_freq(nav_meas[i]->sid.code);
 
     nav_meas[i]->tot.tow -= clock_err[i];
     normalize_gps_time(&nav_meas[i]->tot);
