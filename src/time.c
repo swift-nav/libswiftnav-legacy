@@ -10,7 +10,9 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <assert.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <libswiftnav/time.h>
 #include <libswiftnav/constants.h>
@@ -113,6 +115,74 @@ u16 gps_adjust_week_cycle(u16 wn_raw, u16 wn_ref)
   return wn_raw;
 
   return wn_raw + 1024 * ((wn_ref + 1023 - wn_raw) / 1024);
+}
+
+#define GLO_NT_0_FLOOR      1
+#define GLO_NT_0_CEILING    LEAP_YEAR_DAYS                  /* 366 */
+#define GLO_NT_1_CEILING    (GLO_NT_0_CEILING + YEAR_DAYS)  /* 731 */
+#define GLO_NT_2_CEILING    (GLO_NT_1_CEILING + YEAR_DAYS)  /* 1096 */
+#define GLO_NT_3_CEILING    (GLO_NT_2_CEILING + YEAR_DAYS)  /* 1461 */
+
+#define N4_MIN              1
+#define N4_MAX              31
+
+/** Transformation of GLONASS-M current data information into gps_time_t.
+ *
+ *  Reference: GLONASS ICD Edition 5.1 2008
+ *
+ * \param nt current date, calendar number of day within four-year interval
+ *           starting from the 1-st of January in a leap year
+ * \param n4 four-year interval number starting from 1996
+ * \param h  hours part of tk field
+ * \param m  minutes part of tk field
+ * \param s  seconds part of tk field
+ * |return   converted gps time
+ */
+
+gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s)
+{
+  u8 j = 0;
+  u16 day_of_year = 0;
+  u32 glo_year = 0;
+  gps_time_t gps_t = {0, 0};
+
+  assert(n4 >= N4_MIN && n4 <= N4_MAX);
+
+  if (nt >= GLO_NT_0_FLOOR && nt <= GLO_NT_0_CEILING) {
+    j = 1;
+    day_of_year = nt;
+  }
+  else if (nt <= GLO_NT_1_CEILING) {
+    j = 2;
+    day_of_year = nt - LEAP_YEAR_DAYS;
+  }
+  else if (nt <= GLO_NT_2_CEILING) {
+    j = 3;
+    day_of_year = nt - LEAP_YEAR_DAYS - YEAR_DAYS;
+  }
+  else if (nt <= GLO_NT_3_CEILING) {
+    j = 4;
+    day_of_year = nt - LEAP_YEAR_DAYS - YEAR_DAYS * 2;
+  }
+  else
+    assert(0 && "invalid nt");
+
+  glo_year = 1996 + 4 * (n4 - 1) + (j - 1);
+
+  /* Calculate days since GPS epoch */
+  s64 days_gps_epoch = YEAR_1980_GPS_DAYS + day_of_year - 1;
+  u32 y = GPS_EPOCH_YEAR;
+  while (++y < glo_year) {
+    days_gps_epoch += is_leap_year(y) ? LEAP_YEAR_DAYS : YEAR_DAYS;
+  }
+
+  gps_t.wn = days_gps_epoch / WEEK_DAYS;
+  gps_t.tow = GPS_MINUS_UTC_SECS + (days_gps_epoch % WEEK_DAYS) * DAY_SECS +
+              (h - UTC_SU_OFFSET) * HOUR_SECS + m * MINUTE_SECS + s;
+
+  normalize_gps_time(&gps_t);
+
+  return gps_t;
 }
 
 /** \} */
