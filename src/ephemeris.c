@@ -50,8 +50,8 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
                              double pos[3], double vel[3],
                              double *clock_err, double *clock_rate_err)
 {
-  // TODO should t be in GPS or SBAS time?
-  // TODO what is the SBAS valid ttime interval?
+  /* TODO should t be in GPS or SBAS time? */
+  /* TODO what is the SBAS valid ttime interval? */
 
   const ephemeris_xyz_t *ex = &e->xyz;
 
@@ -68,8 +68,8 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
   pos[2] = ex->pos[2] + ex->vel[2] * dt +
            0.5 * ex->acc[2] * pow(dt, 2);
 
-  memcpy(clock_err, &(ex->a_gf0), sizeof(*clock_err));
-  memcpy(clock_rate_err, &(ex->a_gf1), sizeof(*clock_rate_err));
+  *clock_err = ex->a_gf0;
+  *clock_rate_err = ex->a_gf1;
 
   return 0;
 }
