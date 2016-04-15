@@ -42,6 +42,26 @@ typedef struct {
   double acc[3]; /**< velocity of the GEO at time toe [m/s^2] */
 } almanac_xyz_t;
 
+
+/** Structure containing the GLONASS almanac for one satellite. */
+
+typedef struct {
+  double lambda;      /**< Longitude of the first ascending node of the orbit
+                           in PZ-90.02 coordinate system, [semi-circles] */
+  double t_lambda;    /**< Time of the first ascending node passage, [s]*/
+  double i;           /**< Value of inclination at instant of t_lambda, 
+                           [semi-circles] */
+  double t;           /**< Value of Draconian period at instant of t_lambda,
+                           [s/orbital period] */
+  double t_dot;       /**< Rate of change of the Draconian period,
+                           [s/(orbital period^2)] */
+  double epsilon;     /**< Eccentricity at instant of t_lambda_n_A,
+                           [dimensionless] */
+  double omega;       /**< Argument of perigee at instant of t_lambda,
+                           [semi-circles] */
+} almanac_glo_t;
+
+
 /** Structure containing the almanac for one satellite. */
 typedef struct {
   gnss_signal_t sid; /**< Signal ID. */
@@ -53,6 +73,7 @@ typedef struct {
   union {
     almanac_kepler_t kepler; /**< Parameters specific to GPS. */
     almanac_xyz_t xyz;       /**< Parameters specific to SBAS. */
+    almanac_glo_t glo;       /**< Parameters specific to GLONASS. */
   };
 } almanac_t;
 
