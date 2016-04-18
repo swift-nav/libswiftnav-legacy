@@ -12,12 +12,15 @@
 
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/linear_algebra.h>
 #include <libswiftnav/coord_system.h>
 #include <libswiftnav/time.h>
 #include <libswiftnav/almanac.h>
+#include <libswiftnav/ephemeris.h>
+#include <libswiftnav/logging.h>
 
 /** \defgroup almanac Almanac
  * Functions and calculations related to the GPS almanac.
@@ -26,208 +29,163 @@
  * \see coord_system
  * \{ */
 
-/** Calculate the position / velocity state of a satellite from the SBAS
- *  almanac.
+/** Calculate satellite position, velocity and clock offset from SBAS ephemeris.
  *
- * \param alm  Pointer to an almanac structure for the satellite of interest.
- * \param t    GPS time of week at which to calculate the satellite state in
- *             seconds since Sunday.
- * \param pos  The satellite position in ECEF coordinates is returned in this
- *             vector.
- * \param vel  The satellite velocity in ECEF coordinates is returned in this
- *             vector. Ignored if NULL.
+ * \param a Pointer to an almanac structure for the satellite of interest
+ * \param t GPS time at which to calculate the satellite state
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
  */
-static void sbas_calc_sat_state_almanac(const almanac_t* alm_, double t,
-                                        double pos[3], double vel[3])
+static s8 calc_sat_state_xyz_almanac(const almanac_t *a, const gps_time_t *t,
+                                     double pos[3], double vel[3],
+                                     double *clock_err, double *clock_rate_err)
 {
-  const almanac_sbas_t *alm = &alm_->sbas;
+  ephemeris_t e;
+  memset(&e, 0, sizeof(e));
+  e.sid = a->sid;
+  e.toe = a->toa;
+  e.ura = a->ura;
+  e.fit_interval = a->fit_interval;
+  e.valid = a->valid;
+  e.healthy = a->healthy;
+  memcpy(e.xyz.pos, a->xyz.pos, sizeof(e.xyz.pos));
+  memcpy(e.xyz.vel, a->xyz.vel, sizeof(e.xyz.vel));
+  memcpy(e.xyz.acc, a->xyz.acc, sizeof(e.xyz.acc));
 
-  u8 days = t / DAY_SECS;
-  double tod = t - (days * DAY_SECS);
-  double dt = tod - alm->t0;
-
-  if (dt > DAY_SECS/2)
-    dt -= DAY_SECS;
-  else if (dt < -DAY_SECS/2)
-    dt += DAY_SECS;
-
-  vel[0] = alm->x_rate;
-  vel[1] = alm->y_rate;
-  vel[2] = alm->z_rate;
-
-  pos[0] = alm->x + alm->x_rate * dt;
-  pos[1] = alm->y + alm->y_rate * dt;
-  pos[2] = alm->z + alm->z_rate * dt;
+  return calc_sat_state(&e, t, pos, vel, clock_err, clock_rate_err);
 }
 
-/** Calculate the position / velocity state of a satellite from the GPS
- *  almanac.
+/** Calculate satellite position, velocity and clock offset from GPS ephemeris.
  *
- * \param alm  Pointer to an almanac structure for the satellite of interest.
- * \param t    GPS time of week at which to calculate the satellite state in
- *             seconds since Sunday.
- * \param week GPS week number modulo 1024 or pass -1 to assume within one
- *             half-week of the almanac time of applicability.
- * \param pos  The satellite position in ECEF coordinates is returned in this
- *             vector.
- * \param vel  The satellite velocity in ECEF coordinates is returned in this
- *             vector. Ignored if NULL.
+ * References:
+ *   -# IS-GPS-200D, Section 20.3.3.5.2.1 and Table 20-VI
+ *
+ * \param a Pointer to an almanac structure for the satellite of interest
+ * \param t GPS time at which to calculate the satellite state
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
+ *
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
-static void gps_calc_sat_state_almanac(const almanac_t* alm_, double t, s16 week,
-                                       double pos[3], double vel[3])
+static s8 calc_sat_state_kepler_almanac(const almanac_t *a, const gps_time_t *t,
+                                          double pos[3], double vel[3],
+                                          double *clock_err, double *clock_rate_err)
 {
-  const almanac_gps_t *alm = &alm_->gps;
-  /* Seconds since the almanac reference epoch. */
-  double dt = t - alm->toa;
+  ephemeris_t e;
+  memset(&e, 0, sizeof(e));
+  e.sid = a->sid;
+  e.toe = a->toa;
+  e.ura = a->ura;
+  e.fit_interval = a->fit_interval;
+  e.valid = a->valid;
+  e.healthy = a->healthy;
+  e.kepler.m0 = a->kepler.m0;
+  e.kepler.ecc = a->kepler.ecc;
+  e.kepler.sqrta = a->kepler.sqrta;
+  e.kepler.omega0 = a->kepler.omega0;
+  e.kepler.omegadot = a->kepler.omegadot;
+  e.kepler.w = a->kepler.w;
+  e.kepler.inc = a->kepler.inc;
+  e.kepler.af0 = a->kepler.af0;
+  e.kepler.af1 = a->kepler.af1;
 
-  if (week < 0) {
-    /* Week number unknown, correct time for beginning or end of week
-     * crossovers and limit to +/- 302400 (i.e. assume dt is within a
-     * half-week). */
-    if (dt > 302400)
-      dt -= 604800;
-    else if (dt < -302400)
-      dt += 604800;
-  } else {
-    /* Week number specified, correct time using week number difference. */
-    s32 dweeks = week - alm->week;
-    dt += dweeks * 604800;
-  }
-
-  /* Calculate position and velocity per ICD-GPS-200D Table 20-IV. */
-
-  /* Calculate mean motion in radians/sec. */
-  double ma_dot = sqrt (GPS_GM / (alm->a * alm->a * alm->a));
-  /* Calculate corrected mean anomaly in radians. */
-  double ma = alm->ma + ma_dot * dt;
-
-  /* Iteratively solve for the Eccentric Anomaly
-   * (from Keith Alter and David Johnston). */
-  double ea = ma;  /* Starting value for E. */
-  double ea_old;
-  double temp;
-  double ecc = alm->ecc;
-  u32 count = 0;
-
-  /* TODO: Implement convergence test using integer difference of doubles,
-   * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
-  /* TODO: Bound number of iterations. */
-  do {
-    ea_old = ea;
-    temp = 1.0 - ecc * cos(ea_old);
-    ea = ea + (ma - ea_old + ecc * sin(ea_old)) / temp;
-    count++;
-    if (count > 5)
-      break;
-  } while (fabs(ea - ea_old) > 1.0e-14);
-
-  double ea_dot = ma_dot / temp;
-
-  /* Begin calculation for True Anomaly and Argument of Latitude. */
-  double temp2 = sqrt(1.0 - ecc * ecc);
-  /* Argument of Latitude = True Anomaly + Argument of Perigee. */
-  double al = atan2(temp2 * sin(ea), cos(ea) - ecc) + alm->argp;
-  double al_dot = temp2 * ea_dot / temp;
-
-  /* Calculate corrected radius based on argument of latitude. */
-  double r = alm->a * temp;
-  double r_dot = alm->a * ecc * sin(ea) * ea_dot;
-
-  /* Calculate position and velocity in orbital plane. */
-  double x = r * cos(al);
-  double y = r * sin(al);
-  double x_dot = r_dot * cos(al) - y * al_dot;
-  double y_dot = r_dot * sin(al) + x * al_dot;
-
-  /* Corrected longitude of ascending node. */
-  double om_dot = alm->rora - GPS_OMEGAE_DOT;
-  double om = alm->raaw + dt * om_dot - GPS_OMEGAE_DOT * alm->toa;
-
-  /* Compute the satellite's position in Earth-Centered Earth-Fixed
-   * coordinates. */
-  pos[0] = x * cos(om) - y * cos(alm->inc) * sin(om);
-  pos[1] = x * sin(om) + y * cos(alm->inc) * cos(om);
-  pos[2] = y * sin(alm->inc);
-
-  /* Compute the satellite's velocity in Earth-Centered Earth-Fixed
-   * coordinates. */
-  if (vel) {
-    temp = y_dot * cos(alm->inc);
-    vel[0] = -om_dot * pos[1] + x_dot * cos(om) - temp * sin(om);
-    vel[1] =  om_dot * pos[0] + x_dot * sin(om) + temp * cos(om);
-    vel[2] = y_dot * sin(alm->inc);
-  }
-
+  return calc_sat_state(&e, t, pos, vel, clock_err, clock_rate_err);
 }
 
-/** Calculate the position / velocity state of a satellite from the almanac.
+/** Calculate satellite position, velocity and clock offset from almanac.
  *
- * \param alm  Pointer to an almanac structure for the satellite of interest.
- * \param t    GPS time of week at which to calculate the satellite state in
- *             seconds since Sunday.
- * \param week GPS week number modulo 1024 or pass -1 to assume within one
- *             half-week of the almanac time of applicability.
- * \param pos  The satellite position in ECEF coordinates is returned in this
- *             vector.
- * \param vel  The satellite velocity in ECEF coordinates is returned in this
- *             vector. Ignored if NULL.
+ * Dispatch to internal function for Kepler/XYZ almanac depending on
+ * constellation.
+ *
+ * \param a Pointer to an almanac structure for the satellite of interest
+ * \param t GPS time at which to calculate the satellite state
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
+ *
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
-void calc_sat_state_almanac(const almanac_t* alm, double t, s16 week,
-                            double pos[3], double vel[3])
+s8 calc_sat_state_almanac(const almanac_t *a, const gps_time_t *t,
+                            double pos[3], double vel[3],
+                            double *clock_err, double *clock_rate_err)
 {
-  switch(sid_to_constellation(alm->sid)) {
+  switch(sid_to_constellation(a->sid)) {
   case CONSTELLATION_GPS:
-    gps_calc_sat_state_almanac(alm, t, week, pos, vel);
-    break;
+    return calc_sat_state_kepler_almanac(a, t, pos, vel, clock_err, clock_rate_err);
   case CONSTELLATION_SBAS:
-    sbas_calc_sat_state_almanac(alm, t, pos, vel);
+    return calc_sat_state_xyz_almanac(a, t, pos, vel, clock_err, clock_rate_err);
     break;
   default:
     assert(!"Unsupported constellation");
+    return -1;
   }
 }
 
 /** Calculate the azimuth and elevation of a satellite from a reference
  * position given the satellite almanac.
  *
- * \param alm  Pointer to an almanac structure for the satellite of interest.
- * \param t    GPS time of week at which to calculate the az/el.
- * \param week GPS week number modulo 1024 or pass -1 to assume within one
- *             half-week of the almanac time of applicability.
+ * \param a  Pointer to an almanac structure for the satellite of interest.
+ * \param t    GPS time at which to calculate the az/el.
  * \param ref  ECEF coordinates of the reference point from which the azimuth
  *             and elevation is to be determined, passed as [X, Y, Z], all in
  *             meters.
- * \param az   Pointer to where to store the calculated azimuth output.
- * \param el   Pointer to where to store the calculated elevation output.
+ * \param az   Pointer to where to store the calculated azimuth output [rad].
+ * \param el   Pointer to where to store the calculated elevation output [rad].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
-void calc_sat_az_el_almanac(const almanac_t* alm, double t, s16 week,
-                            const double ref[3], double* az, double* el)
+s8 calc_sat_az_el_almanac(const almanac_t *a, const gps_time_t *t,
+                          const double ref[3], double* az, double* el)
 {
   double sat_pos[3];
-  calc_sat_state_almanac(alm, t, week, sat_pos, 0);
+  double sat_vel[3];
+  double clock_err, clock_rate_err;
+  s8 ret = calc_sat_state_almanac(a, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
+  if (ret != 0) {
+    return ret;
+  }
   wgsecef2azel(sat_pos, ref, az, el);
+
+  return 0;
 }
 
 /** Calculate the Doppler shift of a satellite as observed at a reference
  * position given the satellite almanac.
  *
- * \param alm  Pointer to an almanac structure for the satellite of interest.
- * \param t    GPS time of week at which to calculate the Doppler shift.
- * \param week GPS week number modulo 1024 or pass -1 to assume within one
- *             half-week of the almanac time of applicability.
- * \param ref  ECEF coordinates of the reference point from which the azimuth
- *             and elevation is to be determined, passed as [X, Y, Z], all in
+ * \param a  Pointer to an almanac structure for the satellite of interest.
+ * \param t    GPS time at which to calculate the az/el.
+ * \param ref  ECEF coordinates of the reference point from which the
+ *             Doppler is to be determined, passed as [X, Y, Z], all in
  *             meters.
- * \return     The Doppler shift in Hz.
+ * \param doppler The Doppler shift [Hz].
+ * \return  0 on success,
+ *         -1 if almanac is not valid or too old
  */
-double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
-                                const double ref[3])
+s8 calc_sat_doppler_almanac(const almanac_t *a, const gps_time_t *t,
+                            const double ref[3], double *doppler)
 {
   double sat_pos[3];
   double sat_vel[3];
+  double clock_err, clock_rate_err;
   double vec_ref_sat[3];
 
-  calc_sat_state_almanac(alm, t, week, sat_pos, sat_vel);
+  s8 ret = calc_sat_state_almanac(a, t, sat_pos, sat_vel, &clock_err, &clock_rate_err);
+  if (ret != 0) {
+    return ret;
+  }
 
   /* Find the vector from the reference position to the satellite. */
   vector_subtract(3, sat_pos, ref, vec_ref_sat);
@@ -238,7 +196,116 @@ double calc_sat_doppler_almanac(const almanac_t* alm, double t, s16 week,
                            vector_norm(3, vec_ref_sat);
 
   /* Return the Doppler shift. */
-  return GPS_L1_HZ * radial_velocity / GPS_C;
+  *doppler = GPS_L1_HZ * radial_velocity / GPS_C;
+
+  return 0;
+}
+
+/** Is this almanac usable?
+ *
+ * \param a Almanac struct
+ * \param t The current GPS time. This is used to determine the ephemeris age.
+ * \return 1 if the ephemeris is valid and not too old.
+ *         0 otherwise.
+ */
+u8 almanac_valid(const almanac_t *a, const gps_time_t *t)
+{
+  assert(a != NULL);
+  assert(t != NULL);
+
+  if (!a->valid) {
+    return 0;
+  }
+
+  if (a->fit_interval <= 0) {
+    log_warn("almanac_valid used with 0 a->fit_interval");
+    return 0;
+  }
+
+  /*
+   * Almanac did not get time-stammped when it was received.
+   */
+  if (a->toa.wn == 0) {
+    return 0;
+  }
+
+  /* Seconds from the time from almanac reference epoch (toe) */
+  double dt = gpsdifftime(t, &a->toa);
+
+  /* TODO: this doesn't exclude almanacs older than a week so could be made
+   * better. */
+  /* If dt is greater than fit_interval / 2 seconds our ephemeris isn't valid. */
+  if (fabs(dt) > ((u32)a->fit_interval / 2)) {
+    return 0;
+  }
+
+  return 1;
+}
+
+/** Is this satellite healthy? Note this function only checks flags in the
+ * almanac.
+ *
+ * \todo In the future we should check for health at the signal level. E.g.
+ * if only the L2(P) signal is bad, but L1 C/A and L2C are fine, we can still
+ * use the satellite.
+ *
+ * \param a Almanac struct
+ * \return 1 if the satellite is healthy.
+ *         0 otherwise.
+ */
+u8 satellite_healthy_almanac(const almanac_t *a)
+{
+  return a->healthy;
+}
+
+static bool almanac_xyz_equal(const almanac_xyz_t *a,
+                              const almanac_xyz_t *b)
+{
+  return (memcmp(a->pos, b->pos, sizeof(a->pos)) == 0) &&
+         (memcmp(a->vel, b->vel, sizeof(a->vel)) == 0) &&
+         (memcmp(a->acc, b->acc, sizeof(a->acc)) == 0);
+}
+
+static bool almanac_kepler_equal(const almanac_kepler_t *a,
+                                 const almanac_kepler_t *b)
+{
+  return (a->m0 == b->m0) &&
+         (a->ecc == b->ecc) &&
+         (a->sqrta == b->sqrta) &&
+         (a->omega0 == b->omega0) &&
+         (a->omegadot == b->omegadot) &&
+         (a->w == b->w) &&
+         (a->inc == b->inc) &&
+         (a->af0 == b->af0) &&
+         (a->af1 == b->af1);
+}
+
+/** Are the two almanacs the same?
+ *
+ * \param a First almanac
+ * \param b Second almanac
+ * \return true if they are equal
+ */
+bool almanac_equal(const almanac_t *a, const almanac_t *b)
+{
+  if (!sid_is_equal(a->sid, b->sid) ||
+      (a->ura != b->ura) ||
+      (a->fit_interval != b->fit_interval) ||
+      (a->valid != b->valid) ||
+      (a->healthy != b->healthy) ||
+      (a->toa.wn != b->toa.wn) ||
+      (a->toa.tow != b->toa.tow))
+    return false;
+
+  switch (sid_to_constellation(a->sid)) {
+  case CONSTELLATION_GPS:
+    return almanac_kepler_equal(&a->kepler, &b->kepler);
+  case CONSTELLATION_SBAS:
+    return almanac_xyz_equal(&a->xyz, &b->xyz);
+  default:
+    assert(!"Unsupported constellation");
+    return false;
+  }
 }
 
 /** \} */

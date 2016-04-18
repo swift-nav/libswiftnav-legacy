@@ -1,6 +1,7 @@
 #ifndef CHECK_SUITES_H
 #define CHECK_SUITES_H
 
+Suite* almanac_suite(void);
 Suite* dgnss_management_test_suite(void);
 Suite* baseline_test_suite(void);
 Suite* amb_kf_test_suite(void);

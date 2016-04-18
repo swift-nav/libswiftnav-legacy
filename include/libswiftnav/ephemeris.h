@@ -18,50 +18,81 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/common.h>
 
+/** \addtogroup ephemeris
+ * \{ */
+
+/** Structure containing the GPS ephemeris for one satellite. */
 typedef struct {
-  double tgd;
-  double crs, crc, cuc, cus, cic, cis;
-  double dn, m0, ecc, sqrta, omega0, omegadot, w, inc, inc_dot;
-  double af0, af1, af2;
-  gps_time_t toc;
-  u16 iodc;
-  u8 iode;
+  double tgd;      /**< Group delay between L1 and L2 [s] */
+  double crc;      /**< Amplitude of the cosine harmonic correction term
+                        to the orbit radius [m] */
+  double crs;      /**< Amplitude of the sine harmonic correction term
+                        to the orbit radius [m] */
+  double cuc;      /**< Amplitude of the cosine harmonic correction term
+                        to the argument of latitude [rad] */
+  double cus;      /**< Amplitude of the sine harmonic correction term
+                        to the argument of latitude [rad] */
+  double cic;      /**< Amplitude of the cosine harmonic correction term
+                        to the angle of inclination [rad] */
+  double cis;      /**< Amplitude of the sine harmonic correction term
+                        to the angle of inclination [rad] */
+  double dn;       /**< Mean motion difference from computed value
+                        [semi-circles/s] */
+  double m0;       /**< Mean anomaly at reference time [semi-circles] */
+  double ecc;      /**< Eccentricity. */
+  double sqrta;    /**< Square root of the semi-major axis [sqrt(m)] */
+  double omega0;   /**< Longitude of ascending node
+                        of orbit plane at weekly epoch [semi-circles] */
+  double omegadot; /**< Rate of right ascension [semi-circles/s] */
+  double w;        /**< Argument of perigee [semi-circles] */
+  double inc;      /**< Inclindation angle at reference time [semi-circles] */
+  double inc_dot;  /**< Rate of inclination angle [semi-circles/s] */
+  double af0;      /**< Time offset of the sat clock [s] **/
+  double af1;      /**< Drift of the sat clock [s/s] **/
+  double af2;      /**< Acceleration of the sat clock [s/s^2] **/
+  gps_time_t toc;  /**< Reference time of clock. */
+  u16 iodc;        /**< Issue of data clock. */
+  u8 iode;         /**< Issue of data ephemeris. */
 } ephemeris_kepler_t;
 
+/** Structure containing the SBAS ephemeris for one satellite. */
 typedef struct {
-  double pos[3];
-  double rate[3];
-  double acc[3];
-  u8 iod;
-  u16 toa;
-  double a_gf0;
-  double a_gf1;
+  double pos[3]; /**< Position of the GEO at time toe [m] */
+  double vel[3]; /**< velocity of the GEO at time toe [m/s] */
+  double acc[3]; /**< velocity of the GEO at time toe [m/s^2] */
+  double a_gf0;  /**< Time offset of the GEO clock w.r.t. SNT [s] */
+  double a_gf1;  /**< Drift of the GEO clock w.r.t. SNT [s/s] */
 } ephemeris_xyz_t;
 
+/** Structure containing the ephemeris for one satellite. */
 typedef struct {
-  gnss_signal_t sid;
-  gps_time_t toe;
-  float ura;
-  u8 fit_interval;
-  u8 valid;
-  u8 healthy;
+  gnss_signal_t sid; /**< Signal ID. */
+  gps_time_t toe;    /**< Reference time of ephemeris. */
+  float ura;         /**< User range accuracy [m] */
+  u32 fit_interval;  /**< Curve fit interval [s] */
+  u8 valid;          /**< Ephemeris is valid. */
+  u8 healthy;        /**< Satellite health status. */
   union {
-    ephemeris_kepler_t kepler;
-    ephemeris_xyz_t xyz;
+    ephemeris_kepler_t kepler; /**< Parameters specific to GPS. */
+    ephemeris_xyz_t xyz;       /**< Parameters specific to SBAS. */
   };
 } ephemeris_t;
+
+/** \} */
 
 s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                   double pos[3], double vel[3],
                   double *clock_err, double *clock_rate_err);
+s8 calc_sat_az_el(const ephemeris_t *e, const gps_time_t *t,
+                  const double ref[3], double *az, double *el);
+s8 calc_sat_doppler(const ephemeris_t *e, const gps_time_t *t,
+                    const double ref[3], double *doppler);
 
-u8 ephemeris_valid(const ephemeris_t *eph, const gps_time_t *t);
-u8 ephemeris_params_valid(const u8 v, const u8 fit_interval,
+u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t);
+u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t);
-u8 satellite_healthy(const ephemeris_t *eph);
+u8 satellite_healthy(const ephemeris_t *e);
 
-float decode_ura_index(const u8 index);
-u8 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
 void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b);
 
