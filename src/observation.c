@@ -60,7 +60,7 @@ static void single_diff_(void *context, u32 n, const void *a, const void *b)
 
   sds[n].sid = m_a->sid;
   sds[n].pseudorange = m_a->raw_pseudorange - m_b->raw_pseudorange;
-  sds[n].carrier_phase = m_a->carrier_phase - m_b->carrier_phase;
+  sds[n].carrier_phase = m_a->raw_carrier_phase - m_b->raw_carrier_phase;
   sds[n].doppler = m_a->raw_doppler - m_b->raw_doppler;
   sds[n].snr = MIN(m_a->snr, m_b->snr);
   sds[n].lock_counter = m_a->lock_counter + m_b->lock_counter;
@@ -193,6 +193,9 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
+      /* TODO: (kleeman) I think this should be the time of transmit, not
+       *    the receiver time, though perhaps it doesn't matter much since
+       *    later we only use the difference in dinstance?*/
       calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
                      &clock_err, &clock_rate_err);
       sds[n].sid = m_local[i].sid;
@@ -216,8 +219,8 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       sds[n].pseudorange = m_local[i].raw_pseudorange
                          - (m_remote[j].raw_pseudorange
                             + dist_diff);
-      sds[n].carrier_phase = m_local[i].carrier_phase
-                           - (m_remote[j].carrier_phase
+      sds[n].carrier_phase = m_local[i].raw_carrier_phase
+                           - (m_remote[j].raw_carrier_phase
                               - dist_diff / GPS_L1_LAMBDA);
 
       /* Doppler is not propagated.

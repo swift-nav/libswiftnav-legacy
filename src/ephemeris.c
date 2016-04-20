@@ -127,7 +127,6 @@ static s8 calc_sat_state_kepler(const ephemeris_t *e,
 
   /* TODO: Implement convergence test using integer difference of doubles,
    * http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm */
-  /* TODO: Bound number of iterations. */
   do {
     ea_old = ea;
     temp = 1.0 - ecc * cos(ea_old);
