@@ -250,7 +250,6 @@ cdef class AidedTrackingLoop:
                   kwargs['carr_k'],
                   kwargs['carr_freq_b1'])
 
-
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     """
     Retune the tracking loop.
@@ -267,15 +266,13 @@ cdef class AidedTrackingLoop:
       FLL aiding gain
 
     """
-    self.loop_freq = loop_freq
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
-    self.carr_freq_igain = carr_freq_igain
-    aided_tl_retune(&self._thisptr, self.loop_freq,
-                            self.code_bw, self.code_zeta, self.code_k,
-                            self.carr_to_code,
-                            self.carr_bw, self.carr_zeta, self.carr_k,
-                            self.carr_freq_igain)
+    code_bw, code_zeta, code_k = code_params
+    carr_bw, carr_zeta, carr_k = carr_params
+    aided_tl_retune(&self._thisptr, loop_freq,
+                    code_bw, code_zeta, code_k,
+                    carr_to_code,
+                    carr_bw, carr_zeta, carr_k,
+                    carr_freq_igain)
 
   def update(self, E, P, L):
     """
@@ -367,19 +364,20 @@ cdef class LockDetector:
   """
 
   def __cinit__(self, **kwargs):
-    self._thisptr = kwargs
     lock_detect_init(&self._thisptr,
-                     self._thisptr.k1,
-                     self._thisptr.k2,
-                     self._thisptr.thislp,
-                     self._thisptr.lo)
+                     kwargs['k1'],
+                     kwargs['k2'],
+                     kwargs['lp'],
+                     kwargs['lo'])
 
   def reinit(self, k1, k2, lp, lo):
     lock_detect_reinit(&self._thisptr, k1, k2, lp, lo)
 
   def update(self, I, Q, DT):
     lock_detect_update(&self._thisptr, I, Q, DT)
-    return (self._thisptr.outo, self._thisptr.outp)
+    return (self._thisptr.outo, self._thisptr.outp, \
+            self._thisptr.pcount1, self._thisptr.pcount2,\
+            self._thisptr.lpfi.y, self._thisptr.lpfq.y)
 
 
 cdef class AliasDetector:
@@ -392,6 +390,9 @@ cdef class AliasDetector:
 
   def second(self, I, Q):
     return alias_detect_second(&self._thisptr, I, Q)
+
+  def reinit(self, acc_len, time_diff):
+    return alias_detect_reinit(&self._thisptr, acc_len, time_diff)
 
 cdef class CN0Estimator:
   """
