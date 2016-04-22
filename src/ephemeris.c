@@ -24,6 +24,8 @@
 
 float decode_ura_index(const u8 index);
 u32 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
+/* maximum step length in seconds for Runge-Kutta aglorithm */
+#define GLO_MAX_STEP_LENGTH 30
 
 /** \defgroup ephemeris Ephemeris
  * Functions and calculations related to the GPS ephemeris.
@@ -70,6 +72,138 @@ static s8 calc_sat_state_xyz(const ephemeris_t *e, const gps_time_t *t,
 
   *clock_err = ex->a_gf0;
   *clock_rate_err = ex->a_gf1;
+
+  return 0;
+}
+
+/** Re-calculation of ephemeris within the interval of measurement
+ *  ICD 5.1: A.3.1.2, with corrections from RTCM 3.2 p.186
+ *
+ * \param ydot Pointer to output array
+ * \param pos Pointer to position input array
+ * \param vel Pointer to velocity input array
+ * \param acc Pointer to acceleration input array
+ * \param e Pointer to GLO ephemeris
+ */
+static void calc_ydot(double ydot[6],
+                      const double pos[3],
+                      const double vel[3],
+                      const double acc[3])
+{
+
+  double r = sqrt(pow(pos[0], 2) +
+                  pow(pos[1], 2) +
+                  pow(pos[2], 2));
+
+  double m_r3 = GLO_GM / pow(r, 3);
+
+  double g_term = 3.0/2.0 * GLO_J02 * GLO_GM *
+                  pow(GLO_A_E, 2) / pow(r, 5);
+
+  double lg_term = (1.0 - 5.0 * pow(pos[2], 2) / pow(r, 2));
+
+  double omega_sqr = pow(GPS_OMEGAE_DOT, 2);
+
+  ydot[0] = vel[0];
+  ydot[1] = vel[1];
+  ydot[2] = vel[2];
+
+  ydot[3] = -m_r3 * pos[0]
+            -g_term * pos[0] * lg_term
+            + omega_sqr * pos[0]
+            + 2.0 * GLO_OMEGAE_DOT * vel[1]
+            + acc[0];
+
+  ydot[4] = -m_r3 * pos[1]
+            -g_term * pos[1] * lg_term
+            + omega_sqr * pos[1]
+            - 2.0 * GLO_OMEGAE_DOT * vel[0]
+            + acc[1];
+
+
+  ydot[5] = -m_r3 * pos[2]
+            -g_term * pos[2] * (2.0 + lg_term)
+            + acc[2];
+}
+
+/** Calculate satellite position, velocity and clock offset from GLO ephemeris.
+ *
+ * \param e Pointer to an ephemeris structure for the satellite of interest
+ * \param t time at which to calculate the satellite state
+ * \param pos Array into which to write calculated satellite position [m]
+ * \param vel Array into which to write calculated satellite velocity [m/s]
+ * \param clock_err Pointer to where to store the calculated satellite clock
+ *                  error [s]
+ * \param clock_rate_err Pointer to where to store the calculated satellite
+ *                       clock error [s/s]
+ *
+ * \return  0 on success,
+ *         -1 if ephemeris is not valid or too old
+ */
+static s8 calc_sat_state_glo(const ephemeris_t *e, const gps_time_t *t,
+                             double pos[3], double vel[3],
+                             double *clock_err, double *clock_rate_err)
+{
+  assert(e != NULL);
+  assert(t != NULL);
+  assert(pos != NULL);
+  assert(vel != NULL);
+  assert(clock_err != NULL);
+  assert(clock_rate_err != NULL);
+
+  double dt = abs(gpsdifftime(t, &e->toe));
+
+  if (dt > 900) {
+    log_error("GLO: Integration end point is not within 900 s of TOE");
+    return 1;
+  }
+
+  u32 num_steps = ceil(dt / GLO_MAX_STEP_LENGTH);
+  double h = gpsdifftime(t, &e->toe) / num_steps;
+
+  if (num_steps) {
+    double ydot[6], y[6];
+
+    calc_ydot(ydot, e->glo.pos, e->glo.vel, e->glo.acc);
+    memcpy(&y[0], e->glo.pos, sizeof(double) * 3);
+    memcpy(&y[3], e->glo.vel, sizeof(double) * 3);
+
+    /* Runge-Kutta integration algorithm */
+    for (u8 i = 0; i < num_steps; i++) {
+      double k1[6], k2[6], k3[6], k4[6], y_tmp[6];
+      u8 j;
+
+      memcpy(k1, ydot, sizeof(k1));
+
+      for (j = 0; j < 6; j++)
+        y_tmp[j] = y[j] + h/2 * k1[j];
+
+      calc_ydot(k2, &y_tmp[0], &y_tmp[3], e->glo.acc);
+
+      for (j = 0; j < 6; j++)
+        y_tmp[j] = y[j] + h/2 * k2[j];
+
+      calc_ydot(k3, &y_tmp[0], &y_tmp[3], e->glo.acc);
+
+      for (j = 0; j < 6; j++)
+        y_tmp[j] = y[j] + h * k3[j];
+
+      calc_ydot(k4, &y_tmp[0], &y_tmp[3], e->glo.acc);
+
+      for (j = 0; j < 6; j++)
+        y[j] += h/6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
+
+      calc_ydot(ydot, &y[0], &y[3], e->glo.acc);
+    }
+    memcpy(pos, &y[0], sizeof(double) * 3);
+    memcpy(vel, &y[3], sizeof(double) * 3);
+  } else {
+    memcpy(pos, e->glo.pos, sizeof(double) * 3);
+    memcpy(vel, e->glo.vel, sizeof(double) * 3);
+  }
+
+  *clock_err = e->glo.tau + e->glo.gamma * dt;
+  *clock_rate_err = e->glo.gamma;
 
   return 0;
 }
@@ -231,6 +365,8 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
     return calc_sat_state_kepler(e, t, pos, vel, clock_err, clock_rate_err);
   case CONSTELLATION_SBAS:
     return calc_sat_state_xyz(e, t, pos, vel, clock_err, clock_rate_err);
+  case CONSTELLATION_GLO:
+    return calc_sat_state_glo(e, t, pos, vel, clock_err, clock_rate_err);
   default:
     assert(!"Unsupported constellation");
     return -1;
@@ -666,6 +802,14 @@ static bool ephemeris_kepler_equal(const ephemeris_kepler_t *a,
          (a->toc.tow == b->toc.tow);
 }
 
+static bool ephemeris_glo_equal(const ephemeris_glo_t *a,
+                                const ephemeris_glo_t *b)
+{
+  return (memcmp(a->pos, b->pos, sizeof(a->pos)) == 0) &&
+         (memcmp(a->vel, b->vel, sizeof(a->vel)) == 0) &&
+         (memcmp(a->acc, b->acc, sizeof(a->acc)) == 0);
+}
+
 /** Are the two ephemerides the same?
  *
  * \param a First ephemeris
@@ -688,6 +832,8 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
     return ephemeris_kepler_equal(&a->kepler, &b->kepler);
   case CONSTELLATION_SBAS:
     return ephemeris_xyz_equal(&a->xyz, &b->xyz);
+  case CONSTELLATION_GLO:
+    return ephemeris_glo_equal(&a->glo, &b->glo);
   default:
     assert(!"Unsupported constellation");
     return false;

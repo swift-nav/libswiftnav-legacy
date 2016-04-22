@@ -34,6 +34,8 @@ cdef class Ephemeris:
       self._thisptr.kepler = kwargs.pop('kepler')
     elif 'xyz' in kwargs:
       self._thisptr.xyz = kwargs.pop('xyz')
+    elif 'glo' in kwargs:
+      self._thisptr.glo = kwargs.pop('glo')
 
   def __getattr__(self, k):
     return self._thisptr.get(k)

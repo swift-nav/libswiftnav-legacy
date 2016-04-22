@@ -261,6 +261,114 @@ START_TEST(test_ephemeris_equal)
   fail_unless(!ephemeris_equal(&a, &b),
       "Ephemerides should not be equal (xyz.a_gf1)");
   memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.pos[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.pos[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.pos[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.vel[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.vel[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.vel[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.acc[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.acc[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L1CA;
+  a.glo.acc[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.pos[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.pos[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.pos[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.pos[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.vel[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.vel[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.vel[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.vel[2])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.acc[0] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[0])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.acc[1] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[1])");
+  memset(&a, 0, sizeof(a));
+
+  a.sid.code = CODE_GLO_L2CA;
+  a.glo.acc[2] = 1;
+  fail_unless(!ephemeris_equal(&a, &b),
+      "Ephemerides should not be equal (glo.acc[2])");
+  memset(&a, 0, sizeof(a));
 }
 END_TEST
 

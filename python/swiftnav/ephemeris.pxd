@@ -29,6 +29,13 @@ cdef extern from "libswiftnav/ephemeris.h":
     double a_gf0
     double a_gf1
 
+  ctypedef struct ephemeris_glo_t:
+    double gamma;
+    double tau;
+    double pos[3]
+    double vel[3]
+    double acc[3]
+
   ctypedef struct ephemeris_t:
     gnss_signal_t sid
     gps_time_t toe
@@ -39,6 +46,7 @@ cdef extern from "libswiftnav/ephemeris.h":
     # HACK: Actually an anonymous union in libswiftnat!
     ephemeris_kepler_t kepler
     ephemeris_xyz_t xyz
+    ephemeris_glo_t glo
 
   s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
                     double pos[3], double vel[3],
