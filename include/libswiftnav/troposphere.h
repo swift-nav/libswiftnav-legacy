@@ -10,10 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef LIBSWIFTNAV_TROPO_H
-#define LIBSWIFTNAV_TROPO_H
+#ifndef LIBSWIFTNAV_TROPOSPHERE_H
+#define LIBSWIFTNAV_TROPOSPHERE_H
 
-double tropo_correction(double elevation);
+double calc_troposphere(double doy, double lat, double h, double el,
+                        double *t_out, double *p_out, double *e_out,
+                        double *t_m_out);
 
-#endif /* LIBSWIFTNAV_TROPO_H */
-
+#endif /* LIBSWIFTNAV_TROPOSPHERE_H */

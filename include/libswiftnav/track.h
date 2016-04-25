@@ -160,7 +160,7 @@ typedef struct {
 typedef struct {
   double raw_pseudorange;
   double pseudorange;
-  double carrier_phase;
+  double raw_carrier_phase;
   double raw_doppler;
   double doppler;
   double sat_pos[3];

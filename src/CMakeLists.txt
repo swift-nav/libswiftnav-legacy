@@ -20,7 +20,7 @@ set(libswiftnav_SRCS
   ephemeris.c
   nav_msg.c
   pvt.c
-  tropo.c
+  troposphere.c
   track.c
   correlate.c
   coord_system.c

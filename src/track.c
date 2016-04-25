@@ -19,7 +19,6 @@
 #include <libswiftnav/prns.h>
 #include <libswiftnav/track.h>
 #include <libswiftnav/ephemeris.h>
-#include <libswiftnav/tropo.h>
 #include <libswiftnav/coord_system.h>
 
 /** \defgroup track Tracking
@@ -782,8 +781,8 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->snr = meas[i]->snr;
     nav_meas[i]->sid = meas[i]->sid;
 
-    nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
-    nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
+    nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
+    nav_meas[i]->raw_carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
@@ -853,7 +852,7 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Calculate raw Doppler from time difference of carrier phase. */
       /* TODO: check that using difference of TOTs here is a valid
        * approximation. */
-      m_corrected[n].raw_doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
+      m_corrected[n].raw_doppler = (m_new[i].raw_carrier_phase - m_old[j].raw_carrier_phase)
                                     / gpsdifftime(&m_new[i].tot, &m_old[j].tot);
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = m_corrected[n].raw_doppler + dopp_corr;
