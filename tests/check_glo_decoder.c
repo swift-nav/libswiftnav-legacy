@@ -15,8 +15,10 @@
 #include <check.h>
 #include <math.h>
 #include <string.h>
-#include <libswiftnav/nav_msg_glo.h>
 #include <libswiftnav/logging.h>
+#undef log_error
+#define log_error(...)
+#include <nav_msg_glo.c>
 
 nav_msg_glo_t n;
 ephemeris_t e;
@@ -138,6 +140,11 @@ START_TEST(test_extract_glo_word)
   fail_unless(ret == 0x87654321, "9. %x, expected %x", ret, 0x87654321);
   ret = extract_word_glo(&n, 49, 16);
   fail_unless(ret == 0x4321, "10. %x, expected %x", ret, 0x4321);
+
+  fail_unless(extract_word_glo(&n, 0, 1) == 0, "Expected 0");
+  fail_unless(extract_word_glo(&n, 86, 1) == 0, "Expected 0");
+  fail_unless(extract_word_glo(&n, 1, 0) == 0, "Expected 0");
+  fail_unless(extract_word_glo(&n, 1, 33) == 0, "Expected 0");
 }
 END_TEST
 
@@ -153,10 +160,11 @@ START_TEST(test_process_string_glo)
 }
 END_TEST
 
-START_TEST(test_nav_msg_update_glo)
+void msg_update_test(bool inverted)
 {
-  /* the unit test encodes strings_in to generate glo bitstream, calls
-   * nav_msg_update_glo to receive and finally decodes received string */
+  /* the unit test encodes strings_in to generate either normal or
+   * inverted glo bitstream , calls nav_msg_update_glo to receive and finally
+   * decodes received string */
   nav_msg_init_glo(&n);
   memset(&e, 0, sizeof(e));
   /* get string one by one */
@@ -167,11 +175,14 @@ START_TEST(test_nav_msg_update_glo)
     u8 j;
     nav_msg_init_glo(&a);
     /* write test string to temporary buffer */
-    memcpy(a.string_bits, strings_in[i], sizeof(n.string_bits));
-    /* transmit data bits, 85 bit */
-    for (j = 85; j > 0; j--) {
+    memcpy(a.string_bits, strings_in[i], sizeof(a.string_bits));
+    /* transmit data bits, 85 bits */
+    for (j = GLO_STR_LEN; j > 0; j--) {
       bool one_bit = extract_word_glo(&a, j, 1); /* get bit to be transmitted */
-      manchester = (one_bit << 1 | one_bit) ^ 2; /* transform to line code */
+      if(!inverted)
+        manchester = (one_bit << 1 | one_bit) ^ 2; /* transform to line code */
+      else
+        manchester = (one_bit << 1 | one_bit) ^ 1; /* transform to line code */
       /* now pass it to receiver MSB first, receiver must return -1 */
       ret = nav_msg_update_glo(&n, (manchester >> 1) & 1);
       fail_unless(ret == -1, "ret = %d, expected -1", ret);
@@ -188,14 +199,93 @@ START_TEST(test_nav_msg_update_glo)
 
       if (process_string_glo(&n, &e) == 1)
         e_out();
+
     }
     /* now pass time mark bit by bit to receiver (MSB first),
      * no line code needed */
     for (u8 j = 30; j > 0; j--) {
-      ret = nav_msg_update_glo(&n, (GLO_TM >> (j - 1)) & 1);
+      if(!inverted)
+        ret = nav_msg_update_glo(&n, (GLO_TM >> (j - 1)) & 1);
+      else
+        ret = nav_msg_update_glo(&n, (((~GLO_TM) & 0x3fffffff) >> (j - 1)) & 1);
       fail_unless(ret == -1, "ret = %d, expected -1", ret);
     }
   }
+}
+
+START_TEST(test_nav_msg_update_glo)
+{
+  msg_update_test(false);
+  msg_update_test(true);
+}
+END_TEST
+
+
+
+START_TEST(test_error_correction_glo)
+{
+  const struct {
+    u32 str_in[3]; /**< input string for test  */
+    s8 ret; /** result of the test */
+  } test_case[] = {
+    /* First, simply test one GLO nav message received from Novatel,
+     * we trust Novatel, so no errors must be */
+    { {0xc90cfb3e, 0x9743a301, 0x010749},  0}, /* case 0 */
+    { {0xdd39f5fc, 0x24542d0c, 0x021760},  0},
+    { {0x653bc7e9, 0x1e8ead92, 0x038006},  0},
+    { {0x60342dfc, 0x41000002, 0x0481c7},  0},
+    { {0x40000895, 0x00000003, 0x050d10},  0},
+    { {0x530a7ecf, 0x059c4415, 0x06b082},  0},
+    { {0xfd94beb6, 0x7a577e97, 0x070f46},  0},
+    { {0xba02de6f, 0x988e6814, 0x08b101},  0},
+    { {0x12064831, 0x87767698, 0x09e1a6},  0},
+    { {0xaf870be5, 0x54ef2617, 0x0ab286},  0},
+    { {0x0f06ba41, 0x9a3f2698, 0x0b8f7c},  0},
+    { {0x2f012204, 0xf0c3c81a, 0x0cb309},  0},
+    { {0x1c858601, 0x10c47e98, 0x0da065},  0},
+    { {0x5205980b, 0xf49abc1a, 0x0eb40e},  0},
+    { {0x15454437, 0x2504e698, 0x0f8c09},  0},
+    /* Second, take 1st string from other GLO nav message and introduce an error
+     * in data bits */
+    { {0xc90cfb81, 0x9743a301, 0x010748},  0}, /* case 15, no errors  */
+    { {0xc90cfb81, 0x9743a301, 0x110748}, 85},
+    { {0xc90cfb81, 0x1743a301, 0x010748}, 64},
+    { {0x490cfb81, 0x9743a301, 0x010748}, 32},
+    { {0xc90cfb81, 0x9743a300, 0x010748}, 33},
+    { {0xc90cfb81, 0x9743a301, 0x010749}, 65},
+    { {0xc90cfb81, 0x9743a301, 0x000748}, 81},
+    { {0xc90c3b81, 0x9743a301, 0x010748}, -1},
+    { {0xc90cfb81, 0x974fa301, 0x010748}, -1},
+    { {0xc90cfb81, 0x9743a301, 0x01074b}, -1},
+    { {0xc90cfb81, 0x9743a301, 0x010744}, -1},
+    { {0xc90cfb81, 0x9aaaa301, 0x010748}, -1},
+    { {0xc90cfb81, 0x9743a301, 0x010748},  0}, /* no errors here */
+  };
+
+  nav_msg_glo_t n;
+
+  for(u8 i = 0; i < sizeof(test_case) / sizeof(test_case[0]); i++) {
+    memcpy(n.string_bits, test_case[i].str_in, sizeof(n.string_bits));
+    s8 ret = error_detection_glo(&n);
+    fail_unless(test_case[i].ret == ret, "Case %u: ret = %d, expected %d",
+                i, ret, test_case[i].ret);
+  }
+}
+END_TEST
+
+START_TEST(test_get_tow_glo)
+{
+  nav_msg_init_glo(&n);
+  memset(&e, 0, sizeof(e));
+  double t = nav_msg_get_tow_glo(&n);
+  fail_unless(t == -1, "t = %lf, expected %lf", t, -1);
+  for (u8 i = 1; i < sizeof(strings_in) / sizeof(strings_in[1]); i++) {
+    memcpy(n.string_bits, strings_in[i], sizeof(n.string_bits));
+    process_string_glo(&n, &e);
+  }
+
+  t = nav_msg_get_tow_glo(&n);
+  fail_unless(t == e.toe.tow+10, "t = %lf, expected %lf", t, e.toe.tow+10);
 }
 END_TEST
 
@@ -206,6 +296,8 @@ Suite* glo_decoder_test_suite(void)
   tcase_add_test(tc_core, test_extract_glo_word);
   tcase_add_test(tc_core, test_process_string_glo);
   tcase_add_test(tc_core, test_nav_msg_update_glo);
+  tcase_add_test(tc_core, test_error_correction_glo);
+  tcase_add_test(tc_core, test_get_tow_glo);
   suite_add_tcase(s, tc_core);
 
   return s;
