@@ -151,7 +151,7 @@ static s8 calc_sat_state_glo(const ephemeris_t *e, const gps_time_t *t,
   assert(clock_err != NULL);
   assert(clock_rate_err != NULL);
 
-  double dt = abs(gpsdifftime(t, &e->toe));
+  double dt = fabs(gpsdifftime(t, &e->toe));
 
   if (dt > 900) {
     log_error("GLO: Integration end point is not within 900 s of TOE");
