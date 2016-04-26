@@ -2,21 +2,22 @@
 from version import get_git_version
 
 setup_args = dict(
-  name = 'swiftnav',
-  version = get_git_version(),
-  description = 'Python bindings to the libswiftnav library.',
-  license = 'LGPLv3',
-  url = 'http://www.swiftnav.com',
-  author = 'Swift Navigation Inc.',
-  author_email = 'dev@swiftnav.com',
-  maintainer = 'Swift Navigation',
-  maintainer_email = 'dev@swiftnav.com',
-  packages = ['swiftnav'],
+  name='swiftnav',
+  version=get_git_version(),
+  description='Python bindings to the libswiftnav library.',
+  license='LGPLv3',
+  url='http://www.swiftnav.com',
+  author='Swift Navigation Inc.',
+  author_email='dev@swiftnav.com',
+  maintainer='Swift Navigation',
+  maintainer_email='dev@swiftnav.com',
+  packages=['swiftnav'],
 )
 
 if __name__ == "__main__":
   import numpy as np
-  import os, sys
+  import os
+  import sys
   from setuptools import setup, Extension
   try:
     from Cython.Distutils import build_ext
@@ -47,15 +48,16 @@ if __name__ == "__main__":
   include_dirs.append('../include/')
   include_dirs.append('../libfec/include/')
   include_dirs.append('../tests/data/l2cbitstream/')
+
   def make_extension(ext_name):
     ext_path = ext_name.replace('.', os.path.sep) + '.pyx'
     return Extension(
       ext_name, [ext_path],
-      include_dirs = include_dirs,
-      extra_compile_args = ['-O0', '-g'],
-      extra_link_args = ['-g'],
-      libraries = ['m', 'swiftnav', 'l2cbitstream'],
-      library_dirs = library_dirs,
+      include_dirs=include_dirs,
+      extra_compile_args=['-O0', '-g'],
+      extra_link_args=['-g'],
+      libraries=['m', 'swiftnav', 'l2cbitstream'],
+      library_dirs=library_dirs,
     )
   ext_names = [
     'swiftnav.edc',
@@ -64,6 +66,7 @@ if __name__ == "__main__":
     'swiftnav.constants',
     'swiftnav.cnav_msg',
     'swiftnav.nav_msg',
+    'swiftnav.nav_msg_glo',
     'swiftnav.pvt',
     'swiftnav.correlate',
     'swiftnav.track',

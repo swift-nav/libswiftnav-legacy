@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2015-2016 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
