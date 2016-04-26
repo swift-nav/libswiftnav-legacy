@@ -467,12 +467,30 @@ cdef class CN0Estimator:
 
 cdef class ChannelMeasurement:
 
-  def __init__(self, **kwargs):
+  def __init__(self, 
+               GNSSSignal sid,
+               code_phase_chips,
+               code_phase_rate,
+               carrier_phase,
+               carrier_freq,
+               time_of_week_ms,
+               receiver_time,
+               snr,
+               lock_counter):
     memset(&self._thisptr, 0, sizeof(channel_measurement_t))
-    if kwargs:
-      self._thisptr = kwargs
+    self._thisptr.sid = sid._thisptr
+    self._thisptr.code_phase_chips = code_phase_chips
+    self._thisptr.code_phase_rate = code_phase_rate
+    self._thisptr.carrier_phase = carrier_phase
+    self._thisptr.carrier_freq = carrier_freq
+    self._thisptr.time_of_week_ms = time_of_week_ms
+    self._thisptr.receiver_time = receiver_time
+    self._thisptr.snr = snr
+    self._thisptr.lock_counter = lock_counter
 
   def __getattr__(self, k):
+    if k=='sid':
+      return GNSSSignal(self._thisptr.sid)
     return self._thisptr.get(k)
 
 cdef class NavigationMeasurement:
