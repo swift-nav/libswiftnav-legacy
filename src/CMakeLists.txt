@@ -46,6 +46,7 @@ set(libswiftnav_SRCS
   ionosphere.c
   bit_sync.c
   cnav_msg.c
+  counter_checker/counter_checker.c
   ${plover_SRCS}
 
   CACHE INTERNAL ""

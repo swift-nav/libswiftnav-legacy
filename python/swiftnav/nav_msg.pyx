@@ -9,7 +9,7 @@
 
 # cython: embedsignature=True
 
-from ephemeris cimport ephemeris_t
+from swiftnav.ephemeris import Ephemeris
 from fmt_utils import fmt_repr
 from time cimport gps_time_t
 from signal cimport gnss_signal_t
@@ -40,9 +40,8 @@ cdef class NavMsg:
   def subframe_ready(self):
     return subframe_ready(&self._thisptr)
 
-  def process_subframe(self, e):
-    cdef ephemeris_t tmp = e._thisptr
-    return process_subframe(&self._thisptr, &tmp)
+  def process_subframe(self, Ephemeris e):
+    return process_subframe(&self._thisptr, &e._thisptr)
 
   def __richcmp__(self, other, op):
     """

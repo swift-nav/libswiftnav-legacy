@@ -31,8 +31,7 @@
 #define CNAVMSG_CRC_LEN_BITS           (BITS_IN_BYTE * CNAVMSG_CRC_LEN_BYTES)
 #define CNAVMSG_CRC_IDX_BITS           276
 #define CNAVMSG_TOW_COUNT_IDX_BITS     20
-#define CNAVMSG_TOW_COUNT_INC          8 // equals 12 seconds
-#define CNAVMSG_TOW_COUNT_MAX          403199
+#define CNAVMSG_TOW_COUNT_INC          2 // equals 12 seconds
 #define CNAVMSG_TOW_COUNT_LEN_BITS     17
 #define CNAVMSG_TOW_COUNT_IGNORE_LSB   2
 
@@ -47,26 +46,18 @@ u8 get_l2c_message_length(void)
  * and CRC-24q. Bits are right-aligned so four leftmost bits
  * of the 38 byte buffer are always zero.
  *
- * \param au_message      Buffer for the message.
+ * \param[out] au_message      Buffer for the message.
+ * \param[in]  prn        GPS SV PRN number [0..31].
+ * \param[in]  msg_id     Message idntifier [0..31].
+ * \param[in]  tow        ToW in 6 second units [0..131071].
  * \return true if success
  *         false if error
  */
-bool get_l2c_message(u8 *au_message)
+bool get_l2c_message(u8 *au_message, u8 prn, u8 msg_id, u32 tow)
 {
   u32 q_idx = CNAVMSG_OFFSET_BITS;
-  static u32 q_towcount = 0;
-  u32 q_towcount_trunc = 0;
 
   memset(au_message, 0, CNAVMSG_LEN_BYTES);
-
-  q_towcount += CNAVMSG_TOW_COUNT_INC;
-
-  if (CNAVMSG_TOW_COUNT_MAX < q_towcount)
-  {
-    q_towcount = 0;
-  }
-
-  srand(time(NULL) * clock());
 
   /*
    * Offset is 4 -> 4 leftmost bits are always '0'.
@@ -76,16 +67,15 @@ bool get_l2c_message(u8 *au_message)
   q_idx += CNAVMSG_PREAMBLE_LEN_BITS;
 
   /* PRN */
-  setbitu(au_message, q_idx, CNAVMSG_PRN_LEN_BITS, rand());
+  setbitu(au_message, q_idx, CNAVMSG_PRN_LEN_BITS, prn);
   q_idx += CNAVMSG_PRN_LEN_BITS;
 
   /* Message Type */
-  setbitu(au_message, q_idx, CNAVMSG_TYPE_LEN_BITS, rand());
+  setbitu(au_message, q_idx, CNAVMSG_TYPE_LEN_BITS, msg_id);
   q_idx += CNAVMSG_TYPE_LEN_BITS;
 
   /* 17 MSBs of the TOW count -> ignore 2 LSBs */
-  q_towcount_trunc = q_towcount >> CNAVMSG_TOW_COUNT_IGNORE_LSB;
-  setbitu(au_message, q_idx, CNAVMSG_TOW_COUNT_LEN_BITS, q_towcount_trunc);
+  setbitu(au_message, q_idx, CNAVMSG_TOW_COUNT_LEN_BITS, tow);
   q_idx += CNAVMSG_TOW_COUNT_LEN_BITS;
 
   /* Random payload */
@@ -116,13 +106,15 @@ static s32 get_aligned_message(u8 *au_msg_write)
   static bool b_offset = true;
   static u8 au_msg_nxt[CNAVMSG_LEN_BYTES] = {0};
   static u8 u_idx = CNAVMSG_LEN_BYTES;
+  u32 q_tow_count = 0;
   u64 t_msg_amount = 0;
 
   /* First call */
   if (u_idx >= CNAVMSG_LEN_BYTES) {
-    if (!get_l2c_message(au_msg_nxt)) {
+    if (!get_l2c_message(au_msg_nxt, rand(), rand(), q_tow_count)) {
         return -1;
     } else {
+      q_tow_count += CNAVMSG_TOW_COUNT_INC;
       u_idx = 0;
     }
   }
@@ -137,9 +129,10 @@ static s32 get_aligned_message(u8 *au_msg_write)
 
     if (u_idx >= CNAVMSG_LEN_BYTES) {
       /* get next 300 bit message since the buffer is empty*/
-      if (!get_l2c_message(au_msg_nxt)) {
+      if (!get_l2c_message(au_msg_nxt, rand(), rand(), q_tow_count)) {
         return -1;
       } else {
+        q_tow_count += CNAVMSG_TOW_COUNT_INC;
         u_idx = 0;
         t_msg_amount++;
         if (b_offset) {
@@ -178,6 +171,8 @@ s32 write_l2c_to_file(int i_fileno, u64 t_wanted_msg_amount)
   u64 t_msg_amount = 0;
   u8 au_msg_write[CNAVMSG_LEN_BYTES] = {0};
   FILE *pz_file = fdopen(i_fileno, "wb");
+
+  srand(time(NULL) * clock());
 
   if (NULL == pz_file) {
     printf("ERROR opening file\n");
