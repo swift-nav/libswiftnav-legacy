@@ -77,12 +77,15 @@
 #define GPS_EPOCH 315964800
 
 #define WN_UNKNOWN -1
+#define TOW_UNKNOWN -1
 
 /** Structure representing a GPS time. */
 typedef struct __attribute__((packed)) {
   double tow; /**< Seconds since the GPS start of week. */
   s16 wn;     /**< GPS week number. */
 } gps_time_t;
+
+#define GPS_TIME_UNKNOWN ((gps_time_t){TOW_UNKNOWN, WN_UNKNOWN})
 
 void normalize_gps_time(gps_time_t *t_gps);
 

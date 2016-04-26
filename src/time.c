@@ -144,11 +144,14 @@ gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s)
   u8 j = 0;
   u16 day_of_year = 0;
   u32 glo_year = 0;
-  gps_time_t gps_t = {0, 0};
+  gps_time_t gps_t = GPS_TIME_UNKNOWN;
 
-  assert(n4 >= N4_MIN && n4 <= N4_MAX);
+  if (n4 < N4_MIN || n4 > N4_MAX)
+    return GPS_TIME_UNKNOWN;
 
-  if (nt >= GLO_NT_0_FLOOR && nt <= GLO_NT_0_CEILING) {
+  if (nt < GLO_NT_0_FLOOR)
+    return GPS_TIME_UNKNOWN;
+  else if (nt <= GLO_NT_0_CEILING) {
     j = 1;
     day_of_year = nt;
   }
@@ -165,7 +168,7 @@ gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s)
     day_of_year = nt - LEAP_YEAR_DAYS - YEAR_DAYS * 2;
   }
   else
-    assert(0 && "invalid nt");
+    return GPS_TIME_UNKNOWN;
 
   glo_year = 1996 + 4 * (n4 - 1) + (j - 1);
 

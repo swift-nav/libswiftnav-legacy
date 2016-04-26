@@ -201,6 +201,14 @@ START_TEST(test_glo_time2gps_time)
     /* GLO time 31st Dec 2011 12:12:12 */
     {.nt = 1461, .n4 = 4, .h = 12, .m = 12, .s = 12,
       .ret = {.wn = 1668, .tow = 551549}},
+    {.nt = 0, .n4 = 4, .h = 12, .m = 12, .s = 12,
+      .ret = GPS_TIME_UNKNOWN},
+    {.nt = 1462, .n4 = 4, .h = 12, .m = 12, .s = 12,
+      .ret = GPS_TIME_UNKNOWN},
+    {.nt = 1461, .n4 = 0, .h = 12, .m = 12, .s = 12,
+      .ret = GPS_TIME_UNKNOWN},
+    {.nt = 1461, .n4 = 32, .h = 12, .m = 12, .s = 12,
+      .ret = GPS_TIME_UNKNOWN},
   };
   for (size_t i = 0;
        i < sizeof(testcases) / sizeof(struct glo_time2gps_time_testcase);
