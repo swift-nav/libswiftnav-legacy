@@ -18,5 +18,5 @@
 #define CNAVMSG_LEN_BYTES 38
 
 u8 get_l2c_message_length(void);
-bool get_l2c_message(u8 *au_message);
+bool get_l2c_message(u8 *au_message, u8 prn, u8 msg_id, u32 tow);
 s32 write_l2c_to_file(int i_fileno, u64 t_msg_amount);

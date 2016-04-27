@@ -12,10 +12,23 @@
 Bit field packing, unpacking and utility functions.
 
 """
-
+from swiftnav.bits cimport parity as c_parity
 
 def parity(x):
-  raise NotImplementedError
+  '''
+  Cython wrapper for parity function
+
+  Parameters
+  ----------
+  x : int
+    Value for parity computation
+
+  Returns
+  -------
+  int
+    Parity value: 1 or 0.
+  '''
+  return c_parity(x)
 
 def getbitu(buff,  pos,  length):
   raise NotImplementedError
