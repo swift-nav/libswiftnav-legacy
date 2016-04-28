@@ -139,7 +139,7 @@ u16 gps_adjust_week_cycle(u16 wn_raw, u16 wn_ref)
  * |return   converted gps time
  */
 
-gps_time_t glo_time2gps_time(u16 nt, u8 n4, s8 h, s8 m, s8 s)
+gps_time_t glo_time2gps_time(u16 nt, u8 n4, u8 h, u8 m, u8 s)
 {
   u8 j = 0;
   u16 day_of_year = 0;
