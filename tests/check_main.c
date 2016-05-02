@@ -40,6 +40,7 @@ int main(void)
   srunner_add_suite(sr, correlator_suite());
   srunner_add_suite(sr, counter_checker_suite());
   srunner_add_suite(sr, cn0_suite());
+  srunner_add_suite(sr, cn0_filter_suite());
 
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_NORMAL);

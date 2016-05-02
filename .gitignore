@@ -9,3 +9,4 @@ clapack-3.2.1-CMAKE/F2CLIBS/libf2c/arith*
 .cproject
 .pydevproject
 .settings/
+.nfs*

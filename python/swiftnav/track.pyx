@@ -420,12 +420,7 @@ cdef class AliasDetector:
   def reinit(self, acc_len, time_diff):
     return alias_detect_reinit(&self._thisptr, acc_len, time_diff)
 
-def rebuild_CN0Estimator(kwargs, state):
-    p = CN0Estimator(**kwargs)
-    p._thisptr = state
-    return p
-
-cdef class CN0Estimator:
+cdef class CN0BLEstimator:
   """
   Wraps the `libswiftnav` :math:`C / N_0` estimator implementation.
 
@@ -434,13 +429,16 @@ cdef class CN0Estimator:
 
   """
 
-  def __cinit__(self, **kwargs):
-    self.kwargs = kwargs
-    cn0_est_init(&self._thisptr,
-                 kwargs['bw'],
-                 kwargs['cn0_0'],
-                 kwargs['cutoff_freq'],
-                 kwargs['loop_freq'])
+  def __cinit__(self,
+                bw_hz,
+                cn0_0_dbhz,
+                sampleFreq_hz,
+                loopFreq_hz):
+    cn0_est_bl_init(&self._thisptr,
+                    bw_hz,
+                    cn0_0_dbhz,
+                    sampleFreq_hz,
+                    loopFreq_hz)
 
   def __reduce__(self):
     return (rebuild_CN0Estimator, (self.kwargs, self._thisptr))
@@ -462,8 +460,72 @@ cdef class CN0Estimator:
       The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
 
     """
-    return cn0_est(&self._thisptr, I, Q)
+    return cn0_est_bl_update(&self._thisptr, I, Q)
 
+cdef class CN0SNVEstimator:
+  """
+  Wraps the `libswiftnav` :math:`C / N_0` estimator implementation.
+
+  The estimator state, :libswiftnav:`cn0_est_state_t` is maintained by
+  the class instance.
+
+  """
+
+  def __cinit__(self,
+                bw_hz,
+                cn0_0_dbhz,
+                sampleFreq_hz,
+                loopFreq_hz):
+    cn0_est_snv_init(&self._thisptr,
+                     bw_hz,
+                     cn0_0_dbhz,
+                     sampleFreq_hz,
+                     loopFreq_hz)
+
+  def update(self, I, Q):
+    """
+    Wraps the function :libswiftnav:`cn0_est`.
+
+    Parameters
+    ----------
+    I : float
+      The prompt in-phase correlation from the tracking correlator.
+    Q : float
+      The prompt quadrature correlation from the tracking correlator.
+
+    Returns
+    -------
+    out : float
+      The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
+
+    """
+    return cn0_est_snv_update(&self._thisptr, I, Q)
+
+cdef class LP1Filter:
+  def __cinit__(self,
+                cn0_0_dbhz,
+                cutoffFreq_hz,
+                loopFreq_hz):
+    lp1_filter_init(&self._thisptr,
+                    cn0_0_dbhz,
+                    cutoffFreq_hz,
+                    loopFreq_hz)
+
+  def update(self, cn0):
+    return lp1_filter_update(&self._thisptr, cn0)
+
+cdef class BW2Filter:
+  def __cinit__(self,
+                cn0_0_dbhz,
+                cutoffFreq_hz,
+                loopFreq_hz):
+    bw2_filter_init(&self._thisptr,
+                    cn0_0_dbhz,
+                    cutoffFreq_hz,
+                    loopFreq_hz)
+
+  def update(self, cn0):
+    return bw2_filter_update(&self._thisptr, cn0)
 
 cdef class ChannelMeasurement:
 
