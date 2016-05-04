@@ -788,10 +788,10 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / 1.023e6;
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
-    // TODO there might be a bug where ephmeris tow is set to 0 near end of week? without tow being rolled over?
-    // causes this functions assimption to break
+    /* TODO (Leith): There might be a bug where ephmeris ToW is set to 0 */
+    /* near end of the week, without ToW being rolled over? */
+    /* It woukd this functions' assumptions to break. */
     gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
-    //gps_time_match_weeks(&nav_meas[i]->tot, rec_time); // TODO seems to cause a crash?
 
     /* Compute the carrier phase measurement. */
     nav_meas[i]->raw_carrier_phase = meas[i]->carrier_phase;
