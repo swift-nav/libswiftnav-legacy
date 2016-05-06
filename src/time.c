@@ -30,12 +30,15 @@
  */
 void normalize_gps_time(gps_time_t *t)
 {
+  assert(!isnan(t->tow));
+  assert(!isinf(t->tow));
+
   while(t->tow < 0) {
     t->tow += WEEK_SECS;
     t->wn -= 1;
   }
 
-  while(t->tow > WEEK_SECS) {
+  while(t->tow >= WEEK_SECS) {
     t->tow -= WEEK_SECS;
     t->wn += 1;
   }
