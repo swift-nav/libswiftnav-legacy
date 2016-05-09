@@ -356,7 +356,11 @@ s8 calc_sat_state(const ephemeris_t *e, const gps_time_t *t,
 
   if (!ephemeris_valid(e, t)) {
     log_error_sid(e->sid,
-                  "Using invalid or too old ephemeris in calc_sat_state");
+                  "Using invalid or too old ephemeris in calc_sat_state"
+                  " (v:%d, fi:%d, [%d, %f]), [%d, %f]",
+                  (int)e->valid, (int)e->fit_interval,
+                  (int)e->toe.wn, e->toe.tow,
+                  (int)t->wn, t->tow);
     return -1;
   }
 
