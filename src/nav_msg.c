@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Swift Navigation Inc.
+ * Copyright (C) 2010, 2016 Swift Navigation Inc.
  * Contact: Henry Hallam <henry@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,7 +9,6 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,6 +19,7 @@
 #include <libswiftnav/constants.h>
 #include <libswiftnav/bits.h>
 #include <libswiftnav/nav_msg.h>
+#include <libswiftnav/ionosphere.h>
 #include <libswiftnav/l2c_capability.h>
 
 void nav_msg_init(nav_msg_t *n)
@@ -283,7 +283,6 @@ s8 process_subframe(nav_msg_t *n, gnss_signal_t sid,
     n->next_subframe_id++;
 
     if (sf_id == 3) {
-
       // Now let's actually decode the ephemeris...
       data->ephemeris.sid = sid;
       decode_ephemeris(n->frame_words, &data->ephemeris);
@@ -301,6 +300,15 @@ s8 process_subframe(nav_msg_t *n, gnss_signal_t sid,
       if ((n->frame_words[3][3-3] >> (30-8) & 0x3f) == 63) {
         decode_l2c_capability(n->frame_words[3], &(data->gps_l2c_sv_capability));
         data->gps_l2c_sv_capability_upd_flag = true;
+      }
+
+     /* check Word 3 bits 2..7 (63..69) for Page ID 18,
+      * which contains iono data
+      * Page 18 has ID 56, see IS-200H, pg. 109-110 */
+      if ((n->frame_words[3][3-3] >> (30-8) & 0x3f) == 56) {
+       /* decode ionospheric correction data */
+        decode_iono_parameters(n->frame_words[3], &data->iono);
+        data->iono_corr_upd_flag = true;
       }
 
       /* Got all of subframes 1 to 4 */
