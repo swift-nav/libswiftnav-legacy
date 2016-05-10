@@ -647,7 +647,7 @@ void memory_pool_sort(memory_pool_t *pool, void *arg,
 void memory_pool_group_by(memory_pool_t *pool, void *arg,
                           s32 (*cmp)(void *arg, element_t *a, element_t *b),
                           void *x0, size_t x_size,
-                          void (*agg)(element_t *new, void *x, u32 n, element_t *elem))
+                          void (*agg)(element_t *newe, void *x, u32 n, element_t *elem))
 {
   /* If collection is empty, return immediately. */
   if (!pool->allocated_nodes_head)
@@ -722,7 +722,7 @@ void memory_pool_group_by(memory_pool_t *pool, void *arg,
  * \param prod The product function
  */
 s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
-                        void (*prod)(element_t *new, void *x, u32 n_xs, u32 n, element_t *elem))
+                        void (*prod)(element_t *newe, void *x, u32 n_xs, u32 n, element_t *elem))
 {
   /* Save the head of the original list and reset the pool head where the
    * product data will be added. */
@@ -768,7 +768,7 @@ s32 memory_pool_product(memory_pool_t *pool, void *xs, u32 n_xs, size_t x_size,
 s32 memory_pool_product_generator(memory_pool_t *pool, void *x0, u32 max_xs, size_t x_size,
                                   s8 (*init)(void *x, element_t *elem),
                                   s8 (*next)(void *x, u32 n),
-                                  void (*prod)(element_t *new, void *x, u32 n, element_t *elem))
+                                  void (*prod)(element_t *newe, void *x, u32 n, element_t *elem))
 {
   /* Save the head of the original list and reset the pool head where the
    * product data will be added. */
