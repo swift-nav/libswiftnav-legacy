@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Swift Navigation Inc.
+ * Copyright (C) 2015, 2016 Swift Navigation Inc.
  * Contact: Leith Bade <leith@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -26,5 +26,7 @@ double calc_ionosphere(const gps_time_t *t_gps,
                        double lat_u, double lon_u,
                        double a, double e,
                        const ionosphere_t *i);
+
+void decode_iono_parameters(const u32 *subframe4_words, ionosphere_t *iono);
 
 #endif /* LIBSWIFTNAV_IONOSHPERE_H */
