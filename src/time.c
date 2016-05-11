@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <libswiftnav/time.h>
 #include <libswiftnav/constants.h>
@@ -186,6 +187,18 @@ gps_time_t glo_time2gps_time(u16 nt, u8 n4, u8 h, u8 m, u8 s)
   normalize_gps_time(&gps_t);
 
   return gps_t;
+}
+
+/** GPS time to day of year.
+ *
+ * \param t GPS time
+ * \return The day of year (days since Jan 1st)
+ */
+u16 gps2doy(const gps_time_t *t)
+{
+  time_t unixtime = gps2time(t);
+  struct tm* ptm = ptm = gmtime(&unixtime);
+  return ptm->tm_yday;
 }
 
 /** \} */
