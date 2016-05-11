@@ -40,6 +40,8 @@ typedef struct {
   s8 bit_polarity;
 
   u8 alert;
+  u8 as;
+  u8 parity_failures;
 } nav_msg_t;
 
 void nav_msg_init(nav_msg_t *n);

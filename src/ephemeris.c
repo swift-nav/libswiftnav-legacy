@@ -617,12 +617,16 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
     u32 u32;
   } fourbyte;
 
-  /* Subframe 1: WN, URA, SV health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0 */
+  /* Subframe 1: WN,  L2P, URA, SV health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0 */
 
   /* GPS week number (mod 1024): Word 3, bits 1-10 */
   u16 wn_raw = frame_words[0][3-3] >> (30-10) & 0x3FF;
   e->toe.wn = gps_adjust_week_cycle(wn_raw, GPS_WEEK_REFERENCE);
   k->toc.wn = e->toe.wn;
+
+  /* C/A or P on L2: Word 3, bits 11-12 */
+  /* Used only for ephemeris validation */
+  u8 l2_code = frame_words[0][3-3] >> (30-12) & 0x3;
 
   /* URA: Word 3, bits 13-16 */
   /* Value of 15 is unhealthy */
@@ -638,13 +642,16 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
     log_warn_sid(e->sid, "Latest ephemeris is unhealthy. Ignoring satellite.");
   }
 
-  /* t_gd: Word 7, bits 17-24 */
-  onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
-  k->tgd = onebyte.s8 * pow(2,-31);
-
   /* iodc: Word 3, bits 23-24 and word 8, bits 1-8 */
   k->iodc = ((frame_words[0][3-3] >> (30-24) & 0x3) << 8)
           | (frame_words[0][8-3] >> (30-8) & 0xFF);
+
+  /* L2 P data flag: Word 4, bit 1 */
+  /* Not currently used. */
+
+  /* t_gd: Word 7, bits 17-24 */
+  onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
+  k->tgd = onebyte.s8 * pow(2,-31);
 
   /* t_oc: Word 8, bits 8-24 */
   k->toc.tow = (frame_words[0][8-3] >> (30-24) & 0xFFFF) * 16;
@@ -687,7 +694,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   twobyte.u16 = frame_words[1][6-3] >> (30-16) & 0xFFFF;
   k->cuc = twobyte.s16 * pow(2,-29);
 
-  /* ecc: Word 6, bits 17-24 and word 7, bits 1-24 */
+  /* ecc (e): Word 6, bits 17-24 and word 7, bits 1-24 */
   fourbyte.u32 = ((frame_words[1][6-3] >> (30-24) & 0xFF) << 24)
                | (frame_words[1][7-3] >> (30-24) & 0xFFFFFF);
   k->ecc = fourbyte.u32 * pow(2,-33);
@@ -738,7 +745,7 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
                | (frame_words[2][8-3] >> (30-24) & 0xFFFFFF);
   k->w = fourbyte.s32 * pow(2,-31) * GPS_PI;
 
-  /* Omega_dot: Word 9, bits 1-24 */
+  /* omegadot: Word 9, bits 1-24 */
   fourbyte.u32 = frame_words[2][9-3] >> (30-24) & 0xFFFFFF;
   /* Shift left for sign extension */
   fourbyte.u32 <<= 8;
@@ -761,6 +768,40 @@ void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   e->valid = (iode_sf2 == k->iode) && (k->iode == (k->iodc & 0xFF));
   if (!e->valid) {
     log_warn_sid(e->sid, "Latest ephemeris had IODC/IODE mismatch. Ignoring ephemeris.");
+  }
+  e->valid &= k->toc.tow == e->toe.tow;
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had t_oc/t_oe mismatch. Ignoring ephemeris.");
+  }
+
+  /* Validate the other parameters */
+  e->valid &= (l2_code == 0x1) || (l2_code == 0x2);
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid L2 code value. Ignoring ephemeris.");
+  }
+  e->valid &= k->toc.tow <= 604784.0;
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid t_oc value. Ignoring ephemeris.");
+  }
+  e->valid &= e->toe.tow <= 604784.0;
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid t_oe value. Ignoring ephemeris.");
+  }
+  e->valid &= k->ecc <= 0.03;
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid ecc value. Ignoring ephemeris.");
+  }
+  e->valid &= (k->sqrta >= 4906.0) && (k->sqrta <= 5390.0);
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid ecc value. Ignoring ephemeris.");
+  }
+  e->valid &= (k->inc >= 0.237) && (k->inc <= 0.363);
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid inc value. Ignoring ephemeris.");
+  }
+  e->valid &= (k->omegadot >= -5.20e-9) && (k->omegadot <= 0.0);
+  if (!e->valid) {
+    log_warn_sid(e->sid, "Latest ephemeris had invalid omegadot value. Ignoring ephemeris.");
   }
 }
 
