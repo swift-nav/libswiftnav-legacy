@@ -10,10 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef LIBSWIFTNAV_TROPO_H
-#define LIBSWIFTNAV_TROPO_H
+#ifndef LIBSWIFTNAV_TROPOSPHERE_H
+#define LIBSWIFTNAV_TROPOSPHERE_H
 
-double tropo_correction(double elevation);
+#include <libswiftnav/time.h>
 
-#endif /* LIBSWIFTNAV_TROPO_H */
+double calc_troposphere(const gps_time_t *t_gps, double lat, double h,
+                        double el);
 
+#endif /* LIBSWIFTNAV_TROPOSPHERE_H */

@@ -102,4 +102,6 @@ static inline bool is_leap_year(s32 year)
 
 gps_time_t glo_time2gps_time(u16 nt, u8 n4, u8 h, u8 m, u8 s);
 
+u16 gps2doy(const gps_time_t *t);
+
 #endif /* LIBSWIFTNAV_TIME_H */
