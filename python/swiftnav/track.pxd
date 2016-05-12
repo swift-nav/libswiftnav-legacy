@@ -163,7 +163,7 @@ cdef extern from "libswiftnav/track.h":
     double carrier_phase
     double carrier_freq
     u32 time_of_week_ms
-    double receiver_time
+    double rec_time_delta
     double snr
     u16 lock_counter
 
@@ -183,7 +183,7 @@ cdef extern from "libswiftnav/track.h":
 
   void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                    navigation_measurement_t *nav_meas[],
-                                   double nav_time, const ephemeris_t* e[])
+                                   const ephemeris_t* e[])
   int nav_meas_cmp(const void *a, const void *b)
   u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
                   u8 n_old, navigation_measurement_t *m_old,

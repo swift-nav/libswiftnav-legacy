@@ -766,7 +766,7 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
  */
 s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[],
-                               double nav_time, const ephemeris_t* e[])
+                               const ephemeris_t* e[])
 {
   double TOTs[n_channels];
   double min_TOF = -DBL_MAX;
@@ -775,7 +775,7 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
   for (u8 i=0; i<n_channels; i++) {
     TOTs[i] = 1e-3 * meas[i]->time_of_week_ms;
     TOTs[i] += meas[i]->code_phase_chips / 1.023e6;
-    TOTs[i] += (nav_time - meas[i]->receiver_time) * meas[i]->code_phase_rate / 1.023e6;
+    TOTs[i] -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / 1.023e6;
 
     /** \todo Maybe keep track of week number in tracking channel
         state or derive it from system time. */
@@ -787,7 +787,7 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     nav_meas[i]->sid = meas[i]->sid;
 
     nav_meas[i]->carrier_phase = meas[i]->carrier_phase;
-    nav_meas[i]->carrier_phase += (nav_time - meas[i]->receiver_time) * meas[i]->carrier_freq;
+    nav_meas[i]->carrier_phase -= meas[i]->rec_time_delta * meas[i]->carrier_freq;
 
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
