@@ -784,13 +784,13 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     /* Compute the time of transmit of the signal on the satellite from the
      * tracking loop parameters. This will be used to compute the pseudorange. */
     nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
-    nav_meas[i]->tot.tow += meas[i]->code_phase_chips / 1.023e6;
-    nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / 1.023e6;
+    nav_meas[i]->tot.tow += meas[i]->code_phase_chips / GPS_CA_CHIPPING_RATE;
+    nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / GPS_CA_CHIPPING_RATE;
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
     /* TODO (Leith): There might be a bug where ephmeris ToW is set to 0 */
     /* near end of the week, without ToW being rolled over? */
-    /* It woukd this functions' assumptions to break. */
+    /* It would cause this functions' assumptions to break. */
     gps_time_match_weeks(&nav_meas[i]->tot, &e[i]->toe);
 
     /* Compute the carrier phase measurement. */
@@ -820,7 +820,7 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     /* If we were given a time, use that. */
     tor = *rec_time;
   } else {
-    /* If we were not given a recieve time then we can just set one of the
+    /* If we were not given a time of reception then we can just set one of the
      * pseudoranges aribtrarily to a nominal value and reference all the other
      * pseudoranges to that. This doesn't affect the PVT solution but does
      * potentially correspond to a large receiver clock error. */
@@ -870,7 +870,7 @@ int nav_meas_cmp(const void *a, const void *b)
  * \param n_old Number of measurements in `m_old`
  * \param m_old Array of old navigation measurements, sorted by PRN
  * \param m_corrected Array in which to store the output measurements
- * \param dt The difference in receiver time betweeb the two measurements
+ * \param dt The difference in receiver time between the two measurements
  * \return The number of measurements written to `m_tdcp`
  */
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
