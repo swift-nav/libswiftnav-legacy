@@ -298,7 +298,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
 
   /* Unless the KF says otherwise, DONT TRUST THE MEASUREMENTS */
   u8 is_bad_measurement = true;
-
   double ref_ecef[3];
   if (num_sats >= 5) {
     double b2[3];
@@ -311,8 +310,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
       /* Use b = 0, continue */
       memset(b2, 0, sizeof(b2));
     }
-
-    double ref_ecef[3];
 
     vector_add_sc(3, receiver_ecef, b2, 0.5, ref_ecef);
 
@@ -330,7 +327,6 @@ void dgnss_update(u8 num_sats, sdiff_t *sdiffs, double receiver_ecef[3],
                                           nkf.state_cov_U, nkf.state_cov_D,
                                           is_bad_measurement);
 
-  /* TODO: Refactor - looks like ref_ecef can be passed in uninitialized */
   if (!is_bad_measurement) {
     update_ambiguity_test(ref_ecef,
                           dgnss_settings.phase_var_test,
