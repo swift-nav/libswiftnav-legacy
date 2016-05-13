@@ -23,6 +23,9 @@
 /** Length of GLO time mark */
 #define GLO_TM_LEN 30
 
+/** Length of GLO navigation string */
+#define GLO_STR_LEN 85
+
 /* States of receiver GLO bitstream */
 typedef enum {
   INVALID = -1,
@@ -43,11 +46,14 @@ typedef struct {
   glo_receive_machine state; /**< current state of receiver */
   u8 meander_bits_cnt:2; /**< counter for line code bits, MAX is 2 */
   u8 manchester:2; /**< 2 bits line code received */
+  u8 decode_done:1; /**< decode done flag */
+  u8 inverted:1; /**< incoming data is inverted */
 } nav_msg_glo_t;
 
 void nav_msg_init_glo(nav_msg_glo_t *n);
 s8 process_string_glo(nav_msg_glo_t *n, ephemeris_t *e);
-u32 extract_word_glo(const nav_msg_glo_t *n, u16 bit_index, u8 n_bits);
 s8 nav_msg_update_glo(nav_msg_glo_t *n, bool bit_val);
+s8 error_detection_glo(const nav_msg_glo_t *n);
+double nav_msg_get_tow_glo(const nav_msg_glo_t *n);
 
 #endif /* LIBSWIFTNAV_NAV_MSG_GLO_H */
