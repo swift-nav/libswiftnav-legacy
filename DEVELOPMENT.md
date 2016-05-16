@@ -38,6 +38,7 @@ Then build the python bindings:
 
     cd ../python
     export LD_LIBRARY_PATH=../build/install/usr/local/lib
+    export DYLD_LIBRARY_PATH=../build/install/usr/local/lib
     tox
 
 Issues
