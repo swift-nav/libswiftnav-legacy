@@ -51,6 +51,7 @@ else (CMAKE_CROSSCOMPILING)
       check_decode_l2c_capability.c
       check_cnav.c
       check_glo_decoder.c
+      check_l2c_meas_data.c
       check_troposphere.c
       check_counter_checker.c
       check_prns.c

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012,2016 Swift Navigation Inc.
+ * Copyright (C) 2012, 2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -784,7 +784,7 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     /* Compute the time of transmit of the signal on the satellite from the
      * tracking loop parameters. This will be used to compute the pseudorange. */
     nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
-    nav_meas[i]->tot.tow += meas[i]->code_phase_chips / GPS_CA_CHIPPING_RATE;
+    nav_meas[i]->tot.tow += meas[i]->code_phase_chips / (code_to_chip_num(e[i]->sid.code) * 1000.0);
     nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / GPS_CA_CHIPPING_RATE;
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
