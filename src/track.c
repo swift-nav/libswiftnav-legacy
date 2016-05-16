@@ -760,9 +760,13 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
   return s->log_bw - 10.f*log10f(s->nsr);
 }
 
-void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
-                                 navigation_measurement_t *nav_meas[],
-                                 double nav_time, const ephemeris_t* e[])
+/**
+ * \return  0 on success,
+ *         -1 if ephemeris is invalid
+ */
+s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
+                               navigation_measurement_t *nav_meas[],
+                               double nav_time, const ephemeris_t* e[])
 {
   double TOTs[n_channels];
   double min_TOF = -DBL_MAX;
@@ -788,9 +792,11 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
 
     /* calc sat clock error */
-    calc_sat_state(e[i], &nav_meas[i]->tot,
-                   nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
-                   &clock_err[i], &clock_rate_err[i]);
+    if (calc_sat_state(e[i], &nav_meas[i]->tot,
+                       nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
+                       &clock_err[i], &clock_rate_err[i]) != 0) {
+      return -1;
+    }
 
     /* remove clock error to put all tots within the same time window */
     if ((TOTs[i] + clock_err[i]) > min_TOF)
@@ -807,6 +813,8 @@ void calc_navigation_measurement(u8 n_channels, const channel_measurement_t *mea
     nav_meas[i]->tot.tow -= clock_err[i];
     normalize_gps_time(&nav_meas[i]->tot);
   }
+
+  return 0;
 }
 
 /** Compare navigation message by PRN.

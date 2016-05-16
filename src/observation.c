@@ -193,8 +193,10 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
       double clock_rate_err;
       double local_sat_pos[3];
       double local_sat_vel[3];
-      calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
-                     &clock_err, &clock_rate_err);
+      if (calc_sat_state(e[i], t, local_sat_pos, local_sat_vel,
+                     &clock_err, &clock_rate_err) != 0) {
+        continue;
+      }
       sds[n].sid = m_local[i].sid;
       double dx = local_sat_pos[0] - remote_pos_ecef[0];
       double dy = local_sat_pos[1] - remote_pos_ecef[1];
