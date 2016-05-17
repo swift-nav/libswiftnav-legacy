@@ -63,6 +63,7 @@ if __name__ == "__main__":
     'swiftnav.memory_pool',
     'swiftnav.prns',
     'swiftnav.sats_management',
+    'swiftnav.iono',
     'swiftnav.tropo',
     'swiftnav.set',
     'swiftnav.bit_sync',
