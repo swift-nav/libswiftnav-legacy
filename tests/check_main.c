@@ -33,6 +33,7 @@ int main(void)
   srunner_add_suite(sr, ionosphere_suite());
   srunner_add_suite(sr, signal_test_suite());
   srunner_add_suite(sr, track_test_suite());
+  srunner_add_suite(sr, l2c_capability_test_suite());
   srunner_add_suite(sr, cnav_test_suite());
   srunner_add_suite(sr, glo_decoder_test_suite());
   srunner_add_suite(sr, troposphere_suite());
