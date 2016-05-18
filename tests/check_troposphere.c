@@ -59,6 +59,22 @@ START_TEST(test_calc_troposphere)
 	fail_unless(fabs(d_tropo - d_true) < d_tol,
 		      "Distance didn't match hardcoded correct values %0.5f. Saw: %.5f\n",
 		      d_true, d_tropo);
+
+	/* elevation sanity tests */
+	double const max_tropo_correction = 30.0;
+	h = -5000;
+	d_tropo = calc_troposphere(&t, lat, h, el);
+
+	fail_unless(fabs(d_tropo) < max_tropo_correction,
+		      "Sanity test fail at elevation %0.5f. : Correction was %.5f\n",
+		      h, d_tropo);
+
+	h = 12000;
+	d_tropo = calc_troposphere(&t, lat, h, el);
+
+	fail_unless(fabs(d_tropo) < max_tropo_correction,
+		      "Sanity test fail at elevation %0.5f. : Correction was %.5f\n",
+		      h, d_tropo);
 }
 END_TEST
 

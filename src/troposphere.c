@@ -276,7 +276,7 @@ static double calc_param(double lat, double doy, const double *avg_lut, const do
  *   -# UNB Neutral Atmosphere Models: Development and Performance. R Leandro,
  *      M Santos, and R B Langley
  *
- * \param doy Day of the year at which to calculate tropospheric delay [day]
+ * \param t_gps GPS time at which to calculate tropospheric delay [gps_time]
  * \param lat Latitude of the receiver [rad]
  * \param h Orthometric height of the receiver (height above the geoid) [m]
  * \param el Elevation of the satellite [rad]
@@ -288,6 +288,11 @@ double calc_troposphere(const gps_time_t *t_gps, double lat, double h,
 {
   lat *= R2D;
   el *= R2D;
+
+  /* truncate negative altitudes */
+  if (h < 0) {
+    h = 0.0;
+  }
 
   /* compute day of year from gps time */
   double doy = (double) gps2doy(t_gps);
