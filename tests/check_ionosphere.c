@@ -21,7 +21,8 @@ START_TEST(test_calc_ionosphere)
   double d_err = fabs(d_l1 - d_true);
 
   fail_unless(d_err < d_tol,
-      "Distance didn't match hardcoded correct values. Saw: %.5f\n", d_l1);
+      "Distance didn't match hardcoded correct value %0.5f. Saw: %.5f\n",
+      d_true, d_l1);
 
   t.wn = 1042;
   t.tow = 593100;
@@ -43,7 +44,8 @@ START_TEST(test_calc_ionosphere)
   d_err = fabs(d_l1 - d_true);
 
   fail_unless(d_err < d_tol,
-      "Distance didn't match hardcoded correct values. Saw: %.5f\n", d_l1);
+      "Distance didn't match hardcoded correct values %0.5f. Saw: %.5f\n",
+      d_true, d_l1);
 }
 END_TEST
 
