@@ -289,6 +289,11 @@ double calc_troposphere(const gps_time_t *t_gps, double lat, double h,
   lat *= R2D;
   el *= R2D;
 
+  /* truncate negative altitudes */
+  if (h < 0) {
+    h = 0.0;
+  }
+
   /* compute day of year from gps time */
   double doy = (double) gps2doy(t_gps);
 
