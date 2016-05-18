@@ -107,7 +107,7 @@ u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t);
 u8 satellite_healthy(const ephemeris_t *e);
 
-void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e);
+void decode_ephemeris(u32 frame_words[4][8], ephemeris_t *e);
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */

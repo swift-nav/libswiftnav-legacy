@@ -45,6 +45,7 @@ set(libswiftnav_SRCS
   signal.c
   ionosphere.c
   bit_sync.c
+  l2c_capability.c
   cnav_msg.c
   nav_msg_glo.c
   ${plover_SRCS}

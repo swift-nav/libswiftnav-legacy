@@ -596,7 +596,7 @@ u32 decode_fit_interval(u8 fit_interval_flag, u16 iodc) {
  *                    1, 2 and 3. Word is in the 30 LSBs of the u32.
  * \param e Pointer to an ephemeris struct to fill in.
  */
-void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
+void decode_ephemeris(u32 frame_words[4][8], ephemeris_t *e)
 {
   assert(frame_words != NULL);
   assert(e != NULL);
