@@ -64,7 +64,7 @@ void dgnss_init_known_baseline(u8 num_sats, sdiff_t *sdiffs, double receiver_ece
 void dgnss_update_ambiguity_state(ambiguity_state_t *s);
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3],
+                  u8 *num_used, gnss_signal_t *used_sids, double b[3],
                   bool disable_raim, double raim_threshold);
 void measure_amb_kf_b(u8 num_sdiffs, sdiff_t *sdiffs,
                       const double receiver_ecef[3], double *b);

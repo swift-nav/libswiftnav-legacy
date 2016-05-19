@@ -55,11 +55,11 @@ void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
                double *dd_ambs);
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const ambiguity_t *single_ambs,
-             u8 *num_used, double b[3],
+             u8 *num_used, gnss_signal_t *used_sids, double b[3],
              bool disable_raim, double raim_threshold);
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3],
-            bool disable_raim, double raim_threshold);
+            const ambiguities_t *ambs, u8 *num_used, gnss_signal_t *used_sids,
+            double b[3], bool disable_raim, double raim_threshold);
 
 void ambiguities_init(ambiguities_t *ambs);
 s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,

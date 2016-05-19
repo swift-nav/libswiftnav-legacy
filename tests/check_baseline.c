@@ -307,12 +307,18 @@ START_TEST(test_baseline_ref_first)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
   fail_unless(within_epsilon(b[2], -0.0533294));
@@ -334,12 +340,18 @@ START_TEST(test_baseline_ref_middle)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.622609));
   fail_unless(within_epsilon(b[1], -0.432371));
   fail_unless(within_epsilon(b[2], -0.00461595));
@@ -364,12 +376,18 @@ START_TEST(test_baseline_ref_end)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.589178));
   fail_unless(within_epsilon(b[1], -0.35166));
   fail_unless(within_epsilon(b[2], 0.0288157));
@@ -402,12 +420,18 @@ START_TEST(test_baseline_fixed_point)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == 0);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], b_orig[0]));
   fail_unless(within_epsilon(b[1], b_orig[1]));
   fail_unless(within_epsilon(b[2], b_orig[2]));
@@ -424,9 +448,10 @@ START_TEST(test_baseline_few_sats)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
-  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = baseline(num_sdiffs, sdiffs, ref_ecef, &ambs, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
 
   fail_unless(valid == -1);
 }
