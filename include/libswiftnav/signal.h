@@ -132,6 +132,7 @@ enum constellation code_to_constellation(code_t code);
 double code_to_carr_freq(code_t code);
 u16 code_to_chip_count(code_t code);
 double code_to_chip_rate(code_t code);
+double code_to_prn_period(code_t code);
 bool code_requires_direct_acq(code_t code);
 
 #endif /* LIBSWIFTNAV_SIGNAL_H */

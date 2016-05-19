@@ -107,6 +107,12 @@
 /** GPS L2C symbol length [ms] */
 #define GPS_L2C_SYMBOL_LENGTH 20
 
+/* GPS L1 C/A PRN period in ms */
+#define GPS_L1CA_PRN_PERIOD 1.0
+
+/* GPS L1 CM PRN period in ms */
+#define GPS_L2CM_PRN_PERIOD 20.0
+
 /* \} */
 
 /** \defgroup dgnss_constants DGNSS

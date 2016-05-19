@@ -20,6 +20,7 @@
 #include <libswiftnav/track.h>
 #include <libswiftnav/ephemeris.h>
 #include <libswiftnav/coord_system.h>
+#include <libswiftnav/signal.h>
 
 /** \defgroup track Tracking
  * Functions used in tracking.
@@ -784,8 +785,11 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     /* Compute the time of transmit of the signal on the satellite from the
      * tracking loop parameters. This will be used to compute the pseudorange. */
     nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
-    nav_meas[i]->tot.tow += meas[i]->code_phase_chips / (code_to_chip_num(e[i]->sid.code) * 1000.0);
-    nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate / GPS_CA_CHIPPING_RATE;
+    nav_meas[i]->tot.tow += meas[i]->code_phase_chips
+                           / (code_to_chip_count(meas[i]->sid.code) * 1000.0
+                              * code_to_prn_period(meas[i]->sid.code));
+    nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate
+                            / code_to_chip_rate(meas[i]->sid.code);
     /* For now use the week number from the ephemeris. */
     /* TODO: Should we use a more reliable source for the week number? */
     /* TODO (Leith): There might be a bug where ephmeris ToW is set to 0 */

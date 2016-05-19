@@ -269,6 +269,30 @@ double code_to_chip_rate(code_t code)
   return cr;
 }
 
+/** Return the PRN period for a code_t.
+ *
+ * \param code  code_t to use.
+ * \return code period in ms
+ */
+double code_to_prn_period(code_t code)
+{
+  double p;
+  assert(code_valid(code));
+  switch (code) {
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+    p = GPS_L1CA_PRN_PERIOD;
+    break;
+  case CODE_GPS_L2CM:
+    p = GPS_L2CM_PRN_PERIOD;
+    break;
+  default:
+    assert(0);
+    p = 0;
+    break;
+  }
+  return p;
+}
 /** Checks if the code requires direct acquisition.
  *
  * An example of non-direct acquisition is the L1C/A
