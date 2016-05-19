@@ -255,9 +255,10 @@ static void track_correlate(enum correlator_type correlator_type,
 
   s8 code_E, code_P, code_L;
   double baseband_Q, baseband_I;
+  code_E = code_P = code_L = 0;
 
   for (u32 i=0; i<num_samples; i++) {
-    double code_phase_new;
+    double code_phase_new = 0;
 
     /* Note, l1ca_* and l2c_* functions are inline and should not
        impose much execution overhead */
