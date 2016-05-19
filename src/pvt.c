@@ -256,8 +256,8 @@ static double pvt_solve(double rx_state[],
 
 static u8 filter_solution(gnss_solution* soln, dops_t* dops)
 {
-  if (dops->pdop > 50.0)
-    /* PDOP is too high to yield a good solution. */
+  if (dops->gdop > 50.0)
+    /* GDOP is too high to yield a good solution. */
     return 1;
 
   if (soln->pos_llh[2] < -1e3 || soln->pos_llh[2] > 1e6)
@@ -482,7 +482,7 @@ static s8 pvt_solve_raim(double rx_state[],
  *  e.g. `pvt_err_msg[-ret - 1]`
  *    where `ret` is the return value of calc_PVT(). */
 const char *pvt_err_msg[] = {
-  "PDOP too high",
+  "GDOP too high (>50)",
   "Altitude unreasonable",
   "Velocity >= 1000 kts",
   "RAIM repair attempted, failed",
@@ -502,7 +502,7 @@ const char *pvt_err_msg[] = {
  *   -  `2`: Solution converged but RAIM unavailable or disabled
  *   -  `1`: Solution converged, failed RAIM but was successfully repaired
  *   -  `0`: Solution converged and verified by RAIM
- *   - `-1`: PDOP is too high to yield a good solution.
+ *   - `-1`: GDOP is too high to yield a good solution.
  *   - `-2`: Altitude is unreasonable.
  *   - `-3`: Velocity is greater than or equal to 1000 kts.
  *   - `-4`: RAIM check failed and repair was unsuccessful
