@@ -45,3 +45,5 @@ cdef extern from "libswiftnav/nav_msg.h":
 cdef class NavMsg:
   cdef nav_msg_t _thisptr
 
+cdef class GpsL1CADecodedData:
+  cdef gps_l1ca_decoded_data_t _thisptr 

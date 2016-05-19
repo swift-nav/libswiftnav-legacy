@@ -11,8 +11,16 @@
 
 from fmt_utils import fmt_repr
 from time cimport gps_time_t
-from signal cimport gnss_signal_t
+from libc.string cimport memset
+from swiftnav.signal cimport GNSSSignal
 
+cdef class GpsL1CADecodedData:
+  def __cinit__(self):
+    memset(&self._thisptr, 0, sizeof(self._thisptr))
+
+  def __getattr__(self, k):
+    return self._thisptr.get(k) 
+  
 cdef class NavMsg:
 
   def __cinit__(self):
@@ -39,11 +47,9 @@ cdef class NavMsg:
   def subframe_ready(self):
     return subframe_ready(&self._thisptr)
 
-  def process_subframe(self, sid, d):
-    cdef gps_l1ca_decoded_data_t tmp_d = d._thisptr
-    cdef gnss_signal_t tmp_sid = sid._thisptr
-    return process_subframe(&self._thisptr, tmp_sid, &tmp_d)
-
+  def process_subframe(self, GNSSSignal sid, GpsL1CADecodedData d):
+    return process_subframe(&self._thisptr, sid._thisptr, &d._thisptr)
+  
   def __richcmp__(self, other, op):
     """
     Weird Cython comparison method. See
