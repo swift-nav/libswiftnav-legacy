@@ -33,6 +33,7 @@ else (CMAKE_CROSSCOMPILING)
       check_pvt.c
       check_edc.c
       check_bits.c
+      check_correlator.c
       check_memory_pool.c
       check_rtcm3.c
       check_coord_system.c
@@ -51,6 +52,7 @@ else (CMAKE_CROSSCOMPILING)
       check_cnav.c
       check_glo_decoder.c
       check_troposphere.c
+      check_counter_checker.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})

@@ -48,6 +48,7 @@ set(libswiftnav_SRCS
   l2c_capability.c
   cnav_msg.c
   nav_msg_glo.c
+  counter_checker/counter_checker.c
   ${plover_SRCS}
 
   CACHE INTERNAL ""

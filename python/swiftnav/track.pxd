@@ -124,6 +124,7 @@ cdef extern from "libswiftnav/track.h":
   void alias_detect_init(alias_detect_t *a, u32 acc_len, float time_diff)
   void alias_detect_first(alias_detect_t *a, float I, float Q)
   float alias_detect_second(alias_detect_t *a, float I, float Q)
+  void alias_detect_reinit(alias_detect_t *a, u32 acc_len, float time_diff)
 
   # Tracking loop: Lock detect
   struct loop_detect_lpf:
@@ -199,30 +200,34 @@ cdef class SimpleTrackingLoop:
   cdef simple_tl_state_t _thisptr
 
 cdef class AidedLoopFilter:
-   cdef aided_lf_state_t _thisptr
+  cdef aided_lf_state_t _thisptr
 
 cdef class AidedTrackingLoop:
+  cdef dict kwargs
   cdef aided_tl_state_t _thisptr
 
 cdef class CompTrackingLoop:
   cdef comp_tl_state_t _thisptr
 
 cdef class AliasDetector:
+  cdef dict kwargs
   cdef alias_detect_t _thisptr
 
 cdef class LockDetectLoopFilter:
   cdef loop_detect_lpf _thisptr
 
 cdef class LockDetector:
+  cdef dict kwargs
   cdef lock_detect_t _thisptr
 
 cdef class CN0Estimator:
+  cdef dict kwargs
   cdef cn0_est_state_t _thisptr
 
 cdef class ChannelMeasurement:
   cdef channel_measurement_t _thisptr
 
 cdef class NavigationMeasurement:
- cdef navigation_measurement_t _thisptr
+  cdef navigation_measurement_t _thisptr
 
 cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c_nav_meas)

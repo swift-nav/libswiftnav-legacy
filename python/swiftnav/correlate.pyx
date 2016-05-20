@@ -1,4 +1,5 @@
-# Copyright (C) 2012 Swift Navigation Inc.
+# Copyright (C) 2012,2016 Swift Navigation Inc.
+# Contact: Adel Mamin <adelm@exafore.com>
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -29,15 +30,24 @@ cdef extern from "complexobject.h":
   ctypedef class __builtin__.complex [object PyComplexObject]:
     cdef Py_complex cval
 
-def track_correlate_(np.ndarray[char, ndim=1, mode="c"] samples,
-                     code_freq, code_phase, carr_freq, carr_phase,
-                     np.ndarray[char, ndim=1, mode="c"] code,
-                     sampling_freq):
+def track_correlate(np.ndarray[char, ndim=1, mode="c"] samples,
+                    chips_to_correlate,
+                    code_freq, code_phase, carr_freq, carr_phase,
+                    np.ndarray[char, ndim=1, mode="c"] code,
+                    sampling_freq, signal):
   cdef double init_code_phase = code_phase
   cdef double init_carr_phase = carr_phase
   cdef double I_E, Q_E, I_P, Q_P, I_L, Q_L
   cdef unsigned int blksize
-  track_correlate(<s8*>&samples[0], <s8*>&code[0],
+  if signal == "l1ca":
+    l1_ca_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
+                  chips_to_correlate,
+                  &init_code_phase, code_freq / sampling_freq,
+                  &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
+                  &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
+  else:
+    l2c_cm_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
+                  chips_to_correlate,
                   &init_code_phase, code_freq / sampling_freq,
                   &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
                   &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
