@@ -221,6 +221,11 @@ cdef class SimpleTrackingLoop:
     simple_tl_update(&self._thisptr, cs_)
     return (self.code_freq, self.carr_freq)
 
+def rebuild_AidedTrackingLoop(kwargs, state):
+  p = AidedTrackingLoop(**kwargs)
+  p._thisptr = state
+  return p
+
 cdef class AidedTrackingLoop:
   """
   Wraps the `libswiftnav` simple second-order tracking loop implementation
@@ -237,6 +242,7 @@ cdef class AidedTrackingLoop:
   """
 
   def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
     aided_tl_init(&self._thisptr,
                   kwargs['loop_freq'],
                   kwargs['code_freq'],
@@ -250,6 +256,8 @@ cdef class AidedTrackingLoop:
                   kwargs['carr_k'],
                   kwargs['carr_freq_b1'])
 
+  def __reduce__(self):
+    return (rebuild_AidedTrackingLoop, (self.kwargs, self._thisptr))
 
   def retune(self, code_params, carr_params, loop_freq, carr_freq_igain, carr_to_code):
     """
@@ -267,15 +275,13 @@ cdef class AidedTrackingLoop:
       FLL aiding gain
 
     """
-    self.loop_freq = loop_freq
-    self.code_bw, self.code_zeta, self.code_k = code_params
-    self.carr_bw, self.carr_zeta, self.carr_k = carr_params
-    self.carr_freq_igain = carr_freq_igain
-    aided_tl_retune(&self._thisptr, self.loop_freq,
-                            self.code_bw, self.code_zeta, self.code_k,
-                            self.carr_to_code,
-                            self.carr_bw, self.carr_zeta, self.carr_k,
-                            self.carr_freq_igain)
+    code_bw, code_zeta, code_k = code_params
+    carr_bw, carr_zeta, carr_k = carr_params
+    aided_tl_retune(&self._thisptr, loop_freq,
+                    code_bw, code_zeta, code_k,
+                    carr_to_code,
+                    carr_bw, carr_zeta, carr_k,
+                    carr_freq_igain)
 
   def update(self, E, P, L):
     """
@@ -357,6 +363,11 @@ cdef class CompTrackingLoop:
     comp_tl_update(&self._thisptr, cs_)
     return (self._thisptr.code_freq, self._thisptr.carr_freq)
 
+def rebuild_LockDetector(kwargs, state):
+    p = LockDetector(**kwargs)
+    p._thisptr = state
+    return p
+
 cdef class LockDetector:
   """
   Wraps the `libswiftnav` PLL lock detector implementation.
@@ -367,31 +378,52 @@ cdef class LockDetector:
   """
 
   def __cinit__(self, **kwargs):
-    self._thisptr = kwargs
+    self.kwargs = kwargs
     lock_detect_init(&self._thisptr,
-                     self._thisptr.k1,
-                     self._thisptr.k2,
-                     self._thisptr.thislp,
-                     self._thisptr.lo)
+                     kwargs['k1'],
+                     kwargs['k2'],
+                     kwargs['lp'],
+                     kwargs['lo'])
+
+  def __reduce__(self):
+    return (rebuild_LockDetector, (self.kwargs, self._thisptr))
 
   def reinit(self, k1, k2, lp, lo):
     lock_detect_reinit(&self._thisptr, k1, k2, lp, lo)
 
   def update(self, I, Q, DT):
     lock_detect_update(&self._thisptr, I, Q, DT)
-    return (self._thisptr.outo, self._thisptr.outp)
+    return (self._thisptr.outo, self._thisptr.outp, \
+            self._thisptr.pcount1, self._thisptr.pcount2,\
+            self._thisptr.lpfi.y, self._thisptr.lpfq.y)
 
+def rebuild_AliasDetector(kwargs, state):
+    p = AliasDetector(**kwargs)
+    p._thisptr = state
+    return p
 
 cdef class AliasDetector:
 
-  def __cinit__(self, acc_len, time_diff):
-    alias_detect_init(&self._thisptr, acc_len, time_diff)
+  def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
+    alias_detect_init(&self._thisptr, kwargs['acc_len'], kwargs['time_diff'])
+
+  def __reduce__(self):
+    return (rebuild_AliasDetector, (self.kwargs, self._thisptr))
 
   def first(self, I, Q):
     alias_detect_first(&self._thisptr, I, Q)
 
   def second(self, I, Q):
     return alias_detect_second(&self._thisptr, I, Q)
+
+  def reinit(self, acc_len, time_diff):
+    return alias_detect_reinit(&self._thisptr, acc_len, time_diff)
+
+def rebuild_CN0Estimator(kwargs, state):
+    p = CN0Estimator(**kwargs)
+    p._thisptr = state
+    return p
 
 cdef class CN0Estimator:
   """
@@ -403,11 +435,15 @@ cdef class CN0Estimator:
   """
 
   def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
     cn0_est_init(&self._thisptr,
                  kwargs['bw'],
                  kwargs['cn0_0'],
                  kwargs['cutoff_freq'],
                  kwargs['loop_freq'])
+
+  def __reduce__(self):
+    return (rebuild_CN0Estimator, (self.kwargs, self._thisptr))
 
   def update(self, I, Q):
     """
@@ -431,12 +467,30 @@ cdef class CN0Estimator:
 
 cdef class ChannelMeasurement:
 
-  def __init__(self, **kwargs):
+  def __init__(self, 
+               GNSSSignal sid,
+               code_phase_chips,
+               code_phase_rate,
+               carrier_phase,
+               carrier_freq,
+               time_of_week_ms,
+               receiver_time,
+               snr,
+               lock_counter):
     memset(&self._thisptr, 0, sizeof(channel_measurement_t))
-    if kwargs:
-      self._thisptr = kwargs
+    self._thisptr.sid = sid._thisptr
+    self._thisptr.code_phase_chips = code_phase_chips
+    self._thisptr.code_phase_rate = code_phase_rate
+    self._thisptr.carrier_phase = carrier_phase
+    self._thisptr.carrier_freq = carrier_freq
+    self._thisptr.time_of_week_ms = time_of_week_ms
+    self._thisptr.receiver_time = receiver_time
+    self._thisptr.snr = snr
+    self._thisptr.lock_counter = lock_counter
 
   def __getattr__(self, k):
+    if k=='sid':
+      return GNSSSignal(self._thisptr.sid)
     return self._thisptr.get(k)
 
 cdef class NavigationMeasurement:

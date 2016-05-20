@@ -27,5 +27,7 @@ Suite* l2c_capability_test_suite(void);
 Suite* cnav_test_suite(void);
 Suite* glo_decoder_test_suite(void);
 Suite* troposphere_suite(void);
+Suite* correlator_suite(void);
+Suite* counter_checker_suite(void);
 
 #endif /* CHECK_SUITES_H */
