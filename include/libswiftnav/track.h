@@ -146,8 +146,9 @@ typedef struct {
   double carrier_freq;     /**< Carrier frequency in Hz. */
   u32 time_of_week_ms;     /**< Number of milliseconds since the start of the
                                 GPS week corresponding to the last code rollover.  */
-  double receiver_time;    /**< Receiver clock time at which this measurement
-                                is valid in seconds. */
+  double rec_time_delta;   /**< Difference between receiver clock time at which
+                                this measurement is valid and reference time
+                                (seconds). */
   double snr;              /**< Signal to noise ratio. */
   u16 lock_counter;        /**< This number is changed each time the tracking
                                 channel is re-locked or a cycle slip is
@@ -234,7 +235,7 @@ float cn0_est(cn0_est_state_t *s, float I, float Q);
 
 s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[],
-                               double nav_time, const ephemeris_t* e[]);
+                               const ephemeris_t* e[]);
 
 int nav_meas_cmp(const void *a, const void *b);
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
