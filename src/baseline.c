@@ -409,8 +409,9 @@ static bool chi_test(double threshold, u8 num_dds,
  *
  *   -`-1`: < 3 dds
  *   -`-2`: dgelsy  error (see lesq_solution_float)
- *   -`-3`: raim check failed, repair failed
+ *   -`-3`: raim check failed, repair failed, ref satellite was bad
  *   -`-4`: raim check failed, not enough sats for repair
+ *   -`-5`: raim check failed, repair failed, more than one acceptable solution
  */
 /* TODO(dsk) update all call sites to use n_used as calculated here.
  * TODO(dsk) add warn/info logging to call sites when repair occurs.
@@ -501,7 +502,7 @@ s8 lesq_solve_raim(u8 num_dds_u8, const double *dd_obs,
     if (n_used) {
       *n_used = 0;
     }
-    return -3;
+    return -5;
   }
 }
 
