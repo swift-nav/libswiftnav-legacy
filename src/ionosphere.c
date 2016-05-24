@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Swift Navigation Inc.
+ * Copyright (C) 2015, 2016 Swift Navigation Inc.
  * Contact: Leith Bade <leith@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -9,13 +9,14 @@
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/ionosphere.h>
+#include <libswiftnav/logging.h>
 
 /** \defgroup ionosphere Ionospheric models
  * Implemenations of ionospheric delay correction models.
@@ -106,6 +107,37 @@ double calc_ionosphere(const gps_time_t *t_gps,
   d_l1 *= GPS_C;
 
   return d_l1;
+}
+
+/** The function decodes ionospheric parameters
+ * \param subframe4_words pointer to received frame word,
+ *        Note: Ionospheric parmeters are passed in subframe 4,
+ *        pass function parameters accordingly.
+ * \param iono pointer to ionosphere_t where decoded data should be stored
+ */
+void decode_iono_parameters(const u32 *subframe4_words, ionosphere_t *iono)
+{
+  union {
+    s8 s8;
+    u8 u8;
+  } onebyte;
+
+  onebyte.u8 = subframe4_words[3-3] >> (30-16) & 0xff; /* alfa 0 */
+  iono->a0 = onebyte.s8 * pow(2, -30);
+  onebyte.u8 = subframe4_words[3-3] >> (30-24) & 0xff;   /* alfa 1 */
+  iono->a1 = onebyte.s8 * pow(2, -27);
+  onebyte.u8 = subframe4_words[4-3] >> (30-8) & 0xff;    /* alfa 2 */
+  iono->a2 = onebyte.s8 * pow(2, -24);
+  onebyte.u8 = subframe4_words[4-3] >> (30-16) & 0xff;    /* alfa 3 */
+  iono->a3 = onebyte.s8 * pow(2, -24);
+  onebyte.u8 = subframe4_words[4-3] >> (30-24) & 0xff;   /* beta 0 */
+  iono->b0 = onebyte.s8 * pow(2, 11);
+  onebyte.u8 = subframe4_words[5-3] >> (30-8) & 0xff;    /* beta 1 */
+  iono->b1 = onebyte.s8 * pow(2, 14);
+  onebyte.u8 = subframe4_words[5-3] >> (30-16) & 0xff;    /* beta 2 */
+  iono->b2 = onebyte.s8 * pow(2, 16);
+  onebyte.u8 = subframe4_words[5-3] >> (30-24) & 0xff;   /* beta 3 */
+  iono->b3 = onebyte.s8 * pow(2, 16);
 }
 
 /** \} */
