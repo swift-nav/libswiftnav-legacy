@@ -41,16 +41,6 @@ static const double t_avg_lut[5] =
   263.65
 };
 
-/** Average water vapour pressure lookup table [mbar] */
-static const double e_avg_lut[5] =
-{
-  26.31,
-  21.79,
-  11.66,
-  6.78,
-  4.11
-};
-
 /** Average temperature lapse rate lookup table [K/m] */
 static const double b_avg_lut[5] =
 {
@@ -99,16 +89,6 @@ static const double t_amp_lut[5] =
   11.00,
   15.00,
   14.50
-};
-
-/** Amplitude water vapour pressure lookup table [mbar] */
-static const double e_amp_lut[5] =
-{
-  0.00,
-  8.85,
-  7.24,
-  5.36,
-  3.39
 };
 
 /** Amplitude temperature lapse rate lookup table [K/m] */
@@ -300,7 +280,6 @@ double calc_troposphere(const gps_time_t *t_gps, double lat, double h,
   /* Compute surface tropo values */
   double p_0 = calc_param(lat, doy, p_avg_lut, p_amp_lut);
   double t_0 = calc_param(lat, doy, t_avg_lut, t_amp_lut);
-  //double e_0 = calc_param(lat, doy, e_avg_lut, e_amp_lut);
   double b = calc_param(lat, doy, b_avg_lut, b_amp_lut) / 1000.0;
   double l = calc_param(lat, doy, l_avg_lut, l_amp_lut);
   double rh = calc_param(lat, doy, rh_avg_lut, rh_amp_lut);
