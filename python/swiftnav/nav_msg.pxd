@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Swift Navigation Inc.
+# Copyright (C) 2012, 2016 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -30,9 +30,21 @@ cdef extern from "libswiftnav/nav_msg.h":
     u8 next_subframe_id
     s8 bit_polarity
 
+  ctypedef struct ionosphere_t:
+    double a0
+    double a1
+    double a2
+    double a3
+    double b0
+    double b1
+    double b2
+    double b3
+            
   ctypedef struct gps_l1ca_decoded_data_t:
     ephemeris_t ephemeris
     bool ephemeris_upd_flag
+    ionosphere_t iono
+    bool iono_corr_upd_flag
     u32 gps_l2c_sv_capability
     bool gps_l2c_sv_capability_upd_flag
 
