@@ -156,6 +156,7 @@ typedef struct {
                                 ambiguity is reset.  If this number changes it
                                 is an indication you should reset integer
                                 ambiguity resolution for this channel. */
+  u32 lock_time;           /**<  Milliseconds that channel has been locked. **/
 } channel_measurement_t;
 
 typedef struct {
@@ -168,7 +169,7 @@ typedef struct {
   double sat_pos[3];
   double sat_vel[3];
   double snr;
-  double lock_time;
+  u32 lock_time;
   gps_time_t tot;
   gnss_signal_t sid;
   u16 lock_counter;
@@ -242,5 +243,5 @@ int nav_meas_cmp(const void *a, const void *b);
 u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
                 u8 n_old, navigation_measurement_t *m_old,
                 navigation_measurement_t *m_corrected, double dt);
-
+bool calculate_loss_of_lock(u32 dt, u32 prev_lock_time, u32 curr_lock_time);
 #endif /* LIBSWIFTNAV_TRACK_H */

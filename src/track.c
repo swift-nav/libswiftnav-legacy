@@ -860,6 +860,18 @@ int nav_meas_cmp(const void *a, const void *b)
                      ((navigation_measurement_t*)b)->sid);
 }
 
+bool calculate_loss_of_lock(u32 dt, u32 prev_lock_time, u32 curr_lock_time) {
+  if (prev_lock_time > curr_lock_time) return true;
+  else if ((prev_lock_time == curr_lock_time) && (dt >= prev_lock_time)) return true;
+  else if ((prev_lock_time == curr_lock_time) && (dt < prev_lock_time)) return false;
+  else if ((prev_lock_time < curr_lock_time) && \
+      (dt >= (2 * curr_lock_time - prev_lock_time))) return true;
+  else if ((prev_lock_time < curr_lock_time) && \
+     (curr_lock_time < dt && dt < (2 * curr_lock_time - prev_lock_time))) return true;
+  else if ((prev_lock_time < curr_lock_time) && (dt <= curr_lock_time)) return false;
+  else return true;
+}
+
 /** Set measurement precise Doppler using time difference of carrier phase.
  * \note The return array `m_tdcp` should have space to contain the number
  * of measurements with common PRNs between `m_new` and `m_old`. Making the
@@ -899,6 +911,11 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
                                     / dt + dopp_corr;
+
+      /* set the lock_counter according to whether a slip could have occured */
+      if (calculate_loss_of_lock(dt, m_new[i].lock_time, m_old[j].lock_time)) {
+      m_corrected[n].lock_counter +=1;
+      }
       n++;
     }
   }
