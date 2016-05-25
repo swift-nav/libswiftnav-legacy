@@ -47,13 +47,43 @@ typedef struct {
 typedef struct {
   float carr_freq;             /**< Code frequency. */
   aided_lf_state_t carr_filt ; /**< Carrier loop filter state. */
-  float code_freq;             /**< Carrier frequenct. */
+  float code_freq;             /**< Carrier frequency. */
   simple_lf_state_t code_filt; /**< Code loop filter state. */
   float prev_I, prev_Q;        /**< Previous timestep's in-phase and
 				    quadrature integration, for FLL. */
   float carr_to_code;          /**< Ratio of code to carrier freqs, or
 				    zero to disable carrier aiding */
 } aided_tl_state_t;
+
+/**
+ * Tracking loop control object
+ *
+ * This object is made according to Elliott D.Kaplan and Chrostopher J.Hegarty
+ * book with bilinear transform integrators.
+ */
+typedef struct {
+  float T;
+
+  /* First order frequency filter */
+  float freq_omega_0;          /**< Frequency error multiplier: omega_0f */
+  float freq_acc;              /**< Frequency error accumulator */
+
+  /* Second order phase filter */
+  float phase_omega_02;        /**< Phase error multiplier 1: omega_n^2 */
+  float phase_omega_0a;        /**< Phase error multiplier 2: omega_n*a */
+  float phase_acc2;            /**< Phase error accumulator 1 */
+  float phase_acc;             /**< Phase error accumulator 2 */
+
+  /* Doppler frequency */
+  float carr_freq;             /**< Carrier frequency output. */
+
+  float code_freq;             /**< Code frequency error. */
+  simple_lf_state_t code_filt; /**< Code loop filter state. */
+  float prev_I, prev_Q;        /**< Previous timestep's in-phase and
+                                    quadrature integration, for FLL. */
+  float carr_to_code;          /**< Ratio of code to carrier freqs, or
+                                    zero to disable carrier aiding */
+} aided_tl_state_new_t;
 
 /** State structure for a simple tracking loop.
  * Should be initialised with simple_tl_init().
@@ -239,6 +269,22 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
                      float carr_freq_b1);
 
 void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3]);
+
+void aided_tl_init_new(aided_tl_state_new_t *s, float loop_freq,
+                   float code_freq,
+                   float code_bw, float code_zeta, float code_k,
+                   float carr_to_code,
+                   float carr_freq,
+                   float carr_bw, float carr_zeta, float carr_k,
+                   float carr_freq_b1);
+
+void aided_tl_retune_new(aided_tl_state_new_t *s, float loop_freq,
+                     float code_bw, float code_zeta, float code_k,
+                     float carr_to_code,
+                     float carr_bw, float carr_zeta, float carr_k,
+                     float carr_freq_b1);
+
+void aided_tl_update_new(aided_tl_state_new_t *s, correlation_t cs[3]);
 
 void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                     float code_freq, float code_bw,

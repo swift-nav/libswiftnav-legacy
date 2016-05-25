@@ -77,11 +77,12 @@ float cn0_est_bl_update(cn0_est_state_t *s, float I, float Q)
 {
   /* Compute values for this iteration */
   float I_abs = fabsf(I);
-  float Q_abs = fabsf(Q);
+  (void)Q;
+  // float Q_abs = fabsf(Q);
   float I_prev_abs = s->I_prev_abs;
-  float Q_prev_abs = s->Q_prev_abs;
+  // float Q_prev_abs = s->Q_prev_abs;
   s->I_prev_abs = I_abs;
-  s->Q_prev_abs = Q_abs;
+  // s->Q_prev_abs = Q_abs;
 
   if (I_prev_abs < 0.f) {
     /* This is the first iteration, just update the prev state. */
@@ -91,7 +92,7 @@ float cn0_est_bl_update(cn0_est_state_t *s, float I, float Q)
     float nsr;    /* Noise to signal ratio */
     float nsr_db; /* Noise to signal ratio in dB*/
 
-    P_n = Q_abs - Q_prev_abs;
+    P_n = I_abs - I_prev_abs;//  Q_abs - Q_prev_abs;
     P_n *= P_n;
 
     P_s = 0.5f * (I * I + I_prev_abs * I_prev_abs);
@@ -104,6 +105,11 @@ float cn0_est_bl_update(cn0_est_state_t *s, float I, float Q)
 
     nsr_db = 10.f * log10f(nsr);
     s->cn0 = s->log_bw - nsr_db;
+    if (s->cn0 > 59.f) {
+      s->cn0 = 59.f;
+    } else if (s->cn0 < 10.f) {
+      s->cn0 = 10.f;
+    }
   }
 
   return s->cn0;

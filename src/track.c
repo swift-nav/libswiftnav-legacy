@@ -98,11 +98,12 @@
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
                      float *b0, float *b1)
 {
-  float T = 1/loop_freq;
+  float T = 1.f/loop_freq; /* Integration interval */
+
   /* Find the natural frequency. */
   float omega_n = 8.f*bw*zeta / (4.f*zeta*zeta + 1.f);
 
-  /* Some intermmediate values. */
+  /* Some intermediate values. */
   float tau_1 = k / (omega_n * omega_n);
   float tau_2 = 2 * zeta / omega_n;
 
@@ -341,6 +342,88 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
   s->carr_to_code = carr_to_code;
 }
 
+void aided_tl_init_new(aided_tl_state_new_t *s, float loop_freq,
+                   float code_freq,
+                   float code_bw, float code_zeta, float code_k,
+                   float carr_to_code,
+                   float carr_freq,
+                   float carr_bw, float carr_zeta, float carr_k,
+                   float carr_freq_b1)
+{
+  (void)carr_zeta;
+  (void)carr_k;
+
+  s->T = 1. / loop_freq;      /* Single integration period */
+  float b0, b1;
+
+  {
+    /* Initialize FLL: first order */
+    float fll_noise_bw = 18.f;
+    float omega_0 = fll_noise_bw * 2.f; /* FLL natural frequency */
+    s->freq_omega_0 = omega_0 * carr_freq_b1;
+    s->freq_acc = 0.f;
+
+  }
+  {
+    /* Initialize PLL: second order */
+    float pll_noise_bw = carr_bw;
+    float omega_0 = pll_noise_bw / .53f; /* Frequency loop natural frequency */
+    s->phase_omega_02 = omega_0 * omega_0;
+    s->phase_omega_0a = omega_0 * 1.414f;
+    s->phase_acc2 = 0.f;
+    s->phase_acc = carr_freq;
+  }
+
+  s->carr_freq = carr_freq;
+  s->prev_I = 1.0f; // This works, but is it a really good way to do it?
+  s->prev_Q = 0.0f;
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq, &b0, &b1);
+  s->code_freq = code_freq;
+  s->carr_to_code = carr_to_code;
+  /* If using carrier aiding, initialize code_freq in code loop filter
+     to zero to avoid double-counting. */
+  simple_lf_init(&(s->code_filt), carr_to_code ? 0 : code_freq, b0, b1);
+}
+void aided_tl_retune_new(aided_tl_state_new_t *s, float loop_freq,
+                         float code_bw, float code_zeta, float code_k,
+                         float carr_to_code,
+                         float carr_bw, float carr_zeta, float carr_k,
+                         float carr_freq_b1)
+{
+  (void)carr_zeta;
+  (void)carr_k;
+  (void)carr_freq_b1;
+
+  s->T = 1. / loop_freq;      /* Single integration period */
+
+  /* Sum up phase and frequency accumulators */
+  s->phase_acc = s->phase_acc + s->freq_acc;
+  {
+    /* Initialize FLL: first order */
+    float fll_noise_bw = 18;
+    float omega_0 = fll_noise_bw * 2.f; /* FLL natural frequency */
+    if (carr_freq_b1 != 0.f)
+      s->freq_omega_0 = omega_0;
+    else
+      s->freq_omega_0 = 0.f;
+    s->freq_acc = 0.f; /* See above */
+  }
+  {
+    /* Initialize PLL: second order */
+    float pll_noise_bw = carr_bw;
+    float omega_0p = pll_noise_bw / .53f; /* Frequency loop natural frequency */
+    s->phase_omega_02 = omega_0p * omega_0p;
+    s->phase_omega_0a = omega_0p * 1.414f;
+    s->phase_acc2 = 0.f;  /* See above */
+    /* s->phase_acc = s->phase_acc */ ;
+  }
+
+  calc_loop_gains(code_bw, code_zeta, code_k, loop_freq,
+                  &s->code_filt.b0, &s->code_filt.b1);
+  s->carr_to_code = carr_to_code;
+}
+
 /** Update step for the aided tracking loop.
  *
  * Implements a basic second-order tracking loop. The code tracking loop is a
@@ -367,6 +450,45 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
     s->prev_Q = cs[1].Q;
   }
   s->carr_freq = aided_lf_update(&(s->carr_filt), carr_error, freq_error);
+
+  /* Code loop */
+  float code_error = dll_discriminator(cs);
+  s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
+  if (s->carr_to_code) /* Optional carrier aiding of code loop */
+    s->code_freq += s->carr_freq / s->carr_to_code;
+}
+
+void aided_tl_update_new(aided_tl_state_new_t *s, correlation_t cs[3])
+{
+  float prev;
+
+  /* Carrier loop */
+  float freq_error = frequency_discriminator(cs[1].I, cs[1].Q,
+                                             s->prev_I, s->prev_Q);
+
+  prev = s->freq_acc;
+  s->freq_acc += freq_error * s->freq_omega_0;
+  float freq_acc = (s->freq_acc + prev) * 0.5f;
+
+  // freq_error /= s->T;
+  float phase_error = costas_discriminator(cs[1].I, cs[1].Q);
+
+  s->prev_I = cs[1].I;
+  s->prev_Q = cs[1].Q;
+
+  /* Phase change rate accumulator: digital boxcar or digital bilinear transform */
+  prev = s->phase_acc2;
+  s->phase_acc2 += phase_error * s->phase_omega_02 * s->T;
+  float phase_acc2 = (s->phase_acc2 + prev) * 0.5f;
+
+
+  /* Phase accumulator: digital boxcar or digital bilinear transform */
+  prev = s->phase_acc;
+  s->phase_acc += phase_error * s->phase_omega_0a + phase_acc2;
+  float phase_acc = (s->phase_acc + prev) * 0.5f;
+
+  /* Frequency aid */
+  s->code_freq = phase_acc + freq_acc;
 
   /* Code loop */
   float code_error = dll_discriminator(cs);
