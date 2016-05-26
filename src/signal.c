@@ -75,6 +75,8 @@ gnss_signal_t construct_sid(code_t code, u16 sat)
 int sid_to_string(char *s, int n, gnss_signal_t sid)
 {
   assert(n >= SID_STR_LEN_MAX);
+  (void) n;
+
   const char *code_str = ((sid.code < 0) || (sid.code >= CODE_COUNT)) ?
       unknown_str : code_table[sid.code].str;
   int nchars = 0;

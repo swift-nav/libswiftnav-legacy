@@ -5,6 +5,13 @@
 #include "check_utils.h"
 
 #include <libswiftnav/signal.h>
+#include <libswiftnav/constants.h>
+
+/* Include singal.c here to have a chance to turn off asserts.
+   Otherwise the code lines with asserts cannot be covered by
+   tests and it will lower test coverage statistics. */
+#define NDEBUG
+#include <signal.c>
 
 #define ARRAY_COUNT(arr) ((sizeof(arr) / sizeof(arr[0])))
 
@@ -300,6 +307,66 @@ START_TEST(test_signal_construction)
 }
 END_TEST
 
+START_TEST(test_signal_code_to_carr_freq)
+{
+  double carr_freq;
+
+  carr_freq = code_to_carr_freq(CODE_GPS_L2CM);
+  fail_unless(GPS_L2_HZ == carr_freq);
+
+  /* check unsupported branch for code coverage stats */
+  carr_freq = code_to_carr_freq(CODE_GLO_L2CA);
+}
+END_TEST
+
+START_TEST(test_signal_code_to_chip_count)
+{
+  u16 chip_count;
+
+  chip_count = code_to_chip_count(CODE_GPS_L1CA);
+  fail_unless(GPS_L1CA_CHIPS_NUM == chip_count);
+
+  chip_count = code_to_chip_count(CODE_SBAS_L1CA);
+  fail_unless(GPS_L1CA_CHIPS_NUM == chip_count);
+
+  chip_count = code_to_chip_count(CODE_GPS_L2CM);
+  fail_unless(GPS_L2CM_CHIPS_NUM * 2 == chip_count);
+
+  /* check unsupported branch for code coverage stats */
+  chip_count = code_to_chip_count(CODE_GLO_L2CA);
+}
+END_TEST
+
+START_TEST(test_signal_code_to_chip_rate)
+{
+  double chip_rate;
+
+  chip_rate = code_to_chip_rate(CODE_GPS_L1CA);
+  fail_unless(GPS_CA_CHIPPING_RATE == chip_rate);
+
+  chip_rate = code_to_chip_rate(CODE_SBAS_L1CA);
+  fail_unless(GPS_CA_CHIPPING_RATE == chip_rate);
+
+  chip_rate = code_to_chip_rate(CODE_GPS_L2CM);
+  fail_unless(GPS_CA_CHIPPING_RATE == chip_rate);
+
+  /* check unsupported branch for code coverage stats */
+  chip_rate = code_to_chip_rate(CODE_GLO_L2CA);
+}
+END_TEST
+
+START_TEST(test_signal_code_requires_direct_acq)
+{
+  bool requires;
+
+  requires = code_to_chip_rate(CODE_GPS_L1CA);
+  fail_unless(true == requires);
+
+  requires = code_requires_direct_acq(CODE_GPS_L2CM);
+  fail_unless(false == requires);
+}
+END_TEST
+
 Suite* signal_test_suite(void)
 {
   Suite *s = suite_create("Signal");
@@ -310,6 +377,10 @@ Suite* signal_test_suite(void)
   tcase_add_test(tc_core, test_signal_properties);
   tcase_add_test(tc_core, test_signal_compare);
   tcase_add_test(tc_core, test_signal_construction);
+  tcase_add_test(tc_core, test_signal_code_to_carr_freq);
+  tcase_add_test(tc_core, test_signal_code_to_chip_count);
+  tcase_add_test(tc_core, test_signal_code_to_chip_rate);
+  tcase_add_test(tc_core, test_signal_code_requires_direct_acq);
   suite_add_tcase(s, tc_core);
 
   return s;

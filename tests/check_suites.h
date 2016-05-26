@@ -29,5 +29,6 @@ Suite* glo_decoder_test_suite(void);
 Suite* troposphere_suite(void);
 Suite* correlator_suite(void);
 Suite* counter_checker_suite(void);
+Suite* prns_test_suite(void);
 
 #endif /* CHECK_SUITES_H */
