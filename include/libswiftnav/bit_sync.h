@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Swift Navigation Inc.
+ * Copyright (c) 2015,2016 Swift Navigation Inc.
  * Contact: Jacob McNamee <jacob@swiftnav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -41,6 +41,7 @@ typedef struct {
 /** \} */
 
 void bit_sync_init(bit_sync_t *b, gnss_signal_t sid);
+void bit_sync_set(bit_sync_t *b, s8 bit_phase_ref);
 bool bit_sync_update(bit_sync_t *b, s32 corr_prompt_real, u32 ms,
                      s32 *bit_integrate);
 

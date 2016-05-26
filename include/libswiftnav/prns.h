@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2012,2016 Swift Navigation Inc.
  * Contact: Colin Beighley <colin@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -18,5 +18,7 @@
 
 const u8* ca_code(gnss_signal_t sid);
 s8 get_chip(u8* code, u32 chip_num);
+
+u32 sid_to_init_g1(gnss_signal_t sid);
 
 #endif /* LIBSWIFTNAV_PRNS_H */

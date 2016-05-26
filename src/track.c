@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2012,2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -830,6 +830,8 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
   }
 
   for (u8 i=0; i<n_channels; i++) {
+    double carr_freq = code_to_carr_freq(nav_meas[i]->sid.code);
+
     /* The raw pseudorange is just the time of flight divided by the speed of
      * light. */
     nav_meas[i]->raw_pseudorange = GPS_C * gpsdifftime(&tor, &nav_meas[i]->tot);
@@ -839,9 +841,9 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     nav_meas[i]->pseudorange = nav_meas[i]->raw_pseudorange
                                + clock_err[i] * GPS_C;
     nav_meas[i]->carrier_phase = nav_meas[i]->raw_carrier_phase
-                                 - clock_err[i] * GPS_L1_HZ;
-    nav_meas[i]->doppler = nav_meas[i]->raw_doppler
-                           + clock_rate_err[i] * GPS_L1_HZ;
+                                 - clock_err[i] * carr_freq;
+    nav_meas[i]->doppler = nav_meas[i]->raw_doppler +
+                clock_rate_err[i] * carr_freq;
 
     /* We also apply the clock correction to the time of transmit. */
     nav_meas[i]->tot.tow -= clock_err[i];
