@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Swift Navigation Inc.
+ * Copyright (C) 2010,2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -196,7 +196,7 @@ s8 calc_sat_doppler_almanac(const almanac_t *a, const gps_time_t *t,
                            vector_norm(3, vec_ref_sat);
 
   /* Return the Doppler shift. */
-  *doppler = GPS_L1_HZ * radial_velocity / GPS_C;
+  *doppler = code_to_carr_freq(a->sid.code) * radial_velocity / GPS_C;
 
   return 0;
 }

@@ -14,6 +14,7 @@
 #include <assert.h>
 
 #include <libswiftnav/signal.h>
+#include <libswiftnav/constants.h>
 
 /** \defgroup signal GNSS signal identifiers (SID)
  * \{ */
@@ -191,6 +192,79 @@ constellation_t code_to_constellation(code_t code)
 {
   assert(code_valid(code));
   return code_table[code].constellation;
+}
+
+/** Return the center carrier frequency for a code_t.
+ *
+ * \param code  code_t to use.
+ * \return center carrier frequency
+ */
+double code_to_carr_freq(code_t code)
+{
+  double f;
+  assert(code_valid(code));
+  switch (code) {
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+    f = GPS_L1_HZ;
+    break;
+  case CODE_GPS_L2CM:
+    f = GPS_L2_HZ;
+    break;
+  default:
+    assert(!"Unsupported code_t ID");
+    f = 0.0;
+    break;
+  }
+  return f;
+}
+
+/** Return the chips count for a code_t.
+ *
+ * \param code  code_t to use.
+ * \return chips count
+ */
+u16 code_to_chip_count(code_t code)
+{
+  u16 cn;
+  assert(code_valid(code));
+  switch (code) {
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+    cn = GPS_L1CA_CHIPS_NUM;
+    break;
+  case CODE_GPS_L2CM:
+    cn = 2 * GPS_L2CM_CHIPS_NUM;
+    break;
+  default:
+    assert(!"Unsupported code_t ID");
+    cn = 0;
+    break;
+  }
+  return cn;
+}
+
+/** Return the chip rate for a code_t.
+ *
+ * \param code  code_t to use.
+ * \return chip rate
+ */
+double code_to_chip_rate(code_t code)
+{
+  double cr;
+  assert(code_valid(code));
+  switch (code) {
+  case CODE_GPS_L1CA:
+  case CODE_SBAS_L1CA:
+  case CODE_GPS_L2CM:
+    cr = GPS_CA_CHIPPING_RATE;
+    break;
+  default:
+    assert(!"Unsupported code_t ID");
+    cr = 0;
+    break;
+  }
+  return cr;
 }
 
 /* \} */

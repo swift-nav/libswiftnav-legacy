@@ -45,6 +45,7 @@ typedef struct
   u8   msg_id; /**< Message id. 0..31 */
   u32  tow;    /**< GPS ToW in 6-second units. Multiply to 6 to get seconds. */
   bool alert;  /**< CNAV message alert flag */
+  s8 bit_polarity; /**< Polarity of data bits */
 } cnav_msg_t;
 
 /**

@@ -12,6 +12,7 @@
 
 #include <libswiftnav/edc.h>
 #include <libswiftnav/bits.h>
+#include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */
 #include <libswiftnav/cnav_msg.h>
 
 #include <limits.h>
@@ -294,6 +295,8 @@ static bool _cnav_msg_decode(cnav_v27_part_t *part, cnav_msg_t *msg, u32 *delay)
         _cnav_msg_invert(part);
       }
 
+      msg->bit_polarity = part->invert ? BIT_POLARITY_INVERTED :
+                                         BIT_POLARITY_NORMAL;
       msg->prn    = getbitu(part->decoded, 8, 6);
       msg->msg_id = getbitu(part->decoded, 14, 6);
       msg->tow    = getbitu(part->decoded, 20, 17);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Swift Navigation Inc.
+ * Copyright (C) 2014,2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -204,8 +204,8 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                          - (m_remote[j].raw_pseudorange
                             + dist_diff);
       sds[n].carrier_phase = m_local[i].raw_carrier_phase
-                           - (m_remote[j].raw_carrier_phase
-                              - dist_diff / GPS_L1_LAMBDA);
+        - (m_remote[j].raw_carrier_phase
+        - dist_diff / CARR_FREQ_2_LAMBDA(code_to_carr_freq(e[i]->sid.code)));
 
       /* Doppler is not propagated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */

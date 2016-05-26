@@ -23,12 +23,13 @@
 
 /* Bit lengths for different constellations. Bounded by BIT_LENGTH_MAX */
 #define BIT_LENGTH_GPS_L1CA 20
+#define BIT_LENGTH_GPS_L2C  20
 #define BIT_LENGTH_SBAS_L1CA 2
 
 /* Table of bit lengths for each code type */
 static const u8 bit_length_table[CODE_COUNT] = {
   [CODE_GPS_L1CA] = BIT_LENGTH_GPS_L1CA,
-  [CODE_GPS_L2CM] = 0,
+  [CODE_GPS_L2CM] = BIT_LENGTH_GPS_L2C,
   [CODE_SBAS_L1CA] = BIT_LENGTH_SBAS_L1CA
 };
 
@@ -56,6 +57,17 @@ void bit_sync_init(bit_sync_t *b, gnss_signal_t sid)
     bit_length = 1;
   }
   b->bit_length = bit_length;
+}
+
+/** Force bit sync.
+ * Sets the bit phase reference.
+ *
+ * \param b    Pointer to a bit sync structure.
+ * \param bit_phase_ref Bit phase reference.
+ */
+void bit_sync_set(bit_sync_t *b, s8 bit_phase_ref)
+{
+  b->bit_phase_ref = bit_phase_ref;
 }
 
 /** Update bit sync and get bit integration output

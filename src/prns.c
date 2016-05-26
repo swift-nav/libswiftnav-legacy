@@ -2,6 +2,7 @@
  * Copyright (C) 2016 Swift Navigation Inc.
  * Contact: Colin Beighley <colinbeighley@gmail.com>
  *          Pasi Miettinen <pasi.miettinen@exafore.com>
+ *          Adel Mamin <adel.mamin@exafore.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
  * be be distributed together with this source. All other rights reserved.
@@ -34,6 +35,72 @@ static const prn_array_t prn_array_table[CODE_COUNT] = {
  * modulation of GNSS signals.
  *
  * \{ */
+
+/** Return the init value of NAP G1 pseudorandom generator.
+ * \param sid Signal ID
+ * \return NAP G1 initial value
+ */
+u32 sid_to_init_g1(gnss_signal_t sid)
+{
+  u32 ret = ~0;
+  /* The L2C G1 init values are taken from IS-GPS-200H Table 3-IIa
+     "Code phase assignments (IIR-M, IIF, and subsequent blocks only)"
+     For example, PRN 1 has G1 init value 0742417664.
+   */
+  static const u32 gps_l2cm_prns_init_values[] = {
+    [0] = 0742417664,
+    [1] = 0756014035,
+    [2] = 0002747144,
+    [3] = 0066265724,
+    [4] = 0601403471,
+    [5] = 0703232733,
+    [6] = 0124510070,
+    [7] = 0617316361,
+    [8] = 0047541621,
+    [9] = 0733031046,
+    [10] = 0713512145,
+    [11] = 0024437606,
+    [12] = 0021264003,
+    [13] = 0230655351,
+    [14] = 0001314400,
+    [15] = 0222021506,
+    [16] = 0540264026,
+    [17] = 0205521705,
+    [18] = 0064022144,
+    [19] = 0120161274,
+    [20] = 0044023533,
+    [21] = 0724744327,
+    [22] = 0045743577,
+    [23] = 0741201660,
+    [24] = 0700274134,
+    [25] = 0010247261,
+    [26] = 0713433445,
+    [27] = 0737324162,
+    [28] = 0311627434,
+    [29] = 0710452007,
+    [30] = 0722462133,
+    [31] = 0050172213,
+    [32] = 0500653703,
+    [33] = 0755077436,
+    [34] = 0136717361,
+    [35] = 0756675453,
+    [36] = 0435506112
+  };
+
+  switch (sid.code) {
+  case CODE_GPS_L2CM:
+    ret = gps_l2cm_prns_init_values[sid.sat - 1] & 0x7FFFFFF;
+    break;
+  case CODE_GPS_L1CA:
+    ret = 0x3ff;
+    break;
+  default:
+    assert(!"Unsupported signal code ID");
+    break;
+  }
+
+  return ret;
+}
 
 /** Returns the C/A code PRN corresponding to a given sid. The 1023 chip
  * PRN is packed one chip per bit into an array of 128 8-bit words. The final
