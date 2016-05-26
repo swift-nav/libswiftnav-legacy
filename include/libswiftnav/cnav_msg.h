@@ -34,6 +34,8 @@
 #define GPS_L2C_V27_DECODE_BITS  (32)
 /** Bits in decoder tail. We ignore them. */
 #define GPS_L2C_V27_DELAY_BITS   (32)
+/** L2C convolutional encoder constrain length */
+#define GPS_L2C_V27_CONSTRAINT_LENGTH 7
 /**
  * GPS CNAV message container.
  *

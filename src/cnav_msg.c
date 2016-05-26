@@ -302,7 +302,8 @@ static bool _cnav_msg_decode(cnav_v27_part_t *part, cnav_msg_t *msg, u32 *delay)
       msg->tow    = getbitu(part->decoded, 20, 17);
       msg->alert  = getbitu(part->decoded, 37, 1) ? true : false;
 
-      *delay = (part->n_decoded - GPS_CNAV_MSG_LENGTH + GPS_L2C_V27_DELAY_BITS)
+      *delay = (part->n_decoded - GPS_CNAV_MSG_LENGTH + GPS_L2C_V27_DELAY_BITS +
+                GPS_L2C_V27_CONSTRAINT_LENGTH - 1)
                * 2 + part->n_symbols;
 
       if (part->invert) {

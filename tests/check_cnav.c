@@ -243,10 +243,16 @@ START_TEST(test_cnav_decode2)
 
     if (ret) {
 
+      u32 expected_delay;
       fail_if (msg.prn    != 22,    "Wrong PRN");
       fail_if (msg.msg_id != 0,     "Wrong MSG");
       fail_if (msg.tow    != 1000,  "Wrong TOW");
       fail_if (msg.alert  != false, "Wrong alert");
+      expected_delay = i + 1; /* symbols fed into the decoder */
+      expected_delay -= 600;  /* symbols in L2C message */
+      expected_delay -= 64;   /* size of dummy header outside
+                                 of data message [symbols] */
+      fail_if (expected_delay == delay);
 
       break;
     }
