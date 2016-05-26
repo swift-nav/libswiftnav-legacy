@@ -267,4 +267,28 @@ double code_to_chip_rate(code_t code)
   return cr;
 }
 
+/** Checks if the code requires direct acquisition.
+ *
+ * An example of non-direct acquisition is the L1C/A
+ * handover to L2CM, which eliminates the direct acquisition
+ * for L2CM signal.
+ *
+ * \param code  code_t to check.
+ * \retval true Direct acquisition is required
+ * \retval fals Direct acquisition is not required
+ */
+bool code_requires_direct_acq(code_t code)
+{
+  bool ret = true;
+  assert(code_valid(code));
+  switch (code) {
+  case CODE_GPS_L2CM:
+    ret = false;
+    break;
+  default:
+    break;
+  }
+  return ret;
+}
+
 /* \} */
