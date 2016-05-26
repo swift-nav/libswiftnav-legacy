@@ -804,7 +804,7 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
     /* Copy over remaining values. */
     nav_meas[i]->snr = meas[i]->snr;
     nav_meas[i]->lock_counter = meas[i]->lock_counter;
-
+    nav_meas[i]->lock_time = meas[i]->lock_time;
     /* calc sat clock error */
     if (calc_sat_state(e[i], &nav_meas[i]->tot,
                        nav_meas[i]->sat_pos, nav_meas[i]->sat_vel,
@@ -860,7 +860,7 @@ int nav_meas_cmp(const void *a, const void *b)
                      ((navigation_measurement_t*)b)->sid);
 }
 
-bool calculate_loss_of_lock(u32 dt, u32 prev_lock_time, u32 curr_lock_time) {
+bool calculate_loss_of_lock(double dt, u32 prev_lock_time, u32 curr_lock_time) {
   if (prev_lock_time > curr_lock_time) return true;
   else if ((prev_lock_time == curr_lock_time) && (dt >= prev_lock_time)) return true;
   else if ((prev_lock_time == curr_lock_time) && (dt < prev_lock_time)) return false;
@@ -911,10 +911,13 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       /* Re-apply the same correction to the raw Doppler to get the corrected Doppler. */
       m_corrected[n].doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
                                     / dt + dopp_corr;
-
+      m_corrected[n].lock_time = m_new[i].lock_time;
+      m_corrected[n].lock_counter = m_old[j].lock_counter;
       /* set the lock_counter according to whether a slip could have occured */
-      if (calculate_loss_of_lock(dt, m_new[i].lock_time, m_old[j].lock_time)) {
-      m_corrected[n].lock_counter +=1;
+      if (calculate_loss_of_lock(dt*1000.0, m_old[j].lock_time, m_new[i].lock_time)) {
+      log_info("tdcp %u:%u, dt %f", m_new[i].lock_time, m_old[j].lock_time, dt*1000.0);
+      m_corrected[n].lock_counter = m_new[i].lock_counter + 1;
+      m_new[i].lock_counter += 1;
       }
       n++;
     }
