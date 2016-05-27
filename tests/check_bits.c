@@ -175,6 +175,50 @@ START_TEST(test_bitcopy)
 }
 END_TEST
 
+START_TEST(test_count_bits_x)
+{
+  u8  src8[]  = { 0xDE, 0xAD, 0x12, 0xEF };
+  u8  res8[]  = { 6, 5, 2, 7 };
+
+  u16 src16[] = { 0xDE05, 0xADF6, 0xBE32, 0xEF45 };
+  u8  res16[]  = { 8, 11, 9, 10 };
+
+  u32 src32[] = { 0xDE051234, 0x00000000, 0x00329300, 0x1F45A6C8 };
+  u8  res32[]  = { 13, 0, 7, 15 };
+
+  u64 src64[] = { 0xDE051234432150ED, 0x0000000080000000,
+                  0x0032930000392300, 0x10F14350A060C080 };
+  u8  res64[]  = { 26, 1, 14, 18 };
+
+  for (unsigned i = 0; i < sizeof(src8)/ sizeof(src8[0]); i++) {
+    u8 r = count_bits_u8(src8[i], 1);
+    fail_unless(res8[i] == r, "count_bits_u8(0x%x, 1) = %d", src8[i], r);
+    r = count_bits_u8(src8[i], 0);
+    fail_unless(8-res8[i] == r, "count_bits_u8(0x%x, 0) = %d", src8[i], r);
+  }
+
+  for (unsigned i = 0; i < sizeof(src16)/ sizeof(src16[0]); i++) {
+    u8 r = count_bits_u16(src16[i], 1);
+    fail_unless(res16[i] == r, "count_bits_u16(0x%x, 1) = %d", src16[i], r);
+    r = count_bits_u16(src16[i], 0);
+    fail_unless(16-res16[i] == r, "count_bits_u16(0x%x, 0) = %d", src16[i], r);
+  }
+
+  for (unsigned i = 0; i < sizeof(src32)/ sizeof(src32[0]); i++) {
+    u8 r = count_bits_u32(src32[i], 1);
+    fail_unless(res32[i] == r, "count_bits_u32(0x%x, 1) = %d", src32[i], r);
+    r = count_bits_u32(src32[i], 0);
+    fail_unless(32-res32[i] == r, "count_bits_u32(0x%x, 0) = %d", src32[i], r);
+  }
+
+  for (unsigned i = 0; i < sizeof(src64)/ sizeof(src64[0]); i++) {
+    u8 r = count_bits_u64(src64[i], 1);
+    fail_unless(res64[i] == r, "count_bits_u64(0x%lx, 1) = %d", src64[i], r);
+    r = count_bits_u64(src64[i], 0);
+    fail_unless(64-res64[i] == r, "count_bits_u64(0x%lx, 0) = %d", src64[i], r);
+  }
+}
+END_TEST
 
 Suite* bits_suite(void)
 {
@@ -188,6 +232,7 @@ Suite* bits_suite(void)
   tcase_add_test(tc_core, test_setbits);
   tcase_add_test(tc_core, test_bitshl);
   tcase_add_test(tc_core, test_bitcopy);
+  tcase_add_test(tc_core, test_count_bits_x);
   suite_add_tcase(s, tc_core);
 
   return s;

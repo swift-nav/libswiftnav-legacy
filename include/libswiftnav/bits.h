@@ -23,5 +23,9 @@ void setbits(u8 *buff, u32 pos, u32 len, s32 data);
 void bitcopy(void *dst, u32 dst_index,
              const void *src, u32 src_index, u32 count);
 void bitshl(void *buf, u32 size, u32 shift);
+u8 count_bits_u64(u64 v, u8 bv);
+u8 count_bits_u32(u32 v, u8 bv);
+u8 count_bits_u16(u16 v, u8 bv);
+u8 count_bits_u8(u8 v, u8 bv);
 
 #endif /* LIBSWIFTNAV_BITS_H */
