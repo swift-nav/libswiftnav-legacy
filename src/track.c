@@ -753,8 +753,8 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 {
   float a, b;
   /* Calculated low-pass filtered prompt correlations */
-  a = lock_detect_lpf_update(&l->lpfi, fabs(I) / DT) / l->k2;
-  b = lock_detect_lpf_update(&l->lpfq, fabs(Q) / DT);
+  a = lock_detect_lpf_update(&l->lpfi, fabsf(I) / DT) / l->k2;
+  b = lock_detect_lpf_update(&l->lpfq, fabsf(Q) / DT);
 
   if (a > b) {
     /* In-phase > quadrature, looks like we're locked */
