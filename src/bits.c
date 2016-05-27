@@ -15,6 +15,9 @@
 #include <limits.h>
 #include <string.h>
 
+
+static const u8 bitn[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
+
 /** \defgroup bits Bit Utils
  * Bit field packing, unpacking and utility functions.
  * \{ */
@@ -196,6 +199,70 @@ void bitcopy(void *dst, u32 dst_index, const void *src, u32 src_index,
     u32 tmp = getbitu(src, src_index, limit2);
     setbitu(dst, dst_index, limit2, tmp);
   }
+}
+
+/**
+ * Count number of bits set to certain value in 64 bits word
+ *
+ * \param[in]     v      input 64 bits word to count bits in
+ * \param[in]     bv     1 or 0 - which value to count
+ *
+ * \return        Number of bits set to one or zero.
+ */
+u8 count_bits_u64(u64 v, u8 bv)
+{
+  u8 r = 0;
+  for (int i = 0; i < 16; i++)
+    r += bitn[(v >> (i*4)) & 0xf];
+  return bv == 1 ? r : 64 - r;
+}
+
+/**
+ * Count number of bits set to certain value in 32 bits word
+ *
+ * \param[in]     v      input 32 bits word to count bits in
+ * \param[in]     bv     1 or 0 - which value to count
+ *
+ * \return        Number of bits set to one or zero.
+ */
+u8 count_bits_u32(u32 v, u8 bv)
+{
+  u8 r = 0;
+  for (int i = 0; i < 8; i++)
+    r += bitn[(v >> (i*4)) & 0xf];
+  return bv == 1 ? r : 32 - r;
+}
+
+/**
+ * Count number of bits set to certain value in 16 bits word
+ *
+ * \param[in]     v      input 16 bits word to count bits in
+ * \param[in]     bv     1 or 0 - which value to count
+ *
+ * \return        Number of bits set to one or zero.
+ */
+u8 count_bits_u16(u16 v, u8 bv)
+{
+  u8 r = 0;
+  for (int i = 0; i < 4; i++)
+    r += bitn[(v >> (i*4)) & 0xf];
+  return bv == 1 ? r : 16 - r;
+}
+
+/**
+ * Count number of bits set to certain value in 8 bits word
+ *
+ * \param[in]     v      input 8 bits word to count bits in
+ * \param[in]     bv     1 or 0 - which value to count
+ *
+ * \return        Number of bits set to one or zero.
+ */
+u8 count_bits_u8(u8 v, u8 bv)
+{
+  u8 r = 0;
+  for (int i = 0; i < 2; i++)
+    r += bitn[(v >> (i*4)) & 0xf];
+  return bv == 1 ? r : 8 - r;
 }
 
 /** \} */
