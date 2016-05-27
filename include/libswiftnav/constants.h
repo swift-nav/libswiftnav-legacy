@@ -101,6 +101,12 @@
 /** GPS L2 CM chips number */
 #define GPS_L2CM_CHIPS_NUM 10230
 
+/** GPS L2C CNAV message length [bits] */
+#define GPS_CNAV_MSG_LENGTH 300
+
+/** GPS L2C symbol length [ms] */
+#define GPS_L2C_SYMBOL_LENGTH 20
+
 /* \} */
 
 /** \defgroup dgnss_constants DGNSS

@@ -10,6 +10,7 @@
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <libswiftnav/constants.h>
 #include <libswiftnav/edc.h>
 #include <libswiftnav/bits.h>
 #include <libswiftnav/nav_msg.h> /* For BIT_POLARITY_... constants */
@@ -42,8 +43,6 @@
 #define GPS_CNAV_PREAMBLE2          (0b01110100u)
 /** GPS L2C preamble length in bits */
 #define GPS_CNAV_PREAMBLE_LENGTH    (8)
-/** GPS L2C CNAV message length in bits */
-#define GPS_CNAV_MSG_LENGTH         (300)
 /** GPS LC2 CNAV CRC length in bits */
 #define GPS_CNAV_MSG_CRC_LENGTH     (24)
 /** GPS L2C CNAV message payload length in bits */
