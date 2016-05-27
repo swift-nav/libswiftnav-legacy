@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2016 Swift Navigation Inc.
+ * Copyright (C) 2010 Swift Navigation Inc.
  * Contact: Henry Hallam <henry@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -15,7 +15,6 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/ephemeris.h>
-#include <libswiftnav/ionosphere.h>
 
 #define NAV_MSG_SUBFRAME_BITS_LEN 14 /* Buffer 448 nav bits. */
 
@@ -46,9 +45,6 @@ typedef struct {
 typedef struct {
   ephemeris_t ephemeris;
   bool ephemeris_upd_flag;
-
-  ionosphere_t iono;
-  bool iono_corr_upd_flag;
 
   u32 gps_l2c_sv_capability;
   bool gps_l2c_sv_capability_upd_flag;
