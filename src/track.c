@@ -780,14 +780,22 @@ s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[
   double clock_err[n_channels], clock_rate_err[n_channels];
 
   for (u8 i=0; i<n_channels; i++) {
+    u16 chip_count = code_to_chip_count(meas[i]->sid.code);
+    s16 chip_diff;
+
     nav_meas[i]->sid = meas[i]->sid;
 
     /* Compute the time of transmit of the signal on the satellite from the
      * tracking loop parameters. This will be used to compute the pseudorange. */
     nav_meas[i]->tot.tow = 1e-3 * meas[i]->time_of_week_ms;
-    nav_meas[i]->tot.tow += meas[i]->code_phase_chips
-                           / (code_to_chip_count(meas[i]->sid.code) * 1000.0
-                              * code_to_prn_period(meas[i]->sid.code));
+    if (meas[i]->code_phase_chips > chip_count / 2) {
+      chip_diff = chip_count - meas[i]->code_phase_chips;
+      chip_diff = -chip_diff;
+    } else {
+      chip_diff = meas[i]->code_phase_chips;
+    }
+    nav_meas[i]->tot.tow += chip_diff / code_to_chip_rate(meas[i]->sid.code);
+
     nav_meas[i]->tot.tow -= meas[i]->rec_time_delta * meas[i]->code_phase_rate
                             / code_to_chip_rate(meas[i]->sid.code);
     /* For now use the week number from the ephemeris. */
