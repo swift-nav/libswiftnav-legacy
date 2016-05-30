@@ -97,7 +97,7 @@ double calc_ionosphere(const gps_time_t *t_gps,
 
   /* Compute the ionospheric time delay */
   double d_l1;
-  if (x >= 1.57) {
+  if (fabs(x) >= 1.57) {
     d_l1 = sf * 5e-9;
   } else {
     double x_2 = x * x;
