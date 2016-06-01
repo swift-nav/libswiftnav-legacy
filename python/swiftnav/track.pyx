@@ -445,7 +445,7 @@ cdef class CN0Estimator:
   def __reduce__(self):
     return (rebuild_CN0Estimator, (self.kwargs, self._thisptr))
 
-  def update(self, I, Q):
+  def update(self, CN0EstimatorParams p, I, Q):
     """
     Wraps the function :libswiftnav:`cn0_est`.
 
@@ -462,8 +462,25 @@ cdef class CN0Estimator:
       The Carrier-to-Noise Density, :math:`C / N_0`, in dBHz.
 
     """
-    return cn0_est(&self._thisptr, I, Q)
+    return cn0_est(&self._thisptr, &p._thisptr, I, Q)
 
+
+cdef class CN0EstimatorParams:
+  """
+  Wraps the `libswiftnav` :math:`C / N_0` estimator implementation.
+
+  The estimator parameters, :libswiftnav:`cn0_est_params_t` is maintained by
+  the class instance.
+
+  """
+
+  def __cinit__(self, **kwargs):
+    self.kwargs = kwargs
+    cn0_est_compute_params(&self._thisptr,
+                           kwargs['bw'],
+                           kwargs['cutoff_freq'],
+                           kwargs['loop_freq'])
+          
 
 cdef class ChannelMeasurement:
 
