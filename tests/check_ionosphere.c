@@ -58,6 +58,30 @@ START_TEST(test_calc_ionosphere)
   fail_unless(d_err < d_tol,
       "Distance didn't match hardcoded correct values %0.5f. Saw: %.5f\n",
       d_true, d_l1);
+
+  t.wn = 1042;
+  t.tow = 345600;
+  i.a0 = 1.304e-8;
+  i.a1 = 0;
+  i.a2 = -5.96e-8;
+  i.a3 = 5.96e-8;
+  i.b0 = 1.106e5;
+  i.b1 = -65540.0;
+  i.b2 = -2.621e5;
+  i.b3 = 3.932e5;
+  lat_u = 0.70605;
+  lon_u = -0.076233;
+  a = 2.62049;
+  e = 0.2939;
+  d_true = 3.4929;
+
+  d_l1 = calc_ionosphere(&t, lat_u, lon_u, a, e, &i);
+  d_err = fabs(d_l1 - d_true);
+
+  fail_unless(d_err < d_tol,
+      "Distance didn't match hardcoded correct values %0.5f. Saw: %.5f\n",
+      d_true, d_l1);
+
 }
 END_TEST
 
