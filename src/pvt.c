@@ -49,8 +49,7 @@ static double vel_solve(double rx_vel[],
     pdot_pred = -vector_dot(3, G[j], nav_meas[j]->sat_vel);
 
     /* The residual is due to the user's motion. */
-    tempvX[j] = -nav_meas[j]->doppler *
-                CARR_FREQ_2_LAMBDA(code_to_carr_freq(nav_meas[j]->sid.code))
+    tempvX[j] = -nav_meas[j]->doppler * code_to_lambda(nav_meas[j]->sid.code)
                 - pdot_pred;
   }
 

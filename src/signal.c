@@ -221,6 +221,16 @@ double code_to_carr_freq(code_t code)
   return f;
 }
 
+/** Return the wavelength of a carrier in a vacuum for a code_t
+ *
+ * \param code  code_t to use.
+ * \return center carrier frequency lambda [m]
+ */
+double code_to_lambda(code_t code)
+{
+  return GPS_C / code_to_carr_freq(code);
+}
+
 /** Return the chips count for a code_t.
  *
  * \param code  code_t to use.

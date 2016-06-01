@@ -22,6 +22,10 @@ START_TEST(test_prns_sid_to_init_g1)
   g1 = sid_to_init_g1(sid);
   fail_unless(0700274134 == g1);
 
+  sid = construct_sid(CODE_GPS_L2CM, 32);
+  g1 = sid_to_init_g1(sid);
+  fail_unless(0050172213 == g1);
+
   sid = construct_sid(CODE_GPS_L1CA, 25);
   g1 = sid_to_init_g1(sid);
   fail_unless(0x3ff == g1);

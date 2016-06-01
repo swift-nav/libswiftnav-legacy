@@ -205,7 +205,7 @@ u8 make_propagated_sdiffs(u8 n_local, navigation_measurement_t *m_local,
                             + dist_diff);
       sds[n].carrier_phase = m_local[i].raw_carrier_phase
         - (m_remote[j].raw_carrier_phase
-        - dist_diff / CARR_FREQ_2_LAMBDA(code_to_carr_freq(m_local[i].sid.code)));
+        - dist_diff / code_to_lambda(m_local[i].sid.code));
 
       /* Doppler is not propagated.
        * sds[n].doppler = m_local[i].raw_doppler - m_remote[j].raw_doppler; */

@@ -130,6 +130,7 @@ u16 sid_to_code_index(gnss_signal_t sid);
 enum constellation sid_to_constellation(gnss_signal_t sid);
 enum constellation code_to_constellation(code_t code);
 double code_to_carr_freq(code_t code);
+double code_to_lambda(code_t code);
 u16 code_to_chip_count(code_t code);
 double code_to_chip_rate(code_t code);
 bool code_requires_direct_acq(code_t code);

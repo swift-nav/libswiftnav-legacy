@@ -319,6 +319,21 @@ START_TEST(test_signal_code_to_carr_freq)
 }
 END_TEST
 
+START_TEST(test_signal_code_to_lambda)
+{
+  double lambda;
+
+  lambda = code_to_lambda(CODE_GPS_L2CM);
+  fail_unless((GPS_C / GPS_L2_HZ) == lambda);
+
+  lambda = code_to_lambda(CODE_GPS_L1CA);
+  fail_unless((GPS_C / GPS_L1_HZ) == lambda);
+
+  /* check unsupported branch for code coverage stats */
+  lambda = code_to_lambda(CODE_GLO_L2CA);
+}
+END_TEST
+
 START_TEST(test_signal_code_to_chip_count)
 {
   u16 chip_count;
@@ -381,6 +396,7 @@ Suite* signal_test_suite(void)
   tcase_add_test(tc_core, test_signal_code_to_chip_count);
   tcase_add_test(tc_core, test_signal_code_to_chip_rate);
   tcase_add_test(tc_core, test_signal_code_requires_direct_acq);
+  tcase_add_test(tc_core, test_signal_code_to_lambda);
   suite_add_tcase(s, tc_core);
 
   return s;

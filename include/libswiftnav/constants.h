@@ -67,9 +67,6 @@
  * \note This is GPS_C_NO_VAC / GPS_L1_HZ. */
 #define GPS_L1_LAMBDA_NO_VAC (GPS_C_NO_VAC / GPS_L1_HZ)
 
-/** The wavelength of carrier frequency f in a vacuum. */
-#define CARR_FREQ_2_LAMBDA(f) (GPS_C / (f))
-
 /** Approximate average distance to the GPS satellites in m. */
 #define GPS_NOMINAL_RANGE 22.980e6
 
