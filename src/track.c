@@ -673,21 +673,42 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq)
 {
   assert(loop_freq != 0.0f);
-  float Tw0 = tanf((M_PI*cutoff_freq) / loop_freq);
-  float tmp = 1.0+sqrtf(2)*Tw0+Tw0*Tw0;
-  assert(tmp != 0.0f);
 
-  s->b = Tw0*Tw0/tmp;
-  s->a2 = (-2.0+2.0*Tw0*Tw0)/tmp;
-  s->a3 = (1.0-sqrtf(2)*Tw0+Tw0*Tw0)/tmp;
+  (void)cutoff_freq;
+  (void)loop_freq;
 
-  s->log_bw = 10.f*log10f(bw);
   s->I_prev_abs = -1.f;
   s->Q_prev_abs = -1.f;
-  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
+  s->nsr = bw / powf(10.f, 0.1f*(cn0_0));
   s->nsr_prev = s->nsr;
   s->xn = s->nsr;
   s->xn_prev = s->nsr;
+}
+
+/** Compute C/N0 estimator parameters.
+ *
+ * See cn0_est() for a full description.
+ *
+ * \param p The estimator parameters struct to initialise.
+ * \param bw The loop noise bandwidth in Hz.
+ * \param cutoff_freq The low-pass filter cutoff frequency, \f$f_c\f$, in Hz.
+ * \param loop_freq The loop update frequency, \f$f\f$, in Hz.
+ */
+void cn0_est_compute_params(cn0_est_params_t *p,
+                            float bw,
+                            float cutoff_freq,
+                            float loop_freq)
+{
+  assert(loop_freq != 0.0f);
+  float Tw0 = (float)M_PI * cutoff_freq / loop_freq;
+  float Tw0_2 = Tw0 * Tw0;
+  float Tw0_2r = 1.4142136f * Tw0;
+  float tmp = 1.f / (1.0f + Tw0_2r + Tw0_2);
+
+  p->b = Tw0_2 * tmp;
+  p->a2 = (-2.0f + 2.0f * Tw0_2) * tmp;
+  p->a3 = (1.0f - Tw0_2r + Tw0_2) * tmp;
+  p->log_bw = 10.f*log10f(bw);
 }
 
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
@@ -740,12 +761,13 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  *    -# "Are Carrier-to-Noise Algorithms Equivalent in All Situations?"
  *       Inside GNSS, Jan / Feb 2010.
  *
- * \param s The estimator state struct to initialise.
+ * \param s The estimator state struct.
+ * \param p The estimator parameters.
  * \param I The prompt in-phase correlation from the tracking correlator.
  * \param Q The prompt quadrature correlation from the tracking correlator.
  * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
  */
-float cn0_est(cn0_est_state_t *s, float I, float Q)
+float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q)
 {
   float P_n, P_s;
 
@@ -754,6 +776,7 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
     s->I_prev_abs = fabsf(I);
     s->Q_prev_abs = fabsf(Q);
   } else {
+
     P_n = fabsf(Q) - s->Q_prev_abs;
     P_n = P_n*P_n;
 
@@ -764,19 +787,19 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
 
     /* This is to avoid division by zero. */
     if (P_s == 0.0) {
-    	return s->log_bw - 10.f*log10f(s->nsr);
+      return p->log_bw - 10.f*log10f(s->nsr);
     }
 
     float tmp = P_n / P_s;
     float tmp2 = s->nsr;
-    s->nsr = tmp * s->b + s->xn * 2*s->b + s->xn_prev * s->b \
-                        - s->a2 * s->nsr - s->a3 * s->nsr_prev;
+    s->nsr = (tmp  + s->xn * 2 + s->xn_prev ) * p->b -
+             p->a2 * s->nsr - p->a3 * s->nsr_prev;
     s->nsr_prev = tmp2;
     s->xn_prev = s->xn;
     s->xn = tmp;
   }
 
-  return s->log_bw - 10.f*log10f(s->nsr);
+  return p->log_bw - 10.f*log10f(s->nsr);
 }
 
 /** Calculate observations from tracking channel measurements.

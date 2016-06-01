@@ -46,6 +46,7 @@ static s8* generate_Q_input(u32 length)
 START_TEST(test_cn0)
 {
   cn0_est_state_t s;
+  cn0_est_params_t p;
   s8* signal_I;
   s8* signal_Q;
   u32 ii = 0;
@@ -58,9 +59,10 @@ START_TEST(test_cn0)
   fail_if(NULL == signal_Q, "Could not allocate Q data");
 
   cn0_est_init(&s, BW, CN0_0, CUTOFF_FREQ, LOOP_FREQ);
+  cn0_est_compute_params(&p, BW, CUTOFF_FREQ, LOOP_FREQ);
 
   for(ii = 0; ii < test_length; ii++) {
-	  cn0 = cn0_est(&s, signal_I[ii], signal_Q[ii]);
+	  cn0 = cn0_est(&s, &p, signal_I[ii], signal_Q[ii]);
   }
 
   fail_if(cn0 < 30.0);

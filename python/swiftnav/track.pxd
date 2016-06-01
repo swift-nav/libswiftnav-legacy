@@ -145,10 +145,6 @@ cdef extern from "libswiftnav/track.h":
 
   # Tracking loop: CN0 est
   ctypedef struct cn0_est_state_t:
-    float log_bw
-    float b
-    float a2
-    float a3
     float I_prev_abs
     float Q_prev_abs
     float nsr
@@ -156,8 +152,15 @@ cdef extern from "libswiftnav/track.h":
     float xn
     float xn_prev
 
+  ctypedef struct cn0_est_params_t:
+    float log_bw
+    float b
+    float a2
+    float a3
+
   void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0, float cutoff_freq, float loop_freq)
-  float cn0_est(cn0_est_state_t *s, float I, float Q)
+  float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q)
+  void cn0_est_compute_params(cn0_est_params_t *s, float bw, float cutoff_freq, float loop_freq)
 
   # Tracking loop: Navigation measurement
   ctypedef struct channel_measurement_t:
@@ -229,6 +232,10 @@ cdef class LockDetector:
 cdef class CN0Estimator:
   cdef dict kwargs
   cdef cn0_est_state_t _thisptr
+
+cdef class CN0EstimatorParams:
+  cdef dict kwargs
+  cdef cn0_est_params_t _thisptr
 
 cdef class ChannelMeasurement:
   cdef channel_measurement_t _thisptr
