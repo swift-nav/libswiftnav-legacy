@@ -19,7 +19,9 @@
  * Useful constants.
  * \{ */
 
+#ifndef MAX_CHANNELS
 #define MAX_CHANNELS 11 /**< Maximum sats we can track */
+#endif
 
 #define R2D (180.0 / M_PI) /**< Conversion factor from radians to degrees. */
 #define D2R (M_PI / 180.0) /**< Conversion factor from degrees to radians. */
