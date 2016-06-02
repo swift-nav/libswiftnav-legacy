@@ -885,11 +885,12 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
   u8 i, j, n = 0;
 
   /* Loop over m_new and m_old and check if a PRN is present in both. */
-  for (i=0, j=0; i<n_new && j<n_old; i++, j++) {
-    if (sid_compare(m_new[i].sid, m_old[j].sid) < 0)
-      j--;
-    else if (sid_compare(m_new[i].sid, m_old[j].sid) > 0)
-      i--;
+  for (i=0, j=0; i<n_new && j<n_old;) {
+    if (sid_compare(m_new[i].sid, m_old[j].sid) < 0) {
+      i++;
+    } else if (sid_compare(m_new[i].sid, m_old[j].sid) > 0) {
+      j++;
+    }
     else {
       /* Copy m_new to m_corrected. */
       memcpy(&m_corrected[n], &m_new[i], sizeof(navigation_measurement_t));
@@ -902,6 +903,8 @@ u8 tdcp_doppler(u8 n_new, navigation_measurement_t *m_new,
       m_corrected[n].doppler = (m_new[i].carrier_phase - m_old[j].carrier_phase)
                                     / dt + dopp_corr;
       n++;
+      i++;
+      j++;
     }
   }
 
