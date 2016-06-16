@@ -681,8 +681,8 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
   s->Q_prev_abs = -1.f;
   s->nsr = bw / powf(10.f, 0.1f*(cn0_0));
   s->nsr_prev = s->nsr;
-  s->xn = s->nsr;
-  s->xn_prev = s->nsr;
+  s->xn = 0.f;
+  s->xn_prev = -1.f;
 }
 
 /** Compute C/N0 estimator parameters.
@@ -775,8 +775,33 @@ float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q)
     /* This is the first iteration, just update the prev state. */
     s->I_prev_abs = fabsf(I);
     s->Q_prev_abs = fabsf(Q);
-  } else {
+  } else if (s->xn_prev < 0 && s->xn_prev > -21.f) {
+    /* This is the 20 first iterations, computing average estimate of nsr.
+     * The average is stored into xn */
+    P_n = fabsf(Q) - s->Q_prev_abs;
+    P_n = P_n*P_n;
 
+    P_s = 0.5f*(I*I + s->I_prev_abs*s->I_prev_abs);
+
+    s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
+
+    /* This is to avoid division by zero. */
+    if (P_s == 0.0) {
+      return p->log_bw - 10.f*log10f(s->nsr);
+    }
+    s->xn_prev += -1.f;
+    s->xn += P_n / P_s;
+  } else if (s->xn_prev <= -21.f) {
+    /* This is the 21th iteration, start filter. */
+    s->nsr = s->xn/20.f;
+    s->nsr_prev = s->nsr;
+    s->xn = s->nsr;
+    s->xn_prev = s->nsr;
+    s->I_prev_abs = fabsf(I);
+    s->Q_prev_abs = fabsf(Q);
+  } else {
+    /* This is the normal iteration of the filter. */
     P_n = fabsf(Q) - s->Q_prev_abs;
     P_n = P_n*P_n;
 
@@ -793,7 +818,7 @@ float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q)
     float tmp = P_n / P_s;
     float tmp2 = s->nsr;
     s->nsr = (tmp  + s->xn * 2 + s->xn_prev ) * p->b -
-             p->a2 * s->nsr - p->a3 * s->nsr_prev;
+              p->a2 * s->nsr - p->a3 * s->nsr_prev;
     s->nsr_prev = tmp2;
     s->xn_prev = s->xn;
     s->xn = tmp;
