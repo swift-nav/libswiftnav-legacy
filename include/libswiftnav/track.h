@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2012,2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -211,6 +211,7 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
                      float carr_freq_b1);
 
 void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3]);
+void aided_tl_adjust(aided_tl_state_t *s, float err);
 
 void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                     float code_freq, float code_bw,

@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2015,2016 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -91,6 +91,7 @@ cdef extern from "libswiftnav/track.h":
                        float carr_bw, float carr_zeta, float carr_k,
                        float carr_freq_b1)
   void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
+  void aided_tl_adjust(aided_tl_state_t *s, float err)
 
   # Tracking loop: Comp
   ctypedef struct comp_tl_state_t:

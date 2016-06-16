@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Swift Navigation Inc.
+# Copyright (C) 2015,2016 Swift Navigation Inc.
 #
 # This source is subject to the license found in the file 'LICENSE' which must
 # be be distributed together with this source. All other rights reserved.
@@ -311,6 +311,9 @@ cdef class AidedTrackingLoop:
     cs_[2].Q = imag(L)
     aided_tl_update(&self._thisptr, cs_)
     return (self._thisptr.code_freq, self._thisptr.carr_freq)
+
+  def adjust_freq(self, corr):
+    aided_tl_adjust(&self._thisptr, corr)
 
   def to_dict(self):
     return self._thisptr

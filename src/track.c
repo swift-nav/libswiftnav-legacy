@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2012,2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -372,6 +372,19 @@ void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3])
   s->code_freq = simple_lf_update(&(s->code_filt), -code_error);
   if (s->carr_to_code) /* Optional carrier aiding of code loop */
     s->code_freq += s->carr_freq / s->carr_to_code;
+}
+
+/** Adjust carrier frequency.
+ *
+ * Applies the given correction to the internal state of the tracking loop.
+ *
+ * \param s The tracking loop state struct.
+ * \param err The correction in [Herz]
+ */
+void aided_tl_adjust(aided_tl_state_t *s, float err)
+{
+  s->carr_freq += err;
+  s->carr_filt.y = s->carr_freq;
 }
 
 /** Initialise a simple tracking loop.
