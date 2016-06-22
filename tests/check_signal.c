@@ -345,7 +345,7 @@ START_TEST(test_signal_code_to_chip_count)
   fail_unless(GPS_L1CA_CHIPS_NUM == chip_count);
 
   chip_count = code_to_chip_count(CODE_GPS_L2CM);
-  fail_unless(GPS_L2CM_CHIPS_NUM * 2 == chip_count);
+  fail_unless(GPS_L2C_CHIPS_NUM == chip_count);
 
   /* check unsupported branch for code coverage stats */
   chip_count = code_to_chip_count(CODE_GLO_L2CA);

@@ -246,7 +246,7 @@ u16 code_to_chip_count(code_t code)
     cn = GPS_L1CA_CHIPS_NUM;
     break;
   case CODE_GPS_L2CM:
-    cn = 2 * GPS_L2CM_CHIPS_NUM;
+    cn = GPS_L2C_CHIPS_NUM;
     break;
   default:
     assert(!"Unsupported code_t ID");

@@ -98,6 +98,12 @@
 /** GPS L2 CM chips number */
 #define GPS_L2CM_CHIPS_NUM 10230
 
+/** GPS L2 CL chips number */
+#define GPS_L2CL_CHIPS_NUM 10230
+
+/** GPS L2C chips number */
+#define GPS_L2C_CHIPS_NUM (GPS_L2CM_CHIPS_NUM + GPS_L2CL_CHIPS_NUM)
+
 /** GPS L2C CNAV message length [bits] */
 #define GPS_CNAV_MSG_LENGTH 300
 
