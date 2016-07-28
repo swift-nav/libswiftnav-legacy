@@ -18,9 +18,9 @@ START_TEST(test_almanac_equal)
     "Almanacs should not be equal (valid)");
   memset(&a, 0, sizeof(a));
 
-  a.healthy = 1;
+  a.health_bits = 0x3f;
   fail_unless(!almanac_equal(&a, &b),
-    "Almanacs should not be equal (healthy)");
+    "Almanacs should not be equal (health_bits)");
   memset(&a, 0, sizeof(a));
 
   a.sid.sat = 1;

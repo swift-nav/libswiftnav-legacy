@@ -33,7 +33,7 @@ cdef class Almanac:
     self._thisptr.ura = kwargs.pop('ura')
     self._thisptr.fit_interval = kwargs.pop('fit_interval')
     self._thisptr.valid = kwargs.pop('valid')
-    self._thisptr.healthy = kwargs.pop('healthy')
+    self._thisptr.health_bits = kwargs.pop('health_bits')
     if 'kepler' in kwargs:
       self._thisptr.kepler = kwargs.pop('kepler')
     elif 'xyz' in kwargs:

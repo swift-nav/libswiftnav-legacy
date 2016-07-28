@@ -17,10 +17,10 @@ def test_init():
   alm = {
     'sid': {'code': 0, 'sat': 1},
     'toa': {'tow': 2, 'wn': 11,},
-    'ura': 12,
+    'ura': 10.0,
     'fit_interval': 13,
     'valid': 1,
-    'healthy': 1,
+    'health_bits': 0,
     'kepler': {
         'sqrta': 8,
         'af0': 9,
@@ -45,7 +45,7 @@ def test_almanac_functions():
     'ura': 900.0,
     'fit_interval': 144 * 60 * 60,
     'valid': 1,
-    'healthy': 1,
+    'health_bits': 0,
     'kepler': {
         'sqrta': np.sqrt(26559810.38052176),
         'ecc': 0.004033565521,

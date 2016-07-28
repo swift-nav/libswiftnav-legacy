@@ -27,7 +27,7 @@ cdef extern from "libswiftnav/almanac.h":
     float ura
     u32 fit_interval
     u8 valid
-    u8 healthy
+    u8 health_bits
     # HACK: Actually an anonymous union in libswiftnat!
     almanac_kepler_t kepler
     almanac_xyz_t xyz

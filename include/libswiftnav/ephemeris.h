@@ -18,6 +18,10 @@
 #include <libswiftnav/time.h>
 #include <libswiftnav/common.h>
 
+#define INVALID_GPS_URA_INDEX -1
+#define INVALID_GPS_URA_VALUE -1.0f
+#define MAX_ALLOWED_GPS_URA_IDX 15
+
 /** \addtogroup ephemeris
  * \{ */
 
@@ -84,7 +88,7 @@ typedef struct {
   float ura;         /**< User range accuracy [m] */
   u32 fit_interval;  /**< Curve fit interval [s] */
   u8 valid;          /**< Ephemeris is valid. */
-  u8 healthy;        /**< Satellite health status. */
+  u8 health_bits;    /**< Satellite health status. */
   union {
     ephemeris_kepler_t kepler; /**< Parameters specific to GPS. */
     ephemeris_xyz_t xyz;       /**< Parameters specific to SBAS. */
@@ -105,9 +109,11 @@ s8 calc_sat_doppler(const ephemeris_t *e, const gps_time_t *t,
 u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t);
 u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
                       const gps_time_t* toe, const gps_time_t *t);
-u8 satellite_healthy(const ephemeris_t *e);
+u8 signal_healthy(const ephemeris_t *e, code_t code);
 
 void decode_ephemeris(u32 frame_words[4][8], ephemeris_t *e);
 bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b);
+
+float decode_ura_index(const u8 index);
 
 #endif /* LIBSWIFTNAV_EPHEMERIS_H */
