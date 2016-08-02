@@ -75,8 +75,8 @@ void l1_ca_track_correlate(const s8* samples, size_t samples_len,
                            double* I_P, double* Q_P,
                            double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
-                 code_step);
+  *num_samples = (u32)ceil((chips_to_correlate - *init_code_phase) /
+                           code_step);
 
   if (0 == *num_samples) {
     *num_samples = (int)ceil(chips_to_correlate / code_step);
@@ -126,8 +126,8 @@ void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
                             double* I_P, double* Q_P,
                             double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
-                 code_step);
+  *num_samples = (u32)ceil((chips_to_correlate - *init_code_phase) /
+                           code_step);
 
   if (0 == *num_samples) {
     *num_samples = (int)ceil(chips_to_correlate / code_step);
@@ -150,7 +150,7 @@ void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
  *
  * \param samples          Samples array. One byte per sample.
  * \param samples_len      Samples array size.
- * \param code             L2C CM PRN code. One byte per chip: 10230 bytes long.
+ * \param code             GLO CA PRN code. One byte per chip: 511 bytes long.
  * \param[in,out] init_code_phase  Initial code phase [chips].
  *                         The function returns the
  *                         the last unprocessed code phase here.
@@ -178,8 +178,8 @@ void glo_ca_track_correlate(const s8* samples, size_t samples_len,
                             double* I_L, double* Q_L,
                             u32* num_samples)
 {
-  *num_samples = (int)ceil((2 * GLO_CA_CHIPS_PER_PRN_CODE -
-                   * init_code_phase) / code_step);
+  *num_samples = (u32)ceil((2 * GLO_CA_CHIPS_PER_PRN_CODE - *init_code_phase) /
+                           code_step);
 
   if (0 == *num_samples) {
     *num_samples =
