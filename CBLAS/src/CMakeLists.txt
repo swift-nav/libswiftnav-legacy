@@ -134,7 +134,11 @@ set(ALEV3 ${SLEV3} ${DLEV3} ${CLEV3} ${ZLEV3})
 set(ALLOBJ ${ALEV1} ${ALEV2} ${ALEV3} ${ALLBLAS})
 
 #add_library(cblas ${ALLOBJ})
-add_library(cblas ${SLEV1} ${DLEV1} ${SLEV2} ${DLEV2} ${SLEV3} ${DLEV3} ${ALLBLAS})
+
+set(LIBSWIFTNAV_REQUIRED ${DLEV1} ${DLEV2} ${DLEV3} ${ALLBLAS})
+#set(LIBSWIFTNAV_REQUIRED ${SLEV1} ${DLEV1} ${SLEV2} ${DLEV2} ${SLEV3} ${DLEV3} ${ALLBLAS})
+
+add_library(cblas ${LIBSWIFTNAV_REQUIRED})
 target_link_libraries(cblas blas)
 set_target_properties(cblas PROPERTIES COMPILE_FLAGS ${CBLAS_FAIL_FLAGS})
 
