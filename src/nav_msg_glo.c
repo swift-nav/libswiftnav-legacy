@@ -294,7 +294,7 @@ s8 process_string_glo(nav_msg_glo_t *n, ephemeris_t *e)
       e->glo.acc[1] = sign ?
               -1.0 * ret * pow(2, -30) * 1000.0 : ret * pow(2, -30) * 1000.0;
       /* extract MSB of B (if the bit is clear the SV is OK ) */
-      e->healthy = extract_word_glo(n, 80, 1);
+      e->health_bits = extract_word_glo(n, 80, 1);
       /* extract P1 */
       e->fit_interval = p1[extract_word_glo(n, 77, 2)];
 
@@ -321,7 +321,7 @@ s8 process_string_glo(nav_msg_glo_t *n, ephemeris_t *e)
       sign = extract_word_glo(n, 69 + 10, 1);
       e->glo.gamma = sign ? -1.0 * ret * pow(2, -40) : ret * pow(2, -40);
       /* extract l, if the it is clear the SV is OK, so OR it with B */
-      e->healthy |= extract_word_glo(n, 65, 1);
+      e->health_bits |= extract_word_glo(n, 65, 1);
 
       n->next_string_id = 4;
       break;
@@ -356,8 +356,8 @@ s8 process_string_glo(nav_msg_glo_t *n, ephemeris_t *e)
     e->sid.code = CODE_GLO_L1CA;
     /* convert GLO TOE to GPS TOE */
     e->toe = glo_time2gps_time(n->nt, n->n4, n->hrs, n->min, n->sec);
-    e->healthy ^= 1; /* invert healthy bit */
-    e->valid = e->healthy; //NOTE: probably Valid needs to be defined by other way
+    e->health_bits ^= 1; /* invert healthy bit */
+    e->valid = e->health_bits; //NOTE: probably Valid needs to be defined by other way
     return 1;
   }
 

@@ -10,6 +10,7 @@
 from common cimport *
 from time cimport gps_time_t
 from signal cimport gnss_signal_t
+from signal cimport code
 
 cdef extern from "libswiftnav/ephemeris.h":
 
@@ -42,7 +43,7 @@ cdef extern from "libswiftnav/ephemeris.h":
     float ura
     u32 fit_interval
     u8 valid
-    u8 healthy
+    u8 health_bits
     # HACK: Actually an anonymous union in libswiftnat!
     ephemeris_kepler_t kepler
     ephemeris_xyz_t xyz
@@ -56,7 +57,7 @@ cdef extern from "libswiftnav/ephemeris.h":
   s8 calc_sat_doppler(const ephemeris_t *e, const gps_time_t *t,
                     double ref[3], double *doppler)
   u8 ephemeris_valid(const ephemeris_t *e, const gps_time_t *t)
-  u8 satellite_healthy(const ephemeris_t *e)
+  u8 signal_healthy(const ephemeris_t *e, code code)
   void decode_ephemeris(u32 frame_words[3][8], ephemeris_t *e)
   u8 ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
   u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,

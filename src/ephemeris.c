@@ -23,6 +23,7 @@
 #include <libswiftnav/coord_system.h>
 
 float decode_ura_index(const u8 index);
+u8 encode_ura(float ura);
 u32 decode_fit_interval(u8 fit_interval_flag, u16 iodc);
 /* maximum step length in seconds for Runge-Kutta aglorithm */
 #define GLO_MAX_STEP_LENGTH 30
@@ -503,54 +504,233 @@ u8 ephemeris_params_valid(const u8 valid, const u32 fit_interval,
   return 1;
 }
 
-/** Is this satellite healthy? Note this function only checks flags in the
- * ephemeris. You also should check the alert flag in the nav_msg_t.
+
+/** The six-bit health indication given by bits 17 through 22 of word three
+ * refers to the transmitting SV. The MSB shall indicate a summary of the
+ * health of the NAV data, where
+ *   0 = all NAV data are OK,
+ *   1 = some or all NAV data are bad.
  *
- * \todo In the future we should check for health at the signal level. E.g.
- * if only the L2(P) signal is bad, but L1 C/A and L2C are fine, we can still
- * use the satellite.
+ * http://www.gps.gov/technical/icwg/IS-GPS-200H.pdf
+ * 20.3.3.3.1.4 SV Health.
+ *
+ * Also check that ura_index is acceptable.
  *
  * \param e Ephemeris struct
+ * \return 1 if the satellite health summary is OK.
+ *         0 otherwise.
+ */
+static u8 gps_get_health_summary(const ephemeris_t *e)
+{
+  u8 summary = (e->health_bits >> 5) & 0x1;
+
+  return (0 == summary) ? 1 : 0;
+}
+
+typedef enum gps_signal_component_health {
+  ALL_SIGNALS_OK = 0,
+  ALL_SIGNALS_WEAK,
+  ALL_SIGNALS_DEAD,
+  ALL_SIGNALS_NO_DATA,
+  L1_P_SIGNAL_WEAK,
+  L1_P_SIGNAL_DEAD,
+  L1_P_SIGNAL_NO_DATA,
+  L2_P_SIGNAL_WEAK,
+  L2_P_SIGNAL_DEAD,
+  L2_P_SIGNAL_NO_DATA,
+  L1_C_SIGNAL_WEAK,
+  L1_C_SIGNAL_DEAD,
+  L1_C_SIGNAL_NO_DATA,
+  L2_C_SIGNAL_WEAK,
+  L2_C_SIGNAL_DEAD,
+  L2_C_SIGNAL_NO_DATA,
+  L1_L2_P_SIGNAL_WEAK,
+  L1_L2_P_SIGNAL_DEAD,
+  L1_L2_P_SIGNAL_NO_DATA,
+  L1_L2_C_SIGNAL_WEAK,
+  L1_L2_C_SIGNAL_DEAD,
+  L1_L2_C_SIGNAL_NO_DATA,
+  L1_SIGNAL_WEAK,
+  L1_SIGNAL_DEAD,
+  L1_SIGNAL_NO_DATA,
+  L2_SIGNAL_WEAK,
+  L2_SIGNAL_DEAD,
+  L2_SIGNAL_NO_DATA,
+  SV_TEMPORARILY_OUT,
+  SV_WILL_BE_TEMPORARILY_OUT,
+  ONLY_URA_VALID,
+  MULTIPLE_PROBLEMS
+} gps_signal_component_health_t;
+
+/** Checks GPS signals health status
+ *
+ * \param e Ephemeris struct
+ * \return 1 if current signal is OK.
+ *         0 otherwise.
+ */
+static u8 gps_healthy(u8 health_bits, code_t code)
+{
+  u8 ret = 1;
+  const u8 b = health_bits & 0x1f;
+
+  /* Check general issues */
+  if (b == ALL_SIGNALS_WEAK ||
+      b == ALL_SIGNALS_DEAD ||
+      b == ALL_SIGNALS_NO_DATA ||
+      b == SV_TEMPORARILY_OUT ||
+      b == SV_WILL_BE_TEMPORARILY_OUT ||
+      b == ONLY_URA_VALID ||
+      b == MULTIPLE_PROBLEMS) {
+    ret = 0;
+  }
+  else {
+    /* Check code specific issues */
+    switch (code) {
+    case CODE_GPS_L1CA:
+    {
+      if (b == L1_C_SIGNAL_WEAK ||
+          b == L1_C_SIGNAL_DEAD ||
+          b == L1_C_SIGNAL_NO_DATA ||
+          b == L1_L2_C_SIGNAL_WEAK ||
+          b == L1_L2_C_SIGNAL_DEAD ||
+          b == L1_L2_C_SIGNAL_NO_DATA ||
+          b == L1_SIGNAL_WEAK ||
+          b == L1_SIGNAL_DEAD ||
+          b == L1_SIGNAL_NO_DATA)
+        ret = 0;
+      break;
+    }
+
+    case CODE_GPS_L2CM:
+    {
+      if (b == L2_C_SIGNAL_WEAK ||
+          b == L2_C_SIGNAL_DEAD ||
+          b == L2_C_SIGNAL_NO_DATA ||
+          b == L1_L2_C_SIGNAL_WEAK ||
+          b == L1_L2_C_SIGNAL_DEAD ||
+          b == L1_L2_C_SIGNAL_NO_DATA ||
+          b == L2_SIGNAL_WEAK ||
+          b == L2_SIGNAL_DEAD ||
+          b == L2_SIGNAL_NO_DATA)
+        ret = 0;
+      break;
+    }
+
+    default:
+      break;
+    }
+  }
+
+  return ret;
+}
+
+/** Is this signal healthy? Note this function only checks flags in the
+ * ephemeris. You also should check the alert flag in the nav_msg_t.
+ *
+ * \param e Ephemeris struct
+ * \param code Signal code (L2CM uses L1CA ephes, so e->sid can't be used)
  * \return 1 if the satellite is healthy.
  *         0 otherwise.
  */
-u8 satellite_healthy(const ephemeris_t *e)
+u8 signal_healthy(const ephemeris_t *e, code_t code)
 {
-  if (e->valid) {
-    return e->healthy;
-  } else {
+  /* Presume healthy */
+  u8 ret = 1;
+
+  if (!e->valid) {
     /* If we don't yet have an ephemeris, assume satellite is healthy */
     /* Otherwise we will stop tracking the sat and never find out */
-    return 1;
+    return ret;
   }
+
+  gnss_signal_t sid = {
+    .code = code,
+    .sat = e->sid.sat
+  };
+
+  switch(sid_to_constellation(sid)) {
+  case CONSTELLATION_GPS:
+    if (encode_ura(e->ura) > MAX_ALLOWED_GPS_URA_IDX) {
+      ret = 0;
+      /* Satellite is not healthy, no reason to check further */
+      break;
+    }
+
+    if (0 == gps_get_health_summary(e))
+      /* Health issues are indicated, check if current signal is affected */
+      ret = gps_healthy(e->health_bits, code);
+
+    break;
+
+  case CONSTELLATION_SBAS:
+  case CONSTELLATION_GLO:
+    ret = (0 == e->health_bits) ? 1 : 0;
+    break;
+
+  default:
+    break;
+  }
+
+  if (!ret)
+    log_warn_sid(sid, "Health issues! URA = %f, health bits = 0x%02x",
+      e->ura, e->health_bits);
+
+  return ret;
 }
+
+#define URA_VALUE_TABLE_LEN 16
+
+static const float gps_ura_values[URA_VALUE_TABLE_LEN] = {
+  [0]  = 2.0f,
+  [1]  = 2.8f,
+  [2]  = 4.0f,
+  [3]  = 5.7f,
+  [4]  = 8.0f,
+  [5]  = 11.3f,
+  [6]  = 16.0f,
+  [7]  = 32.0f,
+  [8]  = 64.0f,
+  [9]  = 128.0f,
+  [10] = 256.0f,
+  [11] = 512.0f,
+  [12] = 1024.0f,
+  [13] = 2048.0f,
+  [14] = 4096.0f,
+  [15] = 6144.0f,
+};
 
 /** Convert a GPS URA index into a value.
 *
 * \param index URA index.
 * \return the URA in meters.
 */
-float decode_ura_index(const u8 index) {
-  static float values[16] = {
-    [0]  = 2.0f,
-    [1]  = 2.8f,
-    [2]  = 4.0f,
-    [3]  = 5.7f,
-    [4]  = 8.0f,
-    [5]  = 11.3f,
-    [6]  = 16.0f,
-    [7]  = 32.0f,
-    [8]  = 64.0f,
-    [9]  = 128.0f,
-    [10] = 256.0f,
-    [11] = 512.0f,
-    [12] = 1024.0f,
-    [13] = 2048.0f,
-    [14] = 4096.0f,
-    [15] = 6144.0f,
-  };
+float decode_ura_index(const u8 index)
+{
+  /* Invalid index */
+  if (URA_VALUE_TABLE_LEN < index)
+    return INVALID_GPS_URA_VALUE;
+  
+  return gps_ura_values[index];
+}
 
-  return values[index];
+/** Convert GPS URA into URA index.
+*
+* \param ura URA in meters.
+* \return URA index.
+*/
+u8 encode_ura(float ura)
+{
+  /* Negative URA */
+  if (0 > ura)
+    return INVALID_GPS_URA_INDEX;
+
+  for (u8 i = 0; i < URA_VALUE_TABLE_LEN; i++) {
+    if (gps_ura_values[i] >= ura)
+      return i;
+  }
+
+  /* No valid URA index found */
+  return INVALID_GPS_URA_INDEX;
 }
 
 /** Calculate the GPS ephemeris curve fit interval.
@@ -636,10 +816,6 @@ void decode_ephemeris(u32 frame_words[4][8], ephemeris_t *e)
   /* NAV data and signal health bits: Word 3, bits 17-22 */
   u8 health_bits = frame_words[0][3-3] >> (30-22) & 0x3F;
   log_debug_sid(e->sid, "Health bits = 0x%02x", health_bits);
-  e->healthy = (health_bits == 0x00) && (ura_index < 15);
-  if (!e->healthy) {
-    log_warn_sid(e->sid, "Latest ephemeris is unhealthy. Ignoring satellite.");
-  }
 
   /* t_gd: Word 7, bits 17-24 */
   onebyte.u8 = frame_words[0][7-3] >> (30-24) & 0xFF;
@@ -825,7 +1001,7 @@ bool ephemeris_equal(const ephemeris_t *a, const ephemeris_t *b)
       (a->ura != b->ura) ||
       (a->fit_interval != b->fit_interval) ||
       (a->valid != b->valid) ||
-      (a->healthy != b->healthy) ||
+      (a->health_bits != b->health_bits) ||
       (a->toe.wn != b->toe.wn) ||
       (a->toe.tow != b->toe.tow))
     return false;

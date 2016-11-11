@@ -51,7 +51,7 @@ static s8 calc_sat_state_xyz_almanac(const almanac_t *a, const gps_time_t *t,
   e.ura = a->ura;
   e.fit_interval = a->fit_interval;
   e.valid = a->valid;
-  e.healthy = a->healthy;
+  e.health_bits = a->health_bits;
   memcpy(e.xyz.pos, a->xyz.pos, sizeof(e.xyz.pos));
   memcpy(e.xyz.vel, a->xyz.vel, sizeof(e.xyz.vel));
   memcpy(e.xyz.acc, a->xyz.acc, sizeof(e.xyz.acc));
@@ -87,7 +87,7 @@ static s8 calc_sat_state_kepler_almanac(const almanac_t *a, const gps_time_t *t,
   e.ura = a->ura;
   e.fit_interval = a->fit_interval;
   e.valid = a->valid;
-  e.healthy = a->healthy;
+  e.health_bits = a->health_bits;
   e.kepler.m0 = a->kepler.m0;
   e.kepler.ecc = a->kepler.ecc;
   e.kepler.sqrta = a->kepler.sqrta;
@@ -255,7 +255,12 @@ u8 almanac_valid(const almanac_t *a, const gps_time_t *t)
  */
 u8 satellite_healthy_almanac(const almanac_t *a)
 {
-  return a->healthy;
+  /* TODO 
+   * Proper implementation:
+   * http://www.gps.gov/technical/icwg/IS-GPS-200H.pdf
+   * 20.3.3.5.1.2 Almanac Data.
+   */
+  return (0 == a->health_bits) ? 1 : 0;
 }
 
 static bool almanac_xyz_equal(const almanac_xyz_t *a,
@@ -292,7 +297,7 @@ bool almanac_equal(const almanac_t *a, const almanac_t *b)
       (a->ura != b->ura) ||
       (a->fit_interval != b->fit_interval) ||
       (a->valid != b->valid) ||
-      (a->healthy != b->healthy) ||
+      (a->health_bits != b->health_bits) ||
       (a->toa.wn != b->toa.wn) ||
       (a->toa.tow != b->toa.tow))
     return false;

@@ -39,8 +39,8 @@ cdef class Ephemeris:
       self._thisptr.fit_interval = kwargs.pop('fit_interval')
     if 'valid' in kwargs:
       self._thisptr.valid = kwargs.pop('valid')
-    if 'healthy' in kwargs:
-      self._thisptr.healthy = kwargs.pop('healthy')
+    if 'health_bits' in kwargs:
+      self._thisptr.health_bits = kwargs.pop('health_bits')
     if 'kepler' in kwargs:
       self._thisptr.kepler = kwargs.pop('kepler')
     elif 'xyz' in kwargs:
@@ -139,7 +139,7 @@ cdef class Ephemeris:
     return ephemeris_params_valid(valid, fit_interval, &toe._thisptr, &t._thisptr)
 
   def is_healthy(self):
-    return satellite_healthy(&self._thisptr)
+    return signal_healthy(&self._thisptr, self._thisptr.sid.code)
 
   def __rich_cmp__(self, eph2, op):
     if op != Py_EQ:

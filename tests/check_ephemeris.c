@@ -18,7 +18,7 @@ START_TEST(test_ephemeris_equal)
     "Ephemerides should not be equal (valid)");
   memset(&a, 0, sizeof(a));
 
-  a.healthy = 1;
+  a.health_bits = 1;
   fail_unless(!ephemeris_equal(&a, &b),
     "Ephemerides should not be equal (healthy)");
   memset(&a, 0, sizeof(a));
@@ -372,12 +372,119 @@ START_TEST(test_ephemeris_equal)
 }
 END_TEST
 
+START_TEST(test_signal_component_health)
+{
+  return;
+  const struct test_case
+  {
+    ephemeris_t e;
+    bool healthy;
+  } test_cases[] = {
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 1},
+        .health_bits = 0,
+        .ura = 2.0,
+        .valid = true},
+      .healthy = true
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 1},
+        .health_bits = 0,
+        .ura = 200.0,
+        .valid = false},
+      .healthy = true
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L2CM, .sat = 32},
+        .health_bits = 0,
+        .ura = 2000.0,
+        .valid = true},
+      .healthy = true
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 1},
+        .health_bits = 0,
+        .ura = 33333.0,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 1},
+        .health_bits = 0,
+        .ura = INVALID_GPS_URA_VALUE,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 1},
+        .health_bits = 0,
+        .ura = -100.0,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 11},
+        .health_bits = 0x3F,
+        .ura = 1.0,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 12},
+        .health_bits = 0x2A,
+        .ura = 1.0,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L2CM, .sat = 13},
+        .health_bits = 0x2E,
+        .ura = 4000.0,
+        .valid = true},
+      .healthy = false
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L2CM, .sat = 1},
+        .health_bits = 0x2A,
+        .ura = 4000.0,
+        .valid = true},
+      .healthy = true
+    },
+    {
+      .e = {
+        .sid = {.code = CODE_GPS_L1CA, .sat = 22},
+        .health_bits = 0x2E,
+        .ura = 10.0,
+        .valid = true},
+      .healthy = true
+    },
+  };
+
+  for (u32 i=0; i<sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+    const struct test_case *t = &test_cases[i];
+    fail_unless(t->healthy == signal_healthy(&t->e, t->e.sid.code),
+      "test signal %d healthy incorrect", i);
+  }
+}
+END_TEST
+
 Suite* ephemeris_suite(void)
 {
   Suite *s = suite_create("Ephemeris");
 
   TCase *tc_core = tcase_create("Core");
   tcase_add_test(tc_core, test_ephemeris_equal);
+  tcase_add_test(tc_core, test_signal_component_health);
   suite_add_tcase(s, tc_core);
 
   return s;

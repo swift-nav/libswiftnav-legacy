@@ -69,7 +69,7 @@ typedef struct {
   float ura;         /**< User range accuracy [m] */
   u32 fit_interval;  /**< Curve fit interval [s] */
   u8 valid;          /**< Almanac is valid. */
-  u8 healthy;        /**< Satellite health status. */
+  u8 health_bits;    /**< Satellite health status. */
   union {
     almanac_kepler_t kepler; /**< Parameters specific to GPS. */
     almanac_xyz_t xyz;       /**< Parameters specific to SBAS. */

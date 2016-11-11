@@ -72,7 +72,7 @@ void e_out(void)
   log_debug("\tURA: %f\n", e.ura);
   log_debug("\tFit interval: %u\n", e.fit_interval);
   log_debug("\tValid: %u\n", e.valid);
-  log_debug("\tHealthy: %u\n", e.healthy);
+  log_debug("\tHealth bits: 0x%02x\n", e.health_bits);
   log_debug("\tgamma: %25.18f\n", e.glo.gamma);
   log_debug("\ttau: %25.18f\n", e.glo.tau);
   log_debug("\tX, Y, Z: %25.18f, %25.18f, %25.18f\n", e.glo.pos[0],
