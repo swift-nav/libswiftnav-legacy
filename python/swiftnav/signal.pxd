@@ -57,16 +57,16 @@ cdef extern from "libswiftnav/signal.h":
   int cmp_sid_sid(const void *a, const void *b)
   bool sid_is_equal(const gnss_signal_t a, const gnss_signal_t b)
 
-  gnss_signal_t construct_sid(code code, u16 sat);
+  gnss_signal_t construct_sid(code code, u16 sat)
   int sid_to_string(char *s, int n, gnss_signal_t sid)
   bool sid_valid(gnss_signal_t sid)
   bool code_valid(code code)
   bool constellation_valid(constellation constellation)
 
-  gnss_signal_t sid_from_code_index(code code, u16 code_index);
-  u16 sid_to_code_index(gnss_signal_t sid);
-  constellation sid_to_constellation(gnss_signal_t sid);
-  constellation code_to_constellation(code code);
+  gnss_signal_t sid_from_code_index(code code, u16 code_index)
+  u16 sid_to_code_index(gnss_signal_t sid)
+  constellation sid_to_constellation(gnss_signal_t sid)
+  constellation code_to_constellation(code code)
 
 cdef class GNSSSignal:
   cdef gnss_signal_t _thisptr

@@ -49,6 +49,10 @@ set(libswiftnav_SRCS
   cnav_msg.c
   nav_msg_glo.c
   counter_checker/counter_checker.c
+  cn0_est_bl.c
+  cn0_est_snv.c
+  filter_bw2.c
+  filter_lp1.c
   ${plover_SRCS}
 
   CACHE INTERNAL ""

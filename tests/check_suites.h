@@ -29,5 +29,7 @@ Suite* glo_decoder_test_suite(void);
 Suite* troposphere_suite(void);
 Suite* correlator_suite(void);
 Suite* counter_checker_suite(void);
+Suite* cn0_suite(void);
+Suite* cn0_filter_suite(void);
 
 #endif /* CHECK_SUITES_H */

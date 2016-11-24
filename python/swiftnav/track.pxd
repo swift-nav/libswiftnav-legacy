@@ -143,18 +143,53 @@ cdef extern from "libswiftnav/track.h":
   void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo)
   void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 
-  # Tracking loop: CN0 est
+  # Tracking loop: CN0 object
   ctypedef struct cn0_est_state_t:
     float log_bw
-    float b
-    float a
     float I_prev_abs
     float Q_prev_abs
-    float nsr
-    float xn
+    float cn0
 
-  void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0, float cutoff_freq, float loop_freq)
-  float cn0_est(cn0_est_state_t *s, float I, float Q)
+  void cn0_est_bl_init(cn0_est_state_t *s,
+                       float bw,
+                       float cn0_0,
+                       float f_s,
+                       float f_i)
+  float cn0_est_bl_update(cn0_est_state_t *s, float I, float Q)
+
+  void cn0_est_snv_init(cn0_est_state_t *s,
+                        float bw,
+                        float cn0_0,
+                        float f_s,
+                        float f_i)
+  float cn0_est_snv_update(cn0_est_state_t *s, float I, float Q)
+
+  # Tracking loop: C/N0 filters
+  ctypedef struct lp1_filter_t:
+    float b
+    float a
+    float xn
+    float yn
+
+  ctypedef struct bw2_filter_t:
+    float b
+    float a2
+    float a3
+    float xn
+    float xn_prev
+    float yn
+    float yn_prev
+
+  void lp1_filter_init(lp1_filter_t *f,
+                       float cn0_0,
+                       float cutoff_freq,
+                       float loop_freq);
+  float lp1_filter_update(lp1_filter_t *f, float cn0);
+  void bw2_filter_init(bw2_filter_t *f,
+                       float cn0_0,
+                       float cutoff_freq,
+                       float loop_freq);
+  float bw2_filter_update(bw2_filter_t *f, float cn0);
 
   # Tracking loop: Navigation measurement
   ctypedef struct channel_measurement_t:
@@ -223,9 +258,17 @@ cdef class LockDetector:
   cdef dict kwargs
   cdef lock_detect_t _thisptr
 
-cdef class CN0Estimator:
-  cdef dict kwargs
+cdef class CN0BLEstimator:
   cdef cn0_est_state_t _thisptr
+
+cdef class CN0SNVEstimator:
+  cdef cn0_est_state_t _thisptr
+
+cdef class LP1Filter:
+  cdef lp1_filter_t _thisptr
+
+cdef class BW2Filter:
+  cdef bw2_filter_t _thisptr
 
 cdef class ChannelMeasurement:
   cdef channel_measurement_t _thisptr
@@ -233,4 +276,6 @@ cdef class ChannelMeasurement:
 cdef class NavigationMeasurement:
   cdef navigation_measurement_t _thisptr
 
-cdef mk_nav_meas_array(py_nav_meas, u8 n_c_nav_meas, navigation_measurement_t *c_nav_meas)
+cdef mk_nav_meas_array(py_nav_meas,
+                       u8 n_c_nav_meas,
+                       navigation_measurement_t *c_nav_meas)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Swift Navigation Inc.
+ * Copyright (C) 2012, 2016 Swift Navigation Inc.
  * Contact: Fergus Noble <fergus@swift-nav.com>
  *
  * This source is subject to the license found in the file 'LICENSE' which must
@@ -47,13 +47,43 @@ typedef struct {
 typedef struct {
   float carr_freq;             /**< Code frequency. */
   aided_lf_state_t carr_filt ; /**< Carrier loop filter state. */
-  float code_freq;             /**< Carrier frequenct. */
+  float code_freq;             /**< Carrier frequency. */
   simple_lf_state_t code_filt; /**< Code loop filter state. */
   float prev_I, prev_Q;        /**< Previous timestep's in-phase and
 				    quadrature integration, for FLL. */
   float carr_to_code;          /**< Ratio of code to carrier freqs, or
 				    zero to disable carrier aiding */
 } aided_tl_state_t;
+
+/**
+ * Tracking loop control object
+ *
+ * This object is made according to Elliott D.Kaplan and Chrostopher J.Hegarty
+ * book with bilinear transform integrators.
+ */
+typedef struct {
+  float T;
+
+  /* First order frequency filter */
+  float freq_omega_0;          /**< Frequency error multiplier: omega_0f */
+  float freq_acc;              /**< Frequency error accumulator */
+
+  /* Second order phase filter */
+  float phase_omega_02;        /**< Phase error multiplier 1: omega_n^2 */
+  float phase_omega_0a;        /**< Phase error multiplier 2: omega_n*a */
+  float phase_acc2;            /**< Phase error accumulator 1 */
+  float phase_acc;             /**< Phase error accumulator 2 */
+
+  /* Doppler frequency */
+  float carr_freq;             /**< Carrier frequency output. */
+
+  float code_freq;             /**< Code frequency error. */
+  simple_lf_state_t code_filt; /**< Code loop filter state. */
+  float prev_I, prev_Q;        /**< Previous timestep's in-phase and
+                                    quadrature integration, for FLL. */
+  float carr_to_code;          /**< Ratio of code to carrier freqs, or
+                                    zero to disable carrier aiding */
+} aided_tl_state_new_t;
 
 /** State structure for a simple tracking loop.
  * Should be initialised with simple_tl_init().
@@ -116,19 +146,44 @@ typedef struct {
 } correlation_t;
 
 /** State structure for the \f$ C / N_0 \f$ estimator.
- * Should be initialised with cn0_est_init().
+ * Should be initialized with cn0_est_init().
  */
 typedef struct {
   float log_bw;     /**< Noise bandwidth in dBHz. */
-  float b;          /**< IIR filter coeff. */
-  float a;          /**< IIR filter coeff. */
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
   float Q_prev_abs; /**< Abs. value of the previous quadrature correlation. */
-  float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
-  float xn;         /**< Last pre-filter sample. */
+  float cn0;        /**< Signal to noise ratio in dB/Hz. */
 } cn0_est_state_t;
 
-/** \} */
+/** State structure for first order low-pass filter.
+ *
+ * \see lp1_filter_init
+ * \see lp1_filter_update
+ */
+typedef struct {
+  float b;          /**< IIR filter coeff. */
+  float a;          /**< IIR filter coeff. */
+  float xn;         /**< Last pre-filter sample. */
+  float yn;         /**< Last post-filter sample. */
+} lp1_filter_t;
+
+/**
+ * Second order Butterworth filter object.
+ *
+ * Structure for filtering CN0 values using 2nd order Butterworth filter.
+ *
+ * \see bw2_filter_init
+ * \see bw2_filter_update
+ */
+typedef struct {
+  float b;          /**< IIR filter coeff. */
+  float a2;         /**< IIR filter coeff. */
+  float a3;         /**< IIR filter coeff. */
+  float yn;         /**< Last post-filter sample. */
+  float yn_prev;    /**< Previous post-filter sample. */
+  float xn;         /**< Last pre-filter sample. */
+  float xn_prev;    /**< Previous pre-filter sample. */
+} bw2_filter_t;
 
 /** This struct holds the state of a tracking channel at a given receiver time epoch.
  *
@@ -174,6 +229,8 @@ typedef struct {
   u16 lock_counter;
 } navigation_measurement_t;
 
+/** \} */
+
 void calc_loop_gains(float bw, float zeta, float k, float loop_freq,
                      float *b0, float *b1);
 float costas_discriminator(float I, float Q);
@@ -213,6 +270,22 @@ void aided_tl_retune(aided_tl_state_t *s, float loop_freq,
 
 void aided_tl_update(aided_tl_state_t *s, correlation_t cs[3]);
 
+void aided_tl_init_new(aided_tl_state_new_t *s, float loop_freq,
+                   float code_freq,
+                   float code_bw, float code_zeta, float code_k,
+                   float carr_to_code,
+                   float carr_freq,
+                   float carr_bw, float carr_zeta, float carr_k,
+                   float carr_freq_b1);
+
+void aided_tl_retune_new(aided_tl_state_new_t *s, float loop_freq,
+                     float code_bw, float code_zeta, float code_k,
+                     float carr_to_code,
+                     float carr_bw, float carr_zeta, float carr_k,
+                     float carr_freq_b1);
+
+void aided_tl_update_new(aided_tl_state_new_t *s, correlation_t cs[3]);
+
 void comp_tl_init(comp_tl_state_t *s, float loop_freq,
                     float code_freq, float code_bw,
                     float code_zeta, float code_k,
@@ -230,9 +303,20 @@ void lock_detect_init(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_reinit(lock_detect_t *l, float k1, float k2, u16 lp, u16 lo);
 void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
 
-void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
-                  float cutoff_freq, float loop_freq);
-float cn0_est(cn0_est_state_t *s, float I, float Q);
+void cn0_est_bl_init(cn0_est_state_t *s,
+                     float bw, float cn0_0, float f_s, float f_i);
+float cn0_est_bl_update(cn0_est_state_t *s, float I, float Q);
+void cn0_est_snv_init(cn0_est_state_t *s,
+                      float cn0_0, float bw, float f_s, float f_i);
+float cn0_est_snv_update(cn0_est_state_t *s, float I, float Q);
+
+void lp1_filter_init(lp1_filter_t *f, float initial,
+                     float cutoff_freq, float loop_freq);
+float lp1_filter_update(lp1_filter_t *f, float value);
+
+void bw2_filter_init(bw2_filter_t *f, float initial,
+                     float cutoff_freq, float loop_freq);
+float bw2_filter_update(bw2_filter_t *f, float value);
 
 s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[], gps_time_t *rec_time,
