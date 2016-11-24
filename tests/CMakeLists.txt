@@ -53,6 +53,7 @@ else (CMAKE_CROSSCOMPILING)
       check_glo_decoder.c
       check_troposphere.c
       check_counter_checker.c
+      check_cn0_estimator.c
     )
 
     target_link_libraries(test_libswiftnav ${TEST_LIBS})

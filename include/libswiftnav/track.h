@@ -119,14 +119,20 @@ typedef struct {
  * Should be initialised with cn0_est_init().
  */
 typedef struct {
-  float log_bw;     /**< Noise bandwidth in dBHz. */
-  float b;          /**< IIR filter coeff. */
-  float a;          /**< IIR filter coeff. */
   float I_prev_abs; /**< Abs. value of the previous in-phase correlation. */
   float Q_prev_abs; /**< Abs. value of the previous quadrature correlation. */
   float nsr;        /**< Noise-to-signal ratio (1 / SNR). */
+  float nsr_prev;   /**< Previous Noise-to-signal ratio. */
   float xn;         /**< Last pre-filter sample. */
+  float xn_prev;    /**< Previous pre-filter sample. */
 } cn0_est_state_t;
+
+typedef struct {
+  float log_bw;     /**< Noise bandwidth in dBHz. */
+  float b;          /**< IIR filter coeff. */
+  float a2;         /**< IIR filter coeff. */
+  float a3;         /**< IIR filter coeff. */
+} cn0_est_params_t;
 
 /** \} */
 
@@ -232,7 +238,9 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT);
 
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq);
-float cn0_est(cn0_est_state_t *s, float I, float Q);
+float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q);
+void cn0_est_compute_params(cn0_est_params_t *p, float bw, float cutoff_freq,
+                            float loop_freq);
 
 s8 calc_navigation_measurement(u8 n_channels, const channel_measurement_t *meas[],
                                navigation_measurement_t *nav_meas[], gps_time_t *rec_time,
