@@ -579,6 +579,8 @@ int cmp_amb_sid(const void *a_, const void *b_)
  *                    length `num_ambs`
  * \param num_used    Pointer to where to store number of satellites used in the
  *                    baseline solution
+ * \param used_sids   Pointer to where to store the sids of satellites used in
+ *                    the baseline solution, length `num_used`
  * \param b           The output baseline in meters
  * \param disable_raim   True disables raim check/repair
  * \param raim_threshold Threshold for raim checks.
@@ -589,7 +591,7 @@ int cmp_amb_sid(const void *a_, const void *b_)
  */
 s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
              u8 num_ambs, const ambiguity_t *single_ambs,
-             u8 *num_used, double b[3],
+             u8 *num_used, gnss_signal_t *used_sids, double b[3],
              bool disable_raim, double raim_threshold)
 {
   if (num_sdiffs < 4 || num_ambs < 4) {
@@ -601,6 +603,7 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   assert(ref_ecef != NULL);
   assert(single_ambs != NULL);
   assert(num_used != NULL);
+  assert(used_sids != NULL);
   assert(b != NULL);
 
   assert(is_set(num_ambs, sizeof(ambiguity_t), single_ambs, cmp_amb));
@@ -651,8 +654,13 @@ s8 baseline_(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   double dd_ambs[num_dds];
   diff_ambs(ref_sid, intersection_size, intersection_ambs, dd_ambs);
 
-  /* Compute least squares solution. */
+  /* Return the sids used in the solution. */
   *num_used = intersection_size;
+  for (s32 i = 0; i < intersection_size; i++) {
+    used_sids[i] = intersection_sdiffs[i].sid;
+  }
+
+  /* Compute least squares solution. */
   return lesq_solve_raim(num_dds, dd_meas, dd_ambs, DE, b,
                          disable_raim, raim_threshold, 0, 0, 0);
 }
@@ -683,6 +691,8 @@ void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
  * \param ambs       Set of ambiguities as an `ambiguitites_t` structure
  * \param num_used   Pointer to where to store number of satellites used in the
  *                   baseline solution
+ * \param used_sids  Pointer to where to store the sids of satellites used in
+ *                   the baseline solution, length `num_used`
  * \param b          The output baseline in meters
  * \param disable_raim True disables raim check/repair
  * \param raim_threshold Threshold for raim checks.
@@ -693,8 +703,8 @@ void diff_ambs(gnss_signal_t ref_sid, u8 num_ambs, const ambiguity_t *amb_set,
  *                   -2 if an error occurred
  */
 s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
-            const ambiguities_t *ambs, u8 *num_used, double b[3],
-            bool disable_raim, double raim_threshold)
+            const ambiguities_t *ambs, u8 *num_used, gnss_signal_t *used_sids,
+            double b[3], bool disable_raim, double raim_threshold)
 {
   u8 num = ambs->n + 1;
   ambiguity_t ambts[ambs->n];
@@ -717,7 +727,7 @@ s8 baseline(u8 num_sdiffs, const sdiff_t *sdiffs, const double ref_ecef[3],
   /* single_ambs is now an ambiguity_t set */
   return baseline_(num_sdiffs, sdiffs, ref_ecef,
                    num, single_ambs,
-                   num_used, b,
+                   num_used, used_sids, b,
                    disable_raim, raim_threshold);
 }
 

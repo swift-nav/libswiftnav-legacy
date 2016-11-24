@@ -435,6 +435,8 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  * \param s           Current ambiguity test state.
  * \param num_used    Output number of sdiffs actually used in the baseline
  *                    estimate.
+ * \param used_sids   Pointer to where to store the sids of satellites used in
+ *                    the baseline solution, length `num_used`
  * \param b           Output baseline.
  * \param disable_raim Flag to turn off raim checks/repair.
  * \param raim_threshold raim check threshold
@@ -444,7 +446,7 @@ void dgnss_update_ambiguity_state(ambiguity_state_t *s)
  */
 s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
                   const double ref_ecef[3], const ambiguity_state_t *s,
-                  u8 *num_used, double b[3],
+                  u8 *num_used, gnss_signal_t *used_sids, double b[3],
                   bool disable_raim, double raim_threshold)
 {
 
@@ -474,8 +476,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
     log_debug("  %u: %f", s->float_ambs.sids[i].sat, s->float_ambs.ambs[i]);
   }
 
-  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used, b,
-                    disable_raim, raim_threshold);
+  s8 ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->fixed_ambs, num_used,
+                    used_sids, b, disable_raim, raim_threshold);
   if (ret >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
     {
@@ -489,8 +491,8 @@ s8 dgnss_baseline(u8 num_sdiffs, const sdiff_t *sdiffs,
   }
   /* We weren't able to get an IAR resolved baseline, check if we can get a
    * float baseline. */
-  if ((ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used, b,
-                      disable_raim, raim_threshold))
+  if ((ret = baseline(num_sdiffs, sdiffs, ref_ecef, &s->float_ambs, num_used,
+                      used_sids, b, disable_raim, raim_threshold))
         >= 0) {
     if (ret == 1) /* TODO: Export this rather than just printing */
     {

@@ -208,23 +208,34 @@ START_TEST(test_dgnss_baseline_1)
 
   double b[3];
   u8 num_used;
+  gnss_signal_t used_sids[5];
 
   /* Float only */
   s.fixed_ambs.n = 0;
-  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  s8 valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 2);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.742242));
   fail_unless(within_epsilon(b[1], -0.492905));
   fail_unless(within_epsilon(b[2], -0.0533294));
 
   /* Fixed and float */
   s.fixed_ambs.n = 4;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == 1);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.417486));
   fail_unless(within_epsilon(b[1], -0.358386));
   fail_unless(within_epsilon(b[2],  0.271427));
@@ -232,10 +243,15 @@ START_TEST(test_dgnss_baseline_1)
   /* No solution possible */
   s.fixed_ambs.n = 0;
   s.float_ambs.n = 0;
-  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, b,
-    false, DEFAULT_RAIM_THRESHOLD);
+  valid = dgnss_baseline(num_sdiffs, sdiffs, ref_ecef, &s, &num_used, used_sids,
+    b, false, DEFAULT_RAIM_THRESHOLD);
   fail_unless(valid == -1);
   fail_unless(num_used == 5);
+  fail_unless(used_sids[0].sat == 1);
+  fail_unless(used_sids[1].sat == 2);
+  fail_unless(used_sids[2].sat == 3);
+  fail_unless(used_sids[3].sat == 4);
+  fail_unless(used_sids[4].sat == 5);
   fail_unless(within_epsilon(b[0], -0.417486));
   fail_unless(within_epsilon(b[1], -0.358386));
   fail_unless(within_epsilon(b[2],  0.271427));
