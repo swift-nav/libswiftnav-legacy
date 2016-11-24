@@ -5,6 +5,10 @@ sudo: false
 #   https://gist.github.com/winterz/10cc2741d466cbd8ff21
 #   https://github.com/travis-ci/travis-ci/issues/2030
 
+os:
+  - linux
+  - osx
+
 cache: pip
 
 addons:
@@ -32,9 +36,9 @@ install:
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/build/install/usr/local/lib
   # Install ARM GCC toolchain
   # TODO: Replace with PPA once whitelisted, see https://github.com/travis-ci/apt-source-whitelist/pull/219
-  - wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
-  - tar -xf gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
-  - export PATH=$PATH:$PWD/gcc-arm-none-eabi-4_9-2015q2/bin
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] ; wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] ; tar -xf gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] ; export PATH=$PATH:$PWD/gcc-arm-none-eabi-4_9-2015q2/bin ; fi
   # Install doxygen 1.8
   # TODO: Replace with PPA once whitelisted, see https://github.com/travis-ci/apt-source-whitelist/issues/40
 
