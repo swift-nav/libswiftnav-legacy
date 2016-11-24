@@ -26,11 +26,13 @@
 
 enum correlator_type {
   L1CA_CORRELATOR,
-  L2C_CORRELATOR
+  L2C_CORRELATOR,
+  GLOCA_CORRELATOR
 };
 
-#define L1_CA_CHIPS_PER_PRN_CODE   1023
-#define L2C_CM_CHIPS_PER_PRN_CODE  10230
+#define L1_CA_CHIPS_PER_PRN_CODE    1023
+#define L2C_CM_CHIPS_PER_PRN_CODE   10230
+#define GLO_CA_CHIPS_PER_PRN_CODE   511
 
 static void track_correlate(enum correlator_type correlator_type,
                             const s8* restrict samples,
@@ -73,8 +75,8 @@ void l1_ca_track_correlate(const s8* samples, size_t samples_len,
                            double* I_P, double* Q_P,
                            double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
-                 code_step);
+  *num_samples = (u32)ceil((chips_to_correlate - *init_code_phase) /
+                           code_step);
 
   if (0 == *num_samples) {
     *num_samples = (int)ceil(chips_to_correlate / code_step);
@@ -124,8 +126,8 @@ void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
                             double* I_P, double* Q_P,
                             double* I_L, double* Q_L, u32* num_samples)
 {
-  *num_samples = (int)ceil((chips_to_correlate - *init_code_phase) /
-                 code_step);
+  *num_samples = (u32)ceil((chips_to_correlate - *init_code_phase) /
+                           code_step);
 
   if (0 == *num_samples) {
     *num_samples = (int)ceil(chips_to_correlate / code_step);
@@ -142,6 +144,59 @@ void l2c_cm_track_correlate(const s8* samples, size_t samples_len,
   track_correlate(L2C_CORRELATOR, samples, code,
                   init_code_phase, code_step, init_carr_phase, carr_step,
                   I_E, Q_E, I_P, Q_P, I_L, Q_L, *num_samples);
+}
+
+/** Perform GLO CA correlation.
+ *
+ * \param samples          Samples array. One byte per sample.
+ * \param samples_len      Samples array size.
+ * \param code             GLO CA PRN code. One byte per chip: 511 bytes long.
+ * \param[in,out] init_code_phase  Initial code phase [chips].
+ *                         The function returns the
+ *                         the last unprocessed code phase here.
+ * \param code_step        Code phase increment step [chips].
+ * \param[in,out] init_carr_phase  Initial carrier phase [radians].
+ *                         The function returns the the last unprocessed carrier
+ *                         phase here.
+ * \param carr_step        Carrier phase increment step [radians].
+ * \param[out] I_E         Early replica in-phase correlation component.
+ * \param[out] Q_E         Early replica quadrature correlation component.
+ * \param[out] I_P         Prompt replica in-phase correlation component.
+ * \param[out] Q_P         Prompt replica quadrature correlation component.
+ * \param[out] I_L         Late replica in-phase correlation component.
+ * \param[out] Q_L         Late replica quadrature correlation component.
+ * \param[out] num_samples The number of processed samples from \e samples array.
+ */
+void glo_ca_track_correlate(const s8* samples, size_t samples_len,
+                            const s8* code,
+                            double* init_code_phase,
+                            double code_step,
+                            double* init_carr_phase,
+                            double carr_step,
+                            double* I_E, double* Q_E,
+                            double* I_P, double* Q_P,
+                            double* I_L, double* Q_L,
+                            u32* num_samples)
+{
+  *num_samples = (u32)ceil((2 * GLO_CA_CHIPS_PER_PRN_CODE - *init_code_phase) /
+                           code_step);
+
+  if (0 == *num_samples) {
+    *num_samples =
+      (int)ceil(2 * GLO_CA_CHIPS_PER_PRN_CODE / code_step);
+  }
+
+  if (*num_samples > samples_len) {
+    *num_samples = samples_len;
+  }
+
+  if (0 == *num_samples) {
+    return;
+  }
+
+  track_correlate(GLOCA_CORRELATOR, samples, code, init_code_phase,
+                  code_step, init_carr_phase, carr_step, I_E, Q_E, I_P,
+                  Q_P, I_L, Q_L, *num_samples);
 }
 
 /** Produce L1 C/A chip for the given code phase
@@ -213,6 +268,43 @@ static inline double l2c_cm_get_code_phase(double code_phase, double code_step)
   return code_phase;
 }
 
+/** Produce GLO C/A chip for the given code phase
+ *
+ * \param code       GLO C/A PRN code array.
+ *                   One byte per sample: 511 bytes long.
+ * \param code_phase Code phase of the chip to return.
+ * \return Code chip.
+ */
+static inline s8 glo_ca_get_chip(const s8 *code, double code_phase)
+{
+  int i;
+  if (code_phase < 0) {
+    i = (int)(code_phase + GLO_CA_CHIPS_PER_PRN_CODE);
+  } else if (code_phase >= GLO_CA_CHIPS_PER_PRN_CODE) {
+    i = (int)(code_phase - GLO_CA_CHIPS_PER_PRN_CODE);
+  } else {
+    i = (int)code_phase;
+  }
+  return code[i];
+}
+
+/** Produce a new GLO C/A code phase given current code phase
+ *  and the step.
+ *
+ * \param code_phase Current code phase [chips].
+ * \param code_step  Code phase update step [chips].
+ * \return New code phase.
+ */
+static inline double glo_ca_get_code_phase(double code_phase,
+                                           double code_step)
+{
+  code_phase += code_step;
+  if (code_phase >= GLO_CA_CHIPS_PER_PRN_CODE) {
+    code_phase -= GLO_CA_CHIPS_PER_PRN_CODE;
+  }
+  return code_phase;
+}
+
 #ifndef __SSSE3__
 
 /** Perform correlation.
@@ -237,6 +329,7 @@ static inline double l2c_cm_get_code_phase(double code_phase, double code_step)
  * \param num_samples      The number of samples to correlate from \e samples
  *                         array.
  */
+
 static void track_correlate(enum correlator_type correlator_type,
                             const s8* restrict samples,
                             const s8* restrict code,
@@ -279,6 +372,12 @@ static void track_correlate(enum correlator_type correlator_type,
       code_L         = l2c_cm_get_chip(code, code_phase + 0.5);
       code_phase_new = l2c_cm_get_code_phase(code_phase, code_step);
       break;
+    case GLOCA_CORRELATOR:
+      code_E         = glo_ca_get_chip(code, code_phase - 0.5);
+      code_P         = glo_ca_get_chip(code, code_phase);
+      code_L         = glo_ca_get_chip(code, code_phase + 0.5);
+      code_phase_new = glo_ca_get_code_phase(code_phase, code_step);
+      break;
     default:
       break;
     }
@@ -290,7 +389,8 @@ static void track_correlate(enum correlator_type correlator_type,
        rotation matrix */
     double carr_sin_ = carr_sin*cos_delta + carr_cos*sin_delta;
     double carr_cos_ = carr_cos*cos_delta - carr_sin*sin_delta;
-    double i_mag = (3.0 - carr_sin_*carr_sin_ - carr_cos_*carr_cos_) / 2.0;
+    double i_mag =
+      (3.0 - carr_sin_*carr_sin_ - carr_cos_*carr_cos_) / 2.0;
     carr_sin = carr_sin_ * i_mag;
     carr_cos = carr_cos_ * i_mag;
 
@@ -304,7 +404,8 @@ static void track_correlate(enum correlator_type correlator_type,
     code_phase = code_phase_new;
   }
   *init_code_phase = code_phase;
-  *init_carr_phase = fmod(*init_carr_phase + num_samples * carr_step, 2*M_PI);
+  *init_carr_phase =
+    fmod(*init_carr_phase + num_samples * carr_step, 2*M_PI);
 }
 
 #else
@@ -363,6 +464,12 @@ static void track_correlate(enum correlator_type correlator_type,
       code_P         = l2c_cm_get_chip(code, code_phase);
       code_L         = l2c_cm_get_chip(code, code_phase + 0.5);
       code_phase_new = l2c_cm_get_code_phase(code_phase, code_step);
+      break;
+    case GLOCA_CORRELATOR:
+      code_E         = glo_ca_get_chip(code, code_phase - 0.5);
+      code_P         = glo_ca_get_chip(code, code_phase);
+      code_L         = glo_ca_get_chip(code, code_phase + 0.5);
+      code_phase_new = glo_ca_get_code_phase(code_phase, code_step);
       break;
     default:
       break;

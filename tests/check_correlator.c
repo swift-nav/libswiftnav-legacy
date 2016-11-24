@@ -4,12 +4,14 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define L1CA_CHIPS_PER_PRN_CODE   1023
-#define L2C_CM_CHIPS_PER_PRN_CODE 10230
+#define L1CA_CHIPS_PER_PRN_CODE     1023
+#define L2C_CM_CHIPS_PER_PRN_CODE   10230
+#define GLOCA_CHIPS_PER_PRN_CODE    511
 
 enum signal_type {
   L1CA_SIGNAL,
-  L2C_SIGNAL
+  L2C_SIGNAL,
+  GLOCA_SIGNAL  
 };
 
 //#define DUMP_RESULTS
@@ -207,6 +209,15 @@ static const u8 gps_l2cm_code[] = {
   0xF1, 0x06, 0x28
 };
 
+static const u8 glo_ca_code[] = {
+  0xFE, 0x0F, 0x7C, 0x5C, 0xC8, 0x25, 0x3B, 0x47, 0x9F, 0x36, 0x2A,
+  0x47, 0x1B, 0x57, 0x13, 0x11, 0x00, 0x84, 0x61, 0x39, 0x56, 0x1B,
+  0xD3, 0x72, 0x28, 0x56, 0x9F, 0xB2, 0x4B, 0x7E, 0x4D, 0x4C, 0xC0,
+  0x63, 0x28, 0xD2, 0xFE, 0x8B, 0x1D, 0x65, 0x9E, 0x3E, 0xE8, 0x35,
+  0xB7, 0x60, 0xB5, 0xF5, 0x50, 0x29, 0x5E, 0x5D, 0xC0, 0xE7, 0x49,
+  0xEB, 0xA8, 0x90, 0xCE, 0x17, 0xB6, 0x68, 0x77, 0x86
+};
+
 struct signal {
   s8* samples;
   size_t size;
@@ -245,6 +256,7 @@ struct signal generate_signal(enum signal_type signal_type,
     double ip;
     switch (signal_type) {
     case L1CA_SIGNAL:
+    case GLOCA_SIGNAL:
       code = prn_code[(int)code_phase];
       break;
     case L2C_SIGNAL:
@@ -259,9 +271,9 @@ struct signal generate_signal(enum signal_type signal_type,
     static bool header = 1;
     static FILE *f;
     if (header) {
-       f = fopen("./gen.csv", "w");
-       fprintf(f, "code_phase,prn\n");
-       header = 0;
+      f = fopen("./gen.csv", "w");
+      fprintf(f, "code_phase,prn\n");
+      header = 0;
     }
     fprintf(f, "%f,%d\n", code_phase, code);
 
@@ -286,6 +298,11 @@ struct signal generate_signal(enum signal_type signal_type,
     case L2C_SIGNAL:
       if (code_phase >= 2 * L2C_CM_CHIPS_PER_PRN_CODE) {
         code_phase -= 2 * L2C_CM_CHIPS_PER_PRN_CODE;
+      }
+      break;
+    case GLOCA_SIGNAL:
+      if (code_phase >= GLOCA_CHIPS_PER_PRN_CODE) {
+        code_phase -= GLOCA_CHIPS_PER_PRN_CODE;
       }
       break;
     }
@@ -323,11 +340,12 @@ static s8* get_prn_code(const u8 *code, size_t code_size,
   return prn_code;
 }
 
-#define SAMPLING_FREQ_HZ        25e6
-#define L1CA_CHIPPING_RATE_HZ   1.023e6
-#define L2C_CM_CHIPPING_RATE_HZ 1.023e6
-#define IF_FREQUENCY_HZ         2e6
-#define CARRIER_DOPPLER_FREQ_HZ 100
+#define SAMPLING_FREQ_HZ          25e6
+#define L1CA_CHIPPING_RATE_HZ     1.023e6
+#define L2C_CM_CHIPPING_RATE_HZ   1.023e6
+#define GLOCA_CHIPPING_RATE_HZ    0.511e6
+#define IF_FREQUENCY_HZ           2e6
+#define CARRIER_DOPPLER_FREQ_HZ   100
 
 START_TEST(test_l1ca_correlator)
 {
@@ -364,7 +382,7 @@ START_TEST(test_l1ca_correlator)
     code,
     L1CA_CHIPS_PER_PRN_CODE,
     &init_code_phase,
-    L1CA_CHIPPING_RATE_HZ / SAMPLING_FREQ_HZ,
+    (L1CA_CHIPPING_RATE_HZ + CARRIER_DOPPLER_FREQ_HZ / 1540.0) / SAMPLING_FREQ_HZ,
     &init_carr_phase,
     (IF_FREQUENCY_HZ + CARRIER_DOPPLER_FREQ_HZ) * 2.0 * M_PI / SAMPLING_FREQ_HZ,
     &I_E, &Q_E,
@@ -426,7 +444,8 @@ START_TEST(test_l2c_cm_correlator)
     code,
     2 * L2C_CM_CHIPS_PER_PRN_CODE,
     &init_code_phase,
-    L2C_CM_CHIPPING_RATE_HZ / SAMPLING_FREQ_HZ,
+    (L2C_CM_CHIPPING_RATE_HZ + CARRIER_DOPPLER_FREQ_HZ / 1200.0) /\
+      SAMPLING_FREQ_HZ,
     &init_carr_phase,
     (IF_FREQUENCY_HZ + CARRIER_DOPPLER_FREQ_HZ) * 2.0 * M_PI / SAMPLING_FREQ_HZ,
     &I_E, &Q_E,
@@ -453,6 +472,74 @@ START_TEST(test_l2c_cm_correlator)
 }
 END_TEST
 
+#define GLOL1_CH0_CARRIER_FREQ_MHZ  1602.0
+
+START_TEST(test_gloca_correlator)
+{
+  struct signal signal;
+  s8* code;
+  double init_code_phase = 0;
+  double init_carr_phase = 0;
+  double I_E;
+  double Q_E;
+  double I_P;
+  double Q_P;
+  double I_L;
+  double Q_L;
+  u32 num_samples;
+  double ca2co_scale = GLOCA_CHIPPING_RATE_HZ /\
+                         GLOL1_CH0_CARRIER_FREQ_MHZ;
+
+  code = get_prn_code(glo_ca_code, sizeof(glo_ca_code),
+                      GLOCA_CHIPS_PER_PRN_CODE);
+  fail_if(NULL == code, "Could not allocate PRN code data");
+
+  signal = generate_signal( GLOCA_SIGNAL,              /* signal type */
+                            IF_FREQUENCY_HZ,     /* intermediate freq */
+                            GLOCA_CHIPPING_RATE_HZ,      /* code freq */
+                            CARRIER_DOPPLER_FREQ_HZ,/* carr dopp freq */
+                            ca2co_scale, /* carr to code scale factor */
+                            SAMPLING_FREQ_HZ,   /* sampling frequency */
+                            code,                    /* PRN code data */
+                            1);           /* milliseconds to generate */
+
+  fail_if(NULL == signal.samples, "Could not generate signal data");
+
+  debug_start_timing();
+
+  glo_ca_track_correlate(signal.samples, signal.size,
+    code,
+    &init_code_phase,
+    (GLOCA_CHIPPING_RATE_HZ + CARRIER_DOPPLER_FREQ_HZ * ca2co_scale)\
+      / SAMPLING_FREQ_HZ,
+    &init_carr_phase,
+    (IF_FREQUENCY_HZ + CARRIER_DOPPLER_FREQ_HZ) * 2.0 * M_PI\
+      / SAMPLING_FREQ_HZ,
+    &I_E, &Q_E,
+    &I_P, &Q_P,
+    &I_L, &Q_L,
+    &num_samples);
+
+  debug_stop_timing();
+
+  debug_dump_results(num_samples, I_E, Q_E, I_P, Q_P, I_L, Q_L);
+
+  /* samples per PRN code */
+  u32 expected_samples = SAMPLING_FREQ_HZ / 1000;
+  fail_if(num_samples != expected_samples);
+
+  fail_if((I_P != 0) && (fabs(I_E / I_P) > 0.6));
+  fail_if((I_P != 0) && (fabs(I_L / I_P) > 0.6));
+
+  fail_if((I_E != 0) && (fabs(Q_E / I_E) > 0.006));
+  fail_if((I_P != 0) && (fabs(Q_P / I_P) > 0.005));
+  fail_if((I_L != 0) && (fabs(Q_L / I_L) > 0.006));
+
+  free(code);
+  free(signal.samples);
+}
+END_TEST
+
 Suite* correlator_suite(void)
 {
   Suite *s = suite_create("Correlator");
@@ -460,6 +547,7 @@ Suite* correlator_suite(void)
 
   tcase_add_test(tc_core, test_l1ca_correlator);
   tcase_add_test(tc_core, test_l2c_cm_correlator);
+  tcase_add_test(tc_core, test_gloca_correlator);
   suite_add_tcase(s, tc_core);
 
   return s;

@@ -45,6 +45,11 @@ def track_correlate(np.ndarray[char, ndim=1, mode="c"] samples,
                   &init_code_phase, code_freq / sampling_freq,
                   &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
                   &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
+  elif signal == "glo_l1" or signal == "glo_l2":
+    glo_ca_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
+                  &init_code_phase, code_freq / sampling_freq,
+                  &init_carr_phase, carr_freq * 2.0 * M_PI / sampling_freq,
+                  &I_E, &Q_E, &I_P, &Q_P, &I_L, &Q_L, &blksize)
   else:
     l2c_cm_track_correlate(<s8*>&samples[0], len(samples), <s8*>&code[0],
                   chips_to_correlate,
