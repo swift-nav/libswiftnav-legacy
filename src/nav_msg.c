@@ -291,24 +291,43 @@ s8 process_subframe(nav_msg_t *n, gnss_signal_t sid,
       return 1;
     }
 
-    if (4 == sf_id) { /* parse Subframe 4 */
-       /*  get words 3-8 from 25th page (SV config
-       *  bits) */
+    /* Subframe 4 & 5 contain almanac data encoded as 64 different pages.
+     * Each page type has a unique SV ID. SV IDs 1-32 correspond to the
+     * almanac orbit data for the same numbered SV PRN.
+     */
+    if ((4 == sf_id) || (5 == sf_id)) {
+      /* Check Word 3 bits 0..1 (61..62) for Data ID, see IS-200H, pg. 109 */
+      /* Data ID for GPS block II and III is "01" which is the only currently
+       * used. ID "00" is for the long obsolete block I */
+      u8 data_id = (n->frame_words[3][3-3] >> (30-2) & 0x3);
+      log_info("Data ID %u", data_id);
+      if (1 == data_id) {
 
-      /* check Word 3 bits 2..7 (63..69) for Page ID, see IS-200H, pg. 84
-       * Page 25 has ID 63, see IS-200H, pg. 109-110 */
-      if ((n->frame_words[3][3-3] >> (30-8) & 0x3f) == 63) {
-        decode_l2c_capability(n->frame_words[3], &(data->gps_l2c_sv_capability));
-        data->gps_l2c_sv_capability_upd_flag = true;
-      }
+        /* Check Word 3 bits 2..7 (63..69) for SV ID, see IS-200H, pg. 84 */
+        u8 sv_id = (n->frame_words[3][3-3] >> (30-8) & 0x3f);
 
-     /* check Word 3 bits 2..7 (63..69) for Page ID 18,
-      * which contains iono data
-      * Page 18 has ID 56, see IS-200H, pg. 109-110 */
-      if ((n->frame_words[3][3-3] >> (30-8) & 0x3f) == 56) {
-       /* decode ionospheric correction data */
-        decode_iono_parameters(n->frame_words[3], &data->iono);
-        data->iono_corr_upd_flag = true;
+        /* SV IDs 1-32 are almanacs */
+        if ((sv_id > 0) && (sv_id <= 32)) {
+          /* TODO decode the almanac */
+        }
+
+        /* Get Words 3-8 from 25th page (SV config bits)
+         * Page 25 has SV ID 63, see IS-200H, pg. 109-110 */
+        if (63 == sv_id) {
+          decode_l2c_capability(n->frame_words[3], &(data->gps_l2c_sv_capability));
+          data->gps_l2c_sv_capability_upd_flag = true;
+        }
+
+       /* Check Word 3 bits 2..7 (63..69) for page 18,
+        * which contains ionospheric and UTC data
+        * Page 18 has SV ID 56, see IS-200H, pg. 109-110 */
+        if (56 == sv_id) {
+         /* decode ionospheric correction data */
+          decode_iono_parameters(n->frame_words[3], &data->iono);
+          data->iono_corr_upd_flag = true;
+
+          /* TODO decode the UTC data */
+        }
       }
 
       /* Got all of subframes 1 to 4 */

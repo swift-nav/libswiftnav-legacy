@@ -55,8 +55,10 @@ void decode_l2c_capability(const u32 *subframe4_words, u32 *l2c_cpbl)
       subframe4_words[i-3] >> (30 - (sv_conf_loc[i-3].end_bit_n + j*4)) & 7;
 
       /* set or clear appropriate capability bit,
-       * refer pg. 115-116 of IS-200H for the criteria */
-      if (2 == sv_conf || 3 == sv_conf || 4 == sv_conf)
+       * refer pg. 115-116 of IS-200H for the criteria
+       * uses an open upper bound to ensure we track L2C on future satellite
+       * generations launched after ICD was updated */
+      if (sv_conf >= 2)
         *l2c_cpbl |= (1 << sv_id);
 
       sv_id++;
