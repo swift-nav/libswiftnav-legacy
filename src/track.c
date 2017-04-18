@@ -14,6 +14,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <assert.h>
 
 #include <libswiftnav/constants.h>
 #include <libswiftnav/prns.h>
@@ -671,14 +672,44 @@ void lock_detect_update(lock_detect_t *l, float I, float Q, float DT)
 void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
                   float cutoff_freq, float loop_freq)
 {
-  float Tw0 = (2*M_PI*cutoff_freq) / loop_freq;
-  s->b = Tw0 / (Tw0 + 2);
-  s->a = (Tw0 - 2) / (Tw0 + 2);
+  assert(loop_freq != 0.0f);
 
-  s->log_bw = 10.f*log10f(bw);
+  (void)cutoff_freq;
+  (void)loop_freq;
+
   s->I_prev_abs = -1.f;
   s->Q_prev_abs = -1.f;
-  s->nsr = powf(10.f, 0.1f*(s->log_bw - cn0_0));
+  s->nsr = bw / powf(10.f, 0.1f*(cn0_0));
+  s->nsr_prev = s->nsr;
+  s->xn = s->nsr;
+  s->xn_prev = s->nsr;
+}
+
+/** Compute C/N0 estimator parameters.
+ *
+ * See cn0_est() for a full description.
+ *
+ * \param p The estimator parameters struct to initialise.
+ * \param bw The loop noise bandwidth in Hz.
+ * \param cutoff_freq The low-pass filter cutoff frequency, \f$f_c\f$, in Hz.
+ * \param loop_freq The loop update frequency, \f$f\f$, in Hz.
+ */
+void cn0_est_compute_params(cn0_est_params_t *p,
+                            float bw,
+                            float cutoff_freq,
+                            float loop_freq)
+{
+  assert(loop_freq != 0.0f);
+  float Tw0 = tanf((M_PI * cutoff_freq) / loop_freq);
+  float Tw0_2 = Tw0 * Tw0;
+  float Tw0_2r = 0.707f * Tw0;
+  float tmp = 1.f / (1.0f + Tw0_2r + Tw0_2);
+  assert(tmp != 0.0f);
+
+  p->b = Tw0_2 * tmp;
+  p->a2 = (-2.0f + 2.0f * Tw0_2) * tmp;
+  p->a3 = (1.0f - Tw0_2r + Tw0_2) * tmp;
+  p->log_bw = 10.f*log10f(bw);
 }
 
 /** Estimate the Carrier-to-Noise Density, \f$ C / N_0 \f$ of a tracked signal.
@@ -692,8 +723,8 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * \f$\hat P_{N, k}\f$ and \f$\hat P_{S, k}\f$, are calculated as follows:
  *
  * \f[
- *    \hat P_{N, k} = \left( \left| Q_k \right| -
- *                    \left| Q_{k-1} \right| \right)^2
+ *    \hat P_{N, k} = \left( \left| I_k \right| -
+ *                    \left| I_{k-1} \right| \right)^2
  * \f]
  * \f[
  *    \hat P_{S, k} = \frac{1}{2} \left( I_k^2 + I_{k-1}^2 \right)
@@ -702,18 +733,20 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  * Where \f$I_k\f$ is the in-phase output of the prompt correlator for the
  * \f$k\f$-th integration period.
  *
- * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a first
+ * The "Noise-to-Signal Ratio" (NSR) is estimated and filtered with a second
  * order low-pass IIR filter with transfer function:
  *
  * \f[
- *    F(s) = \frac{\omega_0}{s + \omega_0}
+ *    F(s) = \frac{\omega_0^2}{s^2 + s\sqrt{2}\omega_0 + \omega_0^2}
  * \f]
  * The bilinear transform is applied to obtain a digital equivalent
  * \f[
- *    F(z) = \frac{b + bz^{-1}}{1 + az^{-1}}
+ *    F(z) = \frac{b + 2bz^{-1} + bz^{-2}}{1 + a_2z^{-1} + a_3z^{-2}}
  * \f]
- * where \f$ b = \frac{T\omega_0}{T\omega_0 + 2} \f$
- * and \f$ a = \frac{T\omega_0 - 2}{T\omega_0 + 2} \f$.
+ * where \f$ \omega_c = \frac{2}{T}\tan (2\pi f_{cut}\frac{T}{2})  \f$
+ * and \f$ b = \frac{\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
+ * and \f$ a_2 = \frac{-2 + 2\omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$
+ * and \f$ a_3 = \frac{1 - \sqrt{2}\omega_c + \omega_c^2}{1 + \sqrt{2}\omega_c + \omega_c^2} \f$.
  *
  * The filtered NSR value is converted to a \f$ C / N_0 \f$ value and returned.
  *
@@ -729,12 +762,13 @@ void cn0_est_init(cn0_est_state_t *s, float bw, float cn0_0,
  *    -# "Are Carrier-to-Noise Algorithms Equivalent in All Situations?"
  *       Inside GNSS, Jan / Feb 2010.
  *
- * \param s The estimator state struct to initialise.
+ * \param s The estimator state struct.
+ * \param p The estimator parameters.
  * \param I The prompt in-phase correlation from the tracking correlator.
  * \param Q The prompt quadrature correlation from the tracking correlator.
  * \return The Carrier-to-Noise Density, \f$ C / N_0 \f$, in dBHz.
  */
-float cn0_est(cn0_est_state_t *s, float I, float Q)
+float cn0_est(cn0_est_state_t *s, const cn0_est_params_t *p, float I, float Q)
 {
   float P_n, P_s;
 
@@ -743,6 +777,7 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
     s->I_prev_abs = fabsf(I);
     s->Q_prev_abs = fabsf(Q);
   } else {
+
     P_n = fabsf(Q) - s->Q_prev_abs;
     P_n = P_n*P_n;
 
@@ -751,12 +786,21 @@ float cn0_est(cn0_est_state_t *s, float I, float Q)
     s->I_prev_abs = fabsf(I);
     s->Q_prev_abs = fabsf(Q);
 
-    float tmp = s->b * P_n / P_s;
-    s->nsr = tmp + s->xn - s->a * s->nsr;
+    /* This is to avoid division by zero. */
+    if (P_s == 0.0) {
+      return p->log_bw - 10.f*log10f(s->nsr);
+    }
+
+    float tmp = P_n / P_s;
+    float tmp2 = s->nsr;
+    s->nsr = (tmp  + s->xn * 2 + s->xn_prev ) * p->b -
+             p->a2 * s->nsr - p->a3 * s->nsr_prev;
+    s->nsr_prev = tmp2;
+    s->xn_prev = s->xn;
     s->xn = tmp;
   }
 
-  return s->log_bw - 10.f*log10f(s->nsr);
+  return p->log_bw - 10.f*log10f(s->nsr);
 }
 
 /** Calculate observations from tracking channel measurements.
