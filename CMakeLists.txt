@@ -70,7 +70,6 @@ endif ()
 
 add_subdirectory(clapack-3.2.1-CMAKE)
 add_subdirectory(CBLAS)
-add_subdirectory(plover)
 add_subdirectory(libfec)
 add_subdirectory(src)
 add_subdirectory(docs)
