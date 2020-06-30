@@ -3,6 +3,6 @@ numpy==1.10.4
 flake8==2.3.0
 pep8==1.5.7
 pytest==2.6.4
-pyyaml==3.11
+pyyaml==4.2
 tox==1.8.1
 virtualenv==1.11.6
