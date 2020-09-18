@@ -16,6 +16,8 @@
 
 #include <libswiftnav/common.h>
 #include <libswiftnav/track.h>
+#include <libswiftnav/ionosphere.h>
+#include <libswiftnav/troposphere.h>
 
 #define PVT_MAX_ITERATIONS 10
 
@@ -84,5 +86,11 @@ s8 calc_PVT(const u8 n_used,
             bool disable_raim,
             gnss_solution *soln,
             dops_t *dops);
+
+void calc_iono_tropo(const u8 n_ready_tdcp,
+                     navigation_measurement_t *nav_meas_tdcp,
+                     const double *pos_ecef,
+                     const double *pos_llh,
+                     const ionosphere_t *iono_params);
 
 #endif /* LIBSWIFTNAV_PVT_H */

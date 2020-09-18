@@ -598,3 +598,56 @@ s8 calc_PVT(const u8 n_used,
 
   return raim_flag;
 }
+
+/** Calculates Iono and Tropo correction
+ * \param n_ready_tdcp The number of measurements written to `m_tdcp`
+ * \param nav_meas_tdcp Pointer to measurements array
+ * \param pos_ecef position in WGS84 Earth Centered, Earth Fixed (ECEF) Cartesian
+ * \param pos_llh position in WGS84 geodetic coordinates
+ * \param iono_params pointer to ionosphere parameters received from L1CA stream */
+void calc_iono_tropo(const u8 n_ready_tdcp,
+                     navigation_measurement_t *nav_meas_tdcp,
+                     const double *pos_ecef,
+                     const double *pos_llh,
+                     const ionosphere_t *iono_params)
+{
+  for (u8 i = 0; i < n_ready_tdcp; i++) {
+    double az, el, cp_correction;
+    double tropo_correction = 0;
+    double iono_correction = 0;
+    /* calculate azimuth and elevation of SV */
+    wgsecef2azel(nav_meas_tdcp[i].sat_pos, pos_ecef, &az, &el);
+    /* calc iono correction if available */
+    if (iono_params) {
+      /* calculate iono correction */
+      iono_correction = calc_ionosphere(&nav_meas_tdcp[i].tot,
+                                        pos_llh[0],
+                                        pos_llh[1],
+                                        az,el,
+                                        iono_params);
+
+      /* correct pseudorange */
+      nav_meas_tdcp[i].pseudorange -= iono_correction;
+      /* correct carrier phase based on iono correction */
+      cp_correction = iono_correction * (GPS_L1_HZ + nav_meas_tdcp[i].doppler)
+                      / GPS_C;
+      nav_meas_tdcp[i].carrier_phase -= cp_correction;
+    }
+
+    /* calculate tropo correction.
+     * ellipsoidal height is used due to lack of a geoid model */
+    tropo_correction = calc_troposphere(&nav_meas_tdcp[i].tot,
+                                        pos_llh[0],
+                                        pos_llh[2],
+                                        el);
+    /* correct pseudorange */
+    nav_meas_tdcp[i].pseudorange -= tropo_correction;
+    /* correct carrier phase based on tropo correction */
+    cp_correction = tropo_correction * (GPS_L1_HZ + nav_meas_tdcp[i].doppler)
+                    / GPS_C;
+    /* sign here is opposite to normal due to
+     * Piksi's unusual sign convention on carrier phase */
+    nav_meas_tdcp[i].carrier_phase += cp_correction;
+    log_debug("%u: I %10.5f, T %10.5f", i, iono_correction, tropo_correction);
+  }
+}

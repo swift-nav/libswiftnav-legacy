@@ -3,6 +3,8 @@
 #include <math.h>
 
 #include <libswiftnav/pvt.h>
+#include <libswiftnav/constants.h>
+#include <libswiftnav/coord_system.h>
 
 #include "check_utils.h"
 
@@ -146,6 +148,52 @@ START_TEST(test_dops)
 }
 END_TEST
 
+START_TEST(iono_tropo_usage_test)
+{
+  /*NOTE: this unit test is checked calc_iono_tropo function usage only.
+   * Find iono and tropo correction unit tests in check_ionosphere.c and
+   * check_troposphere.c accordingly*/
+  u8 n_ready_tdcp = 1;
+  navigation_measurement_t nav_meas_tdcp = {
+      .tot = {.wn = 1875, .tow = 479820},
+      .sid = {.sat = 1},
+      .pseudorange = 22932174.156858064,
+      .sat_pos = {-9680013.5408340245, -15286326.354385279, 19429449.383770257},
+  };
+  double pos_ecef[3];
+  double pos_llh[3] = {-35.3 * D2R, 149.1 * D2R, 0};
+
+  wgsllh2ecef(pos_llh, pos_ecef);
+
+  double pr_tropo_correced = 22932178.51241;
+  double pr_iono_tropo_corrected = 22932162.13463;
+
+  ionosphere_t i = {.a0 = 0.1583e-7, .a1 = -0.7451e-8,
+                    .a2 = -0.5960e-7, .a3 = 0.1192e-6,
+                    .b0 = 0.1290e6, .b1 = -0.2130e6,
+                    .b2 = 0.6554e5, .b3 = 0.3277e6};
+
+  calc_iono_tropo(n_ready_tdcp,
+                  &nav_meas_tdcp,
+                  pos_ecef,
+                  pos_llh,
+                  &i);
+
+  fail_unless(nav_meas_tdcp.pseudorange - pr_iono_tropo_corrected < 0.0001,
+              "Pseudorange Iono and Tropo corrected is out of range");
+
+  nav_meas_tdcp.pseudorange = 22932174.156858064;
+
+  calc_iono_tropo(n_ready_tdcp,
+                  &nav_meas_tdcp,
+                  pos_ecef,
+                  pos_llh,
+                  (ionosphere_t*)NULL);
+
+  fail_unless(nav_meas_tdcp.pseudorange - pr_tropo_correced < 0.0001,
+              "Pseudorange Tropo corrected is out of range");
+}
+END_TEST
 
 Suite* pvt_test_suite(void)
 {
@@ -156,6 +204,7 @@ Suite* pvt_test_suite(void)
   tcase_add_test(tc_core, test_pvt_failed_repair);
   tcase_add_test(tc_core, test_disable_pvt_raim);
   tcase_add_test(tc_core, test_dops);
+  tcase_add_test(tc_core, iono_tropo_usage_test);
   suite_add_tcase(s, tc_core);
 
   return s;
