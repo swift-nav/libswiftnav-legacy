@@ -1,5 +1,7 @@
-libswiftnav
+libswiftnav - ARCHIVED
 ===========
+
+Please see https://github.com/swift-nav/libswiftnav
 
 [![Build status][1]][2] [![Coverage status][3]][4]
 
